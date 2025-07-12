@@ -61,7 +61,25 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				gaming: {
+					gold: 'hsl(var(--gaming-gold))',
+					'gold-foreground': 'hsl(var(--gaming-gold-foreground))',
+					success: 'hsl(var(--gaming-success))',
+					'success-foreground': 'hsl(var(--gaming-success-foreground))',
+					danger: 'hsl(var(--gaming-danger))',
+					'danger-foreground': 'hsl(var(--gaming-danger-foreground))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-card': 'var(--gradient-card)'
+			},
+			boxShadow: {
+				'gaming': 'var(--shadow-gaming)',
+				'card-gaming': 'var(--shadow-card)',
+				'glow': 'var(--shadow-glow)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
