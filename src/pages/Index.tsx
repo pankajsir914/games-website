@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import DisclaimerModal from '@/components/DisclaimerModal';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -35,7 +36,21 @@ const Index = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [walletBalance] = useState(25000);
+
+  // Show disclaimer when component mounts
+  useEffect(() => {
+    setIsDisclaimerOpen(true);
+  }, []);
+
+  const handleDisclaimerAgree = () => {
+    setIsDisclaimerOpen(false);
+  };
+
+  const handleDisclaimerExit = () => {
+    window.location.href = 'https://www.google.com';
+  };
 
   const games = [
     {
@@ -530,6 +545,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <DisclaimerModal 
+        isOpen={isDisclaimerOpen}
+        onAgree={handleDisclaimerAgree}
+        onExit={handleDisclaimerExit}
+      />
+      
       <Navigation />
       <HeroSection />
       <WalletSection />
