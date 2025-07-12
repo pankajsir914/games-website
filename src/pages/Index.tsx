@@ -1,41 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import DisclaimerModal from '@/components/DisclaimerModal';
+import Navigation from '@/components/Navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Menu, 
-  X, 
-  Wallet, 
   Plus, 
-  Star, 
   Play, 
-  Users, 
   Trophy,
   Sparkles,
   Crown,
-  Zap,
+  Wallet,
   Facebook,
   Twitter,
   Instagram,
   Youtube,
   Mail,
   Phone,
-  MapPin,
+  Clock,
   Shield,
-  CreditCard,
-  Clock
+  CreditCard
 } from 'lucide-react';
 
 const Index = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [walletBalance] = useState(25000);
 
@@ -51,195 +37,6 @@ const Index = () => {
   const handleDisclaimerExit = () => {
     window.location.href = 'https://www.google.com';
   };
-
-  const games = [
-    {
-      id: 1,
-      title: "Ludo King",
-      image: "https://via.placeholder.com/300x200?text=Ludo+King",
-      players: "2-4 Players",
-      prize: "₹10,000",
-      category: "Board Game"
-    },
-    {
-      id: 2,
-      title: "Teen Patti",
-      image: "https://via.placeholder.com/300x200?text=Teen+Patti",
-      players: "3-6 Players", 
-      prize: "₹50,000",
-      category: "Card Game"
-    },
-    {
-      id: 3,
-      title: "Rummy",
-      image: "https://via.placeholder.com/300x200?text=Rummy",
-      players: "2-6 Players",
-      prize: "₹25,000", 
-      category: "Card Game"
-    },
-    {
-      id: 4,
-      title: "Aviator",
-      image: "https://via.placeholder.com/300x200?text=Aviator",
-      players: "Unlimited",
-      prize: "₹1,00,000",
-      category: "Crash Game"
-    },
-    {
-      id: 5,
-      title: "Poker",
-      image: "https://via.placeholder.com/300x200?text=Poker",
-      players: "2-9 Players",
-      prize: "₹75,000",
-      category: "Card Game"
-    },
-    {
-      id: 6,
-      title: "Blackjack",
-      image: "https://via.placeholder.com/300x200?text=Blackjack",
-      players: "1-7 Players",
-      prize: "₹30,000",
-      category: "Casino"
-    }
-  ];
-
-  const Navigation = () => (
-    <nav className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="bg-gradient-primary rounded-lg p-2">
-              <Crown className="h-6 w-6 text-gaming-gold-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              GameZone
-            </span>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-foreground hover:text-primary transition-colors">Home</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Games</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Tournaments</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Support</a>
-          </div>
-
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Login</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Login to GameZone</DialogTitle>
-                </DialogHeader>
-                <Tabs defaultValue="email" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="email">Email</TabsTrigger>
-                    <TabsTrigger value="mobile">Mobile</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="email" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="Enter your email" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" placeholder="Enter your password" />
-                    </div>
-                    <Button className="w-full">Login</Button>
-                  </TabsContent>
-                  <TabsContent value="mobile" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mobile">Mobile Number</Label>
-                      <Input id="mobile" type="tel" placeholder="Enter your mobile number" />
-                    </div>
-                    <Button className="w-full">Send OTP</Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isSignupOpen} onOpenChange={setIsSignupOpen}>
-              <DialogTrigger asChild>
-                <Button>Sign Up</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Join GameZone</DialogTitle>
-                </DialogHeader>
-                <Tabs defaultValue="email" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="email">Email</TabsTrigger>
-                    <TabsTrigger value="mobile">Mobile</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="email" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Full Name</Label>
-                      <Input id="signup-name" placeholder="Enter your full name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input id="signup-email" type="email" placeholder="Enter your email" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input id="signup-password" type="password" placeholder="Create a password" />
-                    </div>
-                    <Button className="w-full">Create Account</Button>
-                  </TabsContent>
-                  <TabsContent value="mobile" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name-mobile">Full Name</Label>
-                      <Input id="signup-name-mobile" placeholder="Enter your full name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-mobile">Mobile Number</Label>
-                      <Input id="signup-mobile" type="tel" placeholder="Enter your mobile number" />
-                    </div>
-                    <Button className="w-full">Send OTP</Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-t border-border">
-              <a href="#" className="block px-3 py-2 text-foreground hover:text-primary">Home</a>
-              <a href="#" className="block px-3 py-2 text-muted-foreground hover:text-primary">Games</a>
-              <a href="#" className="block px-3 py-2 text-muted-foreground hover:text-primary">Tournaments</a>
-              <a href="#" className="block px-3 py-2 text-muted-foreground hover:text-primary">Support</a>
-              <div className="flex space-x-4 px-3 pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setIsLoginOpen(true)}>
-                  Login
-                </Button>
-                <Button className="flex-1" onClick={() => setIsSignupOpen(true)}>
-                  Sign Up
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </nav>
-  );
 
   const HeroSection = () => (
     <section className="relative bg-gradient-hero min-h-[600px] flex items-center justify-center overflow-hidden">
@@ -318,70 +115,6 @@ const Index = () => {
               View History
             </Button>
           </div>
-        </div>
-      </div>
-    </section>
-  );
-
-  const GamesSection = () => (
-    <section className="py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Featured <span className="bg-gradient-primary bg-clip-text text-transparent">Games</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Choose from our exciting collection of skill-based games and win real money prizes
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {games.map((game) => (
-            <Card key={game.id} className="bg-gradient-card border-border hover:shadow-card-gaming transition-all duration-300 hover:scale-105 group">
-              <CardHeader className="p-0">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <img 
-                    src={game.image} 
-                    alt={game.title}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <Badge variant="secondary" className="bg-primary/90 text-primary-foreground">
-                      {game.category}
-                    </Badge>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <div className="bg-gaming-success/90 text-gaming-success-foreground px-2 py-1 rounded text-sm font-medium">
-                      {game.prize}
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <CardTitle className="text-xl mb-2">{game.title}</CardTitle>
-                <div className="flex items-center text-muted-foreground mb-4">
-                  <Users className="h-4 w-4 mr-2" />
-                  {game.players}
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-gaming-gold">
-                    <Star className="h-4 w-4 mr-1" />
-                    <span className="text-sm font-medium">4.8 Rating</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    <Zap className="h-4 w-4 inline mr-1" />
-                    Quick Play
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="p-6 pt-0">
-                <Button className="w-full shadow-gaming group-hover:shadow-glow transition-all duration-300">
-                  <Play className="mr-2 h-4 w-4" />
-                  Play Now
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
         </div>
       </div>
     </section>
@@ -554,7 +287,6 @@ const Index = () => {
       <Navigation />
       <HeroSection />
       <WalletSection />
-      <GamesSection />
       <FeaturesSection />
       <Footer />
     </div>
