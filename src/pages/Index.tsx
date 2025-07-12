@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
   Menu, 
   X, 
@@ -17,7 +18,17 @@ import {
   Trophy,
   Sparkles,
   Crown,
-  Zap
+  Zap,
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
+  Mail,
+  Phone,
+  MapPin,
+  Shield,
+  CreditCard,
+  Clock
 } from 'lucide-react';
 
 const Index = () => {
@@ -399,6 +410,124 @@ const Index = () => {
     </section>
   );
 
+  const Footer = () => (
+    <footer className="bg-secondary/50 border-t border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Company Info */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="bg-gradient-primary rounded-lg p-2">
+                <Crown className="h-6 w-6 text-gaming-gold-foreground" />
+              </div>
+              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                GameZone
+              </span>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Experience the thrill of real money gaming with our premium collection of skill-based games. 
+              Play responsibly and win big!
+            </p>
+            <div className="flex space-x-4">
+              <Button variant="ghost" size="icon" className="hover:text-primary">
+                <Facebook className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="hover:text-primary">
+                <Twitter className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="hover:text-primary">
+                <Instagram className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="hover:text-primary">
+                <Youtube className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">Quick Links</h3>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Home</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Games</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Tournaments</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Leaderboard</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">How to Play</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Rewards</a></li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">Support</h3>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Help Center</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Responsible Gaming</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Fair Play</a></li>
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">Get in Touch</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Mail className="h-4 w-4" />
+                <span>support@gamezone.com</span>
+              </div>
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                <span>+91 98765 43210</span>
+              </div>
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>24/7 Customer Support</span>
+              </div>
+            </div>
+            
+            {/* Trust Badges */}
+            <div className="pt-4">
+              <p className="text-xs text-muted-foreground mb-2">Trusted & Secure</p>
+              <div className="flex space-x-2">
+                <div className="bg-gaming-success/10 p-2 rounded">
+                  <Shield className="h-4 w-4 text-gaming-success" />
+                </div>
+                <div className="bg-primary/10 p-2 rounded">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Bottom Section */}
+        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <div className="text-sm text-muted-foreground">
+            © 2024 GameZone. All rights reserved.
+          </div>
+          <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+            <span>🔞 18+ Only</span>
+            <span>Play Responsibly</span>
+            <span>Licensed & Regulated</span>
+          </div>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+          <p className="text-xs text-muted-foreground text-center">
+            <strong>Disclaimer:</strong> This game involves an element of financial risk and may be addictive. 
+            Please play responsibly and at your own risk. GameZone is committed to promoting responsible gaming.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -406,6 +535,7 @@ const Index = () => {
       <WalletSection />
       <GamesSection />
       <FeaturesSection />
+      <Footer />
     </div>
   );
 };
