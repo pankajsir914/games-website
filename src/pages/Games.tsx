@@ -125,58 +125,61 @@ const Games = () => {
       </section>
 
       {/* Games Grid */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredGames.map((game) => (
-              <Card key={game.id} className="bg-gradient-card border-border hover:shadow-card-gaming transition-all duration-300 hover:scale-105 group">
-                <CardHeader className="p-0">
-                  <div className="relative overflow-hidden rounded-t-lg">
-                    <img 
-                      src={game.image} 
-                      alt={game.title}
-                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <Badge variant="secondary" className="bg-primary/90 text-primary-foreground">
-                        {game.category}
-                      </Badge>
-                    </div>
-                    <div className="absolute top-4 right-4">
-                      <div className="bg-gaming-success/90 text-gaming-success-foreground px-2 py-1 rounded text-sm font-medium">
-                        {game.prize}
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <CardTitle className="text-xl mb-2">{game.title}</CardTitle>
-                  <div className="flex items-center text-muted-foreground mb-4">
-                    <Users className="h-4 w-4 mr-2" />
-                    {game.players}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-gaming-gold">
-                      <Star className="h-4 w-4 mr-1" />
-                      <span className="text-sm font-medium">4.8 Rating</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <Zap className="h-4 w-4 inline mr-1" />
-                      Quick Play
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-6 pt-0">
-                  <Button className="w-full shadow-gaming group-hover:shadow-glow transition-all duration-300">
-                    <Play className="mr-2 h-4 w-4" />
-                    Play Now
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <section className="py-10">
+  <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+      {filteredGames.map((game) => (
+        <Card
+          key={game.id}
+          className="bg-gradient-card border border-border hover:shadow-card-gaming transition-all duration-300 hover:scale-[1.02] group"
+        >
+          <CardHeader className="p-0">
+            <div className="relative overflow-hidden rounded-t-lg">
+              <img
+                src={game.image}
+                alt={game.title}
+                className="w-full h-36 sm:h-40 md:h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute top-2 left-2">
+                <Badge variant="secondary" className="bg-primary/90 text-primary-foreground text-xs px-2 py-0.5">
+                  {game.category}
+                </Badge>
+              </div>
+              <div className="absolute top-2 right-2">
+                <div className="bg-gaming-success/90 text-gaming-success-foreground px-2 py-0.5 rounded text-xs font-medium">
+                  {game.prize}
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-3 sm:p-4">
+            <CardTitle className="text-base sm:text-lg mb-1 sm:mb-2">{game.title}</CardTitle>
+            <div className="flex items-center text-muted-foreground text-sm mb-2">
+              <Users className="h-4 w-4 mr-1" />
+              {game.players}
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center text-gaming-gold">
+                <Star className="h-4 w-4 mr-1" />
+                <span className="font-medium">4.8 Rating</span>
+              </div>
+              <div className="text-muted-foreground flex items-center">
+                <Zap className="h-4 w-4 mr-1" />
+                Quick Play
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="p-3 pt-0 sm:p-4 sm:pt-0">
+            <Button className="w-full text-sm py-2 shadow-gaming group-hover:shadow-glow transition-all duration-300">
+              <Play className="mr-2 h-4 w-4" />
+              Play Now
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* Features Section */}
       <section className="py-16 bg-secondary/30">
