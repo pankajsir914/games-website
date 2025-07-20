@@ -1,0 +1,114 @@
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Settings, Edit, TrendingUp } from 'lucide-react';
+
+const games = [
+  {
+    id: 1,
+    name: 'Ludo',
+    status: 'active',
+    players: 1250,
+    revenue: 45680,
+    minBet: 10,
+    maxBet: 10000,
+    commission: 5
+  },
+  {
+    id: 2,
+    name: 'Teen Patti',
+    status: 'active',
+    players: 890,
+    revenue: 67420,
+    minBet: 50,
+    maxBet: 50000,
+    commission: 8
+  },
+  {
+    id: 3,
+    name: 'Rummy',
+    status: 'maintenance',
+    players: 0,
+    revenue: 0,
+    minBet: 25,
+    maxBet: 25000,
+    commission: 6
+  },
+  {
+    id: 4,
+    name: 'Aviator',
+    status: 'active',
+    players: 2100,
+    revenue: 123450,
+    minBet: 1,
+    maxBet: 100000,
+    commission: 3
+  }
+];
+
+export const GameSettingsCards = () => {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-gaming-success">Active</Badge>;
+      case 'maintenance':
+        return <Badge variant="secondary">Maintenance</Badge>;
+      case 'disabled':
+        return <Badge variant="destructive">Disabled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {games.map((game) => (
+        <Card key={game.id}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="text-lg font-semibold">{game.name}</CardTitle>
+            {getStatusBadge(game.status)}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Active Players</p>
+                <p className="font-semibold">{game.players.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Revenue</p>
+                <p className="font-semibold text-gaming-success">₹{game.revenue.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Min Bet</p>
+                <p className="font-semibold">₹{game.minBet}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Max Bet</p>
+                <p className="font-semibold">₹{game.maxBet.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Commission: {game.commission}%</span>
+              <Switch checked={game.status === 'active'} />
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Analytics
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
