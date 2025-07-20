@@ -98,7 +98,7 @@ const Ludo = () => {
     
     if (token.boardPosition !== null) {
       const newPosition = calculateNewPosition(token, diceValue);
-      return newPosition !== null && newPosition <= getHomePosition(token.player);
+      return newPosition !== null && newPosition <= getHomePosition(token.player as ActivePlayer);
     }
     
     return false;
@@ -107,7 +107,7 @@ const Ludo = () => {
   const calculateNewPosition = (token: Token, diceValue: number): number | null => {
     if (token.boardPosition === null) return null;
     
-    const homePosition = getHomePosition(token.player);
+    const homePosition = getHomePosition(token.player as ActivePlayer);
     const newPosition = token.boardPosition + diceValue;
     
     return newPosition <= homePosition ? newPosition : null;
@@ -119,7 +119,7 @@ const Ludo = () => {
   };
 
   const getStartPosition = (player: ActivePlayer): number => {
-    const startPositions = { red: 1, yellow: 14, green: 27, blue: 40 };
+    const startPositions = { red: 1, yellow: 14 };
     return startPositions[player];
   };
 
