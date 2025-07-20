@@ -22,7 +22,7 @@ const ImprovedLudoBoard: React.FC<ImprovedLudoBoardProps> = ({
   const getDiceIcon = (value: number) => {
     const icons = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
     const Icon = icons[value as keyof typeof icons] || Dice1;
-    return <Icon className="w-8 h-8 text-white" />;
+    return <Icon className="w-6 h-6 md:w-8 md:h-8 text-white drop-shadow-lg" />;
   };
 
   const getBoardPosition = (player: ActivePlayer, tokenIndex: number): { x: number; y: number } => {
@@ -84,29 +84,35 @@ const ImprovedLudoBoard: React.FC<ImprovedLudoBoardProps> = ({
     const isRedHome = x >= 6 && x <= 8 && y >= 1 && y <= 6 && x === 7;
     const isYellowHome = x >= 6 && x <= 8 && y >= 8 && y <= 13 && x === 7;
     const isPath = (x === 6 || x === 7 || x === 8) || (y === 6 || y === 7 || y === 8);
+    const isSafeSpot = (x === 1 && y === 8) || (x === 6 && y === 2) || (x === 8 && y === 12) || (x === 13 && y === 6);
+    const isStartSpot = (x === 1 && y === 6) || (x === 8 && y === 1) || (x === 13 && y === 8) || (x === 6 && y === 13);
     
-    let cellClass = "w-10 h-10 border border-gray-400 flex items-center justify-center text-xs relative transition-all ";
+    let cellClass = "w-6 h-6 md:w-10 md:h-10 flex items-center justify-center text-xs relative transition-all duration-300 hover:scale-105 ";
     
     if (isCenter) {
       return (
-        <div key={`${x}-${y}`} className={cellClass + "bg-gradient-to-br from-purple-400 to-pink-400 rounded-full shadow-lg"}>
-          <div className={`bg-black/20 rounded-lg p-2 ${isRolling ? 'animate-spin' : ''}`}>
+        <div key={`${x}-${y}`} className={cellClass + "bg-gradient-to-br from-purple-400 via-pink-400 to-purple-500 rounded-full shadow-xl backdrop-blur-md border border-white/20"}>
+          <div className={`bg-black/10 backdrop-blur-sm rounded-xl p-1 md:p-2 border border-white/30 shadow-inner ${isRolling ? 'animate-spin' : ''}`}>
             {getDiceIcon(diceValue)}
           </div>
         </div>
       );
     }
     
-    if (isRedBase) cellClass += "bg-gradient-to-br from-red-200 to-red-300 ";
-    else if (isYellowBase) cellClass += "bg-gradient-to-br from-yellow-200 to-yellow-300 ";
-    else if (isRedHome) cellClass += "bg-gradient-to-br from-red-300 to-red-400 ";
-    else if (isYellowHome) cellClass += "bg-gradient-to-br from-yellow-300 to-yellow-400 ";
-    else if (isPath) cellClass += "bg-gradient-to-br from-white to-gray-100 ";
-    else cellClass += "bg-gradient-to-br from-green-200 to-green-300 ";
+    if (isRedBase) cellClass += "bg-gradient-to-br from-red-200/80 to-red-300/80 backdrop-blur-sm border border-red-300/50 rounded-lg shadow-md ";
+    else if (isYellowBase) cellClass += "bg-gradient-to-br from-yellow-200/80 to-yellow-300/80 backdrop-blur-sm border border-yellow-300/50 rounded-lg shadow-md ";
+    else if (isRedHome) cellClass += "bg-gradient-to-br from-red-300/70 to-red-400/70 backdrop-blur-sm border border-red-400/50 rounded-md shadow-lg ";
+    else if (isYellowHome) cellClass += "bg-gradient-to-br from-yellow-300/70 to-yellow-400/70 backdrop-blur-sm border border-yellow-400/50 rounded-md shadow-lg ";
+    else if (isPath) cellClass += "bg-gradient-to-br from-white/80 to-gray-100/80 backdrop-blur-sm border border-gray-200/50 rounded-md shadow-md ";
+    else cellClass += "bg-gradient-to-br from-green-200/60 to-green-300/60 backdrop-blur-sm border border-green-300/40 rounded-lg shadow-sm ";
     
-    // Add special markers for safe spots
-    if ((x === 1 && y === 8) || (x === 6 && y === 2) || (x === 8 && y === 12) || (x === 13 && y === 6)) {
-      cellClass += "ring-2 ring-blue-500 ";
+    // Add special styling for safe and start spots
+    if (isSafeSpot) {
+      cellClass += "ring-2 ring-blue-400/60 ring-offset-1 ring-offset-white/20 ";
+    }
+    
+    if (isStartSpot) {
+      cellClass += "ring-2 ring-yellow-400/60 ring-offset-1 ring-offset-white/20 ";
     }
     
     // Add tokens that are on this position
@@ -128,16 +134,23 @@ const ImprovedLudoBoard: React.FC<ImprovedLudoBoardProps> = ({
             isCurrentPlayer={token.player === currentPlayer}
             style={{
               position: 'absolute',
-              zIndex: index + 1,
-              transform: `translate(${index * 3}px, ${index * 3}px)`
+              zIndex: index + 10,
+              transform: `translate(${index * 2}px, ${index * 2}px)`
             }}
           />
         ))}
         
-        {/* Add star markers for starting positions */}
-        {((x === 1 && y === 6) || (x === 8 && y === 1) || (x === 13 && y === 8) || (x === 6 && y === 13)) && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full shadow-sm"></div>
+        {/* Safe spot markers */}
+        {isSafeSpot && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-full shadow-lg animate-pulse"></div>
+          </div>
+        )}
+        
+        {/* Start spot markers */}
+        {isStartSpot && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-2 h-2 md:w-3 md:h-3 bg-yellow-500 rounded-full shadow-lg"></div>
           </div>
         )}
       </div>
@@ -145,23 +158,25 @@ const ImprovedLudoBoard: React.FC<ImprovedLudoBoardProps> = ({
   };
 
   return (
-    <div className="flex justify-center mb-8 p-4">
+    <div className="flex justify-center p-2 md:p-4">
       <div className="relative">
-        {/* Board Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-100 to-orange-200 rounded-2xl shadow-2xl"></div>
+        {/* Glassmorphic Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-blue-50/30 to-purple-50/20 rounded-3xl shadow-2xl backdrop-blur-xl border border-white/30"></div>
         
         {/* Game Board */}
-        <div className="relative grid grid-cols-15 gap-1 bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-2xl shadow-2xl border-8 border-amber-400">
+        <div className="relative grid grid-cols-15 gap-0.5 md:gap-1 bg-gradient-to-br from-white/10 to-transparent p-3 md:p-6 rounded-3xl backdrop-blur-lg border border-white/20 shadow-2xl">
           {Array.from({ length: 15 }, (_, y) =>
             Array.from({ length: 15 }, (_, x) => renderBoardCell(x, y))
           )}
         </div>
         
-        {/* Corner Decorations */}
-        <div className="absolute -top-4 -left-4 w-8 h-8 bg-red-500 rounded-full shadow-lg"></div>
-        <div className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-500 rounded-full shadow-lg"></div>
-        <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-green-500 rounded-full shadow-lg"></div>
-        <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-blue-500 rounded-full shadow-lg"></div>
+        {/* Corner Player Indicators */}
+        <div className="absolute -top-3 -left-3 w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-red-400 to-red-600 rounded-full shadow-xl border-2 border-white/50 backdrop-blur-sm"></div>
+        <div className="absolute -top-3 -right-3 w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full shadow-xl border-2 border-white/50 backdrop-blur-sm"></div>
+        
+        {/* Floating Elements */}
+        <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-gradient-to-br from-pink-300 to-purple-400 rounded-full shadow-lg animate-bounce delay-100"></div>
+        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-gradient-to-br from-blue-300 to-indigo-400 rounded-full shadow-lg animate-bounce delay-300"></div>
       </div>
     </div>
   );

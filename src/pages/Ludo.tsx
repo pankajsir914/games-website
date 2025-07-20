@@ -276,13 +276,20 @@ const Ludo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-100">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-br from-purple-300/20 to-pink-300/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-gradient-to-br from-blue-300/20 to-indigo-300/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 bg-gradient-to-br from-green-300/20 to-emerald-300/20 rounded-full blur-2xl animate-bounce delay-500"></div>
+      </div>
+
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 md:px-4 py-4 md:py-8 pt-16 md:pt-8 relative z-10">
         <GameHeader gameState={gameState} />
         
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <ImprovedLudoBoard 
             tokens={tokens} 
             onTokenClick={selectToken}
@@ -296,6 +303,24 @@ const Ludo = () => {
             onRollDice={rollDice}
             onResetGame={handleBackToSetup}
           />
+        </div>
+      </div>
+
+      {/* Mobile Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-white/95 via-white/90 to-transparent backdrop-blur-lg border-t border-white/30 p-4 md:hidden shadow-2xl">
+        <div className="flex items-center justify-between max-w-sm mx-auto">
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground">Current Player</div>
+            <div className={`text-sm font-bold bg-gradient-to-r ${gameState.currentPlayer === 'red' ? 'from-red-500 to-red-600' : 'from-yellow-500 to-yellow-600'} bg-clip-text text-transparent`}>
+              {gameState.currentPlayer.toUpperCase()}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground">Dice</div>
+              <div className="text-lg font-bold text-primary">{gameState.diceValue}</div>
+            </div>
+          </div>
         </div>
       </div>
 
