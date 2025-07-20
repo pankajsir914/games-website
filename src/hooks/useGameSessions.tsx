@@ -53,7 +53,12 @@ export const useGameSessions = (gameType?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as GameSession[];
+      
+      // Transform the data to match our interface
+      return (data || []).map(session => ({
+        ...session,
+        players: session.players as unknown as GamePlayers
+      })) as GameSession[];
     },
     enabled: !!user,
   });
@@ -126,8 +131,8 @@ export const useGameSessions = (gameType?: string) => {
 
       if (fetchError) throw fetchError;
 
-      // Parse players data
-      const playersData = session.players as GamePlayers;
+      // Parse players data with proper type casting
+      const playersData = session.players as unknown as GamePlayers;
       const userIds = playersData?.user_ids || [];
       
       // Check if user is already in the game
@@ -190,7 +195,7 @@ export const useGameSessions = (gameType?: string) => {
       updates
     }: {
       sessionId: string;
-      updates: Partial<GameSession>;
+      updates: Record<string, any>;
     }) => {
       const { data, error } = await supabase
         .from('game_sessions')

@@ -104,7 +104,9 @@ export const useWallet = () => {
       });
 
       if (error) throw error;
-      return data as WalletUpdateResponse;
+      
+      // Type assertion for the response from the database function
+      return data as unknown as WalletUpdateResponse;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wallet', user?.id] });
