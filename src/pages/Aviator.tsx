@@ -237,20 +237,20 @@ const Aviator = () => {
     <div className="min-h-screen bg-gradient-hero">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-3 sm:mb-4">
               <span className="bg-gradient-primary bg-clip-text text-transparent">Aviator</span>
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
               Watch the plane fly and cash out before it crashes!
             </p>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Game Interface - Takes most space */}
-            <div className="xl:col-span-3">
+            <div className="xl:col-span-3 order-1">
               <GameInterface 
                 gameData={gameData}
                 bettingCountdown={bettingCountdown}
@@ -259,15 +259,22 @@ const Aviator = () => {
             </div>
 
             {/* Controls and Stats Sidebar */}
-            <div className="xl:col-span-2 space-y-6">
+            <div className="xl:col-span-2 space-y-4 sm:space-y-6 order-2">
               <GameControls
                 gameData={gameData}
                 setGameData={setGameData}
                 onPlaceBet={placeBet}
                 bettingCountdown={bettingCountdown}
               />
-              <GameStats gameData={gameData} />
+              <div className="hidden sm:block">
+                <GameStats gameData={gameData} />
+              </div>
             </div>
+          </div>
+
+          {/* Mobile Stats - Show below on mobile */}
+          <div className="sm:hidden mt-4">
+            <GameStats gameData={gameData} />
           </div>
         </div>
       </div>

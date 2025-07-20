@@ -30,51 +30,49 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: G
   const canBet = gameData.gameState === 'betting' && bettingCountdown > 0 && !gameData.hasBet;
 
   return (
-    <div className="space-y-6">
-      {/* Balance Card */}
-      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 shadow-xl">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Enhanced Balance Card */}
+      <Card className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-slate-700/50 shadow-xl backdrop-blur-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center space-x-2">
-            <Wallet className="h-5 w-5 text-gaming-gold" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-gaming-gold" />
             <span>Your Wallet</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Balance:</span>
-              <span className="text-2xl font-bold text-gaming-gold">₹{gameData.balance.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Total Profit:</span>
-              <span className={`text-xl font-bold ${
-                gameData.profit >= 0 ? 'text-gaming-success' : 'text-gaming-danger'
-              }`}>
-                {gameData.profit >= 0 ? '+' : ''}₹{gameData.profit.toFixed(2)}
-              </span>
-            </div>
+        <CardContent className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground text-sm sm:text-base">Balance:</span>
+            <span className="text-xl sm:text-2xl font-bold text-gaming-gold tabular-nums">₹{gameData.balance.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground text-sm sm:text-base">Total Profit:</span>
+            <span className={`text-lg sm:text-xl font-bold tabular-nums ${
+              gameData.profit >= 0 ? 'text-gaming-success' : 'text-gaming-danger'
+            }`}>
+              {gameData.profit >= 0 ? '+' : ''}₹{gameData.profit.toFixed(2)}
+            </span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Betting Status */}
+      {/* Enhanced Betting Status */}
       {gameData.gameState === 'betting' && (
-        <Card className="bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30 shadow-xl">
-          <CardContent className="pt-6">
+        <Card className="bg-gradient-to-br from-primary/20 to-primary/10 border-primary/30 shadow-xl backdrop-blur-sm">
+          <CardContent className="pt-4 sm:pt-6">
             <div className="text-center">
-              <Timer className="h-8 w-8 text-primary mx-auto mb-2" />
-              <div className="text-3xl font-bold text-primary mb-2">{bettingCountdown}</div>
-              <p className="text-sm text-muted-foreground">seconds left to bet</p>
+              <Timer className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2 animate-pulse" />
+              <div className="text-2xl sm:text-3xl font-bold text-primary mb-2 tabular-nums">{bettingCountdown}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">seconds left to bet</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Bet Controls */}
-      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 shadow-xl">
+      {/* Enhanced Bet Controls */}
+      <Card className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-slate-700/50 shadow-xl backdrop-blur-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center space-x-2">
-            <Target className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             <span>Place Your Bet</span>
           </CardTitle>
         </CardHeader>
@@ -90,12 +88,12 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: G
               max="10000"
               step="10"
               disabled={!canBet}
-              className="mt-2 bg-slate-700 border-slate-600 text-foreground"
+              className="mt-2 bg-slate-700 border-slate-600 text-foreground focus:border-primary/50 focus:ring-primary/20 text-base"
             />
           </div>
 
-          {/* Quick Bet Buttons */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Enhanced Quick Bet Buttons */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-3 gap-2">
             {quickBetAmounts.map(amount => (
               <Button
                 key={amount}
@@ -103,14 +101,14 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: G
                 size="sm"
                 onClick={() => handleBetChange(amount.toString())}
                 disabled={!canBet}
-                className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600"
+                className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-primary/50 transition-all duration-200"
               >
                 ₹{amount}
               </Button>
             ))}
           </div>
 
-          {/* Auto Cash Out */}
+          {/* Enhanced Auto Cash Out */}
           <div>
             <Label htmlFor="auto-cashout" className="text-sm font-medium">Auto Cash Out (x)</Label>
             <Input
@@ -123,32 +121,38 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: G
               step="0.1"
               placeholder="Optional"
               disabled={gameData.gameState === 'flying'}
-              className="mt-2 bg-slate-700 border-slate-600 text-foreground"
+              className="mt-2 bg-slate-700 border-slate-600 text-foreground focus:border-primary/50 focus:ring-primary/20 text-base"
             />
             <p className="text-xs text-muted-foreground mt-1">
               Automatically cash out at this multiplier
             </p>
           </div>
 
-          {/* Bet Button */}
+          {/* Enhanced Bet Button */}
           <Button
             onClick={onPlaceBet}
             disabled={!canBet || gameData.betAmount > gameData.balance}
-            className={`w-full text-lg font-bold py-6 transition-all duration-300 ${
+            className={`w-full text-base sm:text-lg font-bold py-4 sm:py-6 transition-all duration-300 shadow-lg ${
               gameData.hasBet 
-                ? 'bg-gaming-success hover:bg-gaming-success/90' 
-                : 'bg-primary hover:bg-primary/90'
+                ? 'bg-gaming-success hover:bg-gaming-success/90 border-2 border-gaming-success/30' 
+                : 'bg-primary hover:bg-primary/90 border-2 border-primary/30'
             }`}
             size="lg"
+            style={{
+              boxShadow: gameData.hasBet 
+                ? '0 0 20px hsl(var(--gaming-success))' 
+                : '0 0 20px hsl(var(--primary))'
+            }}
           >
-            <Play className="mr-2 h-5 w-5" />
+            <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
             {gameData.hasBet ? '✓ Bet Placed' : canBet ? 'Place Bet' : 'Betting Closed'}
           </Button>
 
+          {/* Enhanced Bet Status */}
           {gameData.hasBet && (
-            <div className="bg-gaming-success/20 p-4 rounded-lg border border-gaming-success/30">
+            <div className="bg-gaming-success/20 p-4 rounded-lg border border-gaming-success/30 shadow-lg backdrop-blur-sm">
               <div className="text-center">
-                <div className="text-gaming-success font-bold text-lg">
+                <div className="text-gaming-success font-bold text-base sm:text-lg">
                   Bet Active: ₹{gameData.currentBet}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
