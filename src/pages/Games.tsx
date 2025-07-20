@@ -13,7 +13,8 @@ import {
   Crown,
   Sparkles,
   Palette,
-  Gamepad2
+  Gamepad2,
+  Plane
 } from 'lucide-react';
 
 const Games = () => {
@@ -40,6 +41,16 @@ const Games = () => {
     },
     {
       id: 2,
+      title: "Aviator",
+      image: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=300&fit=crop",
+      players: "Unlimited",
+      prize: "₹1,00,000",
+      category: "Crash Game",
+      route: "/aviator",
+      featured: true
+    },
+    {
+      id: 3,
       title: "Teen Patti",
       image: "https://via.placeholder.com/300x200?text=Teen+Patti",
       players: "3-6 Players", 
@@ -47,20 +58,12 @@ const Games = () => {
       category: "Card Game"
     },
     {
-      id: 3,
+      id: 4,
       title: "Rummy",
       image: "https://via.placeholder.com/300x200?text=Rummy",
       players: "2-6 Players",
       prize: "₹25,000", 
       category: "Card Game"
-    },
-    {
-      id: 4,
-      title: "Aviator",
-      image: "https://via.placeholder.com/300x200?text=Aviator",
-      players: "Unlimited",
-      prize: "₹1,00,000",
-      category: "Crash Game"
     },
     {
       id: 5,
@@ -181,6 +184,7 @@ const Games = () => {
                   <CardTitle className="text-base sm:text-lg mb-1 sm:mb-2 flex items-center">
                     {game.id === 0 && <Palette className="h-4 w-4 mr-2 text-primary" />}
                     {game.id === 1 && <Gamepad2 className="h-4 w-4 mr-2 text-primary" />}
+                    {game.id === 2 && <Plane className="h-4 w-4 mr-2 text-primary" />}
                     {game.title}
                   </CardTitle>
                   <div className="flex items-center text-muted-foreground text-sm mb-2">
