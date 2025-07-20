@@ -4,14 +4,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 
+type GameType = 'ludo' | 'aviator' | 'casino' | 'color_prediction';
+type GameStatus = 'waiting' | 'active' | 'completed' | 'cancelled';
+
+interface PlayerData {
+  id: string;
+  name: string;
+  joined_at: string;
+}
+
+interface GamePlayers {
+  user_ids: string[];
+  user_data: PlayerData[];
+}
+
 interface GameSession {
   id: string;
-  game_type: 'ludo' | 'aviator' | 'casino' | 'color_prediction';
-  players: any;
+  game_type: GameType;
+  players: GamePlayers;
   entry_fee: number;
   total_pool: number;
   result?: any;
-  status: 'waiting' | 'active' | 'completed' | 'cancelled';
+  status: GameStatus;
   max_players: number;
   current_players: number;
   created_by: string;
@@ -34,7 +48,7 @@ export const useGameSessions = (gameType?: string) => {
         .order('created_at', { ascending: false });
 
       if (gameType) {
-        query = query.eq('game_type', gameType);
+        query = query.eq('game_type', gameType as GameType);
       }
 
       const { data, error } = await query;
@@ -51,11 +65,20 @@ export const useGameSessions = (gameType?: string) => {
       entryFee,
       maxPlayers = 4
     }: {
-      gameType: 'ludo' | 'aviator' | 'casino' | 'color_prediction';
+      gameType: GameType;
       entryFee: number;
       maxPlayers?: number;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
+
+      const playersData: GamePlayers = {
+        user_ids: [user.id],
+        user_data: [{
+          id: user.id,
+          name: user.user_metadata?.full_name || 'Player',
+          joined_at: new Date().toISOString()
+        }]
+      };
 
       const { data, error } = await supabase
         .from('game_sessions')
@@ -65,14 +88,7 @@ export const useGameSessions = (gameType?: string) => {
           max_players: maxPlayers,
           current_players: 1,
           created_by: user.id,
-          players: {
-            user_ids: [user.id],
-            user_data: [{
-              id: user.id,
-              name: user.user_metadata?.full_name || 'Player',
-              joined_at: new Date().toISOString()
-            }]
-          }
+          players: playersData as any
         })
         .select()
         .single();
@@ -110,8 +126,11 @@ export const useGameSessions = (gameType?: string) => {
 
       if (fetchError) throw fetchError;
 
+      // Parse players data
+      const playersData = session.players as GamePlayers;
+      const userIds = playersData?.user_ids || [];
+      
       // Check if user is already in the game
-      const userIds = session.players?.user_ids || [];
       if (userIds.includes(user.id)) {
         throw new Error('You are already in this game');
       }
@@ -122,10 +141,10 @@ export const useGameSessions = (gameType?: string) => {
       }
 
       // Update players and current_players
-      const updatedPlayers = {
+      const updatedPlayers: GamePlayers = {
         user_ids: [...userIds, user.id],
         user_data: [
-          ...(session.players?.user_data || []),
+          ...(playersData?.user_data || []),
           {
             id: user.id,
             name: user.user_metadata?.full_name || 'Player',
@@ -137,7 +156,7 @@ export const useGameSessions = (gameType?: string) => {
       const { data, error } = await supabase
         .from('game_sessions')
         .update({
-          players: updatedPlayers,
+          players: updatedPlayers as any,
           current_players: session.current_players + 1,
           total_pool: session.total_pool + session.entry_fee
         })

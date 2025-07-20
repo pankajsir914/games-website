@@ -5,6 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 
+type GameType = 'ludo' | 'aviator' | 'casino' | 'color_prediction';
+type TransactionType = 'credit' | 'debit';
+
 interface Wallet {
   id: string;
   user_id: string;
@@ -18,12 +21,19 @@ interface WalletTransaction {
   id: string;
   user_id: string;
   amount: number;
-  type: 'credit' | 'debit';
+  type: TransactionType;
   reason: string;
-  game_type?: string;
+  game_type?: GameType;
   game_session_id?: string;
   balance_after: number;
   created_at: string;
+}
+
+interface WalletUpdateResponse {
+  success: boolean;
+  new_balance: number;
+  transaction_amount: number;
+  transaction_type: TransactionType;
 }
 
 export const useWallet = () => {
@@ -77,9 +87,9 @@ export const useWallet = () => {
       gameSessionId
     }: {
       amount: number;
-      type: 'credit' | 'debit';
+      type: TransactionType;
       reason: string;
-      gameType?: string;
+      gameType?: GameType;
       gameSessionId?: string;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
@@ -94,7 +104,7 @@ export const useWallet = () => {
       });
 
       if (error) throw error;
-      return data;
+      return data as WalletUpdateResponse;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wallet', user?.id] });
