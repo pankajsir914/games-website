@@ -12,7 +12,8 @@ import {
   Zap,
   Crown,
   Sparkles,
-  Palette
+  Palette,
+  Gamepad2
 } from 'lucide-react';
 
 const Games = () => {
@@ -30,10 +31,12 @@ const Games = () => {
     {
       id: 1,
       title: "Ludo King",
-      image: "https://via.placeholder.com/300x200?text=Ludo+King",
+      image: "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=400&h=300&fit=crop",
       players: "2-4 Players",
       prize: "₹10,000",
-      category: "Board Game"
+      category: "Board Game",
+      route: "/ludo",
+      featured: true
     },
     {
       id: 2,
@@ -177,6 +180,7 @@ const Games = () => {
                 <CardContent className="p-3 sm:p-4">
                   <CardTitle className="text-base sm:text-lg mb-1 sm:mb-2 flex items-center">
                     {game.id === 0 && <Palette className="h-4 w-4 mr-2 text-primary" />}
+                    {game.id === 1 && <Gamepad2 className="h-4 w-4 mr-2 text-primary" />}
                     {game.title}
                   </CardTitle>
                   <div className="flex items-center text-muted-foreground text-sm mb-2">
