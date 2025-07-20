@@ -1,16 +1,17 @@
+
 import React from 'react';
-import { Token, Player } from '@/types/ludo';
+import { Token, ActivePlayer } from '@/types/ludo';
 import TokenComponent from './TokenComponent';
 import DiceComponent from './DiceComponent';
 
 interface LudoBoardProps {
-  tokens: Record<Player, Token[]>;
+  tokens: Record<ActivePlayer, Token[]>;
   onTokenClick: (tokenId: string) => void;
-  currentPlayer: Player;
+  currentPlayer: ActivePlayer;
 }
 
 const LudoBoard: React.FC<LudoBoardProps> = ({ tokens, onTokenClick, currentPlayer }) => {
-  const getBoardPosition = (player: Player, tokenIndex: number): { x: number; y: number } => {
+  const getBoardPosition = (player: ActivePlayer, tokenIndex: number): { x: number; y: number } => {
     const basePositions = {
       red: [
         { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }
@@ -26,7 +27,7 @@ const LudoBoard: React.FC<LudoBoardProps> = ({ tokens, onTokenClick, currentPlay
   const getTokenPositionOnBoard = (token: Token): { x: number; y: number } => {
     if (token.position === 'base') {
       const tokenIndex = parseInt(token.id.split('-')[1]);
-      return getBoardPosition(token.player, tokenIndex);
+      return getBoardPosition(token.player as ActivePlayer, tokenIndex);
     }
     
     if (token.position === 'home') {
@@ -34,17 +35,17 @@ const LudoBoard: React.FC<LudoBoardProps> = ({ tokens, onTokenClick, currentPlay
         red: { x: 7, y: 6 },
         yellow: { x: 8, y: 9 }
       };
-      return homePositions[token.player];
+      return homePositions[token.player as ActivePlayer];
     }
     
     if (token.boardPosition !== null) {
-      return calculateBoardPosition(token.player, token.boardPosition);
+      return calculateBoardPosition(token.player as ActivePlayer, token.boardPosition);
     }
     
     return { x: 0, y: 0 };
   };
 
-  const calculateBoardPosition = (player: Player, position: number): { x: number; y: number } => {
+  const calculateBoardPosition = (player: ActivePlayer, position: number): { x: number; y: number } => {
     // Simplified board position calculation
     const pathPositions = {
       red: [

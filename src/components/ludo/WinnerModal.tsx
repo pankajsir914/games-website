@@ -1,12 +1,11 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Player } from '@/types/ludo';
+import { ActivePlayer } from '@/types/ludo';
 import { Trophy, Sparkles } from 'lucide-react';
 
 interface WinnerModalProps {
-  winner: Player;
+  winner: ActivePlayer;
   onPlayAgain: () => void;
 }
 
@@ -14,9 +13,7 @@ const WinnerModal: React.FC<WinnerModalProps> = ({ winner, onPlayAgain }) => {
   const getWinnerColor = () => {
     const colors = {
       red: 'text-red-500',
-      yellow: 'text-yellow-500',
-      green: 'text-green-500',
-      blue: 'text-blue-500'
+      yellow: 'text-yellow-500'
     };
     return colors[winner];
   };
