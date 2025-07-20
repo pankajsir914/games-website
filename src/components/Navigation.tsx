@@ -1,187 +1,129 @@
 
-import React, { useState } from 'react';
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, X, Crown } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from "@/hooks/useAuth";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { WalletCard } from "@/components/wallet/WalletCard";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { User, LogOut, Wallet } from "lucide-react";
 
 const Navigation = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const { user, signOut, loading } = useAuth();
   const location = useLocation();
 
-  const isActive = (path: string) => location.pathname === path;
+  const navItems = [
+    { href: "/", label: "Home" },
+    { href: "/games", label: "Games" },
+    { href: "/color-prediction", label: "Color Prediction" },
+    { href: "/ludo", label: "Ludo" },
+    { href: "/aviator", label: "Aviator" },
+  ];
+
+  const isActive = (href: string) => location.pathname === href;
 
   return (
-    <nav className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="bg-gradient-primary rounded-lg p-2">
-              <Crown className="h-6 w-6 text-gaming-gold-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              GameZone
-            </span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/" 
-              className={`transition-colors ${
-                isActive('/') ? 'text-primary font-medium' : 'text-muted-foreground hover:text-primary'
-              }`}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/games" 
-              className={`transition-colors ${
-                isActive('/games') ? 'text-primary font-medium' : 'text-muted-foreground hover:text-primary'
-              }`}
-            >
-              Games
-            </Link>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Tournaments</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Support</a>
-          </div>
-
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Login</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Login to GameZone</DialogTitle>
-                </DialogHeader>
-                <Tabs defaultValue="email" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="email">Email</TabsTrigger>
-                    <TabsTrigger value="mobile">Mobile</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="email" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="Enter your email" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" placeholder="Enter your password" />
-                    </div>
-                    <Button className="w-full">Login</Button>
-                  </TabsContent>
-                  <TabsContent value="mobile" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mobile">Mobile Number</Label>
-                      <Input id="mobile" type="tel" placeholder="Enter your mobile number" />
-                    </div>
-                    <Button className="w-full">Send OTP</Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isSignupOpen} onOpenChange={setIsSignupOpen}>
-              <DialogTrigger asChild>
-                <Button>Sign Up</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Join GameZone</DialogTitle>
-                </DialogHeader>
-                <Tabs defaultValue="email" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="email">Email</TabsTrigger>
-                    <TabsTrigger value="mobile">Mobile</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="email" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Full Name</Label>
-                      <Input id="signup-name" placeholder="Enter your full name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input id="signup-email" type="email" placeholder="Enter your email" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input id="signup-password" type="password" placeholder="Create a password" />
-                    </div>
-                    <Button className="w-full">Create Account</Button>
-                  </TabsContent>
-                  <TabsContent value="mobile" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name-mobile">Full Name</Label>
-                      <Input id="signup-name-mobile" placeholder="Enter your full name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-mobile">Mobile Number</Label>
-                      <Input id="signup-mobile" type="tel" placeholder="Enter your mobile number" />
-                    </div>
-                    <Button className="w-full">Send OTP</Button>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-t border-border">
-              <Link 
-                to="/" 
-                className={`block px-3 py-2 transition-colors ${
-                  isActive('/') ? 'text-primary font-medium' : 'text-muted-foreground hover:text-primary'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Home
+    <>
+      <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <Link to="/" className="flex-shrink-0 flex items-center">
+                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  GameHub
+                </span>
               </Link>
-              <Link 
-                to="/games" 
-                className={`block px-3 py-2 transition-colors ${
-                  isActive('/games') ? 'text-primary font-medium' : 'text-muted-foreground hover:text-primary'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Games
-              </Link>
-              <a href="#" className="block px-3 py-2 text-muted-foreground hover:text-primary">Tournaments</a>
-              <a href="#" className="block px-3 py-2 text-muted-foreground hover:text-primary">Support</a>
-              <div className="flex space-x-4 px-3 pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setIsLoginOpen(true)}>
-                  Login
-                </Button>
-                <Button className="flex-1" onClick={() => setIsSignupOpen(true)}>
-                  Sign Up
-                </Button>
+              
+              <div className="hidden md:flex items-center space-x-4">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive(item.href)
+                        ? "bg-purple-100 text-purple-700"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
               </div>
             </div>
+            
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setWalletOpen(true)}
+                    className="hidden md:flex items-center gap-2"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    Wallet
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuItem className="flex flex-col items-start">
+                        <p className="text-sm font-medium">{user.user_metadata?.full_name || 'User'}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setWalletOpen(true)}>
+                        <Wallet className="mr-2 h-4 w-4" />
+                        <span>Wallet</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={signOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Sign out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                <Button 
+                  onClick={() => setAuthModalOpen(true)}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </nav>
+        </div>
+      </nav>
+
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+      
+      {walletOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">My Wallet</h2>
+              <Button variant="ghost" size="sm" onClick={() => setWalletOpen(false)}>
+                ×
+              </Button>
+            </div>
+            <WalletCard />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Games from "./pages/Games";
 import ColorPrediction from "./pages/ColorPrediction";
@@ -20,26 +21,28 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/games" element={<Games />} />
-          <Route path="/color-prediction" element={<ColorPrediction />} />
-          <Route path="/ludo" element={<Ludo />} />
-          <Route path="/aviator" element={<Aviator />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/transactions" element={<AdminTransactions />} />
-          <Route path="/admin/games" element={<AdminGameSettings />} />
-          <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/games" element={<Games />} />
+            <Route path="/color-prediction" element={<ColorPrediction />} />
+            <Route path="/ludo" element={<Ludo />} />
+            <Route path="/aviator" element={<Aviator />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/transactions" element={<AdminTransactions />} />
+            <Route path="/admin/games" element={<AdminGameSettings />} />
+            <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

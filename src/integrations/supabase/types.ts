@@ -14,16 +14,169 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          current_players: number | null
+          entry_fee: number
+          game_type: Database["public"]["Enums"]["game_type"]
+          id: string
+          max_players: number | null
+          players: Json
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["game_status"] | null
+          total_pool: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          current_players?: number | null
+          entry_fee?: number
+          game_type: Database["public"]["Enums"]["game_type"]
+          id?: string
+          max_players?: number | null
+          players?: Json
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["game_status"] | null
+          total_pool?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          current_players?: number | null
+          entry_fee?: number
+          game_type?: Database["public"]["Enums"]["game_type"]
+          id?: string
+          max_players?: number | null
+          players?: Json
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["game_status"] | null
+          total_pool?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          game_session_id: string | null
+          game_type: Database["public"]["Enums"]["game_type"] | null
+          id: string
+          reason: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string | null
+          game_session_id?: string | null
+          game_type?: Database["public"]["Enums"]["game_type"] | null
+          id?: string
+          reason: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          game_session_id?: string | null
+          game_type?: Database["public"]["Enums"]["game_type"] | null
+          id?: string
+          reason?: string
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          created_at: string | null
+          current_balance: number
+          id: string
+          locked_balance: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_balance?: number
+          id?: string
+          locked_balance?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_balance?: number
+          id?: string
+          locked_balance?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      lock_wallet_balance: {
+        Args: { p_user_id: string; p_amount: number; p_lock?: boolean }
+        Returns: Json
+      }
+      update_wallet_balance: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+          p_type: Database["public"]["Enums"]["transaction_type"]
+          p_reason: string
+          p_game_type?: Database["public"]["Enums"]["game_type"]
+          p_game_session_id?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      [_ in never]: never
+      game_status: "waiting" | "active" | "completed" | "cancelled"
+      game_type: "ludo" | "aviator" | "casino" | "color_prediction"
+      transaction_type: "credit" | "debit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +303,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      game_status: ["waiting", "active", "completed", "cancelled"],
+      game_type: ["ludo", "aviator", "casino", "color_prediction"],
+      transaction_type: ["credit", "debit"],
+    },
   },
 } as const
