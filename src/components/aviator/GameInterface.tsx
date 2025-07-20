@@ -2,84 +2,102 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plane, TrendingUp } from 'lucide-react';
+import { Plane, TrendingUp, Clock } from 'lucide-react';
 import { GameData } from '@/pages/Aviator';
 
 interface GameInterfaceProps {
   gameData: GameData;
-  countdown: number;
+  bettingCountdown: number;
   onCashOut: () => void;
 }
 
-const GameInterface = ({ gameData, countdown, onCashOut }: GameInterfaceProps) => {
+const GameInterface = ({ gameData, bettingCountdown, onCashOut }: GameInterfaceProps) => {
   const getPlanePosition = () => {
-    const progress = Math.min((gameData.multiplier - 1) * 10, 80);
+    if (gameData.gameState === 'betting') {
+      return { x: 10, y: 85, rotation: 0 };
+    }
+    
+    const progress = Math.min((gameData.multiplier - 1) * 8, 75);
     return {
-      x: progress,
-      y: 80 - progress * 0.8,
-      rotation: Math.min(progress * 2, 45)
+      x: 10 + progress,
+      y: 85 - progress * 0.9,
+      rotation: Math.min(progress * 1.5, 35)
     };
   };
 
   const position = getPlanePosition();
 
   return (
-    <Card className="bg-gradient-card border-border min-h-[500px] relative overflow-hidden">
-      {/* Background Grid */}
-      <div className="absolute inset-0 opacity-10">
+    <Card className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700 min-h-[600px] relative overflow-hidden shadow-2xl">
+      {/* Animated Background Grid */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent"></div>
         <svg className="w-full h-full">
           <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
+            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+              <path d="M 50 0 L 0 0 0 50" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.5" opacity="0.3"/>
             </pattern>
+            <linearGradient id="flightPath" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8"/>
+              <stop offset="100%" stopColor="hsl(var(--gaming-success))" stopOpacity="0.4"/>
+            </linearGradient>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
       </div>
 
-      {/* Flight Path */}
-      {gameData.gameState === 'playing' && (
+      {/* Flight Path Trail */}
+      {gameData.gameState === 'flying' && (
         <svg className="absolute inset-0 w-full h-full">
           <path
-            d={`M 5% 95% Q ${position.x}% ${position.y}% 95% 5%`}
-            stroke="hsl(var(--primary))"
-            strokeWidth="3"
+            d={`M 10% 85% Q ${position.x * 0.7}% ${position.y + 10}% ${position.x}% ${position.y}%`}
+            stroke="url(#flightPath)"
+            strokeWidth="4"
             fill="none"
             className="animate-pulse"
+            filter="drop-shadow(0 0 8px hsl(var(--primary)))"
           />
         </svg>
       )}
 
       <div className="relative h-full p-8 flex flex-col">
+        {/* Betting Phase */}
+        {gameData.gameState === 'betting' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="bg-primary/20 w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Clock className="h-16 w-16 text-primary" />
+              </div>
+              <h2 className="text-4xl font-bold text-primary mb-4">Place Your Bets!</h2>
+              <div className="text-6xl font-bold text-foreground mb-4">{bettingCountdown}</div>
+              <p className="text-xl text-muted-foreground">Betting closes in {bettingCountdown} seconds</p>
+            </div>
+          </div>
+        )}
+
         {/* Multiplier Display */}
         <div className="text-center mb-8">
-          {countdown > 0 ? (
-            <div className="text-6xl md:text-8xl font-bold text-muted-foreground">
-              {countdown}
-            </div>
-          ) : (
-            <div className={`text-6xl md:text-8xl font-bold transition-all duration-200 ${
-              gameData.gameState === 'playing' 
-                ? 'text-primary animate-pulse' 
-                : gameData.gameState === 'crashed' 
-                  ? 'text-gaming-danger' 
-                  : gameData.gameState === 'cashed_out'
-                    ? 'text-gaming-success'
-                    : 'text-muted-foreground'
-            }`}>
-              {gameData.multiplier.toFixed(2)}x
-            </div>
-          )}
+          <div className={`text-6xl md:text-8xl font-bold transition-all duration-200 ${
+            gameData.gameState === 'flying' 
+              ? 'text-primary animate-pulse drop-shadow-2xl' 
+              : gameData.gameState === 'crashed' 
+                ? 'text-gaming-danger' 
+                : gameData.gameState === 'cashed_out'
+                  ? 'text-gaming-success'
+                  : 'text-muted-foreground'
+          }`}>
+            {gameData.multiplier.toFixed(2)}x
+          </div>
           
           {gameData.gameState === 'crashed' && (
-            <div className="text-xl text-gaming-danger font-semibold mt-4 animate-bounce">
-              Crashed at {gameData.crashPoint.toFixed(2)}x
+            <div className="text-2xl text-gaming-danger font-bold mt-4 animate-bounce">
+              💥 Crashed at {gameData.crashPoint.toFixed(2)}x
             </div>
           )}
           
           {gameData.gameState === 'cashed_out' && (
-            <div className="text-xl text-gaming-success font-semibold mt-4">
-              Cashed out at {gameData.multiplier.toFixed(2)}x
+            <div className="text-2xl text-gaming-success font-bold mt-4">
+              🎉 Cashed out at {gameData.multiplier.toFixed(2)}x
             </div>
           )}
         </div>
@@ -87,7 +105,7 @@ const GameInterface = ({ gameData, countdown, onCashOut }: GameInterfaceProps) =
         {/* Game Area */}
         <div className="flex-1 relative">
           {/* Animated Plane */}
-          {(gameData.gameState === 'playing' || gameData.gameState === 'crashed') && (
+          {(gameData.gameState === 'flying' || gameData.gameState === 'crashed') && (
             <div 
               className={`absolute transition-all duration-200 ${
                 gameData.gameState === 'crashed' ? 'animate-spin' : ''
@@ -96,63 +114,71 @@ const GameInterface = ({ gameData, countdown, onCashOut }: GameInterfaceProps) =
                 left: `${position.x}%`,
                 bottom: `${position.y}%`,
                 transform: `rotate(${position.rotation}deg)`,
-                transformOrigin: 'center'
+                transformOrigin: 'center',
+                filter: gameData.gameState === 'crashed' 
+                  ? 'drop-shadow(0 0 20px hsl(var(--gaming-danger)))' 
+                  : 'drop-shadow(0 0 15px hsl(var(--primary)))'
               }}
             >
-              <div className={`p-3 rounded-full ${
+              <div className={`p-4 rounded-full ${
                 gameData.gameState === 'crashed' 
-                  ? 'bg-gaming-danger/20 text-gaming-danger' 
-                  : 'bg-primary/20 text-primary'
+                  ? 'bg-gaming-danger/30 text-gaming-danger' 
+                  : 'bg-primary/30 text-primary'
               }`}>
-                <Plane className="h-8 w-8" />
+                <Plane className="h-10 w-10" />
               </div>
             </div>
           )}
 
-          {/* Waiting State */}
-          {gameData.gameState === 'waiting' && countdown === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="bg-primary/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plane className="h-12 w-12 text-primary" />
-                </div>
-                <p className="text-xl text-muted-foreground">Ready to take off!</p>
-              </div>
-            </div>
-          )}
-
-          {/* Trend Line Visualization */}
-          {gameData.gameState === 'playing' && (
-            <div className="absolute bottom-4 left-4">
-              <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <span className="text-primary font-semibold">Rising</span>
+          {/* Speed Indicator */}
+          {gameData.gameState === 'flying' && (
+            <div className="absolute bottom-8 left-8">
+              <div className="flex items-center space-x-3 bg-primary/20 px-6 py-3 rounded-full backdrop-blur-sm border border-primary/30">
+                <TrendingUp className="h-6 w-6 text-primary animate-bounce" />
+                <span className="text-primary font-bold text-lg">Flying High!</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Cash Out Button */}
-        {gameData.gameState === 'playing' && (
+        {gameData.gameState === 'flying' && gameData.isPlaying && (
           <div className="text-center">
             <Button 
               onClick={onCashOut}
               size="lg"
-              className="bg-gaming-success hover:bg-gaming-success/90 text-gaming-success-foreground px-12 py-6 text-2xl font-bold shadow-gaming animate-pulse"
+              className="bg-gaming-success hover:bg-gaming-success/90 text-gaming-success-foreground px-16 py-8 text-3xl font-bold shadow-2xl animate-pulse hover:animate-none transition-all duration-300 hover:scale-105"
+              style={{
+                boxShadow: '0 0 30px hsl(var(--gaming-success)), inset 0 0 20px rgba(255,255,255,0.1)'
+              }}
             >
               CASH OUT
               <br />
-              <span className="text-lg">
-                ₹{(gameData.betAmount * gameData.multiplier).toFixed(2)}
+              <span className="text-xl">
+                ₹{(gameData.currentBet * gameData.multiplier).toFixed(2)}
               </span>
             </Button>
           </div>
         )}
 
-        {/* Next Round Timer */}
-        {countdown > 0 && (
+        {/* Waiting for next round */}
+        {(gameData.gameState === 'crashed' || gameData.gameState === 'cashed_out') && (
           <div className="text-center">
-            <p className="text-muted-foreground">Next round in {countdown} seconds</p>
+            <div className="bg-secondary/50 px-8 py-4 rounded-full backdrop-blur-sm">
+              <p className="text-muted-foreground text-lg">Next round starting soon...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Current Bet Display */}
+        {gameData.hasBet && (
+          <div className="absolute top-8 right-8">
+            <div className="bg-primary/20 px-4 py-2 rounded-lg backdrop-blur-sm border border-primary/30">
+              <div className="text-primary font-bold">Your Bet: ₹{gameData.currentBet}</div>
+              {gameData.autoCashOut && (
+                <div className="text-xs text-muted-foreground">Auto: {gameData.autoCashOut}x</div>
+              )}
+            </div>
           </div>
         )}
       </div>
