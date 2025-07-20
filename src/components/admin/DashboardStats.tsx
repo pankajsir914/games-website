@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, CreditCard, GameController2, TrendingUp } from 'lucide-react';
+import { Users, CreditCard, Gamepad2, TrendingUp } from 'lucide-react';
 
 const stats = [
   {
@@ -23,7 +23,7 @@ const stats = [
     value: '8',
     change: '+2',
     changeType: 'positive' as const,
-    icon: GameController2,
+    icon: Gamepad2,
   },
   {
     title: 'Growth Rate',
