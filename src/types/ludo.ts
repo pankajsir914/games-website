@@ -1,5 +1,6 @@
 
 export type Player = 'red' | 'yellow' | 'green' | 'blue';
+export type ActivePlayer = 'red' | 'yellow'; // For 2-player game
 
 export type TokenPosition = 'base' | 'board' | 'home';
 
@@ -18,10 +19,10 @@ export interface Position {
 }
 
 export interface GameState {
-  currentPlayer: Player;
+  currentPlayer: ActivePlayer;
   diceValue: number;
   isRolling: boolean;
-  winner: Player | null;
+  winner: ActivePlayer | null;
   canRoll: boolean;
   selectedToken: string | null;
   lastRoll: number | null;

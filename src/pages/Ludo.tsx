@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import LudoBoard from '@/components/ludo/LudoBoard';
 import GameHeader from '@/components/ludo/GameHeader';
 import GameControls from '@/components/ludo/GameControls';
 import WinnerModal from '@/components/ludo/WinnerModal';
-import { GameState, Player, Token, Position } from '@/types/ludo';
+import { GameState, ActivePlayer, Token, Position } from '@/types/ludo';
 
 const Ludo = () => {
   const [gameState, setGameState] = useState<GameState>({
@@ -19,7 +18,7 @@ const Ludo = () => {
     consecutiveSixes: 0
   });
 
-  const [tokens, setTokens] = useState<Record<Player, Token[]>>({
+  const [tokens, setTokens] = useState<Record<ActivePlayer, Token[]>>({
     red: Array.from({ length: 4 }, (_, i) => ({
       id: `red-${i}`,
       player: 'red',
@@ -114,12 +113,12 @@ const Ludo = () => {
     return newPosition <= homePosition ? newPosition : null;
   };
 
-  const getHomePosition = (player: Player): number => {
+  const getHomePosition = (player: ActivePlayer): number => {
     // Each player has 51 positions to reach home (simplified)
     return 51;
   };
 
-  const getStartPosition = (player: Player): number => {
+  const getStartPosition = (player: ActivePlayer): number => {
     const startPositions = { red: 1, yellow: 14, green: 27, blue: 40 };
     return startPositions[player];
   };
@@ -168,7 +167,7 @@ const Ludo = () => {
 
     // Clear all canMove flags
     Object.keys(updatedTokens).forEach(p => {
-      updatedTokens[p as Player] = updatedTokens[p as Player].map(t => ({ ...t, canMove: false }));
+      updatedTokens[p as ActivePlayer] = updatedTokens[p as ActivePlayer].map(t => ({ ...t, canMove: false }));
     });
 
     setTokens(updatedTokens);
@@ -185,8 +184,8 @@ const Ludo = () => {
     setTimeout(() => switchTurn(shouldGetAnotherTurn), 500);
   };
 
-  const checkForKills = (updatedTokens: Record<Player, Token[]>, currentPlayer: Player, position: number) => {
-    const opponent: Player = currentPlayer === 'red' ? 'yellow' : 'red';
+  const checkForKills = (updatedTokens: Record<ActivePlayer, Token[]>, currentPlayer: ActivePlayer, position: number) => {
+    const opponent: ActivePlayer = currentPlayer === 'red' ? 'yellow' : 'red';
     
     updatedTokens[opponent].forEach((token, index) => {
       if (token.boardPosition === position) {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Token, Player } from '@/types/ludo';
 import TokenComponent from './TokenComponent';
