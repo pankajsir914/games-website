@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
-import LudoBoard from '@/components/ludo/LudoBoard';
+import ImprovedLudoBoard from '@/components/ludo/ImprovedLudoBoard';
 import GameHeader from '@/components/ludo/GameHeader';
 import GameControls from '@/components/ludo/GameControls';
 import WinnerModal from '@/components/ludo/WinnerModal';
+import GameSetup from '@/components/ludo/GameSetup';
 import { GameState, ActivePlayer, Token, Position } from '@/types/ludo';
 
 const Ludo = () => {
+  const [gameStarted, setGameStarted] = useState(false);
+  const [playerCount, setPlayerCount] = useState(2);
+  const [withAI, setWithAI] = useState(false);
+  
   const [gameState, setGameState] = useState<GameState>({
     currentPlayer: 'red',
     diceValue: 1,
@@ -36,6 +41,12 @@ const Ludo = () => {
       canMove: false
     }))
   });
+
+  const handleStartGame = (selectedPlayerCount: number, selectedWithAI: boolean) => {
+    setPlayerCount(selectedPlayerCount);
+    setWithAI(selectedWithAI);
+    setGameStarted(true);
+  };
 
   const rollDice = () => {
     if (!gameState.canRoll || gameState.isRolling) return;
@@ -255,24 +266,35 @@ const Ludo = () => {
     moveToken(tokenId, gameState.diceValue);
   };
 
+  const handleBackToSetup = () => {
+    setGameStarted(false);
+    resetGame();
+  };
+
+  if (!gameStarted) {
+    return <GameSetup onStartGame={handleStartGame} />;
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-100">
       <Navigation />
       
       <div className="container mx-auto px-4 py-8">
         <GameHeader gameState={gameState} />
         
         <div className="max-w-4xl mx-auto">
-          <LudoBoard 
+          <ImprovedLudoBoard 
             tokens={tokens} 
             onTokenClick={selectToken}
             currentPlayer={gameState.currentPlayer}
+            diceValue={gameState.diceValue}
+            isRolling={gameState.isRolling}
           />
           
           <GameControls 
             gameState={gameState}
             onRollDice={rollDice}
-            onResetGame={resetGame}
+            onResetGame={handleBackToSetup}
           />
         </div>
       </div>

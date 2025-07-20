@@ -17,10 +17,10 @@ const TokenComponent: React.FC<TokenComponentProps> = ({
 }) => {
   const getTokenColor = () => {
     const colors = {
-      red: 'bg-red-500 border-red-600',
-      yellow: 'bg-yellow-500 border-yellow-600',
-      green: 'bg-green-500 border-green-600',
-      blue: 'bg-blue-500 border-blue-600'
+      red: 'bg-gradient-to-br from-red-400 to-red-600 border-red-700 shadow-red-300',
+      yellow: 'bg-gradient-to-br from-yellow-400 to-yellow-600 border-yellow-700 shadow-yellow-300',
+      green: 'bg-gradient-to-br from-green-400 to-green-600 border-green-700 shadow-green-300',
+      blue: 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-700 shadow-blue-300'
     };
     return colors[token.player];
   };
@@ -30,15 +30,19 @@ const TokenComponent: React.FC<TokenComponentProps> = ({
   return (
     <div
       className={`
-        w-5 h-5 rounded-full border-2 cursor-pointer transition-all duration-200
+        w-7 h-7 rounded-full border-3 cursor-pointer transition-all duration-300 transform
         ${getTokenColor()}
-        ${canInteract ? 'hover:scale-110 ring-2 ring-primary' : ''}
-        ${token.canMove ? 'animate-pulse' : ''}
+        ${canInteract ? 'hover:scale-125 ring-4 ring-white ring-opacity-60 animate-bounce' : ''}
+        ${token.canMove ? 'shadow-lg' : 'shadow-md'}
+        hover:shadow-xl
       `}
       style={style}
       onClick={canInteract ? onClick : undefined}
       title={`${token.player} token ${token.id.split('-')[1]}`}
-    />
+    >
+      {/* Inner highlight for 3D effect */}
+      <div className="w-full h-full rounded-full bg-gradient-to-t from-transparent via-white/30 to-white/50"></div>
+    </div>
   );
 };
 
