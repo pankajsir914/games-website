@@ -4,14 +4,12 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { WalletCard } from "@/components/wallet/WalletCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Wallet } from "lucide-react";
 
 const Navigation = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
   const { user, signOut, loading } = useAuth();
   const location = useLocation();
 
@@ -58,13 +56,15 @@ const Navigation = () => {
               {user ? (
                 <>
                   <Button
+                    asChild
                     variant="outline"
                     size="sm"
-                    onClick={() => setWalletOpen(true)}
                     className="hidden md:flex items-center gap-2"
                   >
-                    <Wallet className="h-4 w-4" />
-                    Wallet
+                    <Link to="/wallet">
+                      <Wallet className="h-4 w-4" />
+                      Wallet
+                    </Link>
                   </Button>
                   
                   <DropdownMenu>
@@ -82,9 +82,11 @@ const Navigation = () => {
                         <p className="text-sm font-medium">{user.user_metadata?.full_name || 'User'}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setWalletOpen(true)}>
-                        <Wallet className="mr-2 h-4 w-4" />
-                        <span>Wallet</span>
+                      <DropdownMenuItem asChild>
+                        <Link to="/wallet" className="w-full">
+                          <Wallet className="mr-2 h-4 w-4" />
+                          <span>Wallet</span>
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={signOut}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -109,20 +111,6 @@ const Navigation = () => {
       </nav>
 
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
-      
-      {walletOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">My Wallet</h2>
-              <Button variant="ghost" size="sm" onClick={() => setWalletOpen(false)}>
-                ×
-              </Button>
-            </div>
-            <WalletCard />
-          </div>
-        </div>
-      )}
     </>
   );
 };

@@ -62,6 +62,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string | null
+          id: string
+          payment_method: string | null
+          processed_at: string | null
+          processed_by: string | null
+          receipt_url: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string | null
+          id?: string
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          receipt_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string | null
+          id?: string
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          receipt_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -152,6 +194,51 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          account_holder_name: string
+          admin_notes: string | null
+          amount: number
+          bank_account_number: string
+          created_at: string | null
+          id: string
+          ifsc_code: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_holder_name: string
+          admin_notes?: string | null
+          amount: number
+          bank_account_number: string
+          created_at?: string | null
+          id?: string
+          ifsc_code: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_holder_name?: string
+          admin_notes?: string | null
+          amount?: number
+          bank_account_number?: string
+          created_at?: string | null
+          id?: string
+          ifsc_code?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -159,6 +246,14 @@ export type Database = {
     Functions: {
       lock_wallet_balance: {
         Args: { p_user_id: string; p_amount: number; p_lock?: boolean }
+        Returns: Json
+      }
+      process_payment_request: {
+        Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
+        Returns: Json
+      }
+      process_withdrawal_request: {
+        Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
         Returns: Json
       }
       update_wallet_balance: {
