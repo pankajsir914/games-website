@@ -134,7 +134,7 @@ export const CasinoGameControl = () => {
                     Force Blackjack (21)
                   </Button>
                   <Button variant="destructive" disabled={!cheatMode}>
-                    Force Bust (>21)
+                    Force Bust (&gt;21)
                   </Button>
                   <Button variant="outline" disabled={!cheatMode}>
                     Perfect Hand
