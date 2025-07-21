@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Edit, TrendingUp } from 'lucide-react';
+import { Settings, Edit, TrendingUp, Gamepad2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const games = [
   {
     id: 1,
     name: 'Ludo',
+    type: 'ludo',
     status: 'active',
     players: 1250,
     revenue: 45680,
@@ -20,6 +22,7 @@ const games = [
   {
     id: 2,
     name: 'Teen Patti',
+    type: 'casino',
     status: 'active',
     players: 890,
     revenue: 67420,
@@ -30,6 +33,7 @@ const games = [
   {
     id: 3,
     name: 'Rummy',
+    type: 'casino',
     status: 'maintenance',
     players: 0,
     revenue: 0,
@@ -40,16 +44,30 @@ const games = [
   {
     id: 4,
     name: 'Aviator',
+    type: 'aviator',
     status: 'active',
     players: 2100,
     revenue: 123450,
     minBet: 1,
     maxBet: 100000,
     commission: 3
+  },
+  {
+    id: 5,
+    name: 'Color Prediction',
+    type: 'color_prediction',
+    status: 'active',
+    players: 1580,
+    revenue: 89230,
+    minBet: 5,
+    maxBet: 5000,
+    commission: 7
   }
 ];
 
 export const GameSettingsCards = () => {
+  const navigate = useNavigate();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -61,6 +79,10 @@ export const GameSettingsCards = () => {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const handleGameDashboard = (gameType: string) => {
+    navigate(`/admin/game-dashboard/${gameType}`);
   };
 
   return (
@@ -97,15 +119,25 @@ export const GameSettingsCards = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={() => handleGameDashboard(game.type)}
+              >
+                <Gamepad2 className="mr-2 h-4 w-4" />
+                Game Dashboard
+              </Button>
+              <Button variant="outline" size="sm">
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" className="flex-1">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Analytics
-              </Button>
             </div>
+            
+            <Button variant="outline" size="sm" className="w-full">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Analytics
+            </Button>
           </CardContent>
         </Card>
       ))}

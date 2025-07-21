@@ -14,6 +14,7 @@ import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminGameSettings from "./pages/AdminGameSettings";
+import AdminGameDashboard from "./pages/AdminGameDashboard";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/transactions" element={<AdminTransactions />} />
             <Route path="/admin/games" element={<AdminGameSettings />} />
+            <Route path="/admin/game-dashboard/:gameType" element={<AdminGameDashboard />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
