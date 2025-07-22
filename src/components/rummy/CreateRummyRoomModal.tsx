@@ -60,9 +60,9 @@ export const CreateRummyRoomModal: React.FC<CreateRummyRoomModalProps> = ({
         const { error: walletError } = await supabase.rpc('update_wallet_balance', {
           p_user_id: user.id,
           p_amount: parseFloat(formData.entryFee),
-          p_type: 'debit',
+          p_type: 'debit' as const,
           p_reason: `Created Rummy table - ID: ${data.id}`,
-          p_game_type: 'rummy',
+          p_game_type: 'rummy' as const,
           p_game_session_id: data.id
         });
 

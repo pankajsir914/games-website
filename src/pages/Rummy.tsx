@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Navigation } from '@/components/Navigation';
+import Navigation from '@/components/Navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { RummyLobby } from '@/components/rummy/RummyLobby';
 import { RummyGameTable } from '@/components/rummy/RummyGameTable';

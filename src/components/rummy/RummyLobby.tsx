@@ -62,7 +62,14 @@ export const RummyLobby: React.FC<RummyLobbyProps> = ({ onJoinGame }) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSessions(data || []);
+      
+      // Type cast the data to match our interface
+      const typedData = (data || []).map(session => ({
+        ...session,
+        players: session.players as { user_data: Array<{ id: string; name: string }> }
+      }));
+      
+      setSessions(typedData);
     } catch (error: any) {
       toast({
         title: "Error fetching sessions",
@@ -82,9 +89,12 @@ export const RummyLobby: React.FC<RummyLobbyProps> = ({ onJoinGame }) => {
 
       if (error) throw error;
 
+      // Type cast the response data
+      const responseData = data as { entry_fee: number };
+      
       toast({
         title: "Joined session!",
-        description: `Entry fee: ₹${data.entry_fee}`,
+        description: `Entry fee: ₹${responseData.entry_fee}`,
       });
 
       onJoinGame(sessionId);

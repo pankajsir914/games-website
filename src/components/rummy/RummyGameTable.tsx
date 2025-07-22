@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Users, ArrowLeft, Flag } from 'lucide-react';
+import { Json } from '@/integrations/supabase/types';
 
 interface RummyGameTableProps {
   sessionId: string;
@@ -84,9 +85,10 @@ export const RummyGameTable: React.FC<RummyGameTableProps> = ({ sessionId, onLea
 
       // Initialize game if it's active and has game state
       if (data.status === 'active' && data.game_state) {
-        setGameState(data.game_state);
+        const typedGameState = data.game_state as GameState;
+        setGameState(typedGameState);
         // Find current player's cards
-        const currentPlayer = data.game_state.players.find((p: Player) => p.id === user?.id);
+        const currentPlayer = typedGameState.players.find((p: Player) => p.id === user?.id);
         if (currentPlayer) {
           setPlayerCards(currentPlayer.cards);
         }
@@ -113,7 +115,8 @@ export const RummyGameTable: React.FC<RummyGameTableProps> = ({ sessionId, onLea
       const deck = gameLogic.createDeck();
       const shuffledDeck = gameLogic.shuffleDeck(deck);
       
-      const players = sessionData.players.user_data.map((player: any, index: number) => ({
+      const playersData = sessionData.players as { user_data: Array<{ id: string; name: string }> };
+      const players = playersData.user_data.map((player: any, index: number) => ({
         id: player.id,
         name: player.name,
         cards: gameLogic.dealCards(shuffledDeck, 13),
@@ -124,12 +127,12 @@ export const RummyGameTable: React.FC<RummyGameTableProps> = ({ sessionId, onLea
       const remainingDeck = shuffledDeck.slice(players.length * 13);
       const discardPile = [remainingDeck.pop()];
 
-      const initialGameState = {
+      const initialGameState: GameState = {
         players,
         currentPlayerIndex: 0,
         deck: remainingDeck,
         discardPile,
-        gamePhase: 'playing' as const,
+        gamePhase: 'playing',
         turnTimeLeft: 45
       };
 
@@ -137,7 +140,7 @@ export const RummyGameTable: React.FC<RummyGameTableProps> = ({ sessionId, onLea
       const { error } = await supabase
         .from('rummy_sessions')
         .update({
-          game_state: initialGameState,
+          game_state: initialGameState as unknown as Json,
           status: 'active',
           started_at: new Date().toISOString()
         })
@@ -162,8 +165,9 @@ export const RummyGameTable: React.FC<RummyGameTableProps> = ({ sessionId, onLea
   const handleGameUpdate = (updatedSession: any) => {
     setSession(updatedSession);
     if (updatedSession.game_state) {
-      setGameState(updatedSession.game_state);
-      const currentPlayer = updatedSession.game_state.players.find((p: Player) => p.id === user?.id);
+      const typedGameState = updatedSession.game_state as GameState;
+      setGameState(typedGameState);
+      const currentPlayer = typedGameState.players.find((p: Player) => p.id === user?.id);
       if (currentPlayer) {
         setPlayerCards(currentPlayer.cards);
       }
