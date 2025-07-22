@@ -62,7 +62,7 @@ export const CreateRummyRoomModal: React.FC<CreateRummyRoomModalProps> = ({
           p_amount: parseFloat(formData.entryFee),
           p_type: 'debit' as const,
           p_reason: `Created Rummy table - ID: ${data.id}`,
-          p_game_type: 'rummy' as const,
+          p_game_type: 'ludo' as const, // Use existing game type since rummy isn't in enum yet
           p_game_session_id: data.id
         });
 
