@@ -131,6 +131,92 @@ export type Database = {
         }
         Relationships: []
       }
+      rummy_moves: {
+        Row: {
+          card_data: Json | null
+          id: string
+          move_type: string
+          player_id: string
+          session_id: string
+          timestamp: string | null
+        }
+        Insert: {
+          card_data?: Json | null
+          id?: string
+          move_type: string
+          player_id: string
+          session_id: string
+          timestamp?: string | null
+        }
+        Update: {
+          card_data?: Json | null
+          id?: string
+          move_type?: string
+          player_id?: string
+          session_id?: string
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rummy_moves_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "rummy_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rummy_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          current_players: number
+          entry_fee: number
+          game_state: Json | null
+          game_type: string
+          id: string
+          max_players: number
+          players: Json
+          prize_pool: number
+          started_at: string | null
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          current_players?: number
+          entry_fee?: number
+          game_state?: Json | null
+          game_type: string
+          id?: string
+          max_players?: number
+          players?: Json
+          prize_pool?: number
+          started_at?: string | null
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          current_players?: number
+          entry_fee?: number
+          game_state?: Json | null
+          game_type?: string
+          id?: string
+          max_players?: number
+          players?: Json
+          prize_pool?: number
+          started_at?: string | null
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -244,6 +330,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      join_rummy_session: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
       lock_wallet_balance: {
         Args: { p_user_id: string; p_amount: number; p_lock?: boolean }
         Returns: Json
@@ -254,6 +344,10 @@ export type Database = {
       }
       process_withdrawal_request: {
         Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
+        Returns: Json
+      }
+      start_rummy_game: {
+        Args: { p_session_id: string }
         Returns: Json
       }
       update_wallet_balance: {
