@@ -3,6 +3,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+interface RoundProcessResponse {
+  success: boolean;
+  round_id: string;
+  winning_color: string;
+  total_bets: number;
+  winning_bets: number;
+  total_payouts: number;
+}
+
 export const useColorPredictionAdmin = () => {
   const queryClient = useQueryClient();
 
@@ -21,7 +30,7 @@ export const useColorPredictionAdmin = () => {
       });
 
       if (error) throw error;
-      return data;
+      return data as unknown as RoundProcessResponse;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['color-prediction-current-round'] });
@@ -48,7 +57,7 @@ export const useColorPredictionAdmin = () => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk`,
             'Content-Type': 'application/json',
           },
         }

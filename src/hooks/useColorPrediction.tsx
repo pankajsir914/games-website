@@ -104,7 +104,7 @@ export const useColorPrediction = () => {
       });
 
       if (error) throw error;
-      return data as BetPlaceResponse;
+      return data as unknown as BetPlaceResponse;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['color-prediction-user-bet'] });
