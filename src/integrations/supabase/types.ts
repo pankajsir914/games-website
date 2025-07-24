@@ -62,6 +62,133 @@ export type Database = {
         }
         Relationships: []
       }
+      jackpot_games: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          ends_at: string
+          id: string
+          max_tickets_per_user: number
+          starts_at: string
+          status: string
+          ticket_price: number
+          tier: string
+          total_participants: number
+          total_pool: number
+          total_tickets: number
+          winner_id: string | null
+          winning_ticket_number: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          ends_at: string
+          id?: string
+          max_tickets_per_user?: number
+          starts_at?: string
+          status?: string
+          ticket_price?: number
+          tier?: string
+          total_participants?: number
+          total_pool?: number
+          total_tickets?: number
+          winner_id?: string | null
+          winning_ticket_number?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          max_tickets_per_user?: number
+          starts_at?: string
+          status?: string
+          ticket_price?: number
+          tier?: string
+          total_participants?: number
+          total_pool?: number
+          total_tickets?: number
+          winner_id?: string | null
+          winning_ticket_number?: number | null
+        }
+        Relationships: []
+      }
+      jackpot_tickets: {
+        Row: {
+          amount_paid: number
+          game_id: string
+          id: string
+          purchased_at: string
+          ticket_count: number
+          ticket_numbers: number[]
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          game_id: string
+          id?: string
+          purchased_at?: string
+          ticket_count: number
+          ticket_numbers: number[]
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          game_id?: string
+          id?: string
+          purchased_at?: string
+          ticket_count?: number
+          ticket_numbers?: number[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jackpot_tickets_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "jackpot_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jackpot_winners: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          prize_amount: number
+          tier: string
+          user_id: string
+          winning_ticket_number: number
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          prize_amount: number
+          tier: string
+          user_id: string
+          winning_ticket_number: number
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          prize_amount?: number
+          tier?: string
+          user_id?: string
+          winning_ticket_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jackpot_winners_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "jackpot_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_requests: {
         Row: {
           admin_notes: string | null
@@ -330,6 +457,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buy_jackpot_tickets: {
+        Args: { p_game_id: string; p_ticket_count: number }
+        Returns: Json
+      }
+      complete_jackpot_game: {
+        Args: { p_game_id: string }
+        Returns: Json
+      }
       join_rummy_session: {
         Args: { p_session_id: string }
         Returns: Json
