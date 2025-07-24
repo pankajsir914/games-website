@@ -236,7 +236,24 @@ export const usePokerTable = (tableId: string) => {
         .order('seat_number');
 
       if (error) throw error;
-      return data as PokerPlayer[];
+      
+      // Transform the data to match our interface
+      const transformedPlayers = data?.map(player => ({
+        id: player.id,
+        table_id: player.table_id,
+        user_id: player.user_id,
+        seat_number: player.seat_number,
+        chip_count: player.chip_count,
+        status: player.status as 'waiting' | 'playing' | 'folded' | 'all_in' | 'sitting_out',
+        is_dealer: player.is_dealer,
+        is_small_blind: player.is_small_blind,
+        is_big_blind: player.is_big_blind,
+        hole_cards: player.hole_cards ? (player.hole_cards as Card[]) : undefined,
+        joined_at: player.joined_at,
+        profiles: Array.isArray(player.profiles) ? undefined : player.profiles as { full_name: string }
+      })) || [];
+
+      return transformedPlayers as PokerPlayer[];
     },
     enabled: !!tableId,
   });
@@ -255,7 +272,28 @@ export const usePokerTable = (tableId: string) => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as PokerGame | null;
+      
+      if (!data) return null;
+
+      // Transform the data to match our interface
+      const transformedGame: PokerGame = {
+        id: data.id,
+        table_id: data.table_id,
+        game_state: data.game_state as 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'completed',
+        community_cards: (data.community_cards as Card[]) || [],
+        pot_amount: data.pot_amount,
+        current_bet: data.current_bet,
+        current_player_turn: data.current_player_turn,
+        dealer_position: data.dealer_position,
+        turn_timer_start: data.turn_timer_start,
+        turn_time_limit: data.turn_time_limit,
+        started_at: data.started_at,
+        completed_at: data.completed_at,
+        winner_id: data.winner_id,
+        winning_hand: data.winning_hand
+      };
+
+      return transformedGame;
     },
     enabled: !!tableId,
   });
