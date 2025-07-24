@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -230,14 +229,14 @@ export const usePokerTable = (tableId: string) => {
         .from('poker_players')
         .select(`
           *,
-          profiles(full_name)
+          profiles!inner(full_name)
         `)
         .eq('table_id', tableId)
         .order('seat_number');
 
       if (error) throw error;
       
-      // Transform the data to match our interface
+      // Transform the data to match our interface with proper type casting
       const transformedPlayers = data?.map(player => ({
         id: player.id,
         table_id: player.table_id,
@@ -248,9 +247,9 @@ export const usePokerTable = (tableId: string) => {
         is_dealer: player.is_dealer,
         is_small_blind: player.is_small_blind,
         is_big_blind: player.is_big_blind,
-        hole_cards: player.hole_cards ? (player.hole_cards as Card[]) : undefined,
+        hole_cards: player.hole_cards ? (player.hole_cards as unknown as Card[]) : undefined,
         joined_at: player.joined_at,
-        profiles: Array.isArray(player.profiles) ? undefined : player.profiles as { full_name: string }
+        profiles: player.profiles ? { full_name: (player.profiles as any).full_name } : undefined
       })) || [];
 
       return transformedPlayers as PokerPlayer[];
@@ -275,12 +274,12 @@ export const usePokerTable = (tableId: string) => {
       
       if (!data) return null;
 
-      // Transform the data to match our interface
+      // Transform the data to match our interface with proper type casting
       const transformedGame: PokerGame = {
         id: data.id,
         table_id: data.table_id,
         game_state: data.game_state as 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'completed',
-        community_cards: (data.community_cards as Card[]) || [],
+        community_cards: (data.community_cards as unknown as Card[]) || [],
         pot_amount: data.pot_amount,
         current_bet: data.current_bet,
         current_player_turn: data.current_player_turn,
