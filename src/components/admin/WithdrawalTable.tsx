@@ -11,8 +11,10 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useAdminWithdrawals } from '@/hooks/useAdminWithdrawals';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface WithdrawalFilters {
   search: string;
@@ -24,40 +26,9 @@ interface WithdrawalTableProps {
   filters: WithdrawalFilters;
 }
 
-const mockWithdrawals = [
-  {
-    id: 'WD001',
-    user: 'John Doe',
-    amount: 5000,
-    method: 'Bank Transfer',
-    accountDetails: 'XXXX1234',
-    status: 'pending',
-    requestTime: '2024-01-20 14:30:00',
-    avatar: 'JD'
-  },
-  {
-    id: 'WD002',
-    user: 'Jane Smith',
-    amount: 12500,
-    method: 'UPI',
-    accountDetails: 'jane@upi',
-    status: 'approved',
-    requestTime: '2024-01-20 13:45:00',
-    avatar: 'JS'
-  },
-  {
-    id: 'WD003',
-    user: 'Mike Johnson',
-    amount: 8000,
-    method: 'Bank Transfer',
-    accountDetails: 'XXXX5678',
-    status: 'processing',
-    requestTime: '2024-01-20 12:15:00',
-    avatar: 'MJ'
-  }
-];
-
 export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
+  const { data: withdrawals, isLoading, processWithdrawal, isProcessing } = useAdminWithdrawals();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -74,12 +45,45 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
   };
 
   const handleApprove = (id: string) => {
-    console.log('Approving withdrawal:', id);
+    processWithdrawal({ id, status: 'approved', adminNotes: 'Approved by admin' });
   };
 
   const handleReject = (id: string) => {
-    console.log('Rejecting withdrawal:', id);
+    processWithdrawal({ id, status: 'rejected', adminNotes: 'Rejected by admin' });
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <div className="space-y-4 p-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-8 w-20" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Apply filters
+  const filteredWithdrawals = withdrawals?.filter(withdrawal => {
+    if (filters.search && !withdrawal.user.toLowerCase().includes(filters.search.toLowerCase()) && 
+        !withdrawal.id.toLowerCase().includes(filters.search.toLowerCase())) {
+      return false;
+    }
+    if (filters.status !== 'all' && withdrawal.status !== filters.status) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <Card>
@@ -98,15 +102,14 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockWithdrawals.map((withdrawal) => (
+            {filteredWithdrawals?.map((withdrawal) => (
               <TableRow key={withdrawal.id}>
                 <TableCell>
-                  <span className="font-mono text-sm">{withdrawal.id}</span>
+                  <span className="font-mono text-sm">{withdrawal.id.slice(0, 8)}</span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={`/placeholder-${withdrawal.id}.jpg`} />
                       <AvatarFallback>{withdrawal.avatar}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{withdrawal.user}</span>
@@ -130,6 +133,7 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
                         size="sm" 
                         onClick={() => handleApprove(withdrawal.id)}
                         className="bg-gaming-success hover:bg-gaming-success/90"
+                        disabled={isProcessing}
                       >
                         <CheckCircle className="mr-1 h-3 w-3" />
                         Approve
@@ -138,6 +142,7 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
                         size="sm" 
                         variant="destructive"
                         onClick={() => handleReject(withdrawal.id)}
+                        disabled={isProcessing}
                       >
                         <XCircle className="mr-1 h-3 w-3" />
                         Reject

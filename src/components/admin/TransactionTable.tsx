@@ -10,7 +10,9 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAdminTransactions } from '@/hooks/useAdminTransactions';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TransactionFilters {
   search: string;
@@ -23,40 +25,9 @@ interface TransactionTableProps {
   filters: TransactionFilters;
 }
 
-const mockTransactions = [
-  {
-    id: 'TXN001',
-    user: 'John Doe',
-    type: 'deposit',
-    amount: 5000,
-    status: 'completed',
-    method: 'UPI',
-    timestamp: '2024-01-20 14:30:00',
-    avatar: 'JD'
-  },
-  {
-    id: 'TXN002',
-    user: 'Jane Smith',
-    type: 'withdrawal',
-    amount: 8000,
-    status: 'pending',
-    method: 'Bank Transfer',
-    timestamp: '2024-01-20 13:45:00',
-    avatar: 'JS'
-  },
-  {
-    id: 'TXN003',
-    user: 'Mike Johnson',
-    type: 'game_win',
-    amount: 12500,
-    status: 'completed',
-    method: 'Ludo Match',
-    timestamp: '2024-01-20 12:15:00',
-    avatar: 'MJ'
-  }
-];
-
 export const TransactionTable = ({ filters }: TransactionTableProps) => {
+  const { data: transactions, isLoading } = useAdminTransactions();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -85,6 +56,42 @@ export const TransactionTable = ({ filters }: TransactionTableProps) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <div className="space-y-4 p-6">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-8 w-20" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Apply filters
+  const filteredTransactions = transactions?.filter(transaction => {
+    if (filters.search && !transaction.user.toLowerCase().includes(filters.search.toLowerCase()) && 
+        !transaction.id.toLowerCase().includes(filters.search.toLowerCase())) {
+      return false;
+    }
+    if (filters.type !== 'all' && transaction.type !== filters.type) {
+      return false;
+    }
+    if (filters.status !== 'all' && transaction.status !== filters.status) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -101,15 +108,14 @@ export const TransactionTable = ({ filters }: TransactionTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockTransactions.map((transaction) => (
+            {filteredTransactions?.map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell>
-                  <span className="font-mono text-sm">{transaction.id}</span>
+                  <span className="font-mono text-sm">{transaction.id.slice(0, 8)}</span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={`/placeholder-${transaction.id}.jpg`} />
                       <AvatarFallback>{transaction.avatar}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{transaction.user}</span>

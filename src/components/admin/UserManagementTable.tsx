@@ -11,7 +11,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MoreHorizontal, Edit, Trash2, Ban } from 'lucide-react';
 import {
   DropdownMenu,
@@ -19,6 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAdminUsers } from '@/hooks/useAdminUsers';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface UserFilters {
   search: string;
@@ -30,46 +32,9 @@ interface UserManagementTableProps {
   filters: UserFilters;
 }
 
-const mockUsers = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+91 9876543210',
-    balance: 5000,
-    status: 'active',
-    joinDate: '2024-01-15',
-    totalDeposits: 25000,
-    totalWithdrawals: 20000,
-    avatar: 'JD'
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    phone: '+91 9876543211',
-    balance: 12500,
-    status: 'active',
-    joinDate: '2024-01-10',
-    totalDeposits: 50000,
-    totalWithdrawals: 37500,
-    avatar: 'JS'
-  },
-  {
-    id: 3,
-    name: 'Mike Johnson',
-    email: 'mike@example.com',
-    phone: '+91 9876543212',
-    balance: 0,
-    status: 'suspended',
-    joinDate: '2024-01-08',
-    totalDeposits: 15000,
-    totalWithdrawals: 15000,
-    avatar: 'MJ'
-  }
-];
-
 export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
+  const { data: users, isLoading } = useAdminUsers();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -82,6 +47,39 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <div className="space-y-4 p-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-8 w-20" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Apply filters
+  const filteredUsers = users?.filter(user => {
+    if (filters.search && !user.full_name.toLowerCase().includes(filters.search.toLowerCase()) && 
+        !user.email.toLowerCase().includes(filters.search.toLowerCase())) {
+      return false;
+    }
+    if (filters.status !== 'all' && user.status !== filters.status) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <Card>
@@ -100,37 +98,36 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockUsers.map((user) => (
+            {filteredUsers?.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={`/placeholder-${user.id}.jpg`} />
-                      <AvatarFallback>{user.avatar}</AvatarFallback>
+                      <AvatarFallback>{user.id.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">ID: {user.id}</div>
+                      <div className="font-medium">{user.full_name}</div>
+                      <div className="text-sm text-muted-foreground">ID: {user.id.slice(0, 8)}</div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
                     <div>{user.email}</div>
-                    <div className="text-muted-foreground">{user.phone}</div>
+                    <div className="text-muted-foreground">{user.phone || 'No phone'}</div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium">₹{user.balance.toLocaleString()}</span>
+                  <span className="font-medium">₹{user.current_balance.toLocaleString()}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-gaming-success">₹{user.totalDeposits.toLocaleString()}</span>
+                  <span className="text-gaming-success">₹{user.total_deposits.toLocaleString()}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-gaming-danger">₹{user.totalWithdrawals.toLocaleString()}</span>
+                  <span className="text-gaming-danger">₹{user.total_withdrawals.toLocaleString()}</span>
                 </TableCell>
                 <TableCell>{getStatusBadge(user.status)}</TableCell>
-                <TableCell>{user.joinDate}</TableCell>
+                <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
