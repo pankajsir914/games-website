@@ -13,6 +13,8 @@ import Aviator from "./pages/Aviator";
 import Rummy from "./pages/Rummy";
 import Jackpot from "./pages/Jackpot";
 import Wallet from "./pages/Wallet";
+import Poker from "./pages/Poker";
+import PokerTable from "./pages/PokerTable";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/aviator" element={<Aviator />} />
             <Route path="/rummy" element={<Rummy />} />
             <Route path="/jackpot" element={<Jackpot />} />
+            <Route path="/poker" element={<Poker />} />
+            <Route path="/poker/:tableId" element={<PokerTable />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/users" element={<AdminUsers />} />

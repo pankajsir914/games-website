@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
 import { Link } from 'react-router-dom';
-import { Gamepad2, Plane, Palette, Crown, Trophy } from 'lucide-react';
+import { Gamepad2, Plane, Palette, Crown, Trophy, Spade } from 'lucide-react';
 
 const Games = () => {
   const games = [
@@ -36,12 +36,19 @@ const Games = () => {
       color: "from-indigo-400 to-purple-600"
     },
     {
+      title: "Texas Hold'em Poker",
+      description: "Professional poker tables with real money",
+      icon: Spade,
+      path: "/poker",
+      color: "from-gray-700 to-gray-900",
+      featured: true
+    },
+    {
       title: "Jackpot Games",
       description: "Buy tickets and win massive jackpots",
       icon: Trophy,
       path: "/jackpot",
-      color: "from-yellow-400 to-orange-500",
-      featured: true
+      color: "from-yellow-400 to-orange-500"
     }
   ];
 

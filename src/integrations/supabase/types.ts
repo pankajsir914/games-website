@@ -231,6 +231,258 @@ export type Database = {
         }
         Relationships: []
       }
+      poker_actions: {
+        Row: {
+          action_type: string
+          amount: number
+          created_at: string
+          game_id: string
+          game_state: string
+          id: string
+          player_id: string
+        }
+        Insert: {
+          action_type: string
+          amount?: number
+          created_at?: string
+          game_id: string
+          game_state: string
+          id?: string
+          player_id: string
+        }
+        Update: {
+          action_type?: string
+          amount?: number
+          created_at?: string
+          game_id?: string
+          game_state?: string
+          id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_actions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "poker_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_games: {
+        Row: {
+          community_cards: Json
+          completed_at: string | null
+          current_bet: number
+          current_player_turn: string | null
+          dealer_position: number
+          deck: Json
+          game_state: string
+          hand_history: Json
+          id: string
+          pot_amount: number
+          started_at: string
+          table_id: string
+          turn_time_limit: number
+          turn_timer_start: string | null
+          winner_id: string | null
+          winning_hand: Json | null
+        }
+        Insert: {
+          community_cards?: Json
+          completed_at?: string | null
+          current_bet?: number
+          current_player_turn?: string | null
+          dealer_position?: number
+          deck?: Json
+          game_state?: string
+          hand_history?: Json
+          id?: string
+          pot_amount?: number
+          started_at?: string
+          table_id: string
+          turn_time_limit?: number
+          turn_timer_start?: string | null
+          winner_id?: string | null
+          winning_hand?: Json | null
+        }
+        Update: {
+          community_cards?: Json
+          completed_at?: string | null
+          current_bet?: number
+          current_player_turn?: string | null
+          dealer_position?: number
+          deck?: Json
+          game_state?: string
+          hand_history?: Json
+          id?: string
+          pot_amount?: number
+          started_at?: string
+          table_id?: string
+          turn_time_limit?: number
+          turn_timer_start?: string | null
+          winner_id?: string | null
+          winning_hand?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_games_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "poker_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_hand_history: {
+        Row: {
+          community_cards: Json
+          completed_at: string
+          game_id: string
+          id: string
+          players_data: Json
+          pot_amount: number
+          table_id: string
+          winner_id: string
+          winning_hand: Json
+        }
+        Insert: {
+          community_cards: Json
+          completed_at?: string
+          game_id: string
+          id?: string
+          players_data: Json
+          pot_amount: number
+          table_id: string
+          winner_id: string
+          winning_hand: Json
+        }
+        Update: {
+          community_cards?: Json
+          completed_at?: string
+          game_id?: string
+          id?: string
+          players_data?: Json
+          pot_amount?: number
+          table_id?: string
+          winner_id?: string
+          winning_hand?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_hand_history_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "poker_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_hand_history_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "poker_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_players: {
+        Row: {
+          chip_count: number
+          hole_cards: Json | null
+          id: string
+          is_big_blind: boolean
+          is_dealer: boolean
+          is_small_blind: boolean
+          joined_at: string
+          seat_number: number
+          status: string
+          table_id: string
+          user_id: string
+        }
+        Insert: {
+          chip_count?: number
+          hole_cards?: Json | null
+          id?: string
+          is_big_blind?: boolean
+          is_dealer?: boolean
+          is_small_blind?: boolean
+          joined_at?: string
+          seat_number: number
+          status?: string
+          table_id: string
+          user_id: string
+        }
+        Update: {
+          chip_count?: number
+          hole_cards?: Json | null
+          id?: string
+          is_big_blind?: boolean
+          is_dealer?: boolean
+          is_small_blind?: boolean
+          joined_at?: string
+          seat_number?: number
+          status?: string
+          table_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_players_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "poker_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_tables: {
+        Row: {
+          big_blind: number
+          buy_in_max: number
+          buy_in_min: number
+          created_at: string
+          created_by: string | null
+          current_players: number
+          id: string
+          max_players: number
+          name: string
+          small_blind: number
+          status: string
+          table_type: string
+          updated_at: string
+        }
+        Insert: {
+          big_blind?: number
+          buy_in_max?: number
+          buy_in_min?: number
+          created_at?: string
+          created_by?: string | null
+          current_players?: number
+          id?: string
+          max_players?: number
+          name: string
+          small_blind?: number
+          status?: string
+          table_type?: string
+          updated_at?: string
+        }
+        Update: {
+          big_blind?: number
+          buy_in_max?: number
+          buy_in_min?: number
+          created_at?: string
+          created_by?: string | null
+          current_players?: number
+          id?: string
+          max_players?: number
+          name?: string
+          small_blind?: number
+          status?: string
+          table_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -465,8 +717,20 @@ export type Database = {
         Args: { p_game_id: string }
         Returns: Json
       }
+      join_poker_table: {
+        Args: {
+          p_table_id: string
+          p_seat_number: number
+          p_buy_in_amount: number
+        }
+        Returns: Json
+      }
       join_rummy_session: {
         Args: { p_session_id: string }
+        Returns: Json
+      }
+      leave_poker_table: {
+        Args: { p_table_id: string }
         Returns: Json
       }
       lock_wallet_balance: {
