@@ -11,6 +11,7 @@ import Ludo from "./pages/Ludo";
 import Aviator from "./pages/Aviator";
 import ColorPrediction from "./pages/ColorPrediction";
 import AndarBahar from "./pages/AndarBahar";
+import Roulette from "./pages/Roulette";
 import Rummy from "./pages/Rummy";
 import Poker from "./pages/Poker";
 import PokerTable from "./pages/PokerTable";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/aviator" element={<Aviator />} />
             <Route path="/color-prediction" element={<ColorPrediction />} />
             <Route path="/andar-bahar" element={<AndarBahar />} />
+            <Route path="/roulette" element={<Roulette />} />
             <Route path="/rummy" element={<Rummy />} />
             <Route path="/poker" element={<Poker />} />
             <Route path="/poker/table/:tableId" element={<PokerTable />} />

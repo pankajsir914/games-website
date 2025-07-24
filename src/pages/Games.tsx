@@ -1,114 +1,104 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
-import { Link } from 'react-router-dom';
-import { Gamepad2, Plane, Palette, Crown, Trophy, Spade, Target } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const Games = () => {
+  const navigate = useNavigate();
+
   const games = [
     {
-      title: "Ludo Classic",
-      description: "Play the classic board game with friends online",
-      icon: Gamepad2,
-      path: "/ludo",
-      color: "from-green-400 to-blue-500"
+      title: 'Ludo',
+      description: 'Classic board game with real money betting',
+      icon: '🎲',
+      path: '/ludo',
+      color: 'from-green-500 to-emerald-600'
     },
     {
-      title: "Aviator",
-      description: "Fly high and cash out before the crash",
-      icon: Plane,
-      path: "/aviator",
-      color: "from-purple-400 to-pink-600"
+      title: 'Aviator',
+      description: 'High-flying multiplier crash game',
+      icon: '✈️',
+      path: '/aviator',
+      color: 'from-blue-500 to-cyan-600'
     },
     {
-      title: "Color Prediction",
-      description: "Predict colors and win instant rewards",
-      icon: Palette,
-      path: "/color-prediction",
-      color: "from-yellow-400 to-red-500"
+      title: 'Color Prediction',
+      description: 'Predict the next color and win big',
+      icon: '🎨',
+      path: '/color-prediction',
+      color: 'from-purple-500 to-pink-600'
     },
     {
-      title: "Andar Bahar",
-      description: "Traditional Indian card game with real money",
-      icon: Target,
-      path: "/andar-bahar",
-      color: "from-orange-400 to-red-600",
-      featured: true
+      title: 'Andar Bahar',
+      description: 'Traditional Indian card game',
+      icon: '🃏',
+      path: '/andar-bahar',
+      color: 'from-red-500 to-orange-600'
     },
     {
-      title: "Rummy",
-      description: "Classic card game with real players",
-      icon: Crown,
-      path: "/rummy",
-      color: "from-indigo-400 to-purple-600"
+      title: 'Roulette',
+      description: 'Classic casino wheel game with multiple betting options',
+      icon: '🎰',
+      path: '/roulette',
+      color: 'from-purple-600 to-indigo-700'
     },
     {
-      title: "Texas Hold'em Poker",
-      description: "Professional poker tables with real money",
-      icon: Spade,
-      path: "/poker",
-      color: "from-gray-700 to-gray-900"
+      title: 'Rummy',
+      description: 'Skill-based card game tournaments',
+      icon: '🎯',
+      path: '/rummy',
+      color: 'from-yellow-500 to-amber-600'
     },
     {
-      title: "Jackpot Games",
-      description: "Buy tickets and win massive jackpots",
-      icon: Trophy,
-      path: "/jackpot",
-      color: "from-yellow-400 to-orange-500"
+      title: 'Poker',
+      description: 'Texas Hold\'em poker tables',
+      icon: '♠️',
+      path: '/poker',
+      color: 'from-gray-700 to-gray-900'
+    },
+    {
+      title: 'Jackpot',
+      description: 'Progressive jackpot lottery game',
+      icon: '💰',
+      path: '/jackpot',
+      color: 'from-yellow-400 to-yellow-600'
     }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <Navigation />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Choose Your Game</h1>
+      <div className="container mx-auto px-4 pt-24 pb-8">
+        <div className="text-center text-white mb-12">
+          <h1 className="text-4xl font-bold mb-4">🎮 Game Hub</h1>
           <p className="text-xl text-gray-300">
-            Experience the thrill of online gaming with real rewards
+            Choose your game and start winning real money!
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          {games.map((game) => {
-            const IconComponent = game.icon;
-            return (
-              <Card 
-                key={game.title} 
-                className={`group hover:scale-105 transition-all duration-300 bg-white/10 backdrop-blur-sm border-white/20 hover:border-white/40 ${
-                  game.featured ? 'ring-2 ring-yellow-400/50' : ''
-                }`}
-              >
-                <CardHeader className="text-center">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r ${game.color} p-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <IconComponent className="w-full h-full text-white" />
-                  </div>
-                  <CardTitle className="text-white text-xl">
-                    {game.title}
-                    {game.featured && (
-                      <span className="ml-2 px-2 py-1 text-xs bg-yellow-400 text-black rounded-full font-bold">
-                        NEW!
-                      </span>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="text-gray-300">
-                    {game.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Link to={game.path}>
-                    <Button 
-                      className={`w-full bg-gradient-to-r ${game.color} hover:opacity-90 text-white font-semibold py-3 transition-all duration-300`}
-                    >
-                      Play Now
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {games.map((game) => (
+            <Card key={game.title} className="bg-white/10 backdrop-blur border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+              <CardHeader className="text-center">
+                <div className={`w-16 h-16 mx-auto rounded-full bg-gradient-to-r ${game.color} flex items-center justify-center text-2xl mb-4`}>
+                  {game.icon}
+                </div>
+                <CardTitle className="text-white text-xl">{game.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-300 mb-6 text-sm">
+                  {game.description}
+                </p>
+                <Button 
+                  onClick={() => navigate(game.path)}
+                  className={`w-full bg-gradient-to-r ${game.color} hover:opacity-90 text-white font-semibold`}
+                >
+                  Play Now
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

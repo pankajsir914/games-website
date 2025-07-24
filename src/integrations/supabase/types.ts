@@ -599,6 +599,89 @@ export type Database = {
         }
         Relationships: []
       }
+      roulette_bets: {
+        Row: {
+          bet_amount: number
+          bet_type: string
+          bet_value: string | null
+          created_at: string
+          id: string
+          payout_amount: number | null
+          round_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          bet_type: string
+          bet_value?: string | null
+          created_at?: string
+          id?: string
+          payout_amount?: number | null
+          round_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          bet_type?: string
+          bet_value?: string | null
+          created_at?: string
+          id?: string
+          payout_amount?: number | null
+          round_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roulette_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "roulette_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roulette_rounds: {
+        Row: {
+          bet_end_time: string
+          created_at: string
+          id: string
+          round_number: number
+          spin_end_time: string | null
+          status: string
+          updated_at: string
+          winning_color: string | null
+          winning_number: number | null
+        }
+        Insert: {
+          bet_end_time: string
+          created_at?: string
+          id?: string
+          round_number: number
+          spin_end_time?: string | null
+          status?: string
+          updated_at?: string
+          winning_color?: string | null
+          winning_number?: number | null
+        }
+        Update: {
+          bet_end_time?: string
+          created_at?: string
+          id?: string
+          round_number?: number
+          spin_end_time?: string | null
+          status?: string
+          updated_at?: string
+          winning_color?: string | null
+          winning_number?: number | null
+        }
+        Relationships: []
+      }
       rummy_moves: {
         Row: {
           card_data: Json | null
@@ -830,6 +913,15 @@ export type Database = {
         Args: { p_round_id: string; p_bet_side: string; p_bet_amount: number }
         Returns: Json
       }
+      place_roulette_bet: {
+        Args: {
+          p_round_id: string
+          p_bet_type: string
+          p_bet_value: string
+          p_bet_amount: number
+        }
+        Returns: Json
+      }
       process_andar_bahar_round: {
         Args: {
           p_round_id: string
@@ -840,6 +932,10 @@ export type Database = {
       }
       process_payment_request: {
         Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
+        Returns: Json
+      }
+      process_roulette_round: {
+        Args: { p_round_id: string; p_winning_number: number }
         Returns: Json
       }
       process_withdrawal_request: {
