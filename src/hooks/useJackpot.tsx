@@ -86,17 +86,32 @@ export const useJackpot = () => {
   const { data: winnersHistory, isLoading: winnersLoading } = useQuery({
     queryKey: ['jackpot-winners'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch winners
+      const { data: winners, error: winnersError } = await supabase
         .from('jackpot_winners')
-        .select(`
-          *,
-          profiles!inner(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      return data as JackpotWinner[];
+      if (winnersError) throw winnersError;
+      if (!winners || winners.length === 0) return [];
+
+      // Then fetch profiles for the winners
+      const userIds = winners.map(w => w.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const winnersWithProfiles = winners.map(winner => ({
+        ...winner,
+        profiles: profiles?.find(p => p.id === winner.user_id) || { full_name: 'Anonymous Player' }
+      }));
+
+      return winnersWithProfiles as JackpotWinner[];
     },
   });
 
