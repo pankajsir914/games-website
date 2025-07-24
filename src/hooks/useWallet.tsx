@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -105,7 +104,6 @@ export const useWallet = () => {
 
       if (error) throw error;
       
-      // Type assertion for the response from the database function
       return data as unknown as WalletUpdateResponse;
     },
     onSuccess: (data) => {
