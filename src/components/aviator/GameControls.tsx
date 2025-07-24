@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Play, Wallet, Timer, Target } from 'lucide-react';
+import { Play, Wallet, Timer, Target, Loader2 } from 'lucide-react';
 import { GameData } from '@/pages/Aviator';
 
 interface GameControlsProps {
@@ -12,9 +12,10 @@ interface GameControlsProps {
   setGameData: React.Dispatch<React.SetStateAction<GameData>>;
   onPlaceBet: () => void;
   bettingCountdown: number;
+  isPlacingBet?: boolean;
 }
 
-const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: GameControlsProps) => {
+const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isPlacingBet = false }: GameControlsProps) => {
   const handleBetChange = (value: string) => {
     const betAmount = Math.max(10, Math.min(10000, Number(value) || 10));
     setGameData(prev => ({ ...prev, betAmount }));
@@ -27,7 +28,7 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: G
 
   const quickBetAmounts = [50, 100, 500, 1000, 2000];
 
-  const canBet = gameData.gameState === 'betting' && bettingCountdown > 0 && !gameData.hasBet;
+  const canBet = gameData.gameState === 'betting' && bettingCountdown > 0 && !gameData.hasBet && !isPlacingBet;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -144,8 +145,17 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown }: G
                 : '0 0 20px hsl(var(--primary))'
             }}
           >
-            <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-            {gameData.hasBet ? '✓ Bet Placed' : canBet ? 'Place Bet' : 'Betting Closed'}
+            {isPlacingBet ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                Placing Bet...
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                {gameData.hasBet ? '✓ Bet Placed' : canBet ? 'Place Bet' : 'Betting Closed'}
+              </>
+            )}
           </Button>
 
           {/* Enhanced Bet Status */}

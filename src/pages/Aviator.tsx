@@ -4,7 +4,10 @@ import Navigation from '@/components/Navigation';
 import GameInterface from '@/components/aviator/GameInterface';
 import GameControls from '@/components/aviator/GameControls';
 import GameStats from '@/components/aviator/GameStats';
+import { useAviator } from '@/hooks/useAviator';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export type GameState = 'betting' | 'flying' | 'crashed' | 'cashed_out';
 
@@ -23,11 +26,25 @@ export interface GameData {
 }
 
 const Aviator = () => {
+  const { user } = useAuth();
+  const {
+    currentRound,
+    userBet,
+    recentRounds,
+    currentMultiplier,
+    setCurrentMultiplier,
+    placeBet,
+    cashOut,
+    isPlacingBet,
+    isCashingOut,
+    balance
+  } = useAviator();
+
   const [gameData, setGameData] = useState<GameData>({
     multiplier: 1.0,
     crashPoint: 0,
     betAmount: 100,
-    balance: 10000,
+    balance: 0,
     profit: 0,
     isPlaying: false,
     gameState: 'betting',
@@ -37,20 +54,174 @@ const Aviator = () => {
     currentBet: 0
   });
 
-  const [bettingCountdown, setBettingCountdown] = useState(5);
+  const [bettingCountdown, setBettingCountdown] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const bettingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const gameStartTimeRef = useRef<number | null>(null);
 
-  // Generate random crash point between 1.1x and 100x
-  const generateCrashPoint = useCallback(() => {
-    const random = Math.random();
-    if (random < 0.5) return 1.1 + Math.random() * 1.4; // 50% chance: 1.1x - 2.5x
-    if (random < 0.8) return 2.5 + Math.random() * 7.5; // 30% chance: 2.5x - 10x
-    return 10 + Math.random() * 90; // 20% chance: 10x - 100x
-  }, []);
+  // Update balance from wallet
+  useEffect(() => {
+    setGameData(prev => ({ ...prev, balance }));
+  }, [balance]);
 
-  const placeBet = useCallback(() => {
-    if (gameData.gameState !== 'betting') {
+  // Update crash history from recent rounds
+  useEffect(() => {
+    if (recentRounds) {
+      const history = recentRounds.map(round => round.crash_multiplier);
+      setGameData(prev => ({ ...prev, crashHistory: history }));
+    }
+  }, [recentRounds]);
+
+  // Handle current round changes
+  useEffect(() => {
+    if (!currentRound) return;
+
+    const now = Date.now();
+    const betEndTime = new Date(currentRound.bet_end_time).getTime();
+    const timeLeft = Math.max(0, Math.floor((betEndTime - now) / 1000));
+
+    if (currentRound.status === 'betting') {
+      setGameData(prev => ({
+        ...prev,
+        gameState: 'betting',
+        multiplier: 1.0,
+        crashPoint: currentRound.crash_multiplier,
+        isPlaying: false
+      }));
+      setBettingCountdown(timeLeft);
+    } else if (currentRound.status === 'flying') {
+      setGameData(prev => ({
+        ...prev,
+        gameState: 'flying',
+        crashPoint: currentRound.crash_multiplier,
+        isPlaying: !!userBet
+      }));
+      setBettingCountdown(0);
+      gameStartTimeRef.current = now;
+      startFlyingAnimation();
+    } else if (currentRound.status === 'crashed') {
+      setGameData(prev => ({
+        ...prev,
+        gameState: 'crashed',
+        multiplier: currentRound.crash_multiplier,
+        isPlaying: false
+      }));
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+  }, [currentRound, userBet]);
+
+  // Handle user bet changes
+  useEffect(() => {
+    if (userBet) {
+      setGameData(prev => ({
+        ...prev,
+        hasBet: true,
+        currentBet: userBet.bet_amount,
+        autoCashOut: userBet.auto_cashout_multiplier || null
+      }));
+    } else {
+      setGameData(prev => ({
+        ...prev,
+        hasBet: false,
+        currentBet: 0,
+        autoCashOut: null
+      }));
+    }
+  }, [userBet]);
+
+  // Betting countdown
+  useEffect(() => {
+    if (bettingCountdown > 0 && currentRound?.status === 'betting') {
+      const timer = setInterval(() => {
+        setBettingCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [bettingCountdown, currentRound?.status]);
+
+  const startFlyingAnimation = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
+      setGameData(prev => {
+        const newMultiplier = prev.multiplier + 0.01;
+        setCurrentMultiplier(newMultiplier);
+
+        // Check if crashed
+        if (newMultiplier >= prev.crashPoint) {
+          clearInterval(intervalRef.current!);
+          
+          // Trigger crash processing
+          if (currentRound?.id) {
+            supabase.functions.invoke('aviator-game-manager', {
+              body: null,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            }, {
+              query: { action: 'crash_round', round_id: currentRound.id }
+            });
+          }
+
+          if (prev.hasBet && prev.isPlaying) {
+            toast({
+              title: "Crashed!",
+              description: `The plane crashed at ${prev.crashPoint.toFixed(2)}x. You lost ₹${prev.currentBet}`,
+              variant: "destructive"
+            });
+          }
+
+          return {
+            ...prev,
+            multiplier: prev.crashPoint,
+            isPlaying: false,
+            gameState: 'crashed'
+          };
+        }
+
+        // Check auto cash out
+        if (prev.autoCashOut && newMultiplier >= prev.autoCashOut && prev.isPlaying && userBet) {
+          clearInterval(intervalRef.current!);
+          
+          // Trigger auto cash out
+          cashOut({
+            betId: userBet.id,
+            currentMultiplier: newMultiplier
+          });
+
+          return {
+            ...prev,
+            multiplier: newMultiplier,
+            isPlaying: false,
+            gameState: 'cashed_out'
+          };
+        }
+
+        return { ...prev, multiplier: newMultiplier };
+      });
+    }, 100);
+  }, [currentRound?.id, userBet, cashOut]);
+
+  const handlePlaceBet = useCallback(() => {
+    if (!currentRound || !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to place bets",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (currentRound.status !== 'betting') {
       toast({
         title: "Betting Closed",
         description: "You can only bet before the plane takes off!",
@@ -68,7 +239,7 @@ const Aviator = () => {
       return;
     }
 
-    if (gameData.hasBet) {
+    if (userBet) {
       toast({
         title: "Bet Already Placed",
         description: "You have already placed a bet for this round.",
@@ -77,161 +248,62 @@ const Aviator = () => {
       return;
     }
 
-    setGameData(prev => ({
-      ...prev,
-      hasBet: true,
-      currentBet: prev.betAmount,
-      balance: prev.balance - prev.betAmount
-    }));
-
-    toast({
-      title: "Bet Placed",
-      description: `₹${gameData.betAmount} bet placed successfully!`,
-      variant: "default"
+    placeBet({
+      roundId: currentRound.id,
+      betAmount: gameData.betAmount,
+      autoCashoutMultiplier: gameData.autoCashOut || undefined
     });
-  }, [gameData.betAmount, gameData.balance, gameData.gameState, gameData.hasBet]);
+  }, [currentRound, user, gameData.betAmount, gameData.balance, gameData.autoCashOut, userBet, placeBet]);
 
-  const startFlyingPhase = useCallback(() => {
-    const crashPoint = generateCrashPoint();
-    setGameData(prev => ({
-      ...prev,
-      crashPoint,
-      multiplier: 1.0,
-      isPlaying: prev.hasBet,
-      gameState: 'flying'
-    }));
+  const handleCashOut = useCallback(() => {
+    if (!userBet || gameData.gameState !== 'flying' || !gameData.isPlaying) return;
 
-    // Game loop - increase multiplier every 100ms
-    intervalRef.current = setInterval(() => {
-      setGameData(prev => {
-        const newMultiplier = prev.multiplier + 0.01;
-        
-        // Check if crashed
-        if (newMultiplier >= prev.crashPoint) {
-          clearInterval(intervalRef.current!);
-          const newHistory = [prev.crashPoint, ...prev.crashHistory.slice(0, 9)];
-          
-          if (prev.hasBet && prev.isPlaying) {
-            toast({
-              title: "Crashed!",
-              description: `The plane crashed at ${prev.crashPoint.toFixed(2)}x. You lost ₹${prev.currentBet}`,
-              variant: "destructive"
-            });
-          }
-
-          // Start new betting round after 3 seconds
-          setTimeout(() => {
-            startBettingPhase();
-          }, 3000);
-
-          return {
-            ...prev,
-            multiplier: prev.crashPoint,
-            isPlaying: false,
-            gameState: 'crashed',
-            crashHistory: newHistory
-          };
-        }
-
-        // Check auto cash out
-        if (prev.autoCashOut && newMultiplier >= prev.autoCashOut && prev.isPlaying) {
-          clearInterval(intervalRef.current!);
-          const winAmount = prev.currentBet * newMultiplier;
-          
-          toast({
-            title: "Auto Cash Out!",
-            description: `You won ₹${winAmount.toFixed(2)} at ${newMultiplier.toFixed(2)}x`,
-            variant: "default"
-          });
-
-          // Start new betting round after 3 seconds
-          setTimeout(() => {
-            startBettingPhase();
-          }, 3000);
-
-          return {
-            ...prev,
-            multiplier: newMultiplier,
-            isPlaying: false,
-            gameState: 'cashed_out',
-            balance: prev.balance + winAmount,
-            profit: prev.profit + (winAmount - prev.currentBet)
-          };
-        }
-
-        return { ...prev, multiplier: newMultiplier };
-      });
-    }, 100);
-  }, [generateCrashPoint]);
-
-  const startBettingPhase = useCallback(() => {
-    setGameData(prev => ({
-      ...prev,
-      multiplier: 1.0,
-      crashPoint: 0,
-      isPlaying: false,
-      gameState: 'betting',
-      hasBet: false,
-      currentBet: 0
-    }));
-
-    setBettingCountdown(5);
-    
-    bettingIntervalRef.current = setInterval(() => {
-      setBettingCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(bettingIntervalRef.current!);
-          startFlyingPhase();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [startFlyingPhase]);
-
-  const cashOut = useCallback(() => {
-    if (gameData.gameState !== 'flying' || !gameData.isPlaying) return;
-
-    clearInterval(intervalRef.current!);
-    const winAmount = gameData.currentBet * gameData.multiplier;
-    
-    setGameData(prev => ({
-      ...prev,
-      isPlaying: false,
-      gameState: 'cashed_out',
-      balance: prev.balance + winAmount,
-      profit: prev.profit + (winAmount - prev.currentBet)
-    }));
-
-    toast({
-      title: "Cash Out Successful!",
-      description: `You won ₹${winAmount.toFixed(2)} at ${gameData.multiplier.toFixed(2)}x`,
-      variant: "default"
+    cashOut({
+      betId: userBet.id,
+      currentMultiplier: gameData.multiplier
     });
+  }, [userBet, gameData.gameState, gameData.isPlaying, gameData.multiplier, cashOut]);
 
-    // Start new betting round after 3 seconds
-    setTimeout(() => {
-      startBettingPhase();
-    }, 3000);
-  }, [gameData.gameState, gameData.multiplier, gameData.currentBet, gameData.isPlaying, startBettingPhase]);
-
-  // Initialize first betting phase
+  // Auto-manage rounds
   useEffect(() => {
-    startBettingPhase();
-    
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (bettingIntervalRef.current) clearInterval(bettingIntervalRef.current);
+    const manageRounds = () => {
+      supabase.functions.invoke('aviator-game-manager', {
+        method: 'POST',
+        body: null,
+      }, {
+        query: { action: 'auto_manage' }
+      });
     };
+
+    // Run immediately and then every 5 seconds
+    manageRounds();
+    const interval = setInterval(manageRounds, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Cleanup intervals on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (bettingIntervalRef.current) clearInterval(bettingIntervalRef.current);
     };
   }, []);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-hero">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
+            <span className="bg-gradient-primary bg-clip-text text-transparent">Aviator</span>
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Please sign in to play Aviator game
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -254,7 +326,7 @@ const Aviator = () => {
               <GameInterface 
                 gameData={gameData}
                 bettingCountdown={bettingCountdown}
-                onCashOut={cashOut}
+                onCashOut={handleCashOut}
               />
             </div>
 
@@ -263,7 +335,7 @@ const Aviator = () => {
               <GameControls
                 gameData={gameData}
                 setGameData={setGameData}
-                onPlaceBet={placeBet}
+                onPlaceBet={handlePlaceBet}
                 bettingCountdown={bettingCountdown}
               />
               <div className="hidden sm:block">

@@ -103,6 +103,92 @@ export type Database = {
         }
         Relationships: []
       }
+      aviator_bets: {
+        Row: {
+          auto_cashout_multiplier: number | null
+          bet_amount: number
+          cashout_multiplier: number | null
+          cashout_time: string | null
+          created_at: string
+          id: string
+          payout_amount: number | null
+          round_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_cashout_multiplier?: number | null
+          bet_amount: number
+          cashout_multiplier?: number | null
+          cashout_time?: string | null
+          created_at?: string
+          id?: string
+          payout_amount?: number | null
+          round_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_cashout_multiplier?: number | null
+          bet_amount?: number
+          cashout_multiplier?: number | null
+          cashout_time?: string | null
+          created_at?: string
+          id?: string
+          payout_amount?: number | null
+          round_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aviator_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "aviator_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aviator_rounds: {
+        Row: {
+          bet_end_time: string
+          bet_start_time: string
+          crash_multiplier: number
+          crash_time: string | null
+          created_at: string
+          id: string
+          round_number: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bet_end_time: string
+          bet_start_time?: string
+          crash_multiplier: number
+          crash_time?: string | null
+          created_at?: string
+          id?: string
+          round_number: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bet_end_time?: string
+          bet_start_time?: string
+          crash_multiplier?: number
+          crash_time?: string | null
+          created_at?: string
+          id?: string
+          round_number?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       color_prediction_bets: {
         Row: {
           bet_amount: number
@@ -974,6 +1060,10 @@ export type Database = {
         Args: { p_game_id: string; p_ticket_count: number }
         Returns: Json
       }
+      cashout_aviator_bet: {
+        Args: { p_bet_id: string; p_current_multiplier: number }
+        Returns: Json
+      }
       complete_jackpot_game: {
         Args: { p_game_id: string }
         Returns: Json
@@ -1002,6 +1092,14 @@ export type Database = {
         Args: { p_round_id: string; p_bet_side: string; p_bet_amount: number }
         Returns: Json
       }
+      place_aviator_bet: {
+        Args: {
+          p_round_id: string
+          p_bet_amount: number
+          p_auto_cashout_multiplier?: number
+        }
+        Returns: Json
+      }
       place_color_prediction_bet: {
         Args: { p_round_id: string; p_color: string; p_bet_amount: number }
         Returns: Json
@@ -1021,6 +1119,10 @@ export type Database = {
           p_winning_side: string
           p_winning_card: Json
         }
+        Returns: Json
+      }
+      process_aviator_crash: {
+        Args: { p_round_id: string; p_crash_multiplier: number }
         Returns: Json
       }
       process_color_prediction_round: {
