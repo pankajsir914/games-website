@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAndarBahar } from '@/hooks/useAndarBahar';
 import Navigation from '@/components/Navigation';
@@ -10,9 +10,11 @@ import { GameHistory } from '@/components/andarBahar/GameHistory';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 const AndarBahar = () => {
   const { user } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const {
     currentRound,
     userBet,
@@ -34,7 +36,13 @@ const AndarBahar = () => {
             <p className="text-xl text-gray-300 mb-8">
               Please sign in to play Andar Bahar
             </p>
-            <AuthModal />
+            <Button onClick={() => setAuthModalOpen(true)}>
+              Sign In
+            </Button>
+            <AuthModal 
+              open={authModalOpen} 
+              onOpenChange={setAuthModalOpen} 
+            />
           </div>
         </div>
       </div>

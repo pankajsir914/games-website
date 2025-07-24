@@ -24,7 +24,13 @@ export const useAndarBahar = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data as AndarBaharRound | null;
+      return data ? {
+        ...data,
+        joker_card: data.joker_card as unknown as Card,
+        andar_cards: (data.andar_cards as unknown as Card[]) || [],
+        bahar_cards: (data.bahar_cards as unknown as Card[]) || [],
+        winning_card: data.winning_card as unknown as Card | undefined
+      } as AndarBaharRound : null;
     },
     refetchInterval: 1000,
   });
@@ -60,7 +66,13 @@ export const useAndarBahar = () => {
         .limit(20);
 
       if (error) throw error;
-      return data as AndarBaharRound[];
+      return (data || []).map(round => ({
+        ...round,
+        joker_card: round.joker_card as unknown as Card,
+        andar_cards: (round.andar_cards as unknown as Card[]) || [],
+        bahar_cards: (round.bahar_cards as unknown as Card[]) || [],
+        winning_card: round.winning_card as unknown as Card | undefined
+      })) as AndarBaharRound[];
     },
   });
 
@@ -88,15 +100,15 @@ export const useAndarBahar = () => {
 
   // Place bet mutation
   const placeBet = useMutation({
-    mutationFn: async ({ roundId, betSide, amount }: {
+    mutationFn: async (variables: {
       roundId: string;
       betSide: 'andar' | 'bahar';
       amount: number;
     }) => {
       const { data, error } = await supabase.rpc('place_andar_bahar_bet', {
-        p_round_id: roundId,
-        p_bet_side: betSide,
-        p_bet_amount: amount,
+        p_round_id: variables.roundId,
+        p_bet_side: variables.betSide,
+        p_bet_amount: variables.amount,
       });
 
       if (error) throw error;
@@ -178,6 +190,10 @@ export const useAndarBahar = () => {
     };
   }, [queryClient]);
 
+  const handlePlaceBet = (roundId: string, betSide: 'andar' | 'bahar', amount: number) => {
+    placeBet.mutate({ roundId, betSide, amount });
+  };
+
   return {
     currentRound,
     userBet,
@@ -185,7 +201,7 @@ export const useAndarBahar = () => {
     userBetHistory: userBetHistory || [],
     timeRemaining,
     roundLoading,
-    placeBet: placeBet.mutate,
+    placeBet: handlePlaceBet,
     isPlacingBet: placeBet.isPending,
   };
 };
