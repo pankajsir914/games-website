@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      andar_bahar_bets: {
+        Row: {
+          bet_amount: number
+          bet_side: string
+          created_at: string
+          id: string
+          payout_amount: number | null
+          round_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          bet_side: string
+          created_at?: string
+          id?: string
+          payout_amount?: number | null
+          round_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          bet_side?: string
+          created_at?: string
+          id?: string
+          payout_amount?: number | null
+          round_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "andar_bahar_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "andar_bahar_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      andar_bahar_rounds: {
+        Row: {
+          andar_cards: Json
+          bahar_cards: Json
+          bet_end_time: string
+          created_at: string
+          game_end_time: string | null
+          id: string
+          joker_card: Json
+          round_number: number
+          status: string
+          updated_at: string
+          winning_card: Json | null
+          winning_side: string | null
+        }
+        Insert: {
+          andar_cards?: Json
+          bahar_cards?: Json
+          bet_end_time: string
+          created_at?: string
+          game_end_time?: string | null
+          id?: string
+          joker_card: Json
+          round_number: number
+          status?: string
+          updated_at?: string
+          winning_card?: Json | null
+          winning_side?: string | null
+        }
+        Update: {
+          andar_cards?: Json
+          bahar_cards?: Json
+          bet_end_time?: string
+          created_at?: string
+          game_end_time?: string | null
+          id?: string
+          joker_card?: Json
+          round_number?: number
+          status?: string
+          updated_at?: string
+          winning_card?: Json | null
+          winning_side?: string | null
+        }
+        Relationships: []
+      }
       game_sessions: {
         Row: {
           completed_at: string | null
@@ -735,6 +824,18 @@ export type Database = {
       }
       lock_wallet_balance: {
         Args: { p_user_id: string; p_amount: number; p_lock?: boolean }
+        Returns: Json
+      }
+      place_andar_bahar_bet: {
+        Args: { p_round_id: string; p_bet_side: string; p_bet_amount: number }
+        Returns: Json
+      }
+      process_andar_bahar_round: {
+        Args: {
+          p_round_id: string
+          p_winning_side: string
+          p_winning_card: Json
+        }
         Returns: Json
       }
       process_payment_request: {

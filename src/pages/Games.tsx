@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
 import { Link } from 'react-router-dom';
-import { Gamepad2, Plane, Palette, Crown, Trophy, Spade } from 'lucide-react';
+import { Gamepad2, Plane, Palette, Crown, Trophy, Spade, Target } from 'lucide-react';
 
 const Games = () => {
   const games = [
@@ -29,6 +29,14 @@ const Games = () => {
       color: "from-yellow-400 to-red-500"
     },
     {
+      title: "Andar Bahar",
+      description: "Traditional Indian card game with real money",
+      icon: Target,
+      path: "/andar-bahar",
+      color: "from-orange-400 to-red-600",
+      featured: true
+    },
+    {
       title: "Rummy",
       description: "Classic card game with real players",
       icon: Crown,
@@ -40,8 +48,7 @@ const Games = () => {
       description: "Professional poker tables with real money",
       icon: Spade,
       path: "/poker",
-      color: "from-gray-700 to-gray-900",
-      featured: true
+      color: "from-gray-700 to-gray-900"
     },
     {
       title: "Jackpot Games",
