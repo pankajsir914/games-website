@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
 import GameInterface from '@/components/aviator/GameInterface';
@@ -162,13 +161,10 @@ const Aviator = () => {
           // Trigger crash processing
           if (currentRound?.id) {
             supabase.functions.invoke('aviator-game-manager', {
-              body: null,
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
+              body: { 
+                action: 'crash_round', 
+                round_id: currentRound.id 
               }
-            }, {
-              query: { action: 'crash_round', round_id: currentRound.id }
             });
           }
 
@@ -268,10 +264,7 @@ const Aviator = () => {
   useEffect(() => {
     const manageRounds = () => {
       supabase.functions.invoke('aviator-game-manager', {
-        method: 'POST',
-        body: null,
-      }, {
-        query: { action: 'auto_manage' }
+        body: { action: 'auto_manage' }
       });
     };
 
