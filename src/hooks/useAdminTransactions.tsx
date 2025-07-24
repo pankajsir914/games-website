@@ -16,19 +16,26 @@ export const useAdminTransactions = () => {
           reason,
           game_type,
           balance_after,
-          created_at,
-          profiles (
-            full_name
-          )
+          created_at
         `)
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) throw error;
 
+      // Get user profiles for the transactions
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      // Create a map of user profiles
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
       return transactions.map(transaction => ({
         id: transaction.id,
-        user: transaction.profiles?.full_name || 'Unknown User',
+        user: profileMap.get(transaction.user_id)?.full_name || 'Unknown User',
         type: transaction.type === 'credit' ? 'deposit' : transaction.reason.toLowerCase().includes('win') ? 'game_win' : 'withdrawal',
         amount: Number(transaction.amount),
         status: 'completed',

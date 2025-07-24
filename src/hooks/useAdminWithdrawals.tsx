@@ -19,18 +19,25 @@ export const useAdminWithdrawals = () => {
           account_holder_name,
           bank_account_number,
           ifsc_code,
-          created_at,
-          profiles (
-            full_name
-          )
+          created_at
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      // Get user profiles for the withdrawals
+      const userIds = [...new Set(withdrawals.map(w => w.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      // Create a map of user profiles
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
       return withdrawals.map(withdrawal => ({
         id: withdrawal.id,
-        user: withdrawal.profiles?.full_name || 'Unknown User',
+        user: profileMap.get(withdrawal.user_id)?.full_name || 'Unknown User',
         amount: Number(withdrawal.amount),
         method: 'Bank Transfer',
         accountDetails: `${withdrawal.bank_account_number?.slice(-4)} (${withdrawal.ifsc_code})`,

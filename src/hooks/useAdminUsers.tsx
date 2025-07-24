@@ -24,13 +24,20 @@ export const useAdminUsers = () => {
           id,
           full_name,
           phone,
-          created_at,
-          wallets (
-            current_balance
-          )
+          created_at
         `);
 
       if (error) throw error;
+
+      // Get wallet data for each user
+      const userIds = users.map(user => user.id);
+      const { data: wallets } = await supabase
+        .from('wallets')
+        .select('user_id, current_balance')
+        .in('user_id', userIds);
+
+      // Create a map of wallet balances
+      const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
 
       // Get transaction data for each user
       const usersWithStats = await Promise.all(
@@ -60,7 +67,7 @@ export const useAdminUsers = () => {
             full_name: user.full_name || 'Unknown User',
             phone: user.phone,
             created_at: user.created_at,
-            current_balance: user.wallets?.[0]?.current_balance || 0,
+            current_balance: walletMap.get(user.id) || 0,
             total_deposits: totalDeposits,
             total_withdrawals: totalWithdrawals,
             status: 'active' as const, // Default to active
