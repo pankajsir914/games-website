@@ -62,6 +62,50 @@ const games = [
     minBet: 5,
     maxBet: 5000,
     commission: 7
+  },
+  {
+    id: 6,
+    name: 'Andar Bahar',
+    type: 'casino',
+    status: 'active',
+    players: 950,
+    revenue: 78430,
+    minBet: 10,
+    maxBet: 25000,
+    commission: 6
+  },
+  {
+    id: 7,
+    name: 'Roulette',
+    type: 'casino',
+    status: 'active',
+    players: 720,
+    revenue: 56780,
+    minBet: 5,
+    maxBet: 50000,
+    commission: 4
+  },
+  {
+    id: 8,
+    name: 'Poker',
+    type: 'casino',
+    status: 'active',
+    players: 640,
+    revenue: 92340,
+    minBet: 100,
+    maxBet: 100000,
+    commission: 10
+  },
+  {
+    id: 9,
+    name: 'Jackpot',
+    type: 'casino',
+    status: 'active',
+    players: 450,
+    revenue: 34560,
+    minBet: 10,
+    maxBet: 1000,
+    commission: 15
   }
 ];
 

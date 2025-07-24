@@ -35,7 +35,7 @@ const AdminGameDashboard = () => {
     },
     casino: {
       title: 'Casino Games Control',
-      description: 'Control various casino games and outcomes',
+      description: 'Control various casino games including Teen Patti, Rummy, Andar Bahar, Roulette, Poker, and Jackpot',
       icon: '🎰'
     }
   };

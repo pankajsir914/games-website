@@ -8,13 +8,22 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Spade, Heart, Diamond, Club, Zap, Target, TrendingDown } from 'lucide-react';
+import { Spade, Heart, Diamond, Club, Zap, Target, TrendingDown, Dice1, Gift } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const CasinoGameControl = () => {
   const [cheatMode, setCheatMode] = useState(false);
-  const [selectedGame, setSelectedGame] = useState('blackjack');
+  const [selectedGame, setSelectedGame] = useState('teen_patti');
   const [manipulationType, setManipulationType] = useState('house-edge');
+
+  const casinoGames = [
+    { value: 'teen_patti', label: 'Teen Patti', icon: '🃏' },
+    { value: 'rummy', label: 'Rummy', icon: '🎴' },
+    { value: 'andar_bahar', label: 'Andar Bahar', icon: '♠️' },
+    { value: 'roulette', label: 'Roulette', icon: '🎯' },
+    { value: 'poker', label: 'Poker', icon: '♥️' },
+    { value: 'jackpot', label: 'Jackpot', icon: '🎰' }
+  ];
 
   const toggleCheatMode = () => {
     setCheatMode(!cheatMode);
@@ -53,33 +62,37 @@ export const CasinoGameControl = () => {
           <CardTitle>Select Casino Game</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select onValueChange={setSelectedGame} defaultValue="blackjack">
+          <Select onValueChange={setSelectedGame} defaultValue="teen_patti">
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="blackjack">Blackjack</SelectItem>
-              <SelectItem value="poker">Poker</SelectItem>
-              <SelectItem value="roulette">Roulette</SelectItem>
-              <SelectItem value="slots">Slot Machines</SelectItem>
-              <SelectItem value="baccarat">Baccarat</SelectItem>
+              {casinoGames.map((game) => (
+                <SelectItem key={game.value} value={game.value}>
+                  <span className="flex items-center gap-2">
+                    <span>{game.icon}</span>
+                    {game.label}
+                  </span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="cards" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="cards">Card Control</TabsTrigger>
           <TabsTrigger value="odds">Odds Control</TabsTrigger>
           <TabsTrigger value="players">Player Control</TabsTrigger>
           <TabsTrigger value="house">House Edge</TabsTrigger>
+          <TabsTrigger value="special">Special Controls</TabsTrigger>
         </TabsList>
 
         <TabsContent value="cards" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Card Manipulation (Blackjack/Poker)</CardTitle>
+              <CardTitle>Card Manipulation ({selectedGame})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -105,42 +118,41 @@ export const CasinoGameControl = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="card-value">Force Card Value</Label>
-                  <Select disabled={!cheatMode}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select card value" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ace">Ace</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="4">4</SelectItem>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="6">6</SelectItem>
-                      <SelectItem value="7">7</SelectItem>
-                      <SelectItem value="8">8</SelectItem>
-                      <SelectItem value="9">9</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="jack">Jack</SelectItem>
-                      <SelectItem value="queen">Queen</SelectItem>
-                      <SelectItem value="king">King</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {selectedGame === 'roulette' && (
+                  <div>
+                    <Label htmlFor="roulette-number">Force Roulette Number (0-36)</Label>
+                    <Input
+                      id="roulette-number"
+                      type="number"
+                      min="0"
+                      max="36"
+                      disabled={!cheatMode}
+                      placeholder="Enter number"
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+
+                {selectedGame === 'andar_bahar' && (
+                  <div>
+                    <Label>Force Winning Side</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Andar Win
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Bahar Win
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" disabled={!cheatMode}>
-                    Force Blackjack (21)
-                  </Button>
-                  <Button variant="destructive" disabled={!cheatMode}>
-                    Force Bust (&gt;21)
-                  </Button>
-                  <Button variant="outline" disabled={!cheatMode}>
                     Perfect Hand
                   </Button>
-                  <Button variant="outline" disabled={!cheatMode}>
-                    Dealer Advantage
+                  <Button variant="destructive" disabled={!cheatMode}>
+                    Force Bad Hand
                   </Button>
                 </div>
               </div>
@@ -184,17 +196,21 @@ export const CasinoGameControl = () => {
                   </div>
                 </div>
 
-                <div>
-                  <Label>Payout Manipulation</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button variant="outline" disabled={!cheatMode}>
-                      Increase Payouts
-                    </Button>
-                    <Button variant="destructive" disabled={!cheatMode}>
-                      Reduce Payouts
-                    </Button>
+                {selectedGame === 'jackpot' && (
+                  <div>
+                    <Label>Jackpot Controls</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button variant="outline" disabled={!cheatMode}>
+                        <Gift className="mr-2 h-4 w-4" />
+                        Trigger Small Jackpot
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        <Gift className="mr-2 h-4 w-4" />
+                        Trigger Big Jackpot
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -292,6 +308,77 @@ export const CasinoGameControl = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="special" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Game-Specific Controls</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {selectedGame === 'poker' && (
+                  <div>
+                    <Label>Poker Controls</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Royal Flush
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force High Pair
+                      </Button>
+                      <Button variant="destructive" disabled={!cheatMode}>
+                        Force Bad Hand
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Manipulate Community Cards
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedGame === 'teen_patti' && (
+                  <div>
+                    <Label>Teen Patti Controls</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Trail (Three of a Kind)
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Pure Sequence
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Sequence
+                      </Button>
+                      <Button variant="destructive" disabled={!cheatMode}>
+                        Force High Card
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedGame === 'rummy' && (
+                  <div>
+                    <Label>Rummy Controls</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Perfect Meld
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Joker Cards
+                      </Button>
+                      <Button variant="destructive" disabled={!cheatMode}>
+                        Force Bad Draw
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Quick Declare
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <Label>Global Settings</Label>
