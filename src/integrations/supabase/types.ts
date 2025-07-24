@@ -103,6 +103,95 @@ export type Database = {
         }
         Relationships: []
       }
+      color_prediction_bets: {
+        Row: {
+          bet_amount: number
+          color: string
+          created_at: string | null
+          id: string
+          multiplier: number | null
+          payout_amount: number | null
+          round_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          color: string
+          created_at?: string | null
+          id?: string
+          multiplier?: number | null
+          payout_amount?: number | null
+          round_id: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          color?: string
+          created_at?: string | null
+          id?: string
+          multiplier?: number | null
+          payout_amount?: number | null
+          round_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "color_prediction_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "color_prediction_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      color_prediction_rounds: {
+        Row: {
+          bet_end_time: string
+          created_at: string | null
+          draw_time: string | null
+          id: string
+          period: string
+          round_number: number
+          status: string
+          total_bets_amount: number | null
+          total_players: number | null
+          updated_at: string | null
+          winning_color: string | null
+        }
+        Insert: {
+          bet_end_time: string
+          created_at?: string | null
+          draw_time?: string | null
+          id?: string
+          period: string
+          round_number: number
+          status?: string
+          total_bets_amount?: number | null
+          total_players?: number | null
+          updated_at?: string | null
+          winning_color?: string | null
+        }
+        Update: {
+          bet_end_time?: string
+          created_at?: string | null
+          draw_time?: string | null
+          id?: string
+          period?: string
+          round_number?: number
+          status?: string
+          total_bets_amount?: number | null
+          total_players?: number | null
+          updated_at?: string | null
+          winning_color?: string | null
+        }
+        Relationships: []
+      }
       game_sessions: {
         Row: {
           completed_at: string | null
@@ -913,6 +1002,10 @@ export type Database = {
         Args: { p_round_id: string; p_bet_side: string; p_bet_amount: number }
         Returns: Json
       }
+      place_color_prediction_bet: {
+        Args: { p_round_id: string; p_color: string; p_bet_amount: number }
+        Returns: Json
+      }
       place_roulette_bet: {
         Args: {
           p_round_id: string
@@ -928,6 +1021,10 @@ export type Database = {
           p_winning_side: string
           p_winning_card: Json
         }
+        Returns: Json
+      }
+      process_color_prediction_round: {
+        Args: { p_round_id: string; p_winning_color: string }
         Returns: Json
       }
       process_payment_request: {

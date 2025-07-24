@@ -1,0 +1,267 @@
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface Database {
+  public: {
+    Tables: {
+      color_prediction_rounds: {
+        Row: {
+          id: string;
+          round_number: number;
+          period: string;
+          status: string;
+          bet_end_time: string;
+          draw_time: string | null;
+          winning_color: string | null;
+          total_bets_amount: number;
+          total_players: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          round_number: number;
+          period: string;
+          bet_end_time: string;
+        };
+      };
+    };
+  };
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient<Database>(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const url = new URL(req.url);
+    const action = url.searchParams.get('action');
+
+    if (action === 'create_round') {
+      // Create a new round
+      const lastRound = await supabaseClient
+        .from('color_prediction_rounds')
+        .select('round_number')
+        .order('round_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
+      const now = new Date();
+      const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
+      
+      // Set betting period to 30 seconds from now
+      const betEndTime = new Date(now.getTime() + 30000);
+
+      const { data: newRound, error } = await supabaseClient
+        .from('color_prediction_rounds')
+        .insert({
+          round_number: nextRoundNumber,
+          period: period,
+          bet_end_time: betEndTime.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating round:', error);
+        throw error;
+      }
+
+      console.log('Created new round:', newRound);
+
+      return new Response(
+        JSON.stringify({ success: true, round: newRound }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
+    if (action === 'process_round') {
+      const roundId = url.searchParams.get('round_id');
+      
+      if (!roundId) {
+        throw new Error('Round ID is required');
+      }
+
+      // Get the round to process
+      const { data: round, error: roundError } = await supabaseClient
+        .from('color_prediction_rounds')
+        .select('*')
+        .eq('id', roundId)
+        .eq('status', 'betting')
+        .single();
+
+      if (roundError || !round) {
+        throw new Error('Round not found or already processed');
+      }
+
+      // Update round status to drawing
+      await supabaseClient
+        .from('color_prediction_rounds')
+        .update({ status: 'drawing' })
+        .eq('id', roundId);
+
+      // Generate random winning color (weighted: red=45%, green=45%, violet=10%)
+      const random = Math.random();
+      let winningColor: string;
+      
+      if (random < 0.45) {
+        winningColor = 'red';
+      } else if (random < 0.90) {
+        winningColor = 'green';
+      } else {
+        winningColor = 'violet';
+      }
+
+      // Process the round with the winning color
+      const { data: result, error: processError } = await supabaseClient
+        .rpc('process_color_prediction_round', {
+          p_round_id: roundId,
+          p_winning_color: winningColor,
+        });
+
+      if (processError) {
+        console.error('Error processing round:', processError);
+        throw processError;
+      }
+
+      console.log('Processed round:', result);
+
+      return new Response(
+        JSON.stringify({ success: true, result }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
+    if (action === 'auto_manage') {
+      // Check for rounds that need processing (betting time ended)
+      const { data: expiredRounds, error: expiredError } = await supabaseClient
+        .from('color_prediction_rounds')
+        .select('*')
+        .eq('status', 'betting')
+        .lt('bet_end_time', new Date().toISOString());
+
+      if (expiredError) {
+        console.error('Error fetching expired rounds:', expiredError);
+        throw expiredError;
+      }
+
+      // Process expired rounds
+      for (const round of expiredRounds || []) {
+        try {
+          const random = Math.random();
+          let winningColor: string;
+          
+          if (random < 0.45) {
+            winningColor = 'red';
+          } else if (random < 0.90) {
+            winningColor = 'green';
+          } else {
+            winningColor = 'violet';
+          }
+
+          await supabaseClient
+            .from('color_prediction_rounds')
+            .update({ status: 'drawing' })
+            .eq('id', round.id);
+
+          await supabaseClient.rpc('process_color_prediction_round', {
+            p_round_id: round.id,
+            p_winning_color: winningColor,
+          });
+
+          console.log(`Processed expired round ${round.id} with color ${winningColor}`);
+        } catch (error) {
+          console.error(`Error processing round ${round.id}:`, error);
+        }
+      }
+
+      // Check if we need to create a new round
+      const { data: activeRounds, error: activeError } = await supabaseClient
+        .from('color_prediction_rounds')
+        .select('*')
+        .in('status', ['betting', 'drawing']);
+
+      if (activeError) {
+        console.error('Error fetching active rounds:', activeError);
+        throw activeError;
+      }
+
+      // Create new round if no active rounds exist
+      if (!activeRounds || activeRounds.length === 0) {
+        const lastRound = await supabaseClient
+          .from('color_prediction_rounds')
+          .select('round_number')
+          .order('round_number', { ascending: false })
+          .limit(1)
+          .single();
+
+        const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
+        const now = new Date();
+        const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
+        
+        const betEndTime = new Date(now.getTime() + 30000);
+
+        const { data: newRound, error: createError } = await supabaseClient
+          .from('color_prediction_rounds')
+          .insert({
+            round_number: nextRoundNumber,
+            period: period,
+            bet_end_time: betEndTime.toISOString(),
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating new round:', createError);
+        } else {
+          console.log('Created new round automatically:', newRound);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Auto management completed' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ error: 'Invalid action' }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
+    );
+
+  } catch (error) {
+    console.error('Error in color-prediction-manager:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
+  }
+});

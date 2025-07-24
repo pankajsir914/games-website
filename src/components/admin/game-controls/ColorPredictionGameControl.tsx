@@ -7,20 +7,22 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Palette, Target, Zap, BarChart3 } from 'lucide-react';
+import { Palette, Target, Zap, BarChart3, Clock, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useColorPrediction } from '@/hooks/useColorPrediction';
+import { useColorPredictionAdmin } from '@/hooks/useColorPredictionAdmin';
 
 export const ColorPredictionGameControl = () => {
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedColor, setForcedColor] = useState<string | null>(null);
-  const [manipulationPattern, setManipulationPattern] = useState('none');
+  
+  const { currentRound, recentRounds, timeLeft } = useColorPrediction();
+  const { forceResult, createRound, isForcing, isCreating } = useColorPredictionAdmin();
 
   const colors = [
     { name: 'Red', value: 'red', color: 'bg-red-500' },
     { name: 'Green', value: 'green', color: 'bg-green-500' },
-    { name: 'Blue', value: 'blue', color: 'bg-blue-500' },
-    { name: 'Yellow', value: 'yellow', color: 'bg-yellow-500' },
-    { name: 'Purple', value: 'purple', color: 'bg-purple-500' },
+    { name: 'Violet', value: 'violet', color: 'bg-purple-500' },
   ];
 
   const toggleCheatMode = () => {
@@ -33,16 +35,94 @@ export const ColorPredictionGameControl = () => {
   };
 
   const handleForceColor = (color: string) => {
+    if (!currentRound) {
+      toast({
+        title: "No Active Round",
+        description: "There is no active round to manipulate",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setForcedColor(color);
-    toast({
-      title: "Color Forced",
-      description: `Next result will be ${color}`,
-      variant: "default"
-    });
+    forceResult({ roundId: currentRound.id, color: color as 'red' | 'green' | 'violet' });
+  };
+
+  const handleCreateRound = () => {
+    createRound();
   };
 
   return (
     <div className="space-y-6">
+      {/* Current Round Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Current Round Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Round Period</Label>
+              <p className="text-lg font-semibold">{currentRound?.period || 'No active round'}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Badge variant={currentRound?.status === 'betting' ? 'default' : 'secondary'}>
+                {currentRound?.status || 'No round'}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <Label>Time Left</Label>
+              <p className="text-lg font-semibold">{timeLeft}s</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Total Bets</Label>
+              <p className="text-lg font-semibold">₹{currentRound?.total_bets_amount || 0}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Players</Label>
+              <p className="text-lg font-semibold flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                {currentRound?.total_players || 0}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Actions</Label>
+              <Button onClick={handleCreateRound} disabled={isCreating || !!currentRound} size="sm">
+                {isCreating ? 'Creating...' : 'Create New Round'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Results */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Recent Results
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-5 gap-2">
+            {recentRounds.slice(0, 10).map((round) => (
+              <div key={round.id} className="text-center p-2 border rounded">
+                <div className={`w-8 h-8 rounded-full mx-auto mb-1 ${
+                  round.winning_color === 'red' ? 'bg-red-500' :
+                  round.winning_color === 'green' ? 'bg-green-500' :
+                  round.winning_color === 'violet' ? 'bg-purple-500' : 'bg-gray-500'
+                }`}></div>
+                <p className="text-xs">{round.period.slice(-3)}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cheat Mode Toggle */}
       <Card className={cheatMode ? "border-red-500" : ""}>
         <CardHeader>
@@ -78,17 +158,20 @@ export const ColorPredictionGameControl = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 gap-4">
                   {colors.map((color) => (
                     <Button
                       key={color.value}
                       variant={forcedColor === color.value ? "default" : "outline"}
                       onClick={() => handleForceColor(color.value)}
-                      disabled={!cheatMode}
-                      className="h-16 flex flex-col items-center gap-1"
+                      disabled={!cheatMode || !currentRound || isForcing}
+                      className="h-20 flex flex-col items-center gap-2"
                     >
-                      <div className={`w-6 h-6 rounded-full ${color.color}`} />
-                      <span className="text-xs">{color.name}</span>
+                      <div className={`w-8 h-8 rounded-full ${color.color}`} />
+                      <span className="text-sm">{color.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {color.value === 'violet' ? '4.5x' : '2x'}
+                      </span>
                     </Button>
                   ))}
                 </div>
@@ -103,9 +186,9 @@ export const ColorPredictionGameControl = () => {
                   </Button>
                   <Button 
                     variant="destructive"
-                    disabled={!cheatMode}
+                    disabled={!cheatMode || !currentRound}
                   >
-                    Opposite Player Choice
+                    Opposite Popular Choice
                   </Button>
                 </div>
               </div>
@@ -122,7 +205,7 @@ export const ColorPredictionGameControl = () => {
               <div className="space-y-4">
                 <div>
                   <Label>Manipulation Pattern</Label>
-                  <Select onValueChange={setManipulationPattern} disabled={!cheatMode}>
+                  <Select disabled={!cheatMode}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select manipulation pattern" />
                     </SelectTrigger>
@@ -130,6 +213,7 @@ export const ColorPredictionGameControl = () => {
                       <SelectItem value="none">No Pattern (Random)</SelectItem>
                       <SelectItem value="red-streak">Red Streak</SelectItem>
                       <SelectItem value="green-streak">Green Streak</SelectItem>
+                      <SelectItem value="violet-streak">Violet Streak</SelectItem>
                       <SelectItem value="alternating">Alternating Colors</SelectItem>
                       <SelectItem value="avoid-popular">Avoid Most Popular Color</SelectItem>
                       <SelectItem value="favor-unpopular">Favor Least Popular Color</SelectItem>
