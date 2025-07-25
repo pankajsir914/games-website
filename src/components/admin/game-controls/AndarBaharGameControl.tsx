@@ -10,9 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spade, Heart, Diamond, Club, Target, Zap, Timer, TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useGameSettings } from '@/hooks/useGameSettings';
+import { useGameManagement } from '@/hooks/useGameManagement';
 import { supabase } from '@/integrations/supabase/client';
 
 export const AndarBaharGameControl = () => {
+  const { toggleGameStatus, isGamePaused } = useGameManagement();
   const { data: gameSettings, updateGameSetting } = useGameSettings();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedSide, setForcedSide] = useState<string>('');
@@ -21,6 +23,7 @@ export const AndarBaharGameControl = () => {
 
   // Get Andar Bahar settings
   const andarBaharSettings = gameSettings?.find(g => g.game_type === 'andar_bahar');
+  const gameIsPaused = isGamePaused('andar_bahar');
 
   const cardSuits = ['♠️', '♥️', '♦️', '♣️'];
   const cardValues = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -103,8 +106,10 @@ export const AndarBaharGameControl = () => {
               <p className="text-sm text-muted-foreground">Total Bets</p>
             </div>
             <div className="text-center">
-              <Badge className="bg-gaming-success">Betting</Badge>
-              <p className="text-sm text-muted-foreground mt-1">Round Status</p>
+              <Badge className={gameIsPaused ? "bg-red-500" : "bg-gaming-success"}>
+                {gameIsPaused ? "Paused" : "Active"}
+              </Badge>
+              <p className="text-sm text-muted-foreground mt-1">Game Status</p>
             </div>
           </div>
         </CardContent>
@@ -177,12 +182,18 @@ export const AndarBaharGameControl = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <Button onClick={createInstantRound}>
+              <div className="grid grid-cols-3 gap-4">
+                <Button 
+                  onClick={() => toggleGameStatus('andar_bahar')}
+                  variant={gameIsPaused ? "default" : "destructive"}
+                >
+                  {gameIsPaused ? "Resume Game" : "Pause Game"}
+                </Button>
+                <Button onClick={createInstantRound} disabled={gameIsPaused}>
                   <Timer className="mr-2 h-4 w-4" />
                   Start New Round
                 </Button>
-                <Button variant="outline" onClick={() => handleGameControl('End Current Round')}>
+                <Button variant="outline" onClick={() => handleGameControl('End Current Round')} disabled={gameIsPaused}>
                   End Current Round
                 </Button>
               </div>

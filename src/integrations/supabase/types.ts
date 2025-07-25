@@ -407,6 +407,7 @@ export type Database = {
           house_edge: number | null
           id: string
           is_enabled: boolean | null
+          is_paused: boolean | null
           maintenance_mode: boolean | null
           max_bet_amount: number | null
           min_bet_amount: number | null
@@ -419,6 +420,7 @@ export type Database = {
           house_edge?: number | null
           id?: string
           is_enabled?: boolean | null
+          is_paused?: boolean | null
           maintenance_mode?: boolean | null
           max_bet_amount?: number | null
           min_bet_amount?: number | null
@@ -431,6 +433,7 @@ export type Database = {
           house_edge?: number | null
           id?: string
           is_enabled?: boolean | null
+          is_paused?: boolean | null
           maintenance_mode?: boolean | null
           max_bet_amount?: number | null
           min_bet_amount?: number | null

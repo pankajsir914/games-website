@@ -49,6 +49,20 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Check if game is paused
+    const { data: gameSettings } = await supabaseClient
+      .from('game_settings')
+      .select('is_paused')
+      .eq('game_type', 'andar_bahar')
+      .single();
+
+    if (gameSettings?.is_paused) {
+      return new Response(JSON.stringify({ error: 'Game is currently paused' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const url = new URL(req.url);
     let action = url.searchParams.get('action');
     

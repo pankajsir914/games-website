@@ -10,6 +10,7 @@ interface GameSetting {
   min_bet_amount: number;
   max_bet_amount: number;
   house_edge: number;
+  is_paused: boolean;
   settings: any;
 }
 
