@@ -23,6 +23,7 @@ import AdminTransactions from "./pages/AdminTransactions";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
 import AdminGameDashboard from "./pages/AdminGameDashboard";
 import AdminGameSettings from "./pages/AdminGameSettings";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/jackpot" element={<Jackpot />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/transactions" element={<AdminTransactions />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />

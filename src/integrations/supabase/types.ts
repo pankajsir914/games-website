@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      admin_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          data: Json | null
+          description: string | null
+          id: string
+          is_resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string | null
+          title: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          data?: Json | null
+          description?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          title: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          data?: Json | null
+          description?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       andar_bahar_bets: {
         Row: {
           bet_amount: number
@@ -323,6 +398,45 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["game_status"] | null
           total_pool?: number
+        }
+        Relationships: []
+      }
+      game_settings: {
+        Row: {
+          game_type: string
+          house_edge: number | null
+          id: string
+          is_enabled: boolean | null
+          maintenance_mode: boolean | null
+          max_bet_amount: number | null
+          min_bet_amount: number | null
+          settings: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          game_type: string
+          house_edge?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          maintenance_mode?: boolean | null
+          max_bet_amount?: number | null
+          min_bet_amount?: number | null
+          settings?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          game_type?: string
+          house_edge?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          maintenance_mode?: boolean | null
+          max_bet_amount?: number | null
+          min_bet_amount?: number | null
+          settings?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -943,6 +1057,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["admin_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["admin_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["admin_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -1068,6 +1206,27 @@ export type Database = {
         Args: { p_game_id: string }
         Returns: Json
       }
+      create_admin_alert: {
+        Args: {
+          p_alert_type: string
+          p_severity: string
+          p_title: string
+          p_description?: string
+          p_data?: Json
+        }
+        Returns: string
+      }
+      has_admin_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["admin_role"]
+        }
+        Returns: boolean
+      }
+      is_admin_user: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       join_poker_table: {
         Args: {
           p_table_id: string
@@ -1087,6 +1246,15 @@ export type Database = {
       lock_wallet_balance: {
         Args: { p_user_id: string; p_amount: number; p_lock?: boolean }
         Returns: Json
+      }
+      log_admin_activity: {
+        Args: {
+          p_action_type: string
+          p_target_type?: string
+          p_target_id?: string
+          p_details?: Json
+        }
+        Returns: string
       }
       place_andar_bahar_bet: {
         Args: { p_round_id: string; p_bet_side: string; p_bet_amount: number }
@@ -1158,6 +1326,7 @@ export type Database = {
       }
     }
     Enums: {
+      admin_role: "admin" | "moderator"
       game_status: "waiting" | "active" | "completed" | "cancelled"
       game_type: "ludo" | "aviator" | "casino" | "color_prediction"
       transaction_type: "credit" | "debit"
@@ -1288,6 +1457,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_role: ["admin", "moderator"],
       game_status: ["waiting", "active", "completed", "cancelled"],
       game_type: ["ludo", "aviator", "casino", "color_prediction"],
       transaction_type: ["credit", "debit"],
