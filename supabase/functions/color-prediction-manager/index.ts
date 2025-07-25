@@ -152,6 +152,8 @@ serve(async (req) => {
     }
 
     if (action === 'auto_manage') {
+      console.log('Auto-manage called at:', new Date().toISOString());
+      
       // Check for rounds that need processing (betting time ended)
       const { data: expiredRounds, error: expiredError } = await supabaseClient
         .from('color_prediction_rounds')
@@ -164,33 +166,62 @@ serve(async (req) => {
         throw expiredError;
       }
 
+      console.log(`Found ${expiredRounds?.length || 0} expired rounds to process`);
+
       // Process expired rounds
       for (const round of expiredRounds || []) {
         try {
-          const random = Math.random();
+          console.log(`Processing expired round ${round.id}`);
+          
+          // Check if this is cheat mode (check game settings)
+          const { data: gameSettings } = await supabaseClient
+            .from('game_settings')
+            .select('settings')
+            .eq('game_type', 'color_prediction')
+            .single();
+          
+          const cheatMode = gameSettings?.settings?.cheat_mode || false;
           let winningColor: string;
           
-          if (random < 0.45) {
-            winningColor = 'red';
-          } else if (random < 0.90) {
-            winningColor = 'green';
+          if (cheatMode && gameSettings?.settings?.forced_color) {
+            // Use forced color in cheat mode
+            winningColor = gameSettings.settings.forced_color;
+            console.log(`Using forced color in cheat mode: ${winningColor}`);
           } else {
-            winningColor = 'violet';
+            // Generate random winning color (weighted: red=45%, green=45%, violet=10%)
+            const random = Math.random();
+            
+            if (random < 0.45) {
+              winningColor = 'red';
+            } else if (random < 0.90) {
+              winningColor = 'green';
+            } else {
+              winningColor = 'violet';
+            }
+            console.log(`Generated random color: ${winningColor} (random: ${random})`);
           }
 
+          // Update round status to drawing
           await supabaseClient
             .from('color_prediction_rounds')
             .update({ status: 'drawing' })
             .eq('id', round.id);
 
-          await supabaseClient.rpc('process_color_prediction_round', {
-            p_round_id: round.id,
-            p_winning_color: winningColor,
-          });
+          // Process the round with the winning color
+          const { data: result, error: processError } = await supabaseClient
+            .rpc('process_color_prediction_round', {
+              p_round_id: round.id,
+              p_winning_color: winningColor,
+            });
 
-          console.log(`Processed expired round ${round.id} with color ${winningColor}`);
+          if (processError) {
+            console.error(`Error processing round ${round.id}:`, processError);
+            throw processError;
+          }
+
+          console.log(`Successfully processed round ${round.id} with color ${winningColor}, result:`, result);
         } catch (error) {
-          console.error(`Error processing round ${round.id}:`, error);
+          console.error(`Failed to process round ${round.id}:`, error);
         }
       }
 
@@ -205,8 +236,12 @@ serve(async (req) => {
         throw activeError;
       }
 
+      console.log(`Found ${activeRounds?.length || 0} active rounds`);
+
       // Create new round if no active rounds exist
       if (!activeRounds || activeRounds.length === 0) {
+        console.log('No active rounds found, creating new round...');
+        
         const lastRound = await supabaseClient
           .from('color_prediction_rounds')
           .select('round_number')
@@ -218,6 +253,7 @@ serve(async (req) => {
         const now = new Date();
         const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
         
+        // Set betting period to 30 seconds from now
         const betEndTime = new Date(now.getTime() + 30000);
 
         const { data: newRound, error: createError } = await supabaseClient
@@ -232,13 +268,19 @@ serve(async (req) => {
 
         if (createError) {
           console.error('Error creating new round:', createError);
+          throw createError;
         } else {
           console.log('Created new round automatically:', newRound);
         }
       }
 
       return new Response(
-        JSON.stringify({ success: true, message: 'Auto management completed' }),
+        JSON.stringify({ 
+          success: true, 
+          message: 'Auto management completed',
+          processed_rounds: expiredRounds?.length || 0,
+          active_rounds: activeRounds?.length || 0
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
