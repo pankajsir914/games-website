@@ -174,6 +174,8 @@ serve(async (req) => {
     }
 
     if (action === 'auto_manage') {
+      console.log('Auto-manage called at:', new Date().toISOString());
+      
       // Check for rounds that need to start flying (betting time ended)
       const { data: bettingRounds, error: bettingError } = await supabaseClient
         .from('aviator_rounds')
@@ -185,6 +187,8 @@ serve(async (req) => {
         console.error('Error fetching betting rounds:', bettingError);
         throw bettingError;
       }
+
+      console.log(`Found ${bettingRounds?.length || 0} rounds ready to fly`);
 
       // Start flying phase for expired betting rounds
       for (const round of bettingRounds || []) {
@@ -203,6 +207,42 @@ serve(async (req) => {
         }
       }
 
+      // Check for rounds that have been flying for more than 30 seconds (auto-crash them)
+      const { data: flyingRounds, error: flyingError } = await supabaseClient
+        .from('aviator_rounds')
+        .select('*')
+        .eq('status', 'flying')
+        .lt('bet_end_time', new Date(Date.now() - 30000).toISOString());
+
+      if (flyingError) {
+        console.error('Error fetching flying rounds:', flyingError);
+        throw flyingError;
+      }
+
+      console.log(`Found ${flyingRounds?.length || 0} rounds ready to crash`);
+
+      // Auto-crash flying rounds that have exceeded their time
+      for (const round of flyingRounds || []) {
+        try {
+          console.log(`Auto-crashing round ${round.id} at multiplier ${round.crash_multiplier}`);
+          
+          const { data: result, error: processError } = await supabaseClient
+            .rpc('process_aviator_crash', {
+              p_round_id: round.id,
+              p_crash_multiplier: round.crash_multiplier,
+            });
+
+          if (processError) {
+            console.error(`Error processing crash for round ${round.id}:`, processError);
+            throw processError;
+          }
+
+          console.log(`Successfully crashed round ${round.id}, result:`, result);
+        } catch (error) {
+          console.error(`Failed to crash round ${round.id}:`, error);
+        }
+      }
+
       // Check if we need to create a new round
       const { data: activeRounds, error: activeError } = await supabaseClient
         .from('aviator_rounds')
@@ -214,8 +254,12 @@ serve(async (req) => {
         throw activeError;
       }
 
+      console.log(`Found ${activeRounds?.length || 0} active rounds`);
+
       // Create new round if no active rounds exist
       if (!activeRounds || activeRounds.length === 0) {
+        console.log('No active rounds found, creating new round...');
+        
         const lastRound = await supabaseClient
           .from('aviator_rounds')
           .select('round_number')
@@ -225,15 +269,35 @@ serve(async (req) => {
 
         const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
         
-        const generateCrashPoint = () => {
-          const random = Math.random();
-          if (random < 0.5) return 1.01 + Math.random() * 1.49;
-          if (random < 0.8) return 2.5 + Math.random() * 7.5;
-          return 10 + Math.random() * 40;
-        };
+        // Check if this is cheat mode (check game settings)
+        const { data: gameSettings } = await supabaseClient
+          .from('game_settings')
+          .select('settings')
+          .eq('game_type', 'aviator')
+          .single();
+        
+        const cheatMode = gameSettings?.settings?.cheat_mode || false;
+        let crashMultiplier: number;
+        
+        if (cheatMode && gameSettings?.settings?.forced_multiplier) {
+          // Use forced multiplier in cheat mode
+          crashMultiplier = gameSettings.settings.forced_multiplier;
+          console.log(`Using forced multiplier in cheat mode: ${crashMultiplier}`);
+        } else {
+          // Generate random crash point between 1.01x and 50x
+          const generateCrashPoint = () => {
+            const random = Math.random();
+            if (random < 0.5) return 1.01 + Math.random() * 1.49; // 50% chance: 1.01x - 2.5x
+            if (random < 0.8) return 2.5 + Math.random() * 7.5; // 30% chance: 2.5x - 10x
+            return 10 + Math.random() * 40; // 20% chance: 10x - 50x
+          };
+          
+          crashMultiplier = generateCrashPoint();
+          console.log(`Generated random multiplier: ${crashMultiplier}`);
+        }
 
-        const crashMultiplier = generateCrashPoint();
         const now = new Date();
+        // Set betting period to 7 seconds from now
         const betEndTime = new Date(now.getTime() + 7000);
 
         const { data: newRound, error: createError } = await supabaseClient
@@ -248,13 +312,20 @@ serve(async (req) => {
 
         if (createError) {
           console.error('Error creating new round:', createError);
+          throw createError;
         } else {
           console.log('Created new round automatically:', newRound);
         }
       }
 
       return new Response(
-        JSON.stringify({ success: true, message: 'Auto management completed' }),
+        JSON.stringify({ 
+          success: true, 
+          message: 'Auto management completed',
+          started_flying: bettingRounds?.length || 0,
+          crashed_rounds: flyingRounds?.length || 0,
+          active_rounds: activeRounds?.length || 0
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 

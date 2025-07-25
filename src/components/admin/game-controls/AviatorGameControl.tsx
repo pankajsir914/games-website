@@ -10,28 +10,84 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, TrendingUp, TrendingDown, Zap, Target, Timer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useGameSettings } from '@/hooks/useGameSettings';
+import { supabase } from '@/integrations/supabase/client';
 
 export const AviatorGameControl = () => {
+  const { data: gameSettings, updateGameSetting } = useGameSettings();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedMultiplier, setForcedMultiplier] = useState<number | null>(null);
   const [crashPattern, setCrashPattern] = useState('random');
   const [targetUser, setTargetUser] = useState('');
 
-  const toggleCheatMode = () => {
-    setCheatMode(!cheatMode);
+  React.useEffect(() => {
+    const aviatorSettings = gameSettings?.find(g => g.game_type === 'aviator');
+    if (aviatorSettings?.settings) {
+      setCheatMode(aviatorSettings.settings.cheat_mode || false);
+      setForcedMultiplier(aviatorSettings.settings.forced_multiplier || null);
+    }
+  }, [gameSettings]);
+
+  const toggleCheatMode = async () => {
+    const newCheatMode = !cheatMode;
+    setCheatMode(newCheatMode);
+    
+    // Update game settings in database
+    await updateGameSetting({
+      gameType: 'aviator',
+      updates: {
+        settings: {
+          cheat_mode: newCheatMode,
+          forced_multiplier: forcedMultiplier
+        }
+      }
+    });
+
     toast({
-      title: cheatMode ? "Cheat Mode Disabled" : "Cheat Mode Enabled",
-      description: cheatMode ? "Game will run normally" : "Aviator manipulation is now active",
-      variant: cheatMode ? "default" : "destructive"
+      title: newCheatMode ? "Cheat Mode Enabled" : "Cheat Mode Disabled",
+      description: newCheatMode ? "Aviator manipulation is now active" : "Game will run normally",
+      variant: newCheatMode ? "destructive" : "default"
     });
   };
 
-  const handleForceMultiplier = () => {
+  const handleForceMultiplier = async () => {
     if (forcedMultiplier) {
+      // Update game settings with forced multiplier
+      await updateGameSetting({
+        gameType: 'aviator',
+        updates: {
+          settings: {
+            cheat_mode: cheatMode,
+            forced_multiplier: forcedMultiplier
+          }
+        }
+      });
+
       toast({
         title: "Multiplier Set",
         description: `Next round will crash at ${forcedMultiplier}x`,
         variant: "default"
+      });
+    }
+  };
+
+  const createInstantRound = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('aviator-game-manager', {
+        body: { action: 'create_round' }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Round Created",
+        description: "New Aviator round has been created",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
       });
     }
   };
@@ -121,12 +177,15 @@ export const AviatorGameControl = () => {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button variant="destructive" disabled={!cheatMode}>
                     Force Low Multipliers (1.01-1.50x)
                   </Button>
                   <Button variant="outline" disabled={!cheatMode}>
                     Force High Multipliers (5.00x+)
+                  </Button>
+                  <Button onClick={createInstantRound}>
+                    Create New Round
                   </Button>
                 </div>
               </div>
