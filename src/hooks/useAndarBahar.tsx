@@ -1,10 +1,9 @@
-
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
-import { AndarBaharRound, AndarBaharBet, Card } from '@/types/andarBahar';
+import { useEffect, useState } from 'react';
+import { AndarBaharRound, AndarBaharBet } from '@/types/andarBahar';
+import { toast } from './use-toast';
 
 export const useAndarBahar = () => {
   const { user } = useAuth();
@@ -12,9 +11,12 @@ export const useAndarBahar = () => {
   const [timeRemaining, setTimeRemaining] = useState(0);
 
   // Fetch current round
-  const { data: currentRound, isLoading: roundLoading } = useQuery({
+  const {
+    data: currentRound,
+    isLoading: roundLoading,
+  } = useQuery({
     queryKey: ['andar-bahar-current-round'],
-    queryFn: async () => {
+    queryFn: async (): Promise<AndarBaharRound | null> => {
       const { data, error } = await supabase
         .from('andar_bahar_rounds')
         .select('*')
@@ -23,24 +25,21 @@ export const useAndarBahar = () => {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data ? {
-        ...data,
-        joker_card: data.joker_card as unknown as Card,
-        andar_cards: (data.andar_cards as unknown as Card[]) || [],
-        bahar_cards: (data.bahar_cards as unknown as Card[]) || [],
-        winning_card: data.winning_card as unknown as Card | undefined
-      } as AndarBaharRound : null;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return data as unknown as AndarBaharRound;
     },
     refetchInterval: 1000,
   });
 
-  // Fetch user's bet for current round
+  // Fetch user's current bet
   const { data: userBet } = useQuery({
     queryKey: ['andar-bahar-user-bet', currentRound?.id],
-    queryFn: async () => {
-      if (!user?.id || !currentRound?.id) return null;
-      
+    queryFn: async (): Promise<AndarBaharBet | null> => {
+      if (!user || !currentRound) return null;
+
       const { data, error } = await supabase
         .from('andar_bahar_bets')
         .select('*')
@@ -48,67 +47,64 @@ export const useAndarBahar = () => {
         .eq('round_id', currentRound.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as AndarBaharBet | null;
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      return data as unknown as AndarBaharBet;
     },
-    enabled: !!user?.id && !!currentRound?.id,
+    enabled: !!user && !!currentRound,
   });
 
   // Fetch game history
-  const { data: gameHistory } = useQuery({
+  const { data: gameHistory = [] } = useQuery({
     queryKey: ['andar-bahar-history'],
-    queryFn: async () => {
+    queryFn: async (): Promise<AndarBaharRound[]> => {
       const { data, error } = await supabase
         .from('andar_bahar_rounds')
         .select('*')
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(10);
 
       if (error) throw error;
-      return (data || []).map(round => ({
-        ...round,
-        joker_card: round.joker_card as unknown as Card,
-        andar_cards: (round.andar_cards as unknown as Card[]) || [],
-        bahar_cards: (round.bahar_cards as unknown as Card[]) || [],
-        winning_card: round.winning_card as unknown as Card | undefined
-      })) as AndarBaharRound[];
+      return (data as unknown as AndarBaharRound[]) || [];
     },
   });
 
-  // Fetch user's betting history
-  const { data: userBetHistory } = useQuery({
-    queryKey: ['andar-bahar-user-history'],
+  // Fetch user's bet history
+  const { data: userBetHistory = [] } = useQuery({
+    queryKey: ['andar-bahar-user-bets'],
     queryFn: async () => {
-      if (!user?.id) return [];
-      
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('andar_bahar_bets')
         .select(`
           *,
-          andar_bahar_rounds!inner(*)
+          andar_bahar_rounds!inner(round_number, winning_side, status)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(10);
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   // Place bet mutation
-  const placeBet = useMutation({
-    mutationFn: async (variables: {
-      roundId: string;
-      betSide: 'andar' | 'bahar';
+  const { mutate: placeBet, isPending: isPlacingBet } = useMutation({
+    mutationFn: async ({ roundId, betSide, amount }: { 
+      roundId: string; 
+      betSide: 'andar' | 'bahar'; 
       amount: number;
     }) => {
       const { data, error } = await supabase.rpc('place_andar_bahar_bet', {
-        p_round_id: variables.roundId,
-        p_bet_side: variables.betSide,
-        p_bet_amount: variables.amount,
+        p_round_id: roundId,
+        p_bet_side: betSide,
+        p_bet_amount: amount
       });
 
       if (error) throw error;
@@ -116,10 +112,11 @@ export const useAndarBahar = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['andar-bahar-user-bet'] });
+      queryClient.invalidateQueries({ queryKey: ['andar-bahar-user-bets'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       toast({
-        title: "Bet Placed",
-        description: "Your bet has been placed successfully!",
+        title: "Bet Placed Successfully",
+        description: "Your bet has been placed. Good luck!",
       });
     },
     onError: (error: any) => {
@@ -131,7 +128,7 @@ export const useAndarBahar = () => {
     },
   });
 
-  // Update countdown timer
+  // Timer logic
   useEffect(() => {
     if (!currentRound || currentRound.status !== 'betting') {
       setTimeRemaining(0);
@@ -139,27 +136,52 @@ export const useAndarBahar = () => {
     }
 
     const updateTimer = () => {
-      const now = new Date().getTime();
-      const betEndTime = new Date(currentRound.bet_end_time).getTime();
-      const remaining = Math.max(0, Math.floor((betEndTime - now) / 1000));
+      const endTime = new Date(currentRound.bet_end_time).getTime();
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
       setTimeRemaining(remaining);
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
+
     return () => clearInterval(interval);
   }, [currentRound]);
 
-  // Set up real-time subscriptions
+  // Auto-manage rounds
+  useEffect(() => {
+    const manageRounds = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/andar-bahar-game-manager?action=auto_manage', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session?.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
+          }
+        });
+      } catch (error) {
+        console.error('Auto-manage error:', error);
+      }
+    };
+
+    // Run immediately and then every 10 seconds
+    manageRounds();
+    const interval = setInterval(manageRounds, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Real-time subscriptions
   useEffect(() => {
     const roundsChannel = supabase
-      .channel('andar-bahar-rounds')
+      .channel('andar-bahar-rounds-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'andar_bahar_rounds'
+          table: 'andar_bahar_rounds',
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['andar-bahar-current-round'] });
@@ -169,17 +191,17 @@ export const useAndarBahar = () => {
       .subscribe();
 
     const betsChannel = supabase
-      .channel('andar-bahar-bets')
+      .channel('andar-bahar-bets-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'andar_bahar_bets'
+          table: 'andar_bahar_bets',
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['andar-bahar-user-bet'] });
-          queryClient.invalidateQueries({ queryKey: ['andar-bahar-user-history'] });
+          queryClient.invalidateQueries({ queryKey: ['andar-bahar-user-bets'] });
         }
       )
       .subscribe();
@@ -190,18 +212,14 @@ export const useAndarBahar = () => {
     };
   }, [queryClient]);
 
-  const handlePlaceBet = (roundId: string, betSide: 'andar' | 'bahar', amount: number) => {
-    placeBet.mutate({ roundId, betSide, amount });
-  };
-
   return {
     currentRound,
     userBet,
-    gameHistory: gameHistory || [],
-    userBetHistory: userBetHistory || [],
+    gameHistory,
+    userBetHistory,
     timeRemaining,
     roundLoading,
-    placeBet: handlePlaceBet,
-    isPlacingBet: placeBet.isPending,
+    placeBet,
+    isPlacingBet,
   };
 };

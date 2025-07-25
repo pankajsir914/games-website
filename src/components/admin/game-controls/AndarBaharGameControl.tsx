@@ -9,21 +9,66 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spade, Heart, Diamond, Club, Target, Zap, Timer, TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useGameSettings } from '@/hooks/useGameSettings';
+import { supabase } from '@/integrations/supabase/client';
 
 export const AndarBaharGameControl = () => {
+  const { data: gameSettings, updateGameSetting } = useGameSettings();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedSide, setForcedSide] = useState<string>('');
   const [jokerCard, setJokerCard] = useState('');
   const [manipulationType, setManipulationType] = useState('side-control');
 
+  // Get Andar Bahar settings
+  const andarBaharSettings = gameSettings?.find(g => g.game_type === 'andar_bahar');
+
   const cardSuits = ['♠️', '♥️', '♦️', '♣️'];
   const cardValues = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
   const handleForceResult = () => {
+    if (!andarBaharSettings) return;
+    
+    updateGameSetting({
+      gameType: 'andar_bahar',
+      updates: {
+        settings: {
+          ...andarBaharSettings.settings,
+          cheat_mode: cheatMode,
+          forced_winner: forcedSide
+        }
+      }
+    });
+    
     toast({
       title: "Result Forced",
       description: `Next round will win on ${forcedSide} side`,
     });
+  };
+
+  const createInstantRound = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const response = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/andar-bahar-game-manager?action=start_new_round', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session?.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to create round');
+      
+      toast({
+        title: "Round Created",
+        description: "New Andar Bahar round has been started.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create round.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGameControl = (action: string) => {
@@ -133,7 +178,7 @@ export const AndarBaharGameControl = () => {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <Button onClick={() => handleGameControl('Start New Round')}>
+                <Button onClick={createInstantRound}>
                   <Timer className="mr-2 h-4 w-4" />
                   Start New Round
                 </Button>

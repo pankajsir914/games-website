@@ -88,7 +88,7 @@ const AndarBahar = () => {
               currentRound={currentRound}
               userBet={userBet}
               timeRemaining={timeRemaining}
-              onPlaceBet={placeBet}
+              onPlaceBet={(roundId, betSide, amount) => placeBet({ roundId, betSide, amount })}
               isPlacingBet={isPlacingBet}
             />
           </div>

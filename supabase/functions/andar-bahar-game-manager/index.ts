@@ -1,11 +1,5 @@
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -13,29 +7,36 @@ interface Card {
   value: number;
 }
 
-const createDeck = (): Card[] => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Create a deck of cards
+function createDeck(): Card[] {
   const suits: Card['suit'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
   const ranks: Card['rank'][] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   const deck: Card[] = [];
-
+  
   for (const suit of suits) {
     for (const rank of ranks) {
       const value = rank === 'A' ? 1 : rank === 'J' ? 11 : rank === 'Q' ? 12 : rank === 'K' ? 13 : parseInt(rank);
       deck.push({ suit, rank, value });
     }
   }
-
+  
   return deck;
-};
+}
 
-const shuffleDeck = (deck: Card[]): Card[] => {
+// Shuffle deck using Fisher-Yates algorithm
+function shuffleDeck(deck: Card[]): Card[] {
   const shuffled = [...deck];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
-};
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -48,71 +49,156 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action } = await req.json();
+    const url = new URL(req.url);
+    let action = url.searchParams.get('action');
+    
+    // If no action in query params, try to get from body
+    if (!action && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        action = body.action;
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
 
     if (action === 'start_new_round') {
-      // Create a new game round
+      // Create a new round
       const deck = shuffleDeck(createDeck());
-      const jokerCard = deck[0];
-      const remainingDeck = deck.slice(1);
+      const jokerCard = deck[0]; // First card is joker
       
-      // Get the highest round number and increment
+      // Get the last round number
       const { data: lastRound } = await supabaseClient
         .from('andar_bahar_rounds')
         .select('round_number')
         .order('round_number', { ascending: false })
         .limit(1)
         .single();
-
-      const roundNumber = (lastRound?.round_number || 0) + 1;
-      const betEndTime = new Date(Date.now() + 15000).toISOString(); // 15 seconds to bet
-
+      
+      const newRoundNumber = (lastRound?.round_number || 0) + 1;
+      
+      // Get game settings for cheat mode
+      const { data: gameSettings } = await supabaseClient
+        .from('game_settings')
+        .select('settings')
+        .eq('game_type', 'andar_bahar')
+        .single();
+      
+      const settings = gameSettings?.settings || {};
+      const bettingDuration = settings.betting_duration || 30;
+      
+      // Create new round
       const { data: newRound, error } = await supabaseClient
         .from('andar_bahar_rounds')
-        .insert([{
-          round_number: roundNumber,
+        .insert({
+          round_number: newRoundNumber,
           joker_card: jokerCard,
           andar_cards: [],
           bahar_cards: [],
           status: 'betting',
-          bet_end_time: betEndTime
-        }])
+          bet_end_time: new Date(Date.now() + bettingDuration * 1000).toISOString()
+        })
         .select()
         .single();
-
+      
       if (error) throw error;
-
-      console.log(`Started new round ${roundNumber} with joker:`, jokerCard);
-
-      // Schedule the dealing process after betting period
-      setTimeout(async () => {
-        await dealCards(supabaseClient, newRound.id, jokerCard, remainingDeck);
-      }, 15000);
-
-      return new Response(
-        JSON.stringify({ success: true, round: newRound }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      
+      // Schedule card dealing after betting period
+      setTimeout(() => {
+        dealCards(supabaseClient, newRound.id, jokerCard, deck.slice(1), settings);
+      }, bettingDuration * 1000);
+      
+      return new Response(JSON.stringify({ success: true, round: newRound }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Invalid action' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    if (action === 'auto_manage') {
+      // Check if there's an active round
+      const { data: activeRound } = await supabaseClient
+        .from('andar_bahar_rounds')
+        .select('*')
+        .in('status', ['betting', 'dealing'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!activeRound) {
+        // Create a new round if none exists
+        const deck = shuffleDeck(createDeck());
+        const jokerCard = deck[0];
+        
+        const { data: lastRound } = await supabaseClient
+          .from('andar_bahar_rounds')
+          .select('round_number')
+          .order('round_number', { ascending: false })
+          .limit(1)
+          .single();
+        
+        const newRoundNumber = (lastRound?.round_number || 0) + 1;
+        
+        const { data: gameSettings } = await supabaseClient
+          .from('game_settings')
+          .select('settings')
+          .eq('game_type', 'andar_bahar')
+          .single();
+        
+        const settings = gameSettings?.settings || {};
+        const bettingDuration = settings.betting_duration || 30;
+        
+        const { data: newRound } = await supabaseClient
+          .from('andar_bahar_rounds')
+          .insert({
+            round_number: newRoundNumber,
+            joker_card: jokerCard,
+            andar_cards: [],
+            bahar_cards: [],
+            status: 'betting',
+            bet_end_time: new Date(Date.now() + bettingDuration * 1000).toISOString()
+          })
+          .select()
+          .single();
+        
+        if (newRound) {
+          setTimeout(() => {
+            dealCards(supabaseClient, newRound.id, jokerCard, deck.slice(1), settings);
+          }, bettingDuration * 1000);
+        }
+      } else if (activeRound.status === 'betting' && new Date(activeRound.bet_end_time) <= new Date()) {
+        // Start dealing if betting time has ended
+        const deck = shuffleDeck(createDeck());
+        const { data: gameSettings } = await supabaseClient
+          .from('game_settings')
+          .select('settings')
+          .eq('game_type', 'andar_bahar')
+          .single();
+        
+        const settings = gameSettings?.settings || {};
+        dealCards(supabaseClient, activeRound.id, activeRound.joker_card, deck, settings);
+      }
+
+      return new Response(JSON.stringify({ success: true, managed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
     console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
 
-async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, deck: Card[]) {
+// Function to deal cards and determine winner
+async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, deck: Card[], settings: any) {
   try {
-    console.log(`Starting card dealing for round ${roundId}`);
-    
     // Update round status to dealing
     await supabaseClient
       .from('andar_bahar_rounds')
@@ -121,64 +207,115 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
 
     const andarCards: Card[] = [];
     const baharCards: Card[] = [];
-    let currentSide: 'andar' | 'bahar' = 'andar';
-    let deckIndex = 0;
-    let gameCompleted = false;
     let winningSide: 'andar' | 'bahar' | null = null;
     let winningCard: Card | null = null;
+    let deckIndex = 0;
 
-    // Deal cards alternately until we find a match
-    while (deckIndex < deck.length && !gameCompleted) {
-      const currentCard = deck[deckIndex];
+    // Check for cheat mode
+    const cheatMode = settings.cheat_mode || false;
+    const forcedWinner = settings.forced_winner; // 'andar' or 'bahar'
+
+    if (cheatMode && forcedWinner) {
+      // In cheat mode, we control the outcome
+      while (!winningSide && deckIndex < deck.length) {
+        const card = deck[deckIndex++];
+        const isAndarTurn = (andarCards.length + baharCards.length) % 2 === 0;
+        
+        if (card.rank === jokerCard.rank) {
+          // This is a matching card
+          if (forcedWinner === 'andar' && isAndarTurn) {
+            andarCards.push(card);
+            winningSide = 'andar';
+            winningCard = card;
+          } else if (forcedWinner === 'bahar' && !isAndarTurn) {
+            baharCards.push(card);
+            winningSide = 'bahar';
+            winningCard = card;
+          } else {
+            // Skip this card and place a non-matching card instead
+            let nonMatchingCard;
+            do {
+              nonMatchingCard = deck[deckIndex++];
+            } while (nonMatchingCard && nonMatchingCard.rank === jokerCard.rank && deckIndex < deck.length);
+            
+            if (nonMatchingCard) {
+              if (isAndarTurn) {
+                andarCards.push(nonMatchingCard);
+              } else {
+                baharCards.push(nonMatchingCard);
+              }
+            }
+          }
+        } else {
+          // Non-matching card, place normally
+          if (isAndarTurn) {
+            andarCards.push(card);
+          } else {
+            baharCards.push(card);
+          }
+        }
+        
+        // Add a small delay for visual effect
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
       
-      if (currentSide === 'andar') {
-        andarCards.push(currentCard);
-      } else {
-        baharCards.push(currentCard);
+      // If we haven't found a winner yet, place the matching card on the forced side
+      if (!winningSide && deckIndex < deck.length) {
+        const matchingCard = deck.find(card => card.rank === jokerCard.rank) || deck[deckIndex];
+        if (forcedWinner === 'andar') {
+          andarCards.push(matchingCard);
+          winningSide = 'andar';
+        } else {
+          baharCards.push(matchingCard);
+          winningSide = 'bahar';
+        }
+        winningCard = matchingCard;
       }
-
-      // Check if this card matches the joker rank
-      if (currentCard.rank === jokerCard.rank) {
-        gameCompleted = true;
-        winningSide = currentSide;
-        winningCard = currentCard;
-        console.log(`Game completed! ${winningSide} wins with card:`, currentCard);
-      }
-
-      // Update the round with current cards
-      await supabaseClient
-        .from('andar_bahar_rounds')
-        .update({
-          andar_cards: andarCards,
-          bahar_cards: baharCards,
-          ...(gameCompleted && {
-            winning_side: winningSide,
-            winning_card: winningCard,
-            status: 'completed',
-            game_end_time: new Date().toISOString()
-          })
-        })
-        .eq('id', roundId);
-
-      // Switch sides for next card
-      currentSide = currentSide === 'andar' ? 'bahar' : 'andar';
-      deckIndex++;
-
-      // Add delay between cards for dramatic effect
-      if (!gameCompleted) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    } else {
+      // Normal gameplay
+      while (!winningSide && deckIndex < deck.length) {
+        const card = deck[deckIndex++];
+        const isAndarTurn = (andarCards.length + baharCards.length) % 2 === 0;
+        
+        if (isAndarTurn) {
+          andarCards.push(card);
+          if (card.rank === jokerCard.rank) {
+            winningSide = 'andar';
+            winningCard = card;
+          }
+        } else {
+          baharCards.push(card);
+          if (card.rank === jokerCard.rank) {
+            winningSide = 'bahar';
+            winningCard = card;
+          }
+        }
+        
+        // Add a small delay for visual effect
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
-    if (gameCompleted && winningSide) {
-      // Process payouts
+    // Update round with results
+    await supabaseClient
+      .from('andar_bahar_rounds')
+      .update({
+        andar_cards: andarCards,
+        bahar_cards: baharCards,
+        winning_side: winningSide,
+        winning_card: winningCard,
+        status: 'completed',
+        game_end_time: new Date().toISOString()
+      })
+      .eq('id', roundId);
+
+    // Process bets and payouts
+    if (winningSide) {
       await supabaseClient.rpc('process_andar_bahar_round', {
         p_round_id: roundId,
         p_winning_side: winningSide,
         p_winning_card: winningCard
       });
-
-      console.log(`Payouts processed for round ${roundId}`);
     }
 
   } catch (error) {
