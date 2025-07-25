@@ -9,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Target, Zap, Timer, TrendingUp, RotateCcw, Circle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useGameManagement } from '@/hooks/useGameManagement';
 
 export const RouletteGameControl = () => {
+  const { toggleGameStatus, isGamePaused } = useGameManagement();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedNumber, setForcedNumber] = useState<number | null>(null);
   const [forcedColor, setForcedColor] = useState<string>('');
@@ -64,8 +66,10 @@ export const RouletteGameControl = () => {
               <p className="text-sm text-muted-foreground">Total Bets</p>
             </div>
             <div className="text-center">
-              <Badge className="bg-gaming-success">Spinning</Badge>
-              <p className="text-sm text-muted-foreground mt-1">Round Status</p>
+              <Badge variant={isGamePaused('roulette') ? 'destructive' : 'default'}>
+                {isGamePaused('roulette') ? 'PAUSED' : 'Spinning'}
+              </Badge>
+              <p className="text-sm text-muted-foreground mt-1">Game Status</p>
             </div>
           </div>
         </CardContent>
@@ -163,7 +167,13 @@ export const RouletteGameControl = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Button 
+                  onClick={() => toggleGameStatus('roulette')} 
+                  variant={isGamePaused('roulette') ? 'default' : 'destructive'}
+                >
+                  {isGamePaused('roulette') ? 'Resume Game' : 'Pause Game'}
+                </Button>
                 <Button onClick={() => handleGameControl('Start New Spin')}>
                   <Timer className="mr-2 h-4 w-4" />
                   Start New Spin

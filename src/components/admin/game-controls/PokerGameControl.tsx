@@ -9,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spade, Heart, Diamond, Club, Target, Zap, Users, Timer, DollarSign } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useGameManagement } from '@/hooks/useGameManagement';
 
 export const PokerGameControl = () => {
+  const { toggleGameStatus, isGamePaused } = useGameManagement();
   const [cheatMode, setCheatMode] = useState(false);
   const [targetPlayer, setTargetPlayer] = useState('');
   const [forcedHand, setForcedHand] = useState('');
@@ -67,7 +69,9 @@ export const PokerGameControl = () => {
               <p className="text-sm text-muted-foreground">Total Pot Value</p>
             </div>
             <div className="text-center">
-              <Badge className="bg-gaming-success">Live</Badge>
+              <Badge variant={isGamePaused('poker') ? 'destructive' : 'default'}>
+                {isGamePaused('poker') ? 'PAUSED' : 'Live'}
+              </Badge>
               <p className="text-sm text-muted-foreground mt-1">Game Status</p>
             </div>
           </div>
@@ -158,7 +162,13 @@ export const PokerGameControl = () => {
               <CardTitle>Global Controls</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Button 
+                  onClick={() => toggleGameStatus('poker')} 
+                  variant={isGamePaused('poker') ? 'default' : 'destructive'}
+                >
+                  {isGamePaused('poker') ? 'Resume Game' : 'Pause Game'}
+                </Button>
                 <Button onClick={() => toast({ title: "Tables paused" })}>
                   <Timer className="mr-2 h-4 w-4" />
                   Pause All Tables

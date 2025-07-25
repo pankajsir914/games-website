@@ -11,10 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, TrendingUp, TrendingDown, Zap, Target, Timer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useGameSettings } from '@/hooks/useGameSettings';
+import { useGameManagement } from '@/hooks/useGameManagement';
 import { supabase } from '@/integrations/supabase/client';
 
 export const AviatorGameControl = () => {
   const { data: gameSettings, updateGameSetting } = useGameSettings();
+  const { toggleGameStatus, isGamePaused } = useGameManagement();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedMultiplier, setForcedMultiplier] = useState<number | null>(null);
   const [crashPattern, setCrashPattern] = useState('random');
@@ -99,23 +101,34 @@ export const AviatorGameControl = () => {
 
   return (
     <div className="space-y-6">
-      {/* Cheat Mode Toggle */}
-      <Card className={cheatMode ? "border-red-500" : ""}>
+      {/* Game Status and Control */}
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plane className="h-5 w-5" />
-            Aviator Game Manipulation
-            {cheatMode && <Badge variant="destructive">CHEAT MODE ACTIVE</Badge>}
+            Aviator Game Control
+            <Badge variant={isGamePaused('aviator') ? 'destructive' : 'default'}>
+              {isGamePaused('aviator') ? 'PAUSED' : 'ACTIVE'}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="aviator-cheat"
-              checked={cheatMode}
-              onCheckedChange={toggleCheatMode}
-            />
-            <Label htmlFor="aviator-cheat">Enable Aviator Manipulation</Label>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="aviator-cheat"
+                checked={cheatMode}
+                onCheckedChange={toggleCheatMode}
+              />
+              <Label htmlFor="aviator-cheat">Enable Aviator Manipulation</Label>
+              {cheatMode && <Badge variant="destructive">CHEAT MODE ACTIVE</Badge>}
+            </div>
+            <Button 
+              onClick={() => toggleGameStatus('aviator')} 
+              variant={isGamePaused('aviator') ? 'default' : 'destructive'}
+            >
+              {isGamePaused('aviator') ? 'Resume Game' : 'Pause Game'}
+            </Button>
           </div>
         </CardContent>
       </Card>

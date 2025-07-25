@@ -11,6 +11,7 @@ import { Palette, Target, Zap, BarChart3, Clock, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useColorPrediction } from '@/hooks/useColorPrediction';
 import { useColorPredictionAdmin } from '@/hooks/useColorPredictionAdmin';
+import { useGameManagement } from '@/hooks/useGameManagement';
 
 export const ColorPredictionGameControl = () => {
   const [cheatMode, setCheatMode] = useState(false);
@@ -18,6 +19,7 @@ export const ColorPredictionGameControl = () => {
   
   const { currentRound, recentRounds, timeLeft } = useColorPrediction();
   const { forceResult, createRound, isForcing, isCreating } = useColorPredictionAdmin();
+  const { toggleGameStatus, isGamePaused } = useGameManagement();
 
   const colors = [
     { name: 'Red', value: 'red', color: 'bg-red-500' },
@@ -90,10 +92,25 @@ export const ColorPredictionGameControl = () => {
               </p>
             </div>
             <div className="space-y-2">
+              <Label>Game Status</Label>
+              <Badge variant={isGamePaused('color_prediction') ? 'destructive' : 'default'}>
+                {isGamePaused('color_prediction') ? 'PAUSED' : 'ACTIVE'}
+              </Badge>
+            </div>
+            <div className="space-y-2">
               <Label>Actions</Label>
-              <Button onClick={handleCreateRound} disabled={isCreating || !!currentRound} size="sm">
-                {isCreating ? 'Creating...' : 'Create New Round'}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => toggleGameStatus('color_prediction')} 
+                  variant={isGamePaused('color_prediction') ? 'default' : 'destructive'}
+                  size="sm"
+                >
+                  {isGamePaused('color_prediction') ? 'Resume' : 'Pause'}
+                </Button>
+                <Button onClick={handleCreateRound} disabled={isCreating || !!currentRound} size="sm">
+                  {isCreating ? 'Creating...' : 'Create New Round'}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

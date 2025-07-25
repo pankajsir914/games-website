@@ -48,7 +48,24 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
-
+    
+    // Check if game is paused
+    const { data: gameSettings } = await supabaseClient
+      .from('game_settings')
+      .select('is_paused')
+      .eq('game_type', 'color_prediction')
+      .single();
+    
+    if (gameSettings?.is_paused && action !== 'create_round') {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: 'Color Prediction game is currently paused' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403
+      });
+    }
+    
     if (action === 'create_round') {
       // Create a new round
       const lastRound = await supabaseClient

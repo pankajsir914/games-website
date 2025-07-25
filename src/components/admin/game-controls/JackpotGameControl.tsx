@@ -9,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trophy, Target, Zap, Timer, Gift, TrendingUp, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useGameManagement } from '@/hooks/useGameManagement';
 
 export const JackpotGameControl = () => {
+  const { toggleGameStatus, isGamePaused } = useGameManagement();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedWinner, setForcedWinner] = useState('');
   const [winningTicket, setWinningTicket] = useState<number | null>(null);
@@ -69,8 +71,10 @@ export const JackpotGameControl = () => {
               <p className="text-sm text-muted-foreground">Total Pool Value</p>
             </div>
             <div className="text-center">
-              <Badge className="bg-gaming-success">Live</Badge>
-              <p className="text-sm text-muted-foreground mt-1">System Status</p>
+              <Badge variant={isGamePaused('jackpot') ? 'destructive' : 'default'}>
+                {isGamePaused('jackpot') ? 'PAUSED' : 'Live'}
+              </Badge>
+              <p className="text-sm text-muted-foreground mt-1">Game Status</p>
             </div>
           </div>
         </CardContent>
@@ -149,7 +153,13 @@ export const JackpotGameControl = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Button 
+                  onClick={() => toggleGameStatus('jackpot')} 
+                  variant={isGamePaused('jackpot') ? 'default' : 'destructive'}
+                >
+                  {isGamePaused('jackpot') ? 'Resume Game' : 'Pause Game'}
+                </Button>
                 <Button onClick={() => toast({ title: "New jackpot created" })}>
                   <Gift className="mr-2 h-4 w-4" />
                   Create Jackpot

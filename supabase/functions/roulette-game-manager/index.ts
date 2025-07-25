@@ -53,6 +53,23 @@ serve(async (req) => {
 
     const { action } = await req.json();
 
+    // Check if game is paused
+    const { data: gameSettings } = await supabaseClient
+      .from('game_settings')
+      .select('is_paused')
+      .eq('game_type', 'roulette')
+      .single();
+    
+    if (gameSettings?.is_paused && action !== 'create_round') {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: 'Roulette game is currently paused' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403
+      });
+    }
+
     switch (action) {
       case 'create_round':
         return await createNewRound(supabaseClient);
