@@ -32,32 +32,28 @@ export const useBetLogs = (filters?: {
       ] = await Promise.all([
         supabase.from('color_prediction_bets')
           .select(`
-            id, user_id, bet_amount, color, status, payout_amount, created_at,
-            profiles!inner(full_name)
+            id, user_id, bet_amount, color, status, payout_amount, created_at
           `)
           .order('created_at', { ascending: false })
           .limit(1000),
         
         supabase.from('aviator_bets')
           .select(`
-            id, user_id, bet_amount, status, payout_amount, created_at,
-            profiles!inner(full_name)
+            id, user_id, bet_amount, status, payout_amount, created_at
           `)
           .order('created_at', { ascending: false })
           .limit(1000),
         
         supabase.from('andar_bahar_bets')
           .select(`
-            id, user_id, bet_amount, bet_side, status, payout_amount, created_at,
-            profiles!inner(full_name)
+            id, user_id, bet_amount, bet_side, status, payout_amount, created_at
           `)
           .order('created_at', { ascending: false })
           .limit(1000),
         
         supabase.from('roulette_bets')
           .select(`
-            id, user_id, bet_amount, bet_type, bet_value, status, payout_amount, created_at,
-            profiles!inner(full_name)
+            id, user_id, bet_amount, bet_type, bet_value, status, payout_amount, created_at
           `)
           .order('created_at', { ascending: false })
           .limit(1000)
@@ -65,12 +61,28 @@ export const useBetLogs = (filters?: {
 
       const allBets: BetLog[] = [];
 
+      // Get user profiles separately
+      const userIds = [
+        ...(colorPredictionBets.data?.map(bet => bet.user_id) || []),
+        ...(aviatorBets.data?.map(bet => bet.user_id) || []),
+        ...(andarBaharBets.data?.map(bet => bet.user_id) || []),
+        ...(rouletteBets.data?.map(bet => bet.user_id) || [])
+      ];
+      
+      const uniqueUserIds = [...new Set(userIds)];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', uniqueUserIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
       // Process color prediction bets
       colorPredictionBets.data?.forEach(bet => {
         allBets.push({
           id: bet.id,
           player_id: bet.user_id,
-          player_name: bet.profiles?.full_name || 'Unknown',
+          player_name: profileMap.get(bet.user_id)?.full_name || 'Unknown',
           game: 'Color Prediction',
           bet_amount: Number(bet.bet_amount),
           chosen_value: bet.color,
@@ -85,7 +97,7 @@ export const useBetLogs = (filters?: {
         allBets.push({
           id: bet.id,
           player_id: bet.user_id,
-          player_name: bet.profiles?.full_name || 'Unknown',
+          player_name: profileMap.get(bet.user_id)?.full_name || 'Unknown',
           game: 'Aviator',
           bet_amount: Number(bet.bet_amount),
           chosen_value: 'Fly',
@@ -100,7 +112,7 @@ export const useBetLogs = (filters?: {
         allBets.push({
           id: bet.id,
           player_id: bet.user_id,
-          player_name: bet.profiles?.full_name || 'Unknown',
+          player_name: profileMap.get(bet.user_id)?.full_name || 'Unknown',
           game: 'Andar Bahar',
           bet_amount: Number(bet.bet_amount),
           chosen_value: bet.bet_side,
@@ -115,7 +127,7 @@ export const useBetLogs = (filters?: {
         allBets.push({
           id: bet.id,
           player_id: bet.user_id,
-          player_name: bet.profiles?.full_name || 'Unknown',
+          player_name: profileMap.get(bet.user_id)?.full_name || 'Unknown',
           game: 'Roulette',
           bet_amount: Number(bet.bet_amount),
           chosen_value: `${bet.bet_type}: ${bet.bet_value || 'N/A'}`,

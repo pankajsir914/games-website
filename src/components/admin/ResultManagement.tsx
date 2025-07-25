@@ -46,7 +46,7 @@ export const ResultManagement = () => {
           return [];
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from(tableName)
         .select(selectQuery)
         .order('created_at', { ascending: false })

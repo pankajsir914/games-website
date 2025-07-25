@@ -22,12 +22,12 @@ interface AdminSidebarProps {
 }
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
-  { icon: Users, label: 'User Management', href: '/admin/users' },
+  { icon: LayoutDashboard, label: 'Overview', href: '/admin' },
+  { icon: LayoutDashboard, label: 'Full Dashboard', href: '/admin/dashboard' },
+  { icon: Users, label: 'Users', href: '/admin/users' },
   { icon: CreditCard, label: 'Transactions', href: '/admin/transactions' },
-  { icon: Gamepad2, label: 'Game Settings', href: '/admin/games' },
   { icon: CheckCircle, label: 'Withdrawals', href: '/admin/withdrawals' },
-  { icon: BarChart3, label: 'Analytics', href: '/admin/analytics' },
+  { icon: Gamepad2, label: 'Game Settings', href: '/admin/game-settings' },
   { icon: Settings, label: 'Site Config', href: '/admin/settings' },
   { icon: Shield, label: 'Security', href: '/admin/security' },
 ];

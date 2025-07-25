@@ -327,7 +327,7 @@ export const SecurityMonitoring = () => {
               <div className="text-sm text-muted-foreground">System Uptime</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">< 50ms</div>
+              <div className="text-2xl font-bold text-blue-600">&lt; 50ms</div>
               <div className="text-sm text-muted-foreground">Avg Response Time</div>
             </div>
             <div className="text-center">
