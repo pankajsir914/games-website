@@ -6,12 +6,17 @@ import { LudoGameControl } from '@/components/admin/game-controls/LudoGameContro
 import { AviatorGameControl } from '@/components/admin/game-controls/AviatorGameControl';
 import { ColorPredictionGameControl } from '@/components/admin/game-controls/ColorPredictionGameControl';
 import { CasinoGameControl } from '@/components/admin/game-controls/CasinoGameControl';
+import { RummyGameControl } from '@/components/admin/game-controls/RummyGameControl';
+import { AndarBaharGameControl } from '@/components/admin/game-controls/AndarBaharGameControl';
+import { RouletteGameControl } from '@/components/admin/game-controls/RouletteGameControl';
+import { PokerGameControl } from '@/components/admin/game-controls/PokerGameControl';
+import { JackpotGameControl } from '@/components/admin/game-controls/JackpotGameControl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, BarChart3, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type GameType = 'ludo' | 'aviator' | 'color_prediction' | 'casino';
+type GameType = 'ludo' | 'aviator' | 'color_prediction' | 'casino' | 'rummy' | 'andar_bahar' | 'roulette' | 'poker' | 'jackpot';
 
 const AdminGameDashboard = () => {
   const { gameType } = useParams<{ gameType: GameType }>();
@@ -35,8 +40,33 @@ const AdminGameDashboard = () => {
     },
     casino: {
       title: 'Casino Games Control',
-      description: 'Control various casino games including Teen Patti, Rummy, Andar Bahar, Roulette, Poker, and Jackpot',
+      description: 'Control Teen Patti and other general casino games',
       icon: '🎰'
+    },
+    rummy: {
+      title: 'Rummy Game Control',
+      description: 'Control card distribution, sequences, and game outcomes',
+      icon: '🎴'
+    },
+    andar_bahar: {
+      title: 'Andar Bahar Control',
+      description: 'Manipulate joker cards and winning side outcomes',
+      icon: '♠️'
+    },
+    roulette: {
+      title: 'Roulette Game Control',
+      description: 'Control wheel spins, numbers, and color outcomes',
+      icon: '🎯'
+    },
+    poker: {
+      title: 'Poker Game Control',
+      description: 'Manage tables, control hands, and manipulate outcomes',
+      icon: '🃏'
+    },
+    jackpot: {
+      title: 'Jackpot Game Control',
+      description: 'Control winners, ticket draws, and jackpot outcomes',
+      icon: '🏆'
     }
   };
 
@@ -50,6 +80,16 @@ const AdminGameDashboard = () => {
         return <ColorPredictionGameControl />;
       case 'casino':
         return <CasinoGameControl />;
+      case 'rummy':
+        return <RummyGameControl />;
+      case 'andar_bahar':
+        return <AndarBaharGameControl />;
+      case 'roulette':
+        return <RouletteGameControl />;
+      case 'poker':
+        return <PokerGameControl />;
+      case 'jackpot':
+        return <JackpotGameControl />;
       default:
         return (
           <Card>

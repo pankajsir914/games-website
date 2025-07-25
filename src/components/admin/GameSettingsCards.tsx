@@ -33,10 +33,10 @@ const games = [
   {
     id: 3,
     name: 'Rummy',
-    type: 'casino',
-    status: 'maintenance',
-    players: 0,
-    revenue: 0,
+    type: 'rummy',
+    status: 'active',
+    players: 756,
+    revenue: 34520,
     minBet: 25,
     maxBet: 25000,
     commission: 6
@@ -66,7 +66,7 @@ const games = [
   {
     id: 6,
     name: 'Andar Bahar',
-    type: 'casino',
+    type: 'andar_bahar',
     status: 'active',
     players: 950,
     revenue: 78430,
@@ -77,7 +77,7 @@ const games = [
   {
     id: 7,
     name: 'Roulette',
-    type: 'casino',
+    type: 'roulette',
     status: 'active',
     players: 720,
     revenue: 56780,
@@ -88,7 +88,7 @@ const games = [
   {
     id: 8,
     name: 'Poker',
-    type: 'casino',
+    type: 'poker',
     status: 'active',
     players: 640,
     revenue: 92340,
@@ -99,7 +99,7 @@ const games = [
   {
     id: 9,
     name: 'Jackpot',
-    type: 'casino',
+    type: 'jackpot',
     status: 'active',
     players: 450,
     revenue: 34560,
