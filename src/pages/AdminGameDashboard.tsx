@@ -6,8 +6,8 @@ import { LudoGameControl } from '@/components/admin/game-controls/LudoGameContro
 import { AviatorGameControl } from '@/components/admin/game-controls/AviatorGameControl';
 import { ColorPredictionGameControl } from '@/components/admin/game-controls/ColorPredictionGameControl';
 import { CasinoGameControl } from '@/components/admin/game-controls/CasinoGameControl';
-import { RummyGameControl } from '@/components/admin/game-controls/RummyGameControl';
 import { AndarBaharGameControl } from '@/components/admin/game-controls/AndarBaharGameControl';
+import { RummyGameControl } from '@/components/admin/game-controls/RummyGameControl';
 import { RouletteGameControl } from '@/components/admin/game-controls/RouletteGameControl';
 import { PokerGameControl } from '@/components/admin/game-controls/PokerGameControl';
 import { JackpotGameControl } from '@/components/admin/game-controls/JackpotGameControl';
