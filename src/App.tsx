@@ -51,7 +51,7 @@ const App = () => (
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/transactions" element={<AdminTransactions />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
-            <Route path="/admin/games" element={<AdminGameDashboard />} />
+            <Route path="/admin/game-dashboard/:gameType" element={<AdminGameDashboard />} />
             <Route path="/admin/game-settings" element={<AdminGameSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
