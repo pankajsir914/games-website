@@ -11,15 +11,19 @@ import {
   History,
   TrendingUp,
   Target
-} from 'lucide-react';
+ } from 'lucide-react';
 import { useColorPrediction } from '@/hooks/useColorPrediction';
+import { useGameManagement } from '@/hooks/useGameManagement';
 import { useWallet } from '@/hooks/useWallet';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const ColorPrediction = () => {
   const { user } = useAuth();
   const { wallet } = useWallet();
+  const { isGamePaused } = useGameManagement();
   const {
     currentRound,
     recentRounds,
@@ -31,6 +35,7 @@ const ColorPrediction = () => {
     isPlacingBet,
   } = useColorPrediction();
 
+  const gameIsPaused = isGamePaused('color_prediction');
   const [selectedColor, setSelectedColor] = useState<'red' | 'green' | 'violet' | null>(null);
   const [betAmount, setBetAmount] = useState(10);
 
@@ -60,7 +65,7 @@ const ColorPrediction = () => {
     }
   };
 
-  const canBet = currentRound?.status === 'betting' && timeLeft > 5 && !userBet && user;
+  const canBet = currentRound?.status === 'betting' && timeLeft > 5 && !userBet && user && !gameIsPaused;
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,6 +92,17 @@ const ColorPrediction = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
+        
+        {/* Game Paused Alert */}
+        {gameIsPaused && (
+          <Alert variant="destructive" className="mb-6 border-red-500 bg-red-50 dark:bg-red-950">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
+              Color Prediction game is currently paused for maintenance. Please check back later.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Game Section */}
@@ -158,7 +174,7 @@ const ColorPrediction = () => {
                             : `border-2 hover:${color.bg}/10`
                         }`}
                         onClick={() => setSelectedColor(color.name)}
-                        disabled={!canBet}
+                        disabled={!canBet || gameIsPaused}
                       >
                         <div className={`w-8 h-8 rounded-full ${color.bg}`}></div>
                         <span className="font-medium">{color.label}</span>
@@ -196,9 +212,9 @@ const ColorPrediction = () => {
                     <Button 
                       className="w-full h-12 text-lg font-semibold shadow-gaming"
                       onClick={handlePlaceBet}
-                      disabled={!canBet || !selectedColor || isPlacingBet || betAmount > (wallet?.current_balance || 0)}
+                      disabled={!canBet || !selectedColor || isPlacingBet || betAmount > (wallet?.current_balance || 0) || gameIsPaused}
                     >
-                      {isPlacingBet ? 'Placing Bet...' : `Place Bet - ₹${betAmount}`}
+                      {gameIsPaused ? 'Game Paused' : isPlacingBet ? 'Placing Bet...' : `Place Bet - ₹${betAmount}`}
                     </Button>
                   )}
                 </CardContent>

@@ -13,9 +13,10 @@ interface GameControlsProps {
   onPlaceBet: () => void;
   bettingCountdown: number;
   isPlacingBet?: boolean;
+  disabled?: boolean;
 }
 
-const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isPlacingBet = false }: GameControlsProps) => {
+const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isPlacingBet = false, disabled = false }: GameControlsProps) => {
   const handleBetChange = (value: string) => {
     const betAmount = Math.max(10, Math.min(10000, Number(value) || 10));
     setGameData(prev => ({ ...prev, betAmount }));
@@ -28,7 +29,7 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isP
 
   const quickBetAmounts = [50, 100, 500, 1000, 2000];
 
-  const canBet = gameData.gameState === 'betting' && bettingCountdown > 0 && !gameData.hasBet && !isPlacingBet;
+  const canBet = gameData.gameState === 'betting' && bettingCountdown > 0 && !gameData.hasBet && !disabled;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -88,7 +89,7 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isP
               min="10"
               max="10000"
               step="10"
-              disabled={!canBet}
+                disabled={!canBet || disabled}
               className="mt-2 bg-slate-700 border-slate-600 text-foreground focus:border-primary/50 focus:ring-primary/20 text-base"
             />
           </div>
@@ -101,7 +102,7 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isP
                 variant="outline"
                 size="sm"
                 onClick={() => handleBetChange(amount.toString())}
-                disabled={!canBet}
+                disabled={!canBet || disabled}
                 className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-primary/50 transition-all duration-200"
               >
                 ₹{amount}
@@ -132,7 +133,7 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isP
           {/* Enhanced Bet Button */}
           <Button
             onClick={onPlaceBet}
-            disabled={!canBet || gameData.betAmount > gameData.balance}
+            disabled={!canBet || gameData.betAmount > gameData.balance || disabled}
             className={`w-full text-base sm:text-lg font-bold py-4 sm:py-6 transition-all duration-300 shadow-lg ${
               gameData.hasBet 
                 ? 'bg-gaming-success hover:bg-gaming-success/90 border-2 border-gaming-success/30' 
@@ -145,7 +146,7 @@ const GameControls = ({ gameData, setGameData, onPlaceBet, bettingCountdown, isP
                 : '0 0 20px hsl(var(--primary))'
             }}
           >
-            {isPlacingBet ? (
+            {disabled ? 'Game Paused' : isPlacingBet ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                 Placing Bet...

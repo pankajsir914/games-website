@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoulette } from '@/hooks/useRoulette';
+import { useGameManagement } from '@/hooks/useGameManagement';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
 import { RouletteWheel } from '@/components/roulette/RouletteWheel';
@@ -13,9 +14,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const Roulette = () => {
   const { user } = useAuth();
+  const { isGamePaused } = useGameManagement();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const {
     currentRound,
@@ -27,6 +31,8 @@ const Roulette = () => {
     placeBet,
     isPlacingBet,
   } = useRoulette();
+  
+  const gameIsPaused = isGamePaused('roulette');
 
   if (!user) {
     return (
@@ -51,13 +57,23 @@ const Roulette = () => {
     );
   }
 
-  const isBettingOpen = currentRound?.status === 'betting' && timeRemaining > 0;
+  const isBettingOpen = currentRound?.status === 'betting' && timeRemaining > 0 && !gameIsPaused;
   const isSpinning = currentRound?.status === 'spinning';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <Navigation />
       <div className="container mx-auto px-4 pt-24 pb-8">
+        {/* Game Paused Alert */}
+        {gameIsPaused && (
+          <Alert variant="destructive" className="mb-6 border-red-500 bg-red-50 dark:bg-red-950">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
+              Roulette game is currently paused for maintenance. Please check back later.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="text-center text-white mb-8">
           <h1 className="text-4xl font-bold mb-4">🎰 Roulette</h1>
           <p className="text-xl text-gray-300">
@@ -159,7 +175,7 @@ const Roulette = () => {
               <BettingGrid
                 onPlaceBet={placeBet}
                 userBets={userBets}
-                disabled={!isBettingOpen}
+                disabled={!isBettingOpen || gameIsPaused}
                 isPlacingBet={isPlacingBet}
               />
             </CardContent>

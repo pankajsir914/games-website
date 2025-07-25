@@ -14,6 +14,7 @@ interface BettingInterfaceProps {
   timeRemaining: number;
   onPlaceBet: (roundId: string, betSide: 'andar' | 'bahar', amount: number) => void;
   isPlacingBet: boolean;
+  disabled?: boolean;
 }
 
 export const BettingInterface = ({
@@ -21,14 +22,15 @@ export const BettingInterface = ({
   userBet,
   timeRemaining,
   onPlaceBet,
-  isPlacingBet
+  isPlacingBet,
+  disabled = false
 }: BettingInterfaceProps) => {
   const { wallet } = useWallet();
   const [betAmount, setBetAmount] = useState<string>('50');
   const [selectedSide, setSelectedSide] = useState<'andar' | 'bahar' | null>(null);
 
   const quickAmounts = [10, 25, 50, 100, 250, 500];
-  const canBet = currentRound?.status === 'betting' && timeRemaining > 0 && !userBet;
+  const canBet = currentRound?.status === 'betting' && timeRemaining > 0 && !userBet && !disabled;
   const betAmountNum = parseFloat(betAmount) || 0;
 
   const handlePlaceBet = () => {
@@ -87,7 +89,7 @@ export const BettingInterface = ({
               <Button
                 variant={selectedSide === 'andar' ? 'default' : 'outline'}
                 onClick={() => setSelectedSide('andar')}
-                disabled={!canBet}
+                disabled={!canBet || disabled}
                 className="h-16 text-lg font-semibold"
               >
                 <div className="text-center">
@@ -98,7 +100,7 @@ export const BettingInterface = ({
               <Button
                 variant={selectedSide === 'bahar' ? 'default' : 'outline'}
                 onClick={() => setSelectedSide('bahar')}
-                disabled={!canBet}
+                disabled={!canBet || disabled}
                 className="h-16 text-lg font-semibold"
               >
                 <div className="text-center">
@@ -116,7 +118,7 @@ export const BettingInterface = ({
                     key={amount}
                     variant={betAmount === amount.toString() ? 'default' : 'outline'}
                     onClick={() => setBetAmount(amount.toString())}
-                    disabled={!canBet}
+                    disabled={!canBet || disabled}
                     size="sm"
                   >
                     ₹{amount}
@@ -130,7 +132,7 @@ export const BettingInterface = ({
                   placeholder="Custom amount"
                   value={betAmount}
                   onChange={(e) => setBetAmount(e.target.value)}
-                  disabled={!canBet}
+                  disabled={!canBet || disabled}
                   min="10"
                   max={wallet?.current_balance || 0}
                 />
@@ -141,7 +143,8 @@ export const BettingInterface = ({
                     !selectedSide || 
                     betAmountNum < 10 || 
                     betAmountNum > (wallet?.current_balance || 0) ||
-                    isPlacingBet
+                    isPlacingBet ||
+                    disabled
                   }
                   className="px-8"
                 >

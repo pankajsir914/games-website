@@ -4,9 +4,12 @@ import GameInterface from '@/components/aviator/GameInterface';
 import GameControls from '@/components/aviator/GameControls';
 import GameStats from '@/components/aviator/GameStats';
 import { useAviator } from '@/hooks/useAviator';
+import { useGameManagement } from '@/hooks/useGameManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 export type GameState = 'betting' | 'flying' | 'crashed' | 'cashed_out';
 
@@ -26,6 +29,7 @@ export interface GameData {
 
 const Aviator = () => {
   const { user } = useAuth();
+  const { isGamePaused } = useGameManagement();
   const {
     currentRound,
     userBet,
@@ -38,7 +42,9 @@ const Aviator = () => {
     isCashingOut,
     balance
   } = useAviator();
-
+  
+  const gameIsPaused = isGamePaused('aviator');
+  
   const [gameData, setGameData] = useState<GameData>({
     multiplier: 1.0,
     crashPoint: 0,
@@ -312,6 +318,16 @@ const Aviator = () => {
       <Navigation />
       
       <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Game Paused Alert */}
+        {gameIsPaused && (
+          <Alert variant="destructive" className="mb-6 border-red-500 bg-red-50 dark:bg-red-950">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
+              Aviator game is currently paused for maintenance. Please check back later.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-3 sm:mb-4">
@@ -339,6 +355,8 @@ const Aviator = () => {
                 setGameData={setGameData}
                 onPlaceBet={handlePlaceBet}
                 bettingCountdown={bettingCountdown}
+                isPlacingBet={isPlacingBet}
+                disabled={gameIsPaused}
               />
               <div className="hidden sm:block">
                 <GameStats gameData={gameData} />

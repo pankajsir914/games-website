@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAndarBahar } from '@/hooks/useAndarBahar';
+import { useGameManagement } from '@/hooks/useGameManagement';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
 import { GameBoard } from '@/components/andarBahar/GameBoard';
@@ -11,9 +12,12 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const AndarBahar = () => {
   const { user } = useAuth();
+  const { isGamePaused } = useGameManagement();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const {
     currentRound,
@@ -25,6 +29,8 @@ const AndarBahar = () => {
     placeBet,
     isPlacingBet,
   } = useAndarBahar();
+  
+  const gameIsPaused = isGamePaused('andar_bahar');
 
   if (!user) {
     return (
@@ -62,6 +68,19 @@ const AndarBahar = () => {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
+          
+          {/* Game Paused Alert */}
+          {gameIsPaused && (
+            <div className="lg:col-span-3">
+              <Alert variant="destructive" className="border-red-500 bg-red-50 dark:bg-red-950">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
+                  Andar Bahar game is currently paused for maintenance. Please check back later.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          
           {/* Left Column - Game Board */}
           <div className="lg:col-span-2 space-y-6">
             {roundLoading ? (
@@ -90,6 +109,7 @@ const AndarBahar = () => {
               timeRemaining={timeRemaining}
               onPlaceBet={(roundId, betSide, amount) => placeBet({ roundId, betSide, amount })}
               isPlacingBet={isPlacingBet}
+              disabled={gameIsPaused}
             />
           </div>
         </div>
