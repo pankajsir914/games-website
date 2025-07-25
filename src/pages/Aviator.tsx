@@ -262,10 +262,19 @@ const Aviator = () => {
 
   // Auto-manage rounds
   useEffect(() => {
-    const manageRounds = () => {
-      supabase.functions.invoke('aviator-game-manager', {
-        body: { action: 'auto_manage' }
-      });
+    const manageRounds = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/aviator-game-manager?action=auto_manage', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session?.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
+          }
+        });
+      } catch (error) {
+        console.error('Auto-manage error:', error);
+      }
     };
 
     // Run immediately and then every 5 seconds

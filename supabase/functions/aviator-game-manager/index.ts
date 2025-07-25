@@ -45,7 +45,17 @@ serve(async (req) => {
     );
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    let action = url.searchParams.get('action');
+    
+    // If no action in query params, try to get from body
+    if (!action && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        action = body.action;
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
 
     if (action === 'create_round') {
       // Create a new round
@@ -132,7 +142,17 @@ serve(async (req) => {
     }
 
     if (action === 'crash_round') {
-      const roundId = url.searchParams.get('round_id');
+      let roundId = url.searchParams.get('round_id');
+      
+      // If no round_id in query params, try to get from body
+      if (!roundId && req.method === 'POST') {
+        try {
+          const body = await req.json();
+          roundId = body.round_id;
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
       
       if (!roundId) {
         throw new Error('Round ID is required');

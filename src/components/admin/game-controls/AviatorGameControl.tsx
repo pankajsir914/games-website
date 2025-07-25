@@ -73,11 +73,16 @@ export const AviatorGameControl = () => {
 
   const createInstantRound = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('aviator-game-manager', {
-        body: { action: 'create_round' }
+      const { data: session } = await supabase.auth.getSession();
+      const response = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/aviator-game-manager?action=create_round', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session?.session?.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
+        }
       });
       
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to create round');
       
       toast({
         title: "Round Created",
