@@ -61,23 +61,6 @@ const Wallet = () => {
               </CardContent>
             </Card>
 
-            {/* Exchange Rate Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Banknote className="h-5 w-5" />
-                  Exchange Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-4">
-                  <div className="text-2xl font-bold text-primary">₹1 = 1 Point</div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    All transactions are processed at this fixed rate
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
 
             <TransactionHistory />
           </div>
