@@ -443,6 +443,47 @@ export type Database = {
         }
         Relationships: []
       }
+      jackpot_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          round_id: string
+          ticket_end: number
+          ticket_start: number
+          user_id: string
+          win_probability: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          round_id: string
+          ticket_end: number
+          ticket_start: number
+          user_id: string
+          win_probability?: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          round_id?: string
+          ticket_end?: number
+          ticket_start?: number
+          user_id?: string
+          win_probability?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jackpot_entries_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "jackpot_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jackpot_games: {
         Row: {
           completed_at: string | null
@@ -491,6 +532,57 @@ export type Database = {
           total_tickets?: number
           winner_id?: string | null
           winning_ticket_number?: number | null
+        }
+        Relationships: []
+      }
+      jackpot_rounds: {
+        Row: {
+          commission_amount: number | null
+          commission_rate: number
+          created_at: string
+          end_time: string
+          id: string
+          result_hash: string | null
+          seed_hash: string | null
+          start_time: string
+          status: string
+          total_amount: number
+          total_players: number
+          updated_at: string
+          winner_amount: number | null
+          winner_id: string | null
+        }
+        Insert: {
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          end_time: string
+          id?: string
+          result_hash?: string | null
+          seed_hash?: string | null
+          start_time?: string
+          status?: string
+          total_amount?: number
+          total_players?: number
+          updated_at?: string
+          winner_amount?: number | null
+          winner_id?: string | null
+        }
+        Update: {
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          end_time?: string
+          id?: string
+          result_hash?: string | null
+          seed_hash?: string | null
+          start_time?: string
+          status?: string
+          total_amount?: number
+          total_players?: number
+          updated_at?: string
+          winner_amount?: number | null
+          winner_id?: string | null
         }
         Relationships: []
       }
@@ -1322,6 +1414,10 @@ export type Database = {
         Args: { p_game_id: string }
         Returns: Json
       }
+      complete_jackpot_round: {
+        Args: { p_round_id: string }
+        Returns: Json
+      }
       create_admin_alert: {
         Args: {
           p_alert_type: string
@@ -1331,6 +1427,10 @@ export type Database = {
           p_data?: Json
         }
         Returns: string
+      }
+      get_current_jackpot_round: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_poker_hand_strength: {
         Args: { hole_cards: Json; community_cards: Json }
@@ -1346,6 +1446,10 @@ export type Database = {
       is_admin_user: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      join_jackpot_round: {
+        Args: { p_amount: number }
+        Returns: Json
       }
       join_poker_table: {
         Args: {

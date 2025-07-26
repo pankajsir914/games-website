@@ -1,149 +1,303 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import Navigation from '@/components/Navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { useJackpot } from '@/hooks/useJackpot';
-import { AuthModal } from '@/components/auth/AuthModal';
-import { JackpotGame } from '@/components/jackpot/JackpotGame';
-import { JackpotHistory } from '@/components/jackpot/JackpotHistory';
-import { WinnerModal } from '@/components/jackpot/WinnerModal';
-import { Trophy, Timer, Users, Ticket } from 'lucide-react';
+import { Crown, Clock, Users, Coins, Trophy, DollarSign, Timer, Wallet } from 'lucide-react';
+import { useJackpotRounds } from '@/hooks/useJackpotRounds';
 
 const Jackpot = () => {
   const { user } = useAuth();
-  const { activeGames, winnersHistory, gamesLoading, winnersLoading } = useJackpot();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [selectedTier, setSelectedTier] = useState<string>('low');
+  const [betAmount, setBetAmount] = useState<string>('10');
+  
+  const { 
+    currentRound,
+    history,
+    walletBalance,
+    timeLeft,
+    formatTime,
+    currentRoundLoading,
+    joinRound,
+    isJoining,
+    testDeposit,
+    isDepositing,
+  } = useJackpotRounds();
 
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
         <Navigation />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-white">
-            <h1 className="text-4xl font-bold mb-4">🎰 Jackpot Games</h1>
-            <p className="text-xl mb-8">Sign in to participate in exciting jackpot games!</p>
-            <Button 
-              onClick={() => setAuthModalOpen(true)}
-              size="lg"
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
-            >
-              Sign In to Play
-            </Button>
-          </div>
+        <div className="flex items-center justify-center p-4 pt-20">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <Crown className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+              <CardTitle className="text-2xl">Real-Money Jackpot</CardTitle>
+              <CardDescription>
+                Sign in to participate in real-money jackpot rounds and win big!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => setAuthModalOpen(true)}
+                className="w-full"
+                size="lg"
+              >
+                Sign In to Play
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
       </div>
     );
   }
 
-  const filteredGames = activeGames?.filter(game => game.tier === selectedTier) || [];
-  const latestWinner = winnersHistory?.[0];
+  const handleJoinRound = () => {
+    const amount = parseFloat(betAmount);
+    if (amount >= 1) {
+      joinRound(amount);
+    }
+  };
+
+  const canJoin = currentRound?.active && 
+                 !currentRound.user_entry && 
+                 parseFloat(betAmount) >= 1 && 
+                 walletBalance?.current_balance >= parseFloat(betAmount);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-            🎰 Jackpot Games
-          </h1>
-          <p className="text-xl text-gray-300">
-            Buy tickets and win amazing prizes!
+      <div className="max-w-6xl mx-auto px-4 py-6 pt-20">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Crown className="h-12 w-12 text-yellow-400 mr-3" />
+            <h1 className="text-4xl font-bold text-white">Real-Money Jackpot</h1>
+          </div>
+          <p className="text-blue-100 text-lg">
+            Contribute to the pot and win based on your stake! Fair & transparent.
           </p>
         </div>
 
-        {/* Latest Winner Banner */}
-        {latestWinner && (
-          <Card className="mb-8 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border-yellow-400/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center space-x-4 text-white">
-                <Trophy className="h-8 w-8 text-yellow-400" />
-                <div className="text-center">
-                  <p className="text-lg font-semibold">🎉 Latest Winner!</p>
-                  <p className="text-2xl font-bold">
-                    {latestWinner.profiles?.full_name} won ₹{latestWinner.prize_amount.toFixed(2)}
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    Ticket #{latestWinner.winning_ticket_number} • {latestWinner.tier.toUpperCase()} tier
-                  </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Current Round */}
+          <div className="lg:col-span-2">
+            <Card className="bg-gradient-to-br from-blue-800 to-purple-800 border-yellow-400 border-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Trophy className="h-6 w-6 text-yellow-400" />
+                    Current Jackpot Round
+                  </CardTitle>
+                  {currentRound?.active && (
+                    <Badge variant="secondary" className="bg-green-500 text-white">
+                      <Timer className="h-4 w-4 mr-1" />
+                      {formatTime(timeLeft)}
+                    </Badge>
+                  )}
                 </div>
-                <Trophy className="h-8 w-8 text-yellow-400" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {currentRoundLoading ? (
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-8 bg-white/20 rounded"></div>
+                    <div className="h-6 bg-white/20 rounded w-2/3"></div>
+                    <div className="h-12 bg-white/20 rounded"></div>
+                  </div>
+                ) : currentRound?.active ? (
+                  <>
+                    {/* Pot Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <p className="text-blue-200 text-sm">Total Pot</p>
+                        <p className="text-3xl font-bold text-yellow-400">
+                          ₹{currentRound.total_amount?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-blue-200 text-sm">Players</p>
+                        <p className="text-3xl font-bold text-white">
+                          {currentRound.total_players || 0}
+                        </p>
+                      </div>
+                    </div>
 
-        {/* Game Tier Selection */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white/10 p-1 rounded-lg backdrop-blur-sm">
-            {['low', 'medium', 'high'].map((tier) => (
-              <Button
-                key={tier}
-                variant={selectedTier === tier ? "default" : "ghost"}
-                onClick={() => setSelectedTier(tier)}
-                className={`mx-1 ${
-                  selectedTier === tier 
-                    ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black' 
-                    : 'text-white hover:bg-white/20'
-                }`}
-              >
-                {tier.toUpperCase()} Stakes
-              </Button>
-            ))}
+                    {/* User's Entry */}
+                    {currentRound.user_entry ? (
+                      <Card className="bg-green-500/20 border-green-400">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-white font-semibold">You're in this round!</p>
+                              <p className="text-green-200">
+                                Bet: ₹{currentRound.user_entry.amount} | 
+                                Win Chance: {(currentRound.user_entry.win_probability * 100).toFixed(2)}%
+                              </p>
+                            </div>
+                            <Trophy className="h-8 w-8 text-yellow-400" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="bg-white/10">
+                        <CardContent className="p-4">
+                          <div className="space-y-4">
+                            <div>
+                              <label className="text-white text-sm font-medium">Bet Amount (₹)</label>
+                              <Input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={betAmount}
+                                onChange={(e) => setBetAmount(e.target.value)}
+                                className="mt-1 bg-white/20 border-white/30 text-white placeholder-white/60"
+                                placeholder="Minimum ₹1"
+                              />
+                            </div>
+                            <Button 
+                              onClick={handleJoinRound}
+                              disabled={!canJoin || isJoining}
+                              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+                              size="lg"
+                            >
+                              {isJoining ? 'Joining...' : 'Join Jackpot'}
+                            </Button>
+                            {parseFloat(betAmount) >= 1 && (
+                              <p className="text-blue-200 text-sm text-center">
+                                Win chance: ~{((parseFloat(betAmount) / ((currentRound.total_amount || 0) + parseFloat(betAmount))) * 100).toFixed(2)}%
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Current Entries */}
+                    {currentRound.entries && currentRound.entries.length > 0 && (
+                      <div>
+                        <h4 className="text-white font-semibold mb-3">Current Entries</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {currentRound.entries.map((entry, index) => (
+                            <div key={index} className="flex justify-between items-center bg-white/10 rounded p-2">
+                              <span className="text-white">{entry.user_name}</span>
+                              <div className="text-right">
+                                <span className="text-yellow-400 font-semibold">₹{entry.amount}</span>
+                                <span className="text-blue-200 text-sm block">
+                                  {(entry.win_probability * 100).toFixed(2)}%
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Clock className="h-16 w-16 text-white/50 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No Active Round</h3>
+                    <p className="text-blue-200">
+                      A new round will start when the first player joins.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </div>
 
-        <Tabs defaultValue="games" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white/10 backdrop-blur-sm">
-            <TabsTrigger value="games" className="text-white data-[state=active]:bg-white/20">
-              Active Games
-            </TabsTrigger>
-            <TabsTrigger value="history" className="text-white data-[state=active]:bg-white/20">
-              Winner History
-            </TabsTrigger>
-          </TabsList>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Wallet */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  Your Wallet
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Available Balance</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      ₹{walletBalance?.current_balance?.toLocaleString() || '0.00'}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => testDeposit(100)}
+                    variant="outline"
+                    size="sm"
+                    disabled={isDepositing}
+                    className="w-full"
+                  >
+                    {isDepositing ? 'Adding...' : 'Add ₹100 (Test)'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="games" className="mt-6">
-            {gamesLoading ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="bg-white/10 backdrop-blur-sm animate-pulse">
-                    <CardContent className="p-6 h-64" />
-                  </Card>
-                ))}
-              </div>
-            ) : filteredGames.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredGames.map((game) => (
-                  <JackpotGame key={game.id} game={game} />
-                ))}
-              </div>
-            ) : (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                <CardContent className="p-8 text-center text-white">
-                  <Timer className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-semibold mb-2">No Active Games</h3>
-                  <p className="text-gray-300">
-                    No {selectedTier} stakes games are currently active. Check back soon!
-                  </p>
+            {/* How It Works */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">How It Works</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0">1</span>
+                  <p>Players contribute money to a shared pot</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0">2</span>
+                  <p>Your win chance = your bet ÷ total pot</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0">3</span>
+                  <p>After 60 seconds, a winner is randomly selected</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0">4</span>
+                  <p>Winner gets 95% of the pot (5% commission)</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Winners */}
+            {history && history.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Recent Winners</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {history.slice(0, 5).map((round: any) => (
+                      <div key={round.id} className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-sm">
+                            {round.winner?.full_name || 'Anonymous'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(round.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span className="text-green-600 font-bold">
+                          ₹{round.winner_amount?.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-6">
-            <JackpotHistory winners={winnersHistory} loading={winnersLoading} />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
 
-      <WinnerModal />
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </div>
   );
 };
