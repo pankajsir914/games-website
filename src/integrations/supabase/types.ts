@@ -650,8 +650,44 @@ export type Database = {
           },
         ]
       }
+      poker_game_events: {
+        Row: {
+          created_at: string | null
+          event_data: Json
+          event_type: string
+          game_id: string
+          id: string
+          player_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json
+          event_type: string
+          game_id: string
+          id?: string
+          player_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json
+          event_type?: string
+          game_id?: string
+          id?: string
+          player_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_game_events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "poker_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       poker_games: {
         Row: {
+          betting_round: number | null
           community_cards: Json
           completed_at: string | null
           current_bet: number
@@ -661,7 +697,11 @@ export type Database = {
           game_state: string
           hand_history: Json
           id: string
+          last_action_time: string | null
+          minimum_bet: number | null
+          players_in_hand: Json | null
           pot_amount: number
+          side_pots: Json | null
           started_at: string
           table_id: string
           turn_time_limit: number
@@ -670,6 +710,7 @@ export type Database = {
           winning_hand: Json | null
         }
         Insert: {
+          betting_round?: number | null
           community_cards?: Json
           completed_at?: string | null
           current_bet?: number
@@ -679,7 +720,11 @@ export type Database = {
           game_state?: string
           hand_history?: Json
           id?: string
+          last_action_time?: string | null
+          minimum_bet?: number | null
+          players_in_hand?: Json | null
           pot_amount?: number
+          side_pots?: Json | null
           started_at?: string
           table_id: string
           turn_time_limit?: number
@@ -688,6 +733,7 @@ export type Database = {
           winning_hand?: Json | null
         }
         Update: {
+          betting_round?: number | null
           community_cards?: Json
           completed_at?: string | null
           current_bet?: number
@@ -697,7 +743,11 @@ export type Database = {
           game_state?: string
           hand_history?: Json
           id?: string
+          last_action_time?: string | null
+          minimum_bet?: number | null
+          players_in_hand?: Json | null
           pot_amount?: number
+          side_pots?: Json | null
           started_at?: string
           table_id?: string
           turn_time_limit?: number
@@ -766,44 +816,103 @@ export type Database = {
           },
         ]
       }
-      poker_players: {
+      poker_player_sessions: {
         Row: {
-          chip_count: number
-          hole_cards: Json | null
+          created_at: string | null
           id: string
-          is_big_blind: boolean
-          is_dealer: boolean
-          is_small_blind: boolean
-          joined_at: string
-          seat_number: number
-          status: string
+          is_active: boolean | null
+          last_heartbeat: string | null
+          session_token: string
           table_id: string
           user_id: string
         }
         Insert: {
-          chip_count?: number
-          hole_cards?: Json | null
+          created_at?: string | null
           id?: string
-          is_big_blind?: boolean
-          is_dealer?: boolean
-          is_small_blind?: boolean
-          joined_at?: string
-          seat_number: number
-          status?: string
+          is_active?: boolean | null
+          last_heartbeat?: string | null
+          session_token: string
           table_id: string
           user_id: string
         }
         Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_heartbeat?: string | null
+          session_token?: string
+          table_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_player_sessions_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "poker_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_players: {
+        Row: {
+          chip_count: number
+          connection_id: string | null
+          current_bet: number | null
+          has_acted_this_round: boolean | null
+          hole_cards: Json | null
+          id: string
+          is_all_in: boolean | null
+          is_big_blind: boolean
+          is_dealer: boolean
+          is_small_blind: boolean
+          joined_at: string
+          last_action: string | null
+          last_heartbeat: string | null
+          seat_number: number
+          status: string
+          table_id: string
+          total_bet_this_hand: number | null
+          user_id: string
+        }
+        Insert: {
           chip_count?: number
+          connection_id?: string | null
+          current_bet?: number | null
+          has_acted_this_round?: boolean | null
           hole_cards?: Json | null
           id?: string
+          is_all_in?: boolean | null
           is_big_blind?: boolean
           is_dealer?: boolean
           is_small_blind?: boolean
           joined_at?: string
+          last_action?: string | null
+          last_heartbeat?: string | null
+          seat_number: number
+          status?: string
+          table_id: string
+          total_bet_this_hand?: number | null
+          user_id: string
+        }
+        Update: {
+          chip_count?: number
+          connection_id?: string | null
+          current_bet?: number | null
+          has_acted_this_round?: boolean | null
+          hole_cards?: Json | null
+          id?: string
+          is_all_in?: boolean | null
+          is_big_blind?: boolean
+          is_dealer?: boolean
+          is_small_blind?: boolean
+          joined_at?: string
+          last_action?: string | null
+          last_heartbeat?: string | null
           seat_number?: number
           status?: string
           table_id?: string
+          total_bet_this_hand?: number | null
           user_id?: string
         }
         Relationships: [
@@ -1205,6 +1314,10 @@ export type Database = {
         Args: { p_bet_id: string; p_current_multiplier: number }
         Returns: Json
       }
+      cleanup_inactive_poker_players: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       complete_jackpot_game: {
         Args: { p_game_id: string }
         Returns: Json
@@ -1218,6 +1331,10 @@ export type Database = {
           p_data?: Json
         }
         Returns: string
+      }
+      get_poker_hand_strength: {
+        Args: { hole_cards: Json; community_cards: Json }
+        Returns: number
       }
       has_admin_role: {
         Args: {
