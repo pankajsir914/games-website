@@ -257,7 +257,7 @@ const Poker = () => {
                       <Users className="w-4 h-4 mr-2" />
                       Join Table
                     </Button>
-                    <Link to={`/poker/${table.id}`} className="flex-1">
+                    <Link to={`/poker/table/${table.id}`} className="flex-1">
                       <Button variant="outline" className="w-full">
                         <Clock className="w-4 h-4 mr-2" />
                         Watch
