@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import Navigation from '@/components/Navigation';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Plus, 
   Play, 
@@ -18,12 +21,23 @@ import {
   Phone,
   Clock,
   Shield,
-  CreditCard
+  CreditCard,
+  Gamepad2,
+  Users,
+  Star,
+  Gift,
+  Zap,
+  Target,
+  TrendingUp,
+  Award,
+  Coins
 } from 'lucide-react';
 
 const Index = () => {
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [walletBalance] = useState(25000);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Show disclaimer when component mounts
   useEffect(() => {
@@ -60,11 +74,20 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="text-lg px-8 py-6 shadow-gaming">
+            <Button 
+              size="lg" 
+              className="text-lg px-8 py-6 shadow-gaming"
+              onClick={() => navigate('/games')}
+            >
               <Play className="mr-2 h-5 w-5" />
               Start Playing
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="text-lg px-8 py-6"
+              onClick={() => navigate('/games')}
+            >
               <Trophy className="mr-2 h-5 w-5" />
               View Tournaments
             </Button>
@@ -107,11 +130,17 @@ const Index = () => {
             </div>
           </div>
           <div className="flex gap-4">
-            <Button className="shadow-gaming">
+            <Button 
+              className="shadow-gaming"
+              onClick={() => navigate('/wallet')}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Money
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/wallet')}
+            >
               View History
             </Button>
           </div>
@@ -152,6 +181,150 @@ const Index = () => {
             </div>
             <h3 className="text-xl font-semibold mb-2">Daily Tournaments</h3>
             <p className="text-muted-foreground">Participate in exciting tournaments and compete for massive prize pools</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  const GamesSection = () => (
+    <section className="py-16 bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Popular <span className="bg-gradient-primary bg-clip-text text-transparent">Games</span>
+          </h2>
+          <p className="text-muted-foreground text-lg">Choose from our exciting collection of skill-based games</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { name: "Color Prediction", path: "/color-prediction", icon: Target, gradient: "from-red-500 to-pink-500" },
+            { name: "Aviator", path: "/aviator", icon: Zap, gradient: "from-blue-500 to-cyan-500" },
+            { name: "Ludo", path: "/ludo", icon: Gamepad2, gradient: "from-green-500 to-emerald-500" },
+            { name: "Roulette", path: "/roulette", icon: TrendingUp, gradient: "from-purple-500 to-indigo-500" }
+          ].map((game) => (
+            <Card key={game.name} className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-primary/20" onClick={() => navigate(game.path)}>
+              <CardContent className="p-6 text-center">
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${game.gradient} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                  <game.icon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{game.name}</h3>
+                <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
+                  Play Now
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+
+  const TestimonialsSection = () => (
+    <section className="py-16 bg-secondary/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            What Players <span className="bg-gradient-primary bg-clip-text text-transparent">Say</span>
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            {
+              name: "Rajesh Kumar",
+              comment: "Amazing platform! Won ₹50,000 in just one week. Fast withdrawals and great support.",
+              rating: 5,
+              location: "Mumbai"
+            },
+            {
+              name: "Priya Sharma",
+              comment: "Love the variety of games. The interface is so smooth and user-friendly.",
+              rating: 5,
+              location: "Delhi"
+            },
+            {
+              name: "Amit Patel",
+              comment: "Best gaming platform in India. Reliable, secure, and entertaining!",
+              rating: 5,
+              location: "Bangalore"
+            }
+          ].map((testimonial, index) => (
+            <Card key={index} className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-gaming-gold fill-current" />
+                  ))}
+                </div>
+                <p className="text-muted-foreground mb-4 italic">"{testimonial.comment}"</p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{testimonial.name}</p>
+                    <p className="text-xs text-muted-foreground">{testimonial.location}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+
+  const StatsSection = () => (
+    <section className="py-16 bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Platform <span className="bg-gradient-primary bg-clip-text text-transparent">Statistics</span>
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { icon: Users, value: "2M+", label: "Registered Users", color: "text-blue-500" },
+            { icon: Coins, value: "₹100Cr+", label: "Total Winnings", color: "text-gaming-gold" },
+            { icon: Award, value: "500K+", label: "Daily Tournaments", color: "text-green-500" },
+            { icon: Shield, value: "99.9%", label: "Secure Transactions", color: "text-gaming-success" }
+          ].map((stat, index) => (
+            <div key={index} className="text-center">
+              <div className={`w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4`}>
+                <stat.icon className={`h-8 w-8 ${stat.color}`} />
+              </div>
+              <div className={`text-3xl font-bold ${stat.color} mb-2`}>{stat.value}</div>
+              <div className="text-muted-foreground text-sm">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+
+  const CTASection = () => (
+    <section className="py-16 bg-gradient-primary text-primary-foreground">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="space-y-6">
+          <h2 className="text-3xl md:text-4xl font-bold">
+            Ready to Start Winning?
+          </h2>
+          <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto">
+            Join millions of players and start your journey to big wins today. Sign up now and get a welcome bonus!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              size="lg" 
+              variant="secondary"
+              className="text-lg px-8 py-6"
+              onClick={() => user ? navigate('/games') : navigate('/')}
+            >
+              <Gift className="mr-2 h-5 w-5" />
+              {user ? 'Play Now' : 'Sign Up & Get Bonus'}
+            </Button>
           </div>
         </div>
       </div>
@@ -286,8 +459,12 @@ const Index = () => {
       
       <Navigation />
       <HeroSection />
-      <WalletSection />
+      {user && <WalletSection />}
+      <GamesSection />
       <FeaturesSection />
+      <TestimonialsSection />
+      <StatsSection />
+      <CTASection />
       <Footer />
     </div>
   );

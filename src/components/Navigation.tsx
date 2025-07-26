@@ -1,17 +1,22 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Wallet } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { User, LogOut, Wallet, Menu, X } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -25,13 +30,13 @@ const Navigation = () => {
 
   return (
     <>
-      <nav className="border-b bg-gray backdrop-blur supports-[backdrop-filter]:bg-gray sticky top-0 z-50">
+      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
               <Link to="/" className="flex-shrink-0 flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  GameHub
+                <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  GameZone
                 </span>
               </Link>
               
@@ -42,8 +47,8 @@ const Navigation = () => {
                     to={item.href}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive(item.href)
-                        ? "bg-purple-100 text-purple-700"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
                     {item.label}
@@ -53,13 +58,84 @@ const Navigation = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Mobile menu button */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="inline-flex items-center justify-center md:hidden"
+                    size="sm"
+                  >
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Open main menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <nav className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
+                        GameZone
+                      </span>
+                    </div>
+                    <div className="flex flex-col space-y-3 mt-6">
+                      {navItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            isActive(item.href)
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                          }`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                      {user && (
+                        <Link
+                          to="/wallet"
+                          className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent flex items-center gap-2"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <Wallet className="h-4 w-4" />
+                          Wallet
+                        </Link>
+                      )}
+                    </div>
+                    {user && (
+                      <div className="border-t pt-4 mt-6">
+                        <div className="flex flex-col space-y-3">
+                          <div className="px-3 py-2">
+                            <p className="text-sm font-medium">{user.user_metadata?.full_name || 'User'}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            className="justify-start"
+                            onClick={() => {
+                              signOut();
+                              setMobileMenuOpen(false);
+                            }}
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Sign out
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </nav>
+                </SheetContent>
+              </Sheet>
+
+              {/* Desktop user section */}
               {user ? (
-                <>
+                <div className="hidden md:flex items-center space-x-4">
                   <Button
                     asChild
                     variant="outline"
                     size="sm"
-                    className="hidden md:flex items-center gap-2"
+                    className="items-center gap-2"
                   >
                     <Link to="/wallet">
                       <Wallet className="h-4 w-4" />
@@ -94,15 +170,27 @@ const Navigation = () => {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </>
+                </div>
               ) : (
                 <Button 
                   onClick={() => setAuthModalOpen(true)}
                   disabled={loading}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="hidden md:flex bg-gradient-primary hover:bg-primary/90"
                 >
                   <User className="mr-2 h-4 w-4" />
                   Sign In
+                </Button>
+              )}
+
+              {/* Mobile sign in button */}
+              {!user && (
+                <Button 
+                  onClick={() => setAuthModalOpen(true)}
+                  disabled={loading}
+                  size="sm"
+                  className="md:hidden"
+                >
+                  <User className="h-4 w-4" />
                 </Button>
               )}
             </div>
