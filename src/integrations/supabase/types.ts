@@ -662,6 +662,163 @@ export type Database = {
           },
         ]
       }
+      ludo_moves: {
+        Row: {
+          created_at: string
+          dice_value: number | null
+          from_position: number | null
+          id: string
+          is_valid: boolean
+          killed_token_id: string | null
+          move_data: Json | null
+          move_type: string
+          player_id: string
+          room_id: string
+          to_position: number | null
+          token_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dice_value?: number | null
+          from_position?: number | null
+          id?: string
+          is_valid?: boolean
+          killed_token_id?: string | null
+          move_data?: Json | null
+          move_type: string
+          player_id: string
+          room_id: string
+          to_position?: number | null
+          token_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dice_value?: number | null
+          from_position?: number | null
+          id?: string
+          is_valid?: boolean
+          killed_token_id?: string | null
+          move_data?: Json | null
+          move_type?: string
+          player_id?: string
+          room_id?: string
+          to_position?: number | null
+          token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ludo_moves_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "ludo_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ludo_player_sessions: {
+        Row: {
+          id: string
+          is_online: boolean
+          joined_at: string
+          last_heartbeat: string
+          player_color: string
+          player_id: string
+          player_position: number
+          room_id: string
+          turn_timeout_at: string | null
+        }
+        Insert: {
+          id?: string
+          is_online?: boolean
+          joined_at?: string
+          last_heartbeat?: string
+          player_color: string
+          player_id: string
+          player_position: number
+          room_id: string
+          turn_timeout_at?: string | null
+        }
+        Update: {
+          id?: string
+          is_online?: boolean
+          joined_at?: string
+          last_heartbeat?: string
+          player_color?: string
+          player_id?: string
+          player_position?: number
+          room_id?: string
+          turn_timeout_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ludo_player_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "ludo_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ludo_rooms: {
+        Row: {
+          commission_amount: number | null
+          commission_rate: number
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          current_players: number
+          entry_fee: number
+          game_state: Json | null
+          id: string
+          max_players: number
+          players: Json
+          started_at: string | null
+          status: string
+          total_pot: number
+          updated_at: string
+          winner_amount: number | null
+          winner_id: string | null
+        }
+        Insert: {
+          commission_amount?: number | null
+          commission_rate?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          current_players?: number
+          entry_fee: number
+          game_state?: Json | null
+          id?: string
+          max_players: number
+          players?: Json
+          started_at?: string | null
+          status?: string
+          total_pot?: number
+          updated_at?: string
+          winner_amount?: number | null
+          winner_id?: string | null
+        }
+        Update: {
+          commission_amount?: number | null
+          commission_rate?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          current_players?: number
+          entry_fee?: number
+          game_state?: Json | null
+          id?: string
+          max_players?: number
+          players?: Json
+          started_at?: string | null
+          status?: string
+          total_pot?: number
+          updated_at?: string
+          winner_amount?: number | null
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       payment_requests: {
         Row: {
           admin_notes: string | null
@@ -1418,6 +1575,10 @@ export type Database = {
         Args: { p_round_id: string }
         Returns: Json
       }
+      complete_ludo_game: {
+        Args: { p_room_id: string; p_winner_id: string }
+        Returns: Json
+      }
       create_admin_alert: {
         Args: {
           p_alert_type: string
@@ -1427,6 +1588,10 @@ export type Database = {
           p_data?: Json
         }
         Returns: string
+      }
+      create_ludo_room: {
+        Args: { p_max_players: number; p_entry_fee: number }
+        Returns: Json
       }
       get_current_jackpot_round: {
         Args: Record<PropertyKey, never>
@@ -1449,6 +1614,10 @@ export type Database = {
       }
       join_jackpot_round: {
         Args: { p_amount: number }
+        Returns: Json
+      }
+      join_ludo_room: {
+        Args: { p_room_id: string }
         Returns: Json
       }
       join_poker_table: {
