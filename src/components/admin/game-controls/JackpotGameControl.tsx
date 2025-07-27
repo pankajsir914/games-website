@@ -7,284 +7,355 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Target, Zap, Timer, Gift, TrendingUp, Users } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Trophy, Target, Zap, Timer, Gift, TrendingUp, Users, Clock, DollarSign, RotateCcw, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 import { useGameManagement } from '@/hooks/useGameManagement';
+import { useJackpotRounds } from '@/hooks/useJackpotRounds';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 export const JackpotGameControl = () => {
-  const { toggleGameStatus, isGamePaused } = useGameManagement();
+  const adminAuth = useAdminAuth();
+  const { gameSettings, toggleGameStatus } = useGameManagement();
+  const { currentRound, history, timeLeft, formatTime } = useJackpotRounds();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedWinner, setForcedWinner] = useState('');
   const [winningTicket, setWinningTicket] = useState<number | null>(null);
   const [manipulationType, setManipulationType] = useState('winner-control');
+  
+  const gameStatus = gameSettings?.find(g => g.game_type === 'jackpot');
 
-  const activeJackpots = [
-    { id: 1, tier: 'Mega', pool: 2500000, tickets: 8750, players: 1247, endTime: '2h 45m' },
-    { id: 2, tier: 'High', pool: 500000, tickets: 2340, players: 567, endTime: '45m' },
-    { id: 3, tier: 'Medium', pool: 100000, tickets: 890, players: 234, endTime: '1h 12m' },
-    { id: 4, tier: 'Low', pool: 25000, tickets: 450, players: 123, endTime: '23m' }
-  ];
-
-  const recentWinners = [
-    { game: 'Mega Jackpot', winner: 'Player1234', amount: 2450000, tickets: 156 },
-    { game: 'High Jackpot', winner: 'LuckyUser', amount: 456000, tickets: 89 },
-    { game: 'Medium Jackpot', winner: 'WinnerABC', amount: 98000, tickets: 45 },
-    { game: 'Low Jackpot', winner: 'NewPlayer', amount: 23000, tickets: 12 }
-  ];
-
-  const handleForceWinner = () => {
-    toast({
-      title: "Winner Forced",
-      description: `${forcedWinner} will win the next jackpot`,
-    });
+  const handleForceComplete = async () => {
+    if (!currentRound?.round_id) {
+      toast.error('No active round to complete');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('jackpot-manager', {
+        body: { 
+          action: 'complete',
+          roundId: currentRound.round_id 
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`Round completed! Winner: ${data.winner_name}`);
+    } catch (error) {
+      console.error('Error completing round:', error);
+      toast.error('Failed to complete round');
+    }
   };
 
-  const handleJackpotAction = (action: string, jackpotId: number) => {
-    toast({
-      title: "Jackpot Action",
-      description: `${action} on Jackpot ${jackpotId}`,
-    });
+  const handleToggleGame = async (enabled: boolean) => {
+    try {
+      toggleGameStatus('jackpot');
+      toast.success(`Jackpot game ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      toast.error('Failed to update game status');
+    }
+  };
+
+  const getGameStatusColor = () => {
+    if (!gameStatus?.is_enabled) return 'bg-red-500';
+    if (gameStatus?.maintenance_mode) return 'bg-orange-500';
+    return 'bg-green-500';
+  };
+
+  const getGameStatusText = () => {
+    if (!gameStatus?.is_enabled) return 'Disabled';
+    if (gameStatus?.maintenance_mode) return 'Maintenance';
+    return 'Active';
   };
 
   return (
     <div className="space-y-6">
-      {/* Game Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Jackpot Game Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gaming-success">4</p>
-              <p className="text-sm text-muted-foreground">Active Jackpots</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">2,171</p>
-              <p className="text-sm text-muted-foreground">Total Players</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gaming-gold">₹31,25,000</p>
-              <p className="text-sm text-muted-foreground">Total Pool Value</p>
-            </div>
-            <div className="text-center">
-              <Badge variant={isGamePaused('jackpot') ? 'destructive' : 'default'}>
-                {isGamePaused('jackpot') ? 'PAUSED' : 'Live'}
-              </Badge>
-              <p className="text-sm text-muted-foreground mt-1">Game Status</p>
-            </div>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <Trophy className="h-8 w-8 text-yellow-500" />
+          <div>
+            <h1 className="text-3xl font-bold">Jackpot Control</h1>
+            <p className="text-muted-foreground">Manage and monitor jackpot rounds</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${getGameStatusColor()}`} />
+          <Badge variant={gameStatus?.is_enabled ? 'default' : 'secondary'}>
+            {getGameStatusText()}
+          </Badge>
+        </div>
+      </div>
 
-      <Tabs defaultValue="controls" className="w-full">
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-green-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Current Pot</p>
+                <p className="text-2xl font-bold">₹{currentRound?.total_amount || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Players</p>
+                <p className="text-2xl font-bold">{currentRound?.total_players || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Time Left</p>
+                <p className="text-2xl font-bold">{formatTime(timeLeft)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Rounds</p>
+                <p className="text-2xl font-bold">{history?.length || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Controls */}
+      <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="controls">Game Controls</TabsTrigger>
-          <TabsTrigger value="jackpots">Active Jackpots</TabsTrigger>
-          <TabsTrigger value="winners">Winners</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="controls">Controls</TabsTrigger>
+          <TabsTrigger value="rounds">Round History</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="controls" className="space-y-4">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Current Round Status */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Winner Manipulation
+                <Target className="h-5 w-5" />
+                Current Round Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="cheat-mode">Cheat Mode</Label>
-                <Switch
-                  id="cheat-mode"
-                  checked={cheatMode}
-                  onCheckedChange={setCheatMode}
-                />
-              </div>
-
-              {cheatMode && (
-                <div className="space-y-4 p-4 border rounded-lg bg-destructive/5">
+              {currentRound?.active ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span>Round ID:</span>
+                    <Badge variant="outline">{currentRound.round_id.slice(0, 8)}...</Badge>
+                  </div>
+                  
                   <div className="space-y-2">
-                    <Label>Force Winner</Label>
-                    <Input
-                      placeholder="Enter player ID or username"
-                      value={forcedWinner}
-                      onChange={(e) => setForcedWinner(e.target.value)}
-                    />
+                    <div className="flex justify-between">
+                      <span>Time Remaining:</span>
+                      <span className="font-mono">{formatTime(timeLeft)}</span>
+                    </div>
+                    <Progress value={(60 - timeLeft) / 60 * 100} className="h-2" />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Manipulation Type</Label>
-                    <Select value={manipulationType} onValueChange={setManipulationType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="winner-control">Specific Winner</SelectItem>
-                        <SelectItem value="ticket-control">Winning Ticket</SelectItem>
-                        <SelectItem value="tier-control">Tier Control</SelectItem>
-                        <SelectItem value="timing-control">Timing Control</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total Pot</p>
+                      <p className="text-xl font-bold text-green-600">₹{currentRound.total_amount}</p>
+                    </div>
+                    <div className="text-center p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Players</p>
+                      <p className="text-xl font-bold text-blue-600">{currentRound.total_players}</p>
+                    </div>
                   </div>
 
-                  {manipulationType === 'ticket-control' && (
+                  {/* Current Entries */}
+                  {currentRound.entries && currentRound.entries.length > 0 && (
                     <div className="space-y-2">
-                      <Label>Winning Ticket Number</Label>
-                      <Input
-                        type="number"
-                        placeholder="Enter ticket number"
-                        value={winningTicket || ''}
-                        onChange={(e) => setWinningTicket(parseInt(e.target.value))}
-                      />
+                      <h4 className="font-medium">Current Entries:</h4>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {currentRound.entries.map((entry: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                            <span className="text-sm">{entry.user_name}</span>
+                            <div className="text-right">
+                              <span className="text-sm font-medium">₹{entry.amount}</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({(entry.win_probability * 100).toFixed(1)}%)
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-
-                  <div className="flex gap-2">
-                    <Button variant="destructive" className="flex-1" onClick={handleForceWinner}>
-                      <Target className="mr-2 h-4 w-4" />
-                      Force Winner
-                    </Button>
-                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No active round</p>
+                  <p className="text-sm text-muted-foreground">New round will start when players join</p>
                 </div>
               )}
-
-              <div className="grid grid-cols-3 gap-4">
-                <Button 
-                  onClick={() => toggleGameStatus('jackpot')} 
-                  variant={isGamePaused('jackpot') ? 'default' : 'destructive'}
-                >
-                  {isGamePaused('jackpot') ? 'Resume Game' : 'Pause Game'}
-                </Button>
-                <Button onClick={() => toast({ title: "New jackpot created" })}>
-                  <Gift className="mr-2 h-4 w-4" />
-                  Create Jackpot
-                </Button>
-                <Button variant="outline" onClick={() => toast({ title: "All jackpots paused" })}>
-                  <Timer className="mr-2 h-4 w-4" />
-                  Pause All
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="jackpots" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {activeJackpots.map((jackpot) => (
-              <Card key={jackpot.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{jackpot.tier} Jackpot</span>
-                    <Badge className="bg-gaming-gold">Live</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center p-4 bg-gradient-to-r from-gaming-gold/10 to-gaming-gold/20 rounded-lg">
-                    <p className="text-3xl font-bold text-gaming-gold">₹{jackpot.pool.toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Current Pool</p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 text-sm text-center">
-                    <div>
-                      <p className="font-bold">{jackpot.tickets}</p>
-                      <p className="text-muted-foreground">Tickets</p>
-                    </div>
-                    <div>
-                      <p className="font-bold">{jackpot.players}</p>
-                      <p className="text-muted-foreground">Players</p>
-                    </div>
-                    <div>
-                      <p className="font-bold">{jackpot.endTime}</p>
-                      <p className="text-muted-foreground">Time Left</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleJackpotAction('Draw Winner', jackpot.id)}
-                    >
-                      <Trophy className="mr-2 h-4 w-4" />
-                      Draw Winner
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleJackpotAction('Extend Time', jackpot.id)}
-                    >
-                      Extend
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleJackpotAction('Cancel', jackpot.id)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="winners" className="space-y-4">
+        <TabsContent value="controls" className="space-y-6">
+          {/* Game Controls */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                Recent Winners
+                <Settings className="h-5 w-5" />
+                Game Controls
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Basic Controls */}
               <div className="space-y-4">
-                {recentWinners.map((winner, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{winner.game}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Winner: {winner.winner} • {winner.tickets} tickets
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-gaming-gold">₹{winner.amount.toLocaleString()}</p>
-                      <Button size="sm" variant="outline">View Details</Button>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="game-enabled">Enable Jackpot Game</Label>
+                    <p className="text-sm text-muted-foreground">Allow players to join jackpot rounds</p>
                   </div>
-                ))}
+                  <Switch
+                    id="game-enabled"
+                    checked={gameStatus?.is_enabled || false}
+                    onCheckedChange={handleToggleGame}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
+                    <p className="text-sm text-muted-foreground">Temporarily disable new rounds</p>
+                  </div>
+                  <Switch
+                    id="maintenance-mode"
+                    checked={gameStatus?.maintenance_mode || false}
+                    onCheckedChange={(checked) => handleToggleGame(!checked)}
+                  />
+                </div>
+              </div>
+
+              {/* Manual Controls */}
+              <div className="border-t pt-4 space-y-4">
+                <h4 className="font-medium">Manual Round Management</h4>
+                
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleForceComplete}
+                    disabled={!currentRound?.active}
+                    className="flex-1"
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Force Complete Round
+                  </Button>
+                </div>
+
+                <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                  <strong>Note:</strong> Manual controls should only be used in emergency situations. 
+                  The system automatically manages rounds.
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <TabsContent value="rounds" className="space-y-6">
+          {/* Round History */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Rounds</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {history && history.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Round ID</TableHead>
+                      <TableHead>Winner</TableHead>
+                      <TableHead>Prize Amount</TableHead>
+                      <TableHead>Players</TableHead>
+                      <TableHead>Completed</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {history.slice(0, 10).map((round: any) => (
+                      <TableRow key={round.id}>
+                        <TableCell className="font-mono text-sm">
+                          {round.id.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell>
+                          {round.winner_name || 'Anonymous'}
+                        </TableCell>
+                        <TableCell className="font-medium text-green-600">
+                          ₹{round.winner_amount}
+                        </TableCell>
+                        <TableCell>{round.total_players}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(round.updated_at).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-6">
+                  <RotateCcw className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No completed rounds yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          {/* Analytics */}
+          <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Revenue
+                  Revenue Analytics
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Today's Sales</span>
-                    <span className="font-bold text-gaming-success">₹8,45,670</span>
+                    <span className="text-sm">Total Revenue (5% commission)</span>
+                    <span className="font-medium">
+                      ₹{history?.reduce((sum: number, round: any) => sum + (round.commission_amount || 0), 0) || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total Payouts</span>
-                    <span className="font-bold text-gaming-gold">₹7,65,430</span>
+                    <span className="text-sm">Total Prizes Paid</span>
+                    <span className="font-medium">
+                      ₹{history?.reduce((sum: number, round: any) => sum + (round.winner_amount || 0), 0) || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>House Profit</span>
-                    <span className="font-bold">₹80,240</span>
+                    <span className="text-sm">Average Round Size</span>
+                    <span className="font-medium">
+                      ₹{history?.length ? Math.round(history.reduce((sum: number, round: any) => sum + round.total_amount, 0) / history.length) : 0}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -292,46 +363,23 @@ export const JackpotGameControl = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Player Stats
-                </CardTitle>
+                <CardTitle>Player Statistics</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Active Players</span>
-                    <span className="font-bold">2,171</span>
+                    <span className="text-sm">Total Rounds Played</span>
+                    <span className="font-medium">{history?.length || 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Avg Tickets/Player</span>
-                    <span className="font-bold">5.7</span>
+                    <span className="text-sm">Average Players per Round</span>
+                    <span className="font-medium">
+                      {history?.length ? Math.round(history.reduce((sum: number, round: any) => sum + round.total_players, 0) / history.length) : 0}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Win Rate</span>
-                    <span className="font-bold">0.046%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Total Draws Today</span>
-                    <span className="font-bold">47</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Avg Pool Size</span>
-                    <span className="font-bold">₹6,65,425</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>House Edge</span>
-                    <span className="font-bold">10%</span>
+                    <span className="text-sm">Current Active Players</span>
+                    <span className="font-medium">{currentRound?.total_players || 0}</span>
                   </div>
                 </div>
               </CardContent>
