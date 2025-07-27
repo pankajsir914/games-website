@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { useColorPrediction } from '@/hooks/useColorPrediction';
 import { useColorPredictionAdmin } from '@/hooks/useColorPredictionAdmin';
 import { useGameManagement } from '@/hooks/useGameManagement';
+import { useColorPredictionSettings } from '@/hooks/useColorPredictionSettings';
 
 export const ColorPredictionGameControl = () => {
   const [cheatMode, setCheatMode] = useState(false);
@@ -20,6 +21,7 @@ export const ColorPredictionGameControl = () => {
   const { currentRound, recentRounds, timeLeft } = useColorPrediction();
   const { forceResult, createRound, isForcing, isCreating } = useColorPredictionAdmin();
   const { toggleGameStatus, isGamePaused } = useGameManagement();
+  const { updateCheatMode, forceProcessExpiredRounds, isUpdatingCheatMode, isProcessingRounds } = useColorPredictionSettings();
 
   const colors = [
     { name: 'Red', value: 'red', color: 'bg-red-500' },
@@ -28,12 +30,9 @@ export const ColorPredictionGameControl = () => {
   ];
 
   const toggleCheatMode = () => {
-    setCheatMode(!cheatMode);
-    toast({
-      title: cheatMode ? "Cheat Mode Disabled" : "Cheat Mode Enabled",
-      description: cheatMode ? "Color prediction will run normally" : "Color manipulation is now active",
-      variant: cheatMode ? "default" : "destructive"
-    });
+    const newCheatMode = !cheatMode;
+    setCheatMode(newCheatMode);
+    updateCheatMode({ enabled: newCheatMode });
   };
 
   const handleForceColor = (color: string) => {
@@ -105,10 +104,22 @@ export const ColorPredictionGameControl = () => {
                   variant={isGamePaused('color_prediction') ? 'default' : 'destructive'}
                   size="sm"
                 >
-                  {isGamePaused('color_prediction') ? 'Resume' : 'Pause'}
+                  {isGamePaused('color_prediction') ? 'Resume Game' : 'Pause Game'}
                 </Button>
-                <Button onClick={handleCreateRound} disabled={isCreating || !!currentRound} size="sm">
+                <Button 
+                  onClick={handleCreateRound} 
+                  disabled={isCreating || (!!currentRound && currentRound.status === 'betting' && timeLeft > 0)} 
+                  size="sm"
+                >
                   {isCreating ? 'Creating...' : 'Create New Round'}
+                </Button>
+                <Button 
+                  onClick={() => forceProcessExpiredRounds()} 
+                  disabled={isProcessingRounds} 
+                  size="sm"
+                  variant="outline"
+                >
+                  {isProcessingRounds ? 'Processing...' : 'Process Expired Rounds'}
                 </Button>
               </div>
             </div>
@@ -155,8 +166,11 @@ export const ColorPredictionGameControl = () => {
               id="color-cheat"
               checked={cheatMode}
               onCheckedChange={toggleCheatMode}
+              disabled={isUpdatingCheatMode}
             />
-            <Label htmlFor="color-cheat">Enable Color Manipulation</Label>
+            <Label htmlFor="color-cheat">
+              {isUpdatingCheatMode ? 'Updating...' : 'Enable Color Manipulation'}
+            </Label>
           </div>
         </CardContent>
       </Card>

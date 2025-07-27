@@ -52,22 +52,12 @@ export const useColorPredictionAdmin = () => {
 
   const createRound = useMutation({
     mutationFn: async () => {
-      const response = await fetch(
-        `https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/color-prediction-manager?action=create_round`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('color-prediction-manager', {
+        body: { action: 'create_round' }
+      });
 
-      if (!response.ok) {
-        throw new Error('Failed to create round');
-      }
-
-      return response.json();
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['color-prediction-current-round'] });

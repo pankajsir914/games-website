@@ -138,6 +138,10 @@ export const useColorPrediction = () => {
         setTimeLeft(Math.ceil(difference / 1000));
       } else {
         setTimeLeft(0);
+        // If round is expired and still in betting state, invalidate queries to fetch fresh data
+        if (currentRound.status === 'betting') {
+          queryClient.invalidateQueries({ queryKey: ['color-prediction-current-round'] });
+        }
       }
     };
 
@@ -145,7 +149,7 @@ export const useColorPrediction = () => {
     const interval = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(interval);
-  }, [currentRound]);
+  }, [currentRound, queryClient]);
 
   // Set up realtime subscriptions
   useEffect(() => {
