@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import Navigation from '@/components/Navigation';
 import { Crown, Clock, Users, Coins, Trophy, DollarSign, Timer, Wallet } from 'lucide-react';
 import { useJackpotRounds } from '@/hooks/useJackpotRounds';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Jackpot = () => {
   const { user } = useAuth();
@@ -26,6 +28,55 @@ const Jackpot = () => {
     testDeposit,
     isDepositing,
   } = useJackpotRounds();
+
+  // Real-time notifications for round completion
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('jackpot-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'jackpot_rounds',
+        filter: 'status=eq.completed'
+      }, (payload) => {
+        const round = payload.new;
+        if (round.winner_id === user.id) {
+          toast.success(`🎉 You won ₹${round.winner_amount}!`, {
+            duration: 10000,
+          });
+        } else {
+          toast.info(`Round completed! Winner received ₹${round.winner_amount}`);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Auto-refresh wallet balance
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('wallet-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'wallets',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        // Wallet balance updated - useJackpotRounds will refetch automatically
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   if (!user) {
     return (
