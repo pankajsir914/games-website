@@ -9,18 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, TrendingUp, TrendingDown, Zap, Target, Timer } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useGameSettings } from '@/hooks/useGameSettings';
 import { useGameManagement } from '@/hooks/useGameManagement';
+import { useAviator } from '@/hooks/useAviator';
 import { supabase } from '@/integrations/supabase/client';
 
 export const AviatorGameControl = () => {
   const { data: gameSettings, updateGameSetting } = useGameSettings();
-  const { toggleGameStatus, isGamePaused } = useGameManagement();
+  const { gameSettings: managementSettings, toggleGameStatus } = useGameManagement();
+  const { currentRound, recentRounds, userBet } = useAviator();
   const [cheatMode, setCheatMode] = useState(false);
   const [forcedMultiplier, setForcedMultiplier] = useState<number | null>(null);
   const [crashPattern, setCrashPattern] = useState('random');
   const [targetUser, setTargetUser] = useState('');
+  
+  const aviatorGameStatus = managementSettings?.find(g => g.game_type === 'aviator');
+  const isGamePaused = aviatorGameStatus?.is_paused || false;
 
   React.useEffect(() => {
     const aviatorSettings = gameSettings?.find(g => g.game_type === 'aviator');
@@ -45,11 +50,7 @@ export const AviatorGameControl = () => {
       }
     });
 
-    toast({
-      title: newCheatMode ? "Cheat Mode Enabled" : "Cheat Mode Disabled",
-      description: newCheatMode ? "Aviator manipulation is now active" : "Game will run normally",
-      variant: newCheatMode ? "destructive" : "default"
-    });
+    toast.success(newCheatMode ? "Cheat Mode Enabled" : "Cheat Mode Disabled");
   };
 
   const handleForceMultiplier = async () => {
@@ -65,51 +66,108 @@ export const AviatorGameControl = () => {
         }
       });
 
-      toast({
-        title: "Multiplier Set",
-        description: `Next round will crash at ${forcedMultiplier}x`,
-        variant: "default"
-      });
+      toast.success(`Next round will crash at ${forcedMultiplier}x`);
     }
   };
 
   const createInstantRound = async () => {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const response = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/aviator-game-manager?action=create_round', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session?.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
+      const { data, error } = await supabase.functions.invoke('aviator-game-manager', {
+        body: { action: 'create_round' }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('New Aviator round created');
+    } catch (error: any) {
+      console.error('Error creating round:', error);
+      toast.error('Failed to create round');
+    }
+  };
+
+  const forceCompleteRound = async () => {
+    if (!currentRound?.id) {
+      toast.error('No active round to complete');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('aviator-game-manager', {
+        body: { 
+          action: 'complete_round',
+          roundId: currentRound.id 
         }
       });
       
-      if (!response.ok) throw new Error('Failed to create round');
+      if (error) throw error;
       
-      toast({
-        title: "Round Created",
-        description: "New Aviator round has been created",
-      });
+      toast.success(`Round completed at ${data.crash_multiplier}x`);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      console.error('Error completing round:', error);
+      toast.error('Failed to complete round');
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Current Round Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plane className="h-5 w-5" />
+            Current Round Status
+            <Badge variant={isGamePaused ? 'destructive' : 'default'}>
+              {isGamePaused ? 'PAUSED' : 'ACTIVE'}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {currentRound ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Round</p>
+                  <p className="text-xl font-bold">#{currentRound.round_number}</p>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="text-xl font-bold capitalize">{currentRound.status}</p>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Crash Multiplier</p>
+                  <p className="text-xl font-bold">{currentRound.crash_multiplier.toFixed(2)}x</p>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Your Bet</p>
+                  <p className="text-xl font-bold">{userBet ? `₹${userBet.bet_amount}` : 'None'}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={forceCompleteRound}>
+                  Force Complete Round
+                </Button>
+                <Button variant="outline" onClick={createInstantRound}>
+                  Create New Round
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-muted-foreground">No active round</p>
+              <Button onClick={createInstantRound} className="mt-2">
+                Create New Round
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Game Status and Control */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plane className="h-5 w-5" />
             Aviator Game Control
-            <Badge variant={isGamePaused('aviator') ? 'destructive' : 'default'}>
-              {isGamePaused('aviator') ? 'PAUSED' : 'ACTIVE'}
-            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -125,9 +183,9 @@ export const AviatorGameControl = () => {
             </div>
             <Button 
               onClick={() => toggleGameStatus('aviator')} 
-              variant={isGamePaused('aviator') ? 'default' : 'destructive'}
+              variant={isGamePaused ? 'default' : 'destructive'}
             >
-              {isGamePaused('aviator') ? 'Resume Game' : 'Pause Game'}
+              {isGamePaused ? 'Resume Game' : 'Pause Game'}
             </Button>
           </div>
         </CardContent>
