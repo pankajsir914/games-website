@@ -20,7 +20,7 @@ export const ColorPredictionGameControl = () => {
   
   const { currentRound, recentRounds, timeLeft } = useColorPrediction();
   const { forceResult, createRound, isForcing, isCreating } = useColorPredictionAdmin();
-  const { toggleGameStatus, isGamePaused } = useGameManagement();
+  const { toggleGameStatus, isGamePaused, gameSettings } = useGameManagement();
   const { updateCheatMode, forceProcessExpiredRounds, isUpdatingCheatMode, isProcessingRounds } = useColorPredictionSettings();
 
   const colors = [
@@ -100,7 +100,11 @@ export const ColorPredictionGameControl = () => {
               <Label>Actions</Label>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => toggleGameStatus('color_prediction')} 
+                  onClick={() => {
+                    console.log('Pause button clicked, current paused state:', isGamePaused('color_prediction'));
+                    console.log('Game settings:', gameSettings);
+                    toggleGameStatus('color_prediction');
+                  }} 
                   variant={isGamePaused('color_prediction') ? 'default' : 'destructive'}
                   size="sm"
                 >
