@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,17 +11,21 @@ import { Palette, Target, Zap, BarChart3, Clock, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useColorPrediction } from '@/hooks/useColorPrediction';
 import { useColorPredictionAdmin } from '@/hooks/useColorPredictionAdmin';
-import { useGameManagement } from '@/hooks/useGameManagement';
+import { useGameSettings } from '@/hooks/useGameSettings';
 import { useColorPredictionSettings } from '@/hooks/useColorPredictionSettings';
 
 export const ColorPredictionGameControl = () => {
-  const [cheatMode, setCheatMode] = useState(false);
   const [forcedColor, setForcedColor] = useState<string | null>(null);
   
   const { currentRound, recentRounds, timeLeft } = useColorPrediction();
   const { forceResult, createRound, isForcing, isCreating } = useColorPredictionAdmin();
-  const { toggleGameStatus, isGamePaused, gameSettings } = useGameManagement();
+  const { data: gameSettings, updateGameSetting, isUpdating } = useGameSettings();
   const { updateCheatMode, forceProcessExpiredRounds, isUpdatingCheatMode, isProcessingRounds } = useColorPredictionSettings();
+
+  // Get current game settings for color prediction
+  const colorPredictionSettings = gameSettings?.find(g => g.game_type === 'color_prediction');
+  const isPaused = colorPredictionSettings?.is_paused || false;
+  const cheatMode = colorPredictionSettings?.settings?.cheat_mode || false;
 
   const colors = [
     { name: 'Red', value: 'red', color: 'bg-red-500' },
@@ -29,9 +33,33 @@ export const ColorPredictionGameControl = () => {
     { name: 'Violet', value: 'violet', color: 'bg-purple-500' },
   ];
 
-  const toggleCheatMode = () => {
+  const handleTogglePause = async () => {
+    if (!colorPredictionSettings) {
+      toast({
+        title: "Error",
+        description: "Game settings not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    updateGameSetting({
+      gameType: 'color_prediction',
+      updates: { is_paused: !isPaused }
+    });
+  };
+
+  const handleToggleCheatMode = async () => {
+    if (!colorPredictionSettings) {
+      toast({
+        title: "Error",
+        description: "Game settings not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const newCheatMode = !cheatMode;
-    setCheatMode(newCheatMode);
     updateCheatMode({ enabled: newCheatMode });
   };
 
@@ -45,16 +73,75 @@ export const ColorPredictionGameControl = () => {
       return;
     }
 
+    if (currentRound.status !== 'betting') {
+      toast({
+        title: "Round Not Active",
+        description: "Can only force colors during betting phase",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setForcedColor(color);
     forceResult({ roundId: currentRound.id, color: color as 'red' | 'green' | 'violet' });
   };
 
   const handleCreateRound = () => {
+    if (isPaused) {
+      toast({
+        title: "Game Paused",
+        description: "Cannot create new round while game is paused",
+        variant: "destructive"
+      });
+      return;
+    }
     createRound();
+  };
+
+  const handleProcessExpiredRounds = () => {
+    forceProcessExpiredRounds();
   };
 
   return (
     <div className="space-y-6">
+      {/* Game Status Card */}
+      <Card className={isPaused ? "border-red-500" : ""}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Game Status
+            {isPaused && <Badge variant="destructive">PAUSED</Badge>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="space-y-1">
+                <Label>Game Status</Label>
+                <Badge variant={isPaused ? 'destructive' : 'default'}>
+                  {isPaused ? 'PAUSED' : 'ACTIVE'}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <Label>Cheat Mode</Label>
+                <Badge variant={cheatMode ? 'destructive' : 'secondary'}>
+                  {cheatMode ? 'ENABLED' : 'DISABLED'}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleTogglePause}
+                disabled={isUpdating}
+                variant={isPaused ? 'default' : 'destructive'}
+              >
+                {isUpdating ? 'Updating...' : (isPaused ? 'Resume Game' : 'Pause Game')}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Current Round Status */}
       <Card>
         <CardHeader>
@@ -91,35 +178,18 @@ export const ColorPredictionGameControl = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Game Status</Label>
-              <Badge variant={isGamePaused('color_prediction') ? 'destructive' : 'default'}>
-                {isGamePaused('color_prediction') ? 'PAUSED' : 'ACTIVE'}
-              </Badge>
-            </div>
-            <div className="space-y-2">
               <Label>Actions</Label>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => {
-                    console.log('Pause button clicked, current paused state:', isGamePaused('color_prediction'));
-                    console.log('Game settings:', gameSettings);
-                    toggleGameStatus('color_prediction');
-                  }} 
-                  variant={isGamePaused('color_prediction') ? 'default' : 'destructive'}
-                  size="sm"
-                >
-                  {isGamePaused('color_prediction') ? 'Resume Game' : 'Pause Game'}
-                </Button>
-                <Button 
                   onClick={handleCreateRound} 
-                  disabled={isCreating || (!!currentRound && currentRound.status === 'betting' && timeLeft > 0)} 
+                  disabled={isCreating || isPaused || (!!currentRound && currentRound.status === 'betting' && timeLeft > 0)} 
                   size="sm"
                 >
                   {isCreating ? 'Creating...' : 'Create New Round'}
                 </Button>
                 <Button 
-                  onClick={() => forceProcessExpiredRounds()} 
-                  disabled={isProcessingRounds} 
+                  onClick={handleProcessExpiredRounds} 
+                  disabled={isProcessingRounds || isPaused} 
                   size="sm"
                   variant="outline"
                 >
@@ -169,8 +239,8 @@ export const ColorPredictionGameControl = () => {
             <Switch
               id="color-cheat"
               checked={cheatMode}
-              onCheckedChange={toggleCheatMode}
-              disabled={isUpdatingCheatMode}
+              onCheckedChange={handleToggleCheatMode}
+              disabled={isUpdatingCheatMode || isPaused}
             />
             <Label htmlFor="color-cheat">
               {isUpdatingCheatMode ? 'Updating...' : 'Enable Color Manipulation'}
@@ -179,174 +249,43 @@ export const ColorPredictionGameControl = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="colors" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="colors">Color Control</TabsTrigger>
-          <TabsTrigger value="patterns">Pattern Control</TabsTrigger>
-          <TabsTrigger value="outcomes">Outcome Control</TabsTrigger>
-        </TabsList>
+      {/* Color Control */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Force Next Color Result</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              {colors.map((color) => (
+                <Button
+                  key={color.value}
+                  variant={forcedColor === color.value ? "default" : "outline"}
+                  onClick={() => handleForceColor(color.value)}
+                  disabled={!cheatMode || !currentRound || isForcing || isPaused || currentRound.status !== 'betting'}
+                  className="h-20 flex flex-col items-center gap-2"
+                >
+                  <div className={`w-8 h-8 rounded-full ${color.color}`} />
+                  <span className="text-sm">{color.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {color.value === 'violet' ? '4.5x' : '2x'}
+                  </span>
+                </Button>
+              ))}
+            </div>
 
-        <TabsContent value="colors" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Force Next Color Result</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  {colors.map((color) => (
-                    <Button
-                      key={color.value}
-                      variant={forcedColor === color.value ? "default" : "outline"}
-                      onClick={() => handleForceColor(color.value)}
-                      disabled={!cheatMode || !currentRound || isForcing}
-                      className="h-20 flex flex-col items-center gap-2"
-                    >
-                      <div className={`w-8 h-8 rounded-full ${color.color}`} />
-                      <span className="text-sm">{color.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {color.value === 'violet' ? '4.5x' : '2x'}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setForcedColor(null)}
-                    disabled={!cheatMode}
-                  >
-                    Reset Color Control
-                  </Button>
-                  <Button 
-                    variant="destructive"
-                    disabled={!cheatMode || !currentRound}
-                  >
-                    Opposite Popular Choice
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="patterns" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pattern Manipulation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label>Manipulation Pattern</Label>
-                  <Select disabled={!cheatMode}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select manipulation pattern" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Pattern (Random)</SelectItem>
-                      <SelectItem value="red-streak">Red Streak</SelectItem>
-                      <SelectItem value="green-streak">Green Streak</SelectItem>
-                      <SelectItem value="violet-streak">Violet Streak</SelectItem>
-                      <SelectItem value="alternating">Alternating Colors</SelectItem>
-                      <SelectItem value="avoid-popular">Avoid Most Popular Color</SelectItem>
-                      <SelectItem value="favor-unpopular">Favor Least Popular Color</SelectItem>
-                      <SelectItem value="house-edge">Maximum House Edge</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" disabled={!cheatMode}>
-                    Start Pattern (10 rounds)
-                  </Button>
-                  <Button variant="outline" disabled={!cheatMode}>
-                    Stop Current Pattern
-                  </Button>
-                </div>
-
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-semibold mb-2">Pattern Preview</h4>
-                  <div className="flex gap-1">
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <div key={i} className="w-6 h-6 bg-gray-300 rounded border" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Preview of next 10 results based on selected pattern
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="outcomes" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Outcome Manipulation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Win Rate Control</Label>
-                    <div className="grid grid-cols-1 gap-1 mt-2">
-                      <Button variant="outline" size="sm" disabled={!cheatMode}>
-                        High Win Rate (70%+)
-                      </Button>
-                      <Button variant="outline" size="sm" disabled={!cheatMode}>
-                        Normal Win Rate (50%)
-                      </Button>
-                      <Button variant="destructive" size="sm" disabled={!cheatMode}>
-                        Low Win Rate (30%-)
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>Betting Manipulation</Label>
-                    <div className="grid grid-cols-1 gap-1 mt-2">
-                      <Button variant="outline" size="sm" disabled={!cheatMode}>
-                        Favor Small Bets
-                      </Button>
-                      <Button variant="outline" size="sm" disabled={!cheatMode}>
-                        Favor Large Bets
-                      </Button>
-                      <Button variant="destructive" size="sm" disabled={!cheatMode}>
-                        Target Large Bets
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Special Modes</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button variant="outline" disabled={!cheatMode}>
-                      <Target className="mr-2 h-4 w-4" />
-                      Target Specific User
-                    </Button>
-                    <Button variant="outline" disabled={!cheatMode}>
-                      Balanced Mode (Fair Play)
-                    </Button>
-                    <Button variant="destructive" disabled={!cheatMode}>
-                      Maximum Profit Mode
-                    </Button>
-                    <Button variant="outline" disabled={!cheatMode}>
-                      Engagement Mode (Keep Playing)
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setForcedColor(null)}
+                disabled={!cheatMode || isPaused}
+              >
+                Reset Color Control
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
