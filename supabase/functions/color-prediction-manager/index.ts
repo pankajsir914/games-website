@@ -73,7 +73,7 @@ serve(async (req) => {
         .select('round_number')
         .order('round_number', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
       const now = new Date();
@@ -121,7 +121,7 @@ serve(async (req) => {
         .select('*')
         .eq('id', roundId)
         .eq('status', 'betting')
-        .single();
+        .maybeSingle();
 
       if (roundError || !round) {
         throw new Error('Round not found or already processed');
@@ -176,7 +176,7 @@ serve(async (req) => {
         .from('color_prediction_rounds')
         .select('*')
         .eq('status', 'betting')
-        .lt('bet_end_time', new Date().toISOString());
+        .or(`bet_end_time.lt.${new Date().toISOString()},bet_end_time.lt.${new Date(Date.now() - 120000).toISOString()}`);
 
       if (expiredError) {
         console.error('Error fetching expired rounds:', expiredError);
@@ -190,7 +190,28 @@ serve(async (req) => {
         try {
           console.log(`Processing expired round ${round.id}`);
           
-          // Check if this is cheat mode (check game settings)
+          // If this is a stuck round (been in betting/drawing state for too long)
+          const roundAge = Date.now() - new Date(round.bet_end_time).getTime();
+          
+          // Force completion for stuck rounds (over 5 minutes old)
+          if (roundAge > 300000) {
+            console.log(`Force completing stuck round ${round.id} (${Math.floor(roundAge / 1000)}s old)`);
+            const { error: updateError } = await supabaseClient
+              .from('color_prediction_rounds')
+              .update({
+                status: 'completed',
+                winning_color: 'green', // Default to green for stuck rounds
+                draw_time: new Date().toISOString()
+              })
+              .eq('id', round.id);
+              
+            if (updateError) {
+              console.error(`Error force completing round ${round.id}:`, updateError);
+              continue;
+            }
+          }
+          
+          // Process normally if not stuck
           const { data: gameSettings } = await supabaseClient
             .from('game_settings')
             .select('settings')
@@ -264,7 +285,7 @@ serve(async (req) => {
           .select('round_number')
           .order('round_number', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
         const now = new Date();

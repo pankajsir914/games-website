@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,12 +20,15 @@ export const useColorPrediction = () => {
         .in('status', ['betting', 'drawing'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Error fetching current round:', error);
+        return null;
+      }
       return data as ColorPredictionRound | null;
     },
-    refetchInterval: 1000, // Refetch every second
+    refetchInterval: 2000, // Reduced frequency
   });
 
   // Fetch recent rounds for history
@@ -56,9 +58,12 @@ export const useColorPrediction = () => {
         .select('*')
         .eq('round_id', currentRound.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Error fetching user bet:', error);
+        return null;
+      }
       return data as ColorPredictionBet | null;
     },
     enabled: !!user?.id && !!currentRound?.id,
@@ -150,6 +155,50 @@ export const useColorPrediction = () => {
 
     return () => clearInterval(interval);
   }, [currentRound, queryClient]);
+
+  // Auto-check for expired rounds
+  useEffect(() => {
+    const checkExpiredRounds = () => {
+      if (currentRound?.status === 'betting') {
+        const betEndTime = new Date(currentRound.bet_end_time).getTime();
+        const now = Date.now();
+
+        // If betting time has expired but status is still betting
+        if (now > betEndTime + 60000) { // 1 minute grace period
+          queryClient.invalidateQueries({ queryKey: ['color-prediction-current-round'] });
+        }
+      }
+    };
+
+    checkExpiredRounds();
+    const interval = setInterval(checkExpiredRounds, 15000);
+
+    return () => clearInterval(interval);
+  }, [currentRound, queryClient]);
+
+  // Auto-manage rounds - call edge function periodically
+  useEffect(() => {
+    const autoManage = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/color-prediction-manager?action=auto_manage', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session?.session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
+          }
+        });
+      } catch (error) {
+        console.error('Auto-manage error:', error);
+      }
+    };
+
+    // Run immediately and then every 10 seconds
+    autoManage();
+    const interval = setInterval(autoManage, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Set up realtime subscriptions
   useEffect(() => {
