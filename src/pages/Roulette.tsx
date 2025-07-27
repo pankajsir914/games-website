@@ -36,7 +36,7 @@ const Roulette = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="container mx-auto px-4 pt-24">
           <div className="text-center text-white">
@@ -61,7 +61,7 @@ const Roulette = () => {
   const isSpinning = currentRound?.status === 'spinning';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 pt-24 pb-8">
         {/* Game Paused Alert */}

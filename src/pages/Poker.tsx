@@ -77,7 +77,7 @@ const Poker = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="container mx-auto px-4 py-8 text-center">
           <h1 className="text-4xl font-bold text-white mb-4">Texas Hold'em Poker</h1>
@@ -88,7 +88,7 @@ const Poker = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       <div className="container mx-auto px-4 py-8">

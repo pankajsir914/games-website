@@ -80,7 +80,7 @@ const Jackpot = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex items-center justify-center p-4 pt-20">
           <Card className="w-full max-w-md">
@@ -120,7 +120,7 @@ const Jackpot = () => {
                  walletBalance?.current_balance >= parseFloat(betAmount);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       <div className="max-w-6xl mx-auto px-4 py-6 pt-20">
