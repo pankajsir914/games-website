@@ -23,15 +23,16 @@ export const useAndarBahar = () => {
         .in('status', ['betting', 'dealing'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error('Error fetching current round:', error);
+        return null; // Return null instead of throwing to prevent UI breaks
       }
 
       return data as unknown as AndarBaharRound;
     },
-    refetchInterval: 1000,
+    refetchInterval: 2000, // Reduced frequency
   });
 
   // Fetch user's current bet
@@ -45,10 +46,11 @@ export const useAndarBahar = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('round_id', currentRound.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error('Error fetching user bet:', error);
+        return null; // Return null instead of throwing to prevent UI breaks
       }
 
       return data as unknown as AndarBaharBet;
@@ -165,9 +167,9 @@ export const useAndarBahar = () => {
       }
     };
 
-    // Run immediately and then every 10 seconds
+    // Run immediately and then every 15 seconds (reduced frequency)
     manageRounds();
-    const interval = setInterval(manageRounds, 10000);
+    const interval = setInterval(manageRounds, 15000);
 
     return () => clearInterval(interval);
   }, []);

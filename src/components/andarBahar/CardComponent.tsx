@@ -37,9 +37,9 @@ export const CardComponent = ({ card, isJoker = false, size = 'medium', classNam
 
   return (
     <div className={`
-      bg-white border-2 rounded-lg flex flex-col items-center justify-center relative
-      ${isJoker ? 'border-yellow-400 ring-2 ring-yellow-400 ring-opacity-50' : 'border-gray-300'}
-      ${size === 'small' ? 'w-12 h-16 text-xs' : size === 'large' ? 'w-20 h-28 text-lg' : 'w-16 h-22 text-sm'}
+      bg-white border-2 rounded-lg flex flex-col items-center justify-center relative shadow-sm
+      ${isJoker ? 'border-yellow-400 ring-2 ring-yellow-400 ring-opacity-50 bg-yellow-50' : 'border-gray-300'}
+      ${size === 'small' ? 'w-12 h-16 text-xs' : size === 'large' ? 'w-20 h-28 text-lg' : 'w-16 h-20 text-sm'}
       ${className}
     `}>
       {isJoker && (

@@ -82,12 +82,12 @@ serve(async (req) => {
       const jokerCard = deck[0]; // First card is joker
       
       // Get the last round number
-      const { data: lastRound } = await supabaseClient
-        .from('andar_bahar_rounds')
-        .select('round_number')
-        .order('round_number', { ascending: false })
-        .limit(1)
-        .single();
+        const { data: lastRound } = await supabaseClient
+          .from('andar_bahar_rounds')
+          .select('round_number')
+          .order('round_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
       
       const newRoundNumber = (lastRound?.round_number || 0) + 1;
       
@@ -117,10 +117,8 @@ serve(async (req) => {
       
       if (error) throw error;
       
-      // Schedule card dealing after betting period
-      setTimeout(() => {
-        dealCards(supabaseClient, newRound.id, jokerCard, deck.slice(1), settings);
-      }, bettingDuration * 1000);
+      // Round created, auto_manage will handle dealing when betting time ends
+      console.log(`Created new round ${newRound.id}, betting ends at ${newRound.bet_end_time}`);
       
       return new Response(JSON.stringify({ success: true, round: newRound }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -135,7 +133,7 @@ serve(async (req) => {
         .in('status', ['betting', 'dealing'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!activeRound) {
         // Create a new round if none exists
@@ -147,7 +145,7 @@ serve(async (req) => {
           .select('round_number')
           .order('round_number', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         
         const newRoundNumber = (lastRound?.round_number || 0) + 1;
         
@@ -174,9 +172,8 @@ serve(async (req) => {
           .single();
         
         if (newRound) {
-          setTimeout(() => {
-            dealCards(supabaseClient, newRound.id, jokerCard, deck.slice(1), settings);
-          }, bettingDuration * 1000);
+          // Don't use setTimeout in serverless environment, process immediately after betting period
+          console.log(`Created new round ${newRound.id}, betting ends at ${newRound.bet_end_time}`);
         }
       } else if (activeRound.status === 'betting' && new Date(activeRound.bet_end_time) <= new Date()) {
         // Start dealing if betting time has ended
@@ -188,7 +185,26 @@ serve(async (req) => {
           .single();
         
         const settings = gameSettings?.settings || {};
-        dealCards(supabaseClient, activeRound.id, activeRound.joker_card, deck, settings);
+        console.log(`Starting to deal cards for round ${activeRound.id}`);
+        await dealCards(supabaseClient, activeRound.id, activeRound.joker_card, deck, settings);
+      } else if (activeRound.status === 'dealing') {
+        // Check if round has been dealing for too long (over 2 minutes = stuck)
+        const dealingStartTime = new Date(activeRound.bet_end_time).getTime();
+        const now = Date.now();
+        const dealingDuration = now - dealingStartTime;
+        
+        if (dealingDuration > 120000) { // 2 minutes
+          console.log(`Round ${activeRound.id} stuck in dealing status, forcing completion`);
+          const deck = shuffleDeck(createDeck());
+          const { data: gameSettings } = await supabaseClient
+            .from('game_settings')
+            .select('settings')
+            .eq('game_type', 'andar_bahar')
+            .single();
+          
+          const settings = gameSettings?.settings || {};
+          await dealCards(supabaseClient, activeRound.id, activeRound.joker_card, deck, settings);
+        }
       }
 
       return new Response(JSON.stringify({ success: true, managed: true }), {
@@ -269,8 +285,16 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
           }
         }
         
-        // Add a small delay for visual effect
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Update round after each card in real games, skip delay in serverless
+        if (andarCards.length + baharCards.length <= 10) {
+          await supabaseClient
+            .from('andar_bahar_rounds')
+            .update({
+              andar_cards: andarCards,
+              bahar_cards: baharCards,
+            })
+            .eq('id', roundId);
+        }
       }
       
       // If we haven't found a winner yet, place the matching card on the forced side
@@ -305,8 +329,16 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
           }
         }
         
-        // Add a small delay for visual effect
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Update round after each card in real games
+        if (andarCards.length + baharCards.length <= 10) {
+          await supabaseClient
+            .from('andar_bahar_rounds')
+            .update({
+              andar_cards: andarCards,
+              bahar_cards: baharCards,
+            })
+            .eq('id', roundId);
+        }
       }
     }
 
@@ -334,5 +366,20 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
 
   } catch (error) {
     console.error('Error dealing cards:', error);
+    
+    // If there's an error, mark the round as completed anyway to prevent it from staying stuck
+    try {
+      await supabaseClient
+        .from('andar_bahar_rounds')
+        .update({
+          status: 'completed',
+          game_end_time: new Date().toISOString(),
+          winning_side: null,
+          winning_card: null
+        })
+        .eq('id', roundId);
+    } catch (updateError) {
+      console.error('Error updating failed round:', updateError);
+    }
   }
 }
