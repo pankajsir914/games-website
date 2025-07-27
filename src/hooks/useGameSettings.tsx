@@ -40,15 +40,6 @@ export const useGameSettings = () => {
         .single();
 
       if (error) throw error;
-
-      // Log admin activity
-      await supabase.rpc('log_admin_activity', {
-        p_action_type: 'game_setting_updated',
-        p_target_type: 'game',
-        p_target_id: data.id,
-        p_details: { gameType, updates }
-      });
-
       return data;
     },
     onSuccess: () => {
