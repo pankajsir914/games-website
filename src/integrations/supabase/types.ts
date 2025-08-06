@@ -1603,6 +1603,15 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_user: {
+        Args: {
+          p_email: string
+          p_password: string
+          p_full_name: string
+          p_phone?: string
+        }
+        Returns: Json
+      }
       buy_jackpot_tickets: {
         Args: { p_game_id: string; p_ticket_count: number }
         Returns: Json
