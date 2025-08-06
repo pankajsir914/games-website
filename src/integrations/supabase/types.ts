@@ -1611,6 +1611,10 @@ export type Database = {
         Args: { p_bet_id: string; p_current_multiplier: number }
         Returns: Json
       }
+      check_chat_rate_limit: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       cleanup_inactive_poker_players: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1638,14 +1642,21 @@ export type Database = {
         Returns: string
       }
       create_aviator_chat_message: {
-        Args: {
-          p_user_id: string
-          p_username: string
-          p_message: string
-          p_message_type?: string
-          p_multiplier?: number
-          p_amount?: number
-        }
+        Args:
+          | {
+              p_message: string
+              p_message_type?: string
+              p_multiplier?: number
+              p_amount?: number
+            }
+          | {
+              p_user_id: string
+              p_username: string
+              p_message: string
+              p_message_type?: string
+              p_multiplier?: number
+              p_amount?: number
+            }
         Returns: string
       }
       create_ludo_room: {

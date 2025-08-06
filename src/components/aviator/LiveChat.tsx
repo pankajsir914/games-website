@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
@@ -36,7 +37,24 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
   }, [messages]);
 
   const handleSendMessage = () => {
-    if (newMessage.trim() && user) {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to send messages",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newMessage.trim()) {
+      if (newMessage.trim().length > 200) {
+        toast({
+          title: "Message Too Long",
+          description: "Messages must be 200 characters or less",
+          variant: "destructive",
+        });
+        return;
+      }
       onSendMessage(newMessage.trim());
       setNewMessage('');
     }
@@ -156,7 +174,7 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
                 onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
                 className="bg-slate-800 border-slate-600 text-foreground text-xs"
-                maxLength={100}
+                maxLength={200}
               />
               <Button
                 onClick={handleSendMessage}

@@ -193,6 +193,11 @@ export const useAviatorSocket = () => {
 
             case 'error':
               console.error('WebSocket error:', message.data.message);
+              toast({
+                title: "Error",
+                description: message.data.message,
+                variant: "destructive",
+              });
               break;
 
             default:

@@ -2,9 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.52.0';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production' 
+    ? 'https://e51d25f7-ee3a-432f-bc18-de7d8fc551c7.lovableproject.com' 
+    : '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Rate limiting storage (in-memory for demo, use Redis in production)
+const rateLimitStore = new Map();
+const CONNECTION_LIMIT_PER_IP = 5;
+const MESSAGE_RATE_LIMIT = 10; // messages per minute
 
 interface GameMessage {
   type: string;
@@ -17,6 +24,9 @@ interface ConnectedClient {
   socket: WebSocket;
   userId?: string;
   username?: string;
+  ip?: string;
+  lastMessageTime?: number;
+  messageCount?: number;
 }
 
 // Store active connections
@@ -25,11 +35,27 @@ const clients = new Map<string, ConnectedClient>();
 serve(async (req) => {
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
+  
+  // Get client IP for rate limiting
+  const clientIP = headers.get("x-forwarded-for") || 
+                   headers.get("x-real-ip") || 
+                   "unknown";
 
   if (upgradeHeader.toLowerCase() !== "websocket") {
     return new Response("Expected WebSocket connection", { 
       status: 400,
       headers: corsHeaders 
+    });
+  }
+
+  // Check connection limit per IP
+  const currentConnections = Array.from(clients.values())
+    .filter(client => client.ip === clientIP).length;
+  
+  if (currentConnections >= CONNECTION_LIMIT_PER_IP) {
+    return new Response("Too many connections from this IP", {
+      status: 429,
+      headers: corsHeaders
     });
   }
 
@@ -43,13 +69,19 @@ serve(async (req) => {
   const clientId = crypto.randomUUID();
   
   socket.onopen = () => {
-    console.log(`Client ${clientId} connected`);
-    clients.set(clientId, { socket });
+    console.log(`Client ${clientId} connected from IP: ${clientIP}`);
+    clients.set(clientId, { 
+      socket, 
+      ip: clientIP,
+      lastMessageTime: Date.now(),
+      messageCount: 0
+    });
     
-    // Send welcome message
+    // Send welcome message with connection count
+    const connectedCount = clients.size;
     socket.send(JSON.stringify({
       type: 'connected',
-      data: { clientId }
+      data: { clientId, connectedUsers: connectedCount }
     }));
   };
 
@@ -162,22 +194,60 @@ serve(async (req) => {
   async function handleChatMessage(data: any, client: ConnectedClient) {
     if (!client.userId || !data.message?.trim()) return;
 
+    // Check rate limiting
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    
+    if (!client.lastMessageTime) client.lastMessageTime = now;
+    if (!client.messageCount) client.messageCount = 0;
+    
+    // Reset count if it's been more than a minute
+    if (client.lastMessageTime < oneMinuteAgo) {
+      client.messageCount = 0;
+    }
+    
+    if (client.messageCount >= MESSAGE_RATE_LIMIT) {
+      client.socket.send(JSON.stringify({
+        type: 'error',
+        data: { message: 'Rate limit exceeded. Please wait before sending another message.' }
+      }));
+      return;
+    }
+    
+    // Validate message length
+    const message = data.message.trim();
+    if (message.length > 200) {
+      client.socket.send(JSON.stringify({
+        type: 'error',
+        data: { message: 'Message too long. Maximum 200 characters.' }
+      }));
+      return;
+    }
+
     try {
       const { data: messageData, error } = await supabase.rpc('create_aviator_chat_message', {
-        p_user_id: client.userId,
-        p_username: client.username || 'Anonymous',
-        p_message: data.message.trim()
+        p_message: message,
+        p_message_type: 'user'
       });
 
       if (error) {
         console.error('Error creating chat message:', error);
         client.socket.send(JSON.stringify({
           type: 'error',
-          data: { message: 'Failed to send message' }
+          data: { message: error.message || 'Failed to send message' }
         }));
+      } else {
+        // Update rate limiting counters
+        client.messageCount = (client.messageCount || 0) + 1;
+        client.lastMessageTime = now;
+        clients.set(client.userId!, client);
       }
     } catch (error) {
       console.error('Error in handleChatMessage:', error);
+      client.socket.send(JSON.stringify({
+        type: 'error',
+        data: { message: 'Failed to send message' }
+      }));
     }
   }
 
@@ -251,8 +321,6 @@ serve(async (req) => {
 
         // Create win message in chat
         await supabase.rpc('create_aviator_chat_message', {
-          p_user_id: client.userId,
-          p_username: client.username || 'Anonymous',
           p_message: `won ₹${cashoutData.payout_amount}`,
           p_message_type: 'win',
           p_multiplier: data.currentMultiplier,
