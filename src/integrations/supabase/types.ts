@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
@@ -227,6 +227,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      aviator_chat_messages: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          message: string
+          message_type: string
+          multiplier: number | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          message: string
+          message_type?: string
+          multiplier?: number | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          message?: string
+          message_type?: string
+          multiplier?: number | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
       }
       aviator_rounds: {
         Row: {
@@ -1552,7 +1585,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      aviator_live_bets: {
+        Row: {
+          auto_cashout_multiplier: number | null
+          bet_amount: number | null
+          cashout_multiplier: number | null
+          created_at: string | null
+          id: string | null
+          payout_amount: number | null
+          round_number: number | null
+          round_status: string | null
+          status: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       buy_jackpot_tickets: {
@@ -1586,6 +1634,17 @@ export type Database = {
           p_title: string
           p_description?: string
           p_data?: Json
+        }
+        Returns: string
+      }
+      create_aviator_chat_message: {
+        Args: {
+          p_user_id: string
+          p_username: string
+          p_message: string
+          p_message_type?: string
+          p_multiplier?: number
+          p_amount?: number
         }
         Returns: string
       }

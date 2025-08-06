@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,10 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface ChatMessage {
   id: string;
-  user: string;
+  username: string;
   message: string;
-  timestamp: Date;
-  type: 'message' | 'win' | 'system';
+  created_at: string;
+  message_type: 'user' | 'system' | 'win';
   multiplier?: number;
   amount?: number;
 }
@@ -26,6 +26,14 @@ interface LiveChatProps {
 const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleSendMessage = () => {
     if (newMessage.trim() && user) {
@@ -34,12 +42,18 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
+  };
+
   const getPlayerInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', { 
       hour12: false, 
       hour: '2-digit', 
       minute: '2-digit' 
@@ -52,6 +66,11 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
       case 'system': return 'text-primary';
       default: return 'text-foreground';
     }
+  };
+
+  const maskUsername = (username: string) => {
+    if (username.length <= 3) return username;
+    return username.substring(0, 2) + '*'.repeat(username.length - 3) + username.slice(-1);
   };
 
   return (
@@ -68,51 +87,61 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
       
       <CardContent className="flex-1 flex flex-col p-0">
         {/* Messages Area */}
-        <ScrollArea className="flex-1 px-4">
+        <ScrollArea className="flex-1 px-4" ref={scrollRef}>
           <div className="space-y-2 pb-4">
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex gap-2">
-                {msg.type !== 'system' && (
-                  <Avatar className="w-6 h-6 mt-0.5">
-                    <AvatarFallback className="text-xs bg-slate-700">
-                      {getPlayerInitials(msg.user)}
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    {msg.type !== 'system' && (
-                      <span className="text-xs font-medium text-primary truncate">
-                        {msg.user.slice(0, 8)}***
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(msg.timestamp)}
-                    </span>
-                  </div>
-                  
-                  <div className={`text-xs ${getMessageColor(msg.type)}`}>
-                    {msg.type === 'win' && msg.multiplier && msg.amount ? (
-                      <span className="font-medium">
-                        Won ₹{msg.amount.toFixed(2)} at {msg.multiplier.toFixed(2)}x! 🎉
-                      </span>
-                    ) : msg.type === 'system' ? (
-                      <span className="italic">{msg.message}</span>
-                    ) : (
-                      msg.message
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {messages.length === 0 && (
+            {messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <div className="text-xs">No messages yet</div>
                 <div className="text-xs mt-1">Start the conversation!</div>
               </div>
+            ) : (
+              messages.map((msg) => (
+                <div key={msg.id} className="flex gap-2">
+                  {msg.message_type !== 'system' && (
+                    <Avatar className="w-6 h-6 mt-0.5">
+                      <AvatarFallback className="text-xs bg-slate-700">
+                        {getPlayerInitials(msg.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      {msg.message_type !== 'system' && (
+                        <span className="text-xs font-medium text-primary truncate">
+                          {maskUsername(msg.username)}
+                        </span>
+                      )}
+                      {msg.message_type === 'system' && (
+                        <span className="text-xs font-medium text-primary truncate">
+                          {msg.username}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(msg.created_at)}
+                      </span>
+                      {msg.message_type === 'win' && (
+                        <Badge className="bg-green-600 text-white text-xs">
+                          WIN
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className={`text-xs ${getMessageColor(msg.message_type)}`}>
+                      {msg.message_type === 'win' && msg.multiplier && msg.amount ? (
+                        <span className="font-medium">
+                          won ₹{msg.amount.toLocaleString()} at {msg.multiplier.toFixed(2)}x! 🎉
+                        </span>
+                      ) : msg.message_type === 'system' ? (
+                        <span className="italic">{msg.message}</span>
+                      ) : (
+                        msg.message
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </ScrollArea>
@@ -124,9 +153,9 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
                 className="bg-slate-800 border-slate-600 text-foreground text-xs"
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 maxLength={100}
               />
               <Button

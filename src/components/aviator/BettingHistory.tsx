@@ -7,11 +7,12 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface BetHistoryItem {
   id: string;
-  player: string;
-  betAmount: number;
-  multiplier: number | null;
-  winAmount: number;
-  status: 'active' | 'win' | 'loss';
+  username: string;
+  bet_amount: number;
+  cashout_multiplier?: number;
+  payout_amount: number;
+  status: 'active' | 'cashed_out' | 'crashed';
+  created_at: string;
 }
 
 interface BettingHistoryProps {
@@ -28,6 +29,11 @@ const BettingHistory = ({ bets, currentRoundBets = [] }: BettingHistoryProps) =>
     if (amount >= 100000) return `${(amount / 100000).toFixed(1)}L`;
     if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K`;
     return amount.toString();
+  };
+
+  const maskUsername = (username: string) => {
+    if (username.length <= 3) return username;
+    return username.substring(0, 2) + '*'.repeat(username.length - 3) + username.slice(-1);
   };
 
   return (
@@ -57,15 +63,15 @@ const BettingHistory = ({ bets, currentRoundBets = [] }: BettingHistoryProps) =>
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Avatar className="w-6 h-6">
                     <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                      {getPlayerInitials(bet.player)}
+                      {getPlayerInitials(bet.username)}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-xs text-foreground truncate">
-                    {bet.player.slice(0, 6)}***
+                    {maskUsername(bet.username)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">₹{formatAmount(bet.betAmount)}</span>
+                  <span className="text-muted-foreground">₹{formatAmount(bet.bet_amount)}</span>
                   <Badge variant="secondary" className="text-xs px-1 py-0">
                     Active
                   </Badge>
@@ -87,32 +93,34 @@ const BettingHistory = ({ bets, currentRoundBets = [] }: BettingHistoryProps) =>
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Avatar className="w-6 h-6">
                     <AvatarFallback className="text-xs bg-slate-700">
-                      {getPlayerInitials(bet.player)}
+                      {getPlayerInitials(bet.username)}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-xs text-foreground truncate">
-                    {bet.player.slice(0, 6)}***
+                    {maskUsername(bet.username)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">₹{formatAmount(bet.betAmount)}</span>
-                  {bet.multiplier && (
+                  <span className="text-muted-foreground">₹{formatAmount(bet.bet_amount)}</span>
+                  {bet.cashout_multiplier && (
                     <span className={`font-medium ${
-                      bet.status === 'win' ? 'text-gaming-success' : 'text-gaming-danger'
+                      bet.status === 'cashed_out' ? 'text-gaming-success' : 'text-gaming-danger'
                     }`}>
-                      {bet.multiplier.toFixed(2)}x
+                      {bet.cashout_multiplier.toFixed(2)}x
                     </span>
                   )}
-                  {bet.status === 'win' ? (
+                  {bet.status === 'cashed_out' ? (
                     <TrendingUp className="w-3 h-3 text-gaming-success" />
                   ) : (
                     <TrendingDown className="w-3 h-3 text-gaming-danger" />
                   )}
-                  <span className={`font-medium ${
-                    bet.status === 'win' ? 'text-gaming-success' : 'text-gaming-danger'
-                  }`}>
-                    ₹{formatAmount(bet.winAmount)}
-                  </span>
+                  {bet.payout_amount > 0 && (
+                    <span className={`font-medium ${
+                      bet.status === 'cashed_out' ? 'text-gaming-success' : 'text-gaming-danger'
+                    }`}>
+                      ₹{formatAmount(bet.payout_amount)}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
