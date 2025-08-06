@@ -39,6 +39,13 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
   // Show disclaimer when component mounts
   useEffect(() => {
     setIsDisclaimerOpen(true);
