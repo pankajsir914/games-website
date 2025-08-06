@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
 import GameInterface from '@/components/aviator/GameInterface';
-import GameControls from '@/components/aviator/GameControls';
+import BettingHistory from '@/components/aviator/BettingHistory';
+import LiveChat from '@/components/aviator/LiveChat';
+import DualBettingControls from '@/components/aviator/DualBettingControls';
 import GameStats from '@/components/aviator/GameStats';
 import { useAviator } from '@/hooks/useAviator';
 import { useGameManagement } from '@/hooks/useGameManagement';
@@ -62,6 +64,33 @@ const Aviator = () => {
   const [bettingCountdown, setBettingCountdown] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const gameStartTimeRef = useRef<number | null>(null);
+
+  // Mock data for betting history and chat
+  const [bettingHistory] = useState([
+    { id: '1', player: 'Player123', betAmount: 1000, multiplier: 2.45, winAmount: 2450, status: 'win' as const },
+    { id: '2', player: 'GamerPro', betAmount: 500, multiplier: 1.23, winAmount: 0, status: 'loss' as const },
+    { id: '3', player: 'LuckyStar', betAmount: 2000, multiplier: 5.67, winAmount: 11340, status: 'win' as const },
+    { id: '4', player: 'RiskTaker', betAmount: 750, multiplier: 1.08, winAmount: 0, status: 'loss' as const },
+    { id: '5', player: 'Winner99', betAmount: 300, multiplier: 3.21, winAmount: 963, status: 'win' as const },
+  ]);
+
+  const [currentRoundBets] = useState([
+    { id: 'current1', player: 'ActiveUser1', betAmount: 500, multiplier: null, winAmount: 0, status: 'active' as const },
+    { id: 'current2', player: 'ActiveUser2', betAmount: 1200, multiplier: null, winAmount: 0, status: 'active' as const },
+    { id: 'current3', player: 'ActiveUser3', betAmount: 800, multiplier: null, winAmount: 0, status: 'active' as const },
+  ]);
+
+  const [chatMessages] = useState([
+    { id: '1', user: 'Player123', message: 'Good luck everyone! 🚀', timestamp: new Date(Date.now() - 60000), type: 'message' as const },
+    { id: '2', user: 'GamerPro', message: 'Cashed out at 2.5x!', timestamp: new Date(Date.now() - 45000), type: 'win' as const, multiplier: 2.5, amount: 1250 },
+    { id: '3', user: 'System', message: 'Round ended at 1.08x', timestamp: new Date(Date.now() - 30000), type: 'system' as const },
+    { id: '4', user: 'LuckyStar', message: 'Next round will be big!', timestamp: new Date(Date.now() - 15000), type: 'message' as const },
+  ]);
+
+  const handleSendMessage = (message: string) => {
+    // In a real app, this would send the message to the server
+    console.log('Sending message:', message);
+  };
 
   // Update balance from wallet
   useEffect(() => {
@@ -213,7 +242,7 @@ const Aviator = () => {
     }, 100);
   }, [currentRound?.id, userBet, cashOut]);
 
-  const handlePlaceBet = useCallback(() => {
+  const handlePlaceBet = useCallback((betIndex: number, amount: number, autoCashout?: number) => {
     if (!currentRound || !user) {
       toast({
         title: "Authentication Required",
@@ -232,7 +261,7 @@ const Aviator = () => {
       return;
     }
 
-    if (gameData.betAmount > gameData.balance) {
+    if (amount > gameData.balance) {
       toast({
         title: "Insufficient Balance",
         description: "Your bet amount exceeds your balance.",
@@ -252,10 +281,10 @@ const Aviator = () => {
 
     placeBet({
       roundId: currentRound.id,
-      betAmount: gameData.betAmount,
-      autoCashoutMultiplier: gameData.autoCashOut || undefined
+      betAmount: amount,
+      autoCashoutMultiplier: autoCashout
     });
-  }, [currentRound, user, gameData.betAmount, gameData.balance, gameData.autoCashOut, userBet, placeBet]);
+  }, [currentRound, user, gameData.balance, userBet, placeBet]);
 
   const handleCashOut = useCallback(() => {
     if (!userBet || gameData.gameState !== 'flying' || !gameData.isPlaying) return;
@@ -314,13 +343,13 @@ const Aviator = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-950">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="container-fluid px-2 py-4">
         {/* Game Paused Alert */}
         {gameIsPaused && (
-          <Alert variant="destructive" className="mb-6 border-red-500 bg-red-50 dark:bg-red-950">
+          <Alert variant="destructive" className="mb-4 border-red-500 bg-red-50 dark:bg-red-950">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
               Aviator game is currently paused for maintenance. Please check back later.
@@ -328,46 +357,54 @@ const Aviator = () => {
           </Alert>
         )}
         
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-3 sm:mb-4">
-              <span className="bg-gradient-primary bg-clip-text text-transparent">Aviator</span>
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground">
-              Watch the plane fly and cash out before it crashes!
-            </p>
+        {/* Main Game Layout */}
+        <div className="grid grid-cols-12 gap-2 h-[calc(100vh-120px)]">
+          {/* Left Sidebar - Betting History */}
+          <div className="col-span-12 lg:col-span-2 order-2 lg:order-1">
+            <BettingHistory 
+              bets={bettingHistory}
+              currentRoundBets={gameData.gameState === 'betting' ? currentRoundBets : []}
+            />
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
-            {/* Game Interface - Takes most space */}
-            <div className="xl:col-span-3 order-1">
-              <GameInterface 
-                gameData={gameData}
-                bettingCountdown={bettingCountdown}
-                onCashOut={handleCashOut}
-              />
-            </div>
+          {/* Center - Game Interface */}
+          <div className="col-span-12 lg:col-span-8 order-1 lg:order-2">
+            <div className="h-full flex flex-col gap-2">
+              {/* Game Display */}
+              <div className="flex-1">
+                <GameInterface 
+                  gameData={gameData}
+                  bettingCountdown={bettingCountdown}
+                  onCashOut={handleCashOut}
+                />
+              </div>
 
-            {/* Controls and Stats Sidebar */}
-            <div className="xl:col-span-2 space-y-4 sm:space-y-6 order-2">
-              <GameControls
-                gameData={gameData}
-                setGameData={setGameData}
-                onPlaceBet={handlePlaceBet}
-                bettingCountdown={bettingCountdown}
-                isPlacingBet={isPlacingBet}
-                disabled={gameIsPaused}
-              />
-              <div className="hidden sm:block">
-                <GameStats gameData={gameData} />
+              {/* Betting Controls */}
+              <div className="h-auto">
+                <DualBettingControls
+                  gameData={gameData}
+                  setGameData={setGameData}
+                  onPlaceBet={handlePlaceBet}
+                  bettingCountdown={bettingCountdown}
+                  isPlacingBet={isPlacingBet}
+                  disabled={gameIsPaused}
+                />
               </div>
             </div>
           </div>
 
-          {/* Mobile Stats - Show below on mobile */}
-          <div className="sm:hidden mt-4">
-            <GameStats gameData={gameData} />
+          {/* Right Sidebar - Live Chat */}
+          <div className="col-span-12 lg:col-span-2 order-3">
+            <LiveChat 
+              messages={chatMessages}
+              onSendMessage={handleSendMessage}
+            />
           </div>
+        </div>
+
+        {/* Mobile Stats Panel */}
+        <div className="lg:hidden mt-4">
+          <GameStats gameData={gameData} />
         </div>
       </div>
     </div>
