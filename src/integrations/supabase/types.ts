@@ -1798,7 +1798,7 @@ export type Database = {
       }
     }
     Enums: {
-      admin_role: "admin" | "moderator"
+      admin_role: "admin" | "moderator" | "master_admin"
       game_status: "waiting" | "active" | "completed" | "cancelled"
       game_type: "ludo" | "aviator" | "casino" | "color_prediction"
       transaction_type: "credit" | "debit"
@@ -1929,7 +1929,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      admin_role: ["admin", "moderator"],
+      admin_role: ["admin", "moderator", "master_admin"],
       game_status: ["waiting", "active", "completed", "cancelled"],
       game_type: ["ludo", "aviator", "casino", "color_prediction"],
       transaction_type: ["credit", "debit"],
