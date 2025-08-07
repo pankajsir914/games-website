@@ -11,10 +11,12 @@ import {
   BarChart3,
   Shield,
   Crown,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -34,6 +36,9 @@ const menuItems = [
 
 export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
   const location = useLocation();
+  const { data: adminAuth } = useAdminAuth();
+  
+  const isMasterAdmin = adminAuth?.role === 'master_admin';
 
   return (
     <>
@@ -71,6 +76,22 @@ export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
 
         <nav className="mt-6 px-4">
           <div className="space-y-2">
+            {/* Master Admin Panel - Only visible to master admins */}
+            {isMasterAdmin && (
+              <Link
+                to="/admin/master"
+                className={cn(
+                  "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                  location.pathname === '/admin/master'
+                    ? "bg-primary text-primary-foreground" 
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <Zap className="mr-3 h-5 w-5" />
+                Master Panel
+              </Link>
+            )}
+            
             {menuItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (

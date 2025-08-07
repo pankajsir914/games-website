@@ -26,6 +26,7 @@ import AdminGameDashboard from "./pages/AdminGameDashboard";
 import AdminGameSettings from "./pages/AdminGameSettings";
 import AdminSettings from "./pages/AdminSettings";
 import AdminSecurity from "./pages/AdminSecurity";
+import AdminMaster from "./pages/AdminMaster";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/admin/game-settings" element={<AdminGameSettings />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/security" element={<AdminSecurity />} />
+            <Route path="/admin/master" element={<AdminMaster />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
