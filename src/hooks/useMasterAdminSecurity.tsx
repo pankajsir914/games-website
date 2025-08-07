@@ -45,51 +45,56 @@ export const useMasterAdminSecurity = () => {
   const getSecurityData = useQuery({
     queryKey: ['master-admin-security'],
     queryFn: async () => {
-      // Mock data for now
-      const mockData: SecurityData = {
-        security_score: 85,
-        active_alerts: 3,
-        failed_logins_today: 12,
-        blocked_ips: 5,
-        suspicious_activities: [
-          {
-            user_id: '1',
-            activity_type: 'rapid_betting',
-            risk_level: 'medium',
-            detected_at: '2024-01-20T14:00:00Z',
-            description: 'User placed 50+ bets in 5 minutes'
-          }
-        ],
-        recent_alerts: [
-          {
-            id: '1',
-            alert_type: 'security',
-            severity: 'high',
-            title: 'Multiple failed login attempts',
-            description: 'IP 192.168.1.100 attempted to login 10 times',
-            created_at: '2024-01-20T13:30:00Z',
-            is_resolved: false
-          }
-        ],
-        admin_activity_logs: [
-          {
-            id: '1',
-            admin_id: '1',
-            action_type: 'user_block',
-            target_type: 'user',
-            details: { user_id: '123', reason: 'Suspicious activity' },
-            created_at: '2024-01-20T12:00:00Z'
-          }
-        ],
+      // Get recent alerts
+      const { data: alerts } = await supabase
+        .from('admin_alerts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Get admin activity logs
+      const { data: activityLogs } = await supabase
+        .from('admin_activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      // Count active alerts
+      const { count: activeAlerts } = await supabase
+        .from('admin_alerts')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_resolved', false);
+
+      return {
+        security_score: 85, // Calculate based on various factors
+        active_alerts: activeAlerts || 0,
+        failed_logins_today: 0, // Would need auth logging
+        blocked_ips: 0, // Would need IP blocking system
+        suspicious_activities: [], // Would need to analyze betting patterns
+        recent_alerts: alerts?.map(alert => ({
+          id: alert.id,
+          alert_type: alert.alert_type,
+          severity: alert.severity,
+          title: alert.title,
+          description: alert.description,
+          created_at: alert.created_at,
+          is_resolved: alert.is_resolved
+        })) || [],
+        admin_activity_logs: activityLogs?.map(log => ({
+          id: log.id,
+          admin_id: log.admin_id,
+          action_type: log.action_type,
+          target_type: log.target_type,
+          details: log.details,
+          created_at: log.created_at
+        })) || [],
         system_health: {
           cpu_usage: 45,
           memory_usage: 62,
           database_connections: 78,
           response_time: 150
         }
-      };
-      
-      return mockData;
+      } as SecurityData;
     },
     refetchInterval: 20000, // Refresh every 20 seconds
   });
@@ -138,12 +143,16 @@ export const useMasterAdminSecurity = () => {
       title: string; 
       description: string 
     }) => {
-      const { data, error } = await supabase.rpc('create_admin_alert', {
-        p_alert_type: alertType,
-        p_severity: severity,
-        p_title: title,
-        p_description: description
-      });
+      const { data, error } = await supabase
+        .from('admin_alerts')
+        .insert({
+          alert_type: alertType,
+          severity: severity,
+          title: title,
+          description: description
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       return data;

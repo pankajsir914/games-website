@@ -29,42 +29,37 @@ export const useMasterAdminGames = () => {
   const getGames = useQuery({
     queryKey: ['master-admin-games'],
     queryFn: async () => {
-      // Mock data for now
-      const mockData: GamesResponse = {
-        games: [
-          {
-            game_type: 'color_prediction',
-            is_enabled: true,
-            is_paused: false,
-            maintenance_mode: false,
-            min_bet_amount: 10,
-            max_bet_amount: 50000,
-            house_edge: 0.05,
-            active_players: 1247,
-            today_revenue: 45200,
-            win_rate: 45,
-            total_bets_today: 2847
-          },
-          {
-            game_type: 'aviator',
-            is_enabled: true,
-            is_paused: false,
-            maintenance_mode: false,
-            min_bet_amount: 10,
-            max_bet_amount: 50000,
-            house_edge: 0.04,
-            active_players: 892,
-            today_revenue: 32800,
-            win_rate: 52,
-            total_bets_today: 1932
-          }
-        ],
-        total_active_players: 3597,
-        total_revenue_today: 134800,
-        platform_profit_today: 84700
-      };
-      
-      return mockData;
+      // Get game settings from database
+      const { data: gameSettings, error } = await supabase
+        .from('game_settings')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching games:', error);
+        throw error;
+      }
+
+      // Transform the data to match our interface
+      const games = gameSettings?.map((game: any) => ({
+        game_type: game.game_type,
+        is_enabled: game.is_enabled,
+        is_paused: game.is_paused,
+        maintenance_mode: game.maintenance_mode,
+        min_bet_amount: game.min_bet_amount,
+        max_bet_amount: game.max_bet_amount,
+        house_edge: game.house_edge,
+        active_players: 0, // Would need to calculate from active bets
+        today_revenue: 0, // Would need to calculate from today's bets
+        win_rate: 50, // Default
+        total_bets_today: 0 // Would need to calculate from today's bets
+      })) || [];
+
+      return {
+        games,
+        total_active_players: 0,
+        total_revenue_today: 0,
+        platform_profit_today: 0
+      } as GamesResponse;
     },
     refetchInterval: 15000, // Refresh every 15 seconds for live data
   });

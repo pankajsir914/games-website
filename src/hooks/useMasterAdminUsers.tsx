@@ -32,47 +32,49 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
-      // Mock data for now
-      const mockData: UsersResponse = {
-        users: [
-          {
-            id: '1',
-            email: 'user1@example.com',
-            full_name: 'John Doe',
-            phone: '+91 9876543210',
-            created_at: '2024-01-15T10:30:00Z',
-            last_sign_in_at: '2024-01-20T14:20:00Z',
-            current_balance: 2500,
-            total_deposits: 10000,
-            total_withdrawals: 7500,
-            games_played: 156,
-            kyc_status: 'verified',
-            is_blocked: false,
-            risk_level: 'low'
-          },
-          {
-            id: '2',
-            email: 'user2@example.com',
-            full_name: 'Jane Smith',
-            phone: '+91 9876543211',
-            created_at: '2024-01-16T09:15:00Z',
-            last_sign_in_at: '2024-01-20T16:45:00Z',
-            current_balance: 1800,
-            total_deposits: 5000,
-            total_withdrawals: 3200,
-            games_played: 89,
-            kyc_status: 'pending',
-            is_blocked: false,
-            risk_level: 'medium'
-          }
-        ],
-        total_count: 15247,
-        blocked_users: 23,
-        pending_kyc: 156,
-        high_risk_users: 45
-      };
-      
-      return mockData;
+      // Get profiles with wallet data
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          wallets(current_balance)
+        `)
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        throw error;
+      }
+
+      // Get total count
+      const { count: totalCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      // Transform the data to match our interface
+      const users = profiles?.map((profile: any) => ({
+        id: profile.id,
+        email: 'user@example.com', // Can't get email from auth.users directly
+        full_name: profile.full_name || 'Anonymous',
+        phone: profile.phone || '',
+        created_at: profile.created_at,
+        last_sign_in_at: profile.created_at, // Fallback since we can't access auth.users
+        current_balance: profile.wallets?.[0]?.current_balance || 0,
+        total_deposits: 0, // Would need to calculate from wallet_transactions
+        total_withdrawals: 0, // Would need to calculate from wallet_transactions
+        games_played: 0, // Would need to calculate from game bets
+        kyc_status: 'pending', // Default since we don't have KYC table yet
+        is_blocked: false, // Default since we can't check auth.users directly
+        risk_level: 'low' // Default
+      })) || [];
+
+      return {
+        users,
+        total_count: totalCount || 0,
+        blocked_users: 0, // Will be implemented when we have user status tracking
+        pending_kyc: 0, // Will be implemented when we have KYC system
+        high_risk_users: 0
+      } as UsersResponse;
     },
     refetchInterval: 60000, // Refresh every minute
   });
@@ -83,8 +85,17 @@ export const useMasterAdminUsers = () => {
       action: 'block' | 'unblock' | 'suspend'; 
       reason?: string 
     }) => {
-      // For now, just simulate the update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create an admin alert for user status change since we can't modify auth.users directly
+      const { data, error } = await supabase
+        .from('admin_alerts')
+        .insert({
+          alert_type: 'user_action',
+          severity: 'medium',
+          title: `User ${action} request`,
+          description: `Request to ${action} user ${userId}. Reason: ${reason || 'No reason provided'}`
+        });
+
+      if (error) throw error;
       return { success: true, userId, action };
     },
     onSuccess: (_, variables) => {

@@ -33,8 +33,20 @@ export const useMasterAdminSettings = () => {
   const getSettings = useQuery({
     queryKey: ['master-admin-settings'],
     queryFn: async () => {
-      // For now, return mock data since we haven't created a settings table
-      const mockSettings: PlatformSettings = {
+      // Get platform settings from game_settings table
+      const { data: platformSettings, error } = await supabase
+        .from('game_settings')
+        .select('settings')
+        .eq('game_type', 'platform')
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching settings:', error);
+        throw error;
+      }
+
+      // Return default settings if none exist
+      const defaultSettings: PlatformSettings = {
         platform_name: "GameVault Pro",
         platform_url: "https://gamevault.pro",
         support_email: "support@gamevault.pro",
@@ -59,15 +71,24 @@ export const useMasterAdminSettings = () => {
         security_alerts: true,
       };
 
-      return mockSettings;
+      return platformSettings?.settings || defaultSettings;
     },
   });
 
   const updateSettings = useMutation({
     mutationFn: async (settings: Partial<PlatformSettings>) => {
-      // Simulate update for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return { success: true, settings };
+      // Update or insert platform settings
+      const { data, error } = await supabase
+        .from('game_settings')
+        .upsert({
+          game_type: 'platform',
+          settings: settings
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-admin-settings'] });
