@@ -16,19 +16,32 @@ import {
   Globe,
   Lock,
   Eye,
-  Plus,
-  Edit,
-  Trash2
+  Gamepad2,
+  Wallet,
+  BarChart3,
+  Bell,
+  FileText,
+  Wrench,
+  Trophy
 } from 'lucide-react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { AdminRoleManagement } from '@/components/admin/master/AdminRoleManagement';
 import { SystemMonitoring } from '@/components/admin/master/SystemMonitoring';
 import { SecurityCenter } from '@/components/admin/master/SecurityCenter';
 import { PlatformSettings } from '@/components/admin/master/PlatformSettings';
+import { GameManagement } from '@/components/admin/master/GameManagement';
+import { UserManagement } from '@/components/admin/master/UserManagement';
+import { WalletFinanceControl } from '@/components/admin/master/WalletFinanceControl';
+import { TransactionsReports } from '@/components/admin/master/TransactionsReports';
+import { AnalyticsDashboard } from '@/components/admin/master/AnalyticsDashboard';
+import { PromotionsNotifications } from '@/components/admin/master/PromotionsNotifications';
+import { ContentManagement } from '@/components/admin/master/ContentManagement';
+import { TeamManagement } from '@/components/admin/master/TeamManagement';
+import { LiveSportsIntegration } from '@/components/admin/master/LiveSportsIntegration';
 
 const AdminMaster = () => {
   const { data: adminAuth, isLoading } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState('roles');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   if (isLoading) {
     return (
@@ -79,79 +92,157 @@ const AdminMaster = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <Card className="bg-gradient-card border-gaming-gold/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Admins</CardTitle>
-              <UserCog className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-gaming-gold" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">+2 this month</p>
+              <div className="text-2xl font-bold text-gaming-gold">15,247</div>
+              <p className="text-xs text-muted-foreground">+12% today</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-card border-gaming-success/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Health</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Active Games</CardTitle>
+              <Gamepad2 className="h-4 w-4 text-gaming-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">99.9%</div>
-              <p className="text-xs text-muted-foreground">Uptime this month</p>
+              <div className="text-2xl font-bold text-gaming-success">8</div>
+              <p className="text-xs text-muted-foreground">All running</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-card border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">3</div>
-              <p className="text-xs text-muted-foreground">Requires attention</p>
+              <div className="text-2xl font-bold text-primary">₹2.4M</div>
+              <p className="text-xs text-muted-foreground">Platform total</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-card border-orange-500/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Pending KYC</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,247</div>
-              <p className="text-xs text-muted-foreground">+15% from yesterday</p>
+              <div className="text-2xl font-bold text-orange-500">23</div>
+              <p className="text-xs text-muted-foreground">Needs review</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-purple-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Profit</CardTitle>
+              <BarChart3 className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-500">₹84.7K</div>
+              <p className="text-xs text-muted-foreground">+18% vs yesterday</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card border-cyan-500/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Live Users</CardTitle>
+              <Eye className="h-4 w-4 text-cyan-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cyan-500">1,247</div>
+              <p className="text-xs text-muted-foreground">Online now</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="roles" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Role Management
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-2 h-auto p-2">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 text-xs p-2">
+              <BarChart3 className="h-3 w-3" />
+              <span className="hidden lg:inline">Analytics</span>
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              System Monitoring
+            <TabsTrigger value="games" className="flex items-center gap-2 text-xs p-2">
+              <Gamepad2 className="h-3 w-3" />
+              <span className="hidden lg:inline">Games</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Security Center
+            <TabsTrigger value="users" className="flex items-center gap-2 text-xs p-2">
+              <Users className="h-3 w-3" />
+              <span className="hidden lg:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Platform Settings
+            <TabsTrigger value="wallet" className="flex items-center gap-2 text-xs p-2">
+              <Wallet className="h-3 w-3" />
+              <span className="hidden lg:inline">Finance</span>
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="flex items-center gap-2 text-xs p-2">
+              <FileText className="h-3 w-3" />
+              <span className="hidden lg:inline">Reports</span>
+            </TabsTrigger>
+            <TabsTrigger value="promotions" className="flex items-center gap-2 text-xs p-2">
+              <Bell className="h-3 w-3" />
+              <span className="hidden lg:inline">Promo</span>
+            </TabsTrigger>
+            <TabsTrigger value="content" className="flex items-center gap-2 text-xs p-2">
+              <FileText className="h-3 w-3" />
+              <span className="hidden lg:inline">CMS</span>
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="flex items-center gap-2 text-xs p-2">
+              <UserCog className="h-3 w-3" />
+              <span className="hidden lg:inline">Team</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2 text-xs p-2">
+              <Shield className="h-3 w-3" />
+              <span className="hidden lg:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2 text-xs p-2">
+              <Settings className="h-3 w-3" />
+              <span className="hidden lg:inline">System</span>
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center gap-2 text-xs p-2">
+              <Activity className="h-3 w-3" />
+              <span className="hidden lg:inline">Monitor</span>
+            </TabsTrigger>
+            <TabsTrigger value="sports" className="flex items-center gap-2 text-xs p-2">
+              <Trophy className="h-3 w-3" />
+              <span className="hidden lg:inline">Sports</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="roles" className="space-y-6">
-            <AdminRoleManagement />
+          <TabsContent value="dashboard" className="space-y-6">
+            <AnalyticsDashboard />
           </TabsContent>
 
-          <TabsContent value="monitoring" className="space-y-6">
-            <SystemMonitoring />
+          <TabsContent value="games" className="space-y-6">
+            <GameManagement />
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="wallet" className="space-y-6">
+            <WalletFinanceControl />
+          </TabsContent>
+
+          <TabsContent value="transactions" className="space-y-6">
+            <TransactionsReports />
+          </TabsContent>
+
+          <TabsContent value="promotions" className="space-y-6">
+            <PromotionsNotifications />
+          </TabsContent>
+
+          <TabsContent value="content" className="space-y-6">
+            <ContentManagement />
+          </TabsContent>
+
+          <TabsContent value="roles" className="space-y-6">
+            <TeamManagement />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
@@ -160,6 +251,14 @@ const AdminMaster = () => {
 
           <TabsContent value="settings" className="space-y-6">
             <PlatformSettings />
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="space-y-6">
+            <SystemMonitoring />
+          </TabsContent>
+
+          <TabsContent value="sports" className="space-y-6">
+            <LiveSportsIntegration />
           </TabsContent>
         </Tabs>
       </div>
