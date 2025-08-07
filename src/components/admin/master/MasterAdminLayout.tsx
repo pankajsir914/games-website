@@ -9,7 +9,7 @@ import {
   Home,
   ArrowLeft
 } from 'lucide-react';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,13 +18,13 @@ interface MasterAdminLayoutProps {
 }
 
 export const MasterAdminLayout = ({ children }: MasterAdminLayoutProps) => {
-  const { data: adminAuth } = useAdminAuth();
+  const { user: masterUser, signOut: masterSignOut } = useMasterAdminAuth();
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/');
+    await masterSignOut();
+    navigate('/master-admin/login');
   };
 
   const handleBackToAdmin = () => {
@@ -70,7 +70,7 @@ export const MasterAdminLayout = ({ children }: MasterAdminLayoutProps) => {
             
             <div className="flex items-center space-x-2 text-sm">
               <User className="h-4 w-4" />
-              <span>{adminAuth?.user?.email}</span>
+              <span>{masterUser?.email}</span>
             </div>
             
             <Button variant="outline" size="sm" onClick={handleLogout}>

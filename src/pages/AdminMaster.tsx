@@ -24,7 +24,7 @@ import {
   Wrench,
   Trophy
 } from 'lucide-react';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import { AdminRoleManagement } from '@/components/admin/master/AdminRoleManagement';
 import { SystemMonitoring } from '@/components/admin/master/SystemMonitoring';
 import { SecurityCenter } from '@/components/admin/master/SecurityCenter';
@@ -40,10 +40,10 @@ import { TeamManagement } from '@/components/admin/master/TeamManagement';
 import { LiveSportsIntegration } from '@/components/admin/master/LiveSportsIntegration';
 
 const AdminMaster = () => {
-  const { data: adminAuth, isLoading } = useAdminAuth();
+  const { user, loading, isMasterAdmin } = useMasterAdminAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  if (isLoading) {
+  if (loading) {
     return (
       <MasterAdminLayout>
         <div className="flex items-center justify-center h-64">
@@ -53,7 +53,7 @@ const AdminMaster = () => {
     );
   }
 
-  if (!adminAuth?.hasAccess || adminAuth?.role !== 'master_admin') {
+  if (!user || !isMasterAdmin) {
     return (
       <MasterAdminLayout>
         <div className="flex flex-col items-center justify-center h-64">

@@ -27,6 +27,9 @@ import AdminGameSettings from "./pages/AdminGameSettings";
 import AdminSettings from "./pages/AdminSettings";
 import AdminSecurity from "./pages/AdminSecurity";
 import AdminMaster from "./pages/AdminMaster";
+import MasterAdminLogin from "./pages/MasterAdminLogin";
+import { MasterAdminAuthProvider } from "@/hooks/useMasterAdminAuth";
+import { MasterAdminProtectedRoute } from "@/components/auth/MasterAdminProtectedRoute";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -35,38 +38,51 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/games" element={<Games />} />
-            <Route path="/ludo" element={<Ludo />} />
-            <Route path="/aviator" element={<Aviator />} />
-            <Route path="/color-prediction" element={<ColorPrediction />} />
-            <Route path="/andar-bahar" element={<AndarBahar />} />
-            <Route path="/roulette" element={<Roulette />} />
-            <Route path="/rummy" element={<Rummy />} />
-            <Route path="/poker" element={<Poker />} />
-            <Route path="/poker/table/:tableId" element={<PokerTable />} />
-            <Route path="/jackpot" element={<Jackpot />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/transactions" element={<AdminTransactions />} />
-            <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
-            <Route path="/admin/game-dashboard/:gameType" element={<AdminGameDashboard />} />
-            <Route path="/admin/game-settings" element={<AdminGameSettings />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/admin/security" element={<AdminSecurity />} />
-            <Route path="/master-admin" element={<AdminMaster />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <MasterAdminAuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/games" element={<Games />} />
+              <Route path="/ludo" element={<Ludo />} />
+              <Route path="/aviator" element={<Aviator />} />
+              <Route path="/color-prediction" element={<ColorPrediction />} />
+              <Route path="/andar-bahar" element={<AndarBahar />} />
+              <Route path="/roulette" element={<Roulette />} />
+              <Route path="/rummy" element={<Rummy />} />
+              <Route path="/poker" element={<Poker />} />
+              <Route path="/poker/table/:tableId" element={<PokerTable />} />
+              <Route path="/jackpot" element={<Jackpot />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/transactions" element={<AdminTransactions />} />
+              <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+              <Route path="/admin/game-dashboard/:gameType" element={<AdminGameDashboard />} />
+              <Route path="/admin/game-settings" element={<AdminGameSettings />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/security" element={<AdminSecurity />} />
+              
+              {/* Master Admin Routes */}
+              <Route path="/master-admin/login" element={<MasterAdminLogin />} />
+              <Route 
+                path="/master-admin" 
+                element={
+                  <MasterAdminProtectedRoute>
+                    <AdminMaster />
+                  </MasterAdminProtectedRoute>
+                } 
+              />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </MasterAdminAuthProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
