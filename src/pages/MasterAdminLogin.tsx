@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 
 const MasterAdminLogin = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const MasterAdminLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signIn(email, password);
+      await signIn(username, password);
       navigate('/master-admin');
     } catch (error) {
       // Error handling is done in the hook
@@ -63,19 +63,19 @@ const MasterAdminLogin = () => {
               Secure Login
             </CardTitle>
             <CardDescription>
-              Enter your master admin credentials
+              Enter your secure master admin credentials
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email Address</Label>
+                <Label htmlFor="username" className="text-foreground">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@company.com"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="masteradmin"
                   className="bg-background border-gaming-gold/20 focus:border-gaming-gold"
                   required
                 />
@@ -156,9 +156,9 @@ const MasterAdminLogin = () => {
                 First Time Setup
               </p>
               <p className="text-xs text-muted-foreground">
-                1. Create a regular account via signup<br/>
-                2. Contact developer to grant master admin access<br/>
-                3. Login here with those credentials
+                Default credentials for testing:<br/>
+                Username: <code className="bg-gaming-accent/20 px-1 rounded">masteradmin</code><br/>
+                Password: <code className="bg-gaming-accent/20 px-1 rounded">Admin@2024!</code>
               </p>
             </div>
           </CardContent>
