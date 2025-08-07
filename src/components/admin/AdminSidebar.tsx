@@ -76,19 +76,19 @@ export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
 
         <nav className="mt-6 px-4">
           <div className="space-y-2">
-            {/* Master Admin Panel - Only visible to master admins */}
+            {/* Master Admin Console - Only visible to master admins */}
             {isMasterAdmin && (
               <Link
-                to="/admin/master"
+                to="/master-admin"
                 className={cn(
                   "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                  location.pathname === '/admin/master'
+                  location.pathname === '/master-admin'
                     ? "bg-primary text-primary-foreground" 
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
                 <Zap className="mr-3 h-5 w-5" />
-                Master Panel
+                Master Console
               </Link>
             )}
             

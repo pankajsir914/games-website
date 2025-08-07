@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { MasterAdminLayout } from '@/components/admin/master/MasterAdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,17 +32,17 @@ const AdminMaster = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout>
+      <MasterAdminLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </AdminLayout>
+      </MasterAdminLayout>
     );
   }
 
   if (!adminAuth?.hasAccess || adminAuth?.role !== 'master_admin') {
     return (
-      <AdminLayout>
+      <MasterAdminLayout>
         <div className="flex flex-col items-center justify-center h-64">
           <Shield className="h-16 w-16 text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
@@ -50,12 +50,12 @@ const AdminMaster = () => {
             This area is restricted to Master Administrators only.
           </p>
         </div>
-      </AdminLayout>
+      </MasterAdminLayout>
     );
   }
 
   return (
-    <AdminLayout>
+    <MasterAdminLayout>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -163,7 +163,7 @@ const AdminMaster = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </AdminLayout>
+    </MasterAdminLayout>
   );
 };
 

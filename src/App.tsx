@@ -62,7 +62,7 @@ const App = () => (
             <Route path="/admin/game-settings" element={<AdminGameSettings />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/security" element={<AdminSecurity />} />
-            <Route path="/admin/master" element={<AdminMaster />} />
+            <Route path="/master-admin" element={<AdminMaster />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
