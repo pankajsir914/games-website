@@ -1603,6 +1603,15 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_admin_user: {
+        Args: {
+          p_email: string
+          p_password: string
+          p_full_name: string
+          p_phone?: string
+        }
+        Returns: Json
+      }
       admin_create_user: {
         Args: {
           p_email: string
@@ -1679,6 +1688,10 @@ export type Database = {
       get_poker_hand_strength: {
         Args: { hole_cards: Json; community_cards: Json }
         Returns: number
+      }
+      get_user_highest_role: {
+        Args: { _user_id: string }
+        Returns: string
       }
       has_admin_role: {
         Args: {

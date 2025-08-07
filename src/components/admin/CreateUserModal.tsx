@@ -3,9 +3,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Mail, Lock, User, Phone, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 interface CreateUserModalProps {
   open: boolean;
@@ -13,13 +15,17 @@ interface CreateUserModalProps {
   onUserCreated?: () => void;
 }
 
+type UserType = 'user' | 'admin';
+
 export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUserModalProps) => {
+  const { data: adminAuth } = useAdminAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
-    phone: ''
+    phone: '',
+    userType: 'user' as UserType
   });
 
   const resetForm = () => {
@@ -27,7 +33,8 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       email: '',
       password: '',
       fullName: '',
-      phone: ''
+      phone: '',
+      userType: 'user'
     });
   };
 
@@ -36,7 +43,10 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc('admin_create_user', {
+      const isCreatingAdmin = formData.userType === 'admin';
+      const functionName = isCreatingAdmin ? 'admin_create_admin_user' : 'admin_create_user';
+      
+      const { data, error } = await supabase.rpc(functionName, {
         p_email: formData.email,
         p_password: formData.password,
         p_full_name: formData.fullName,
@@ -45,9 +55,10 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
 
       if (error) throw error;
 
+      const userTypeText = isCreatingAdmin ? 'Admin' : 'User';
       toast({
-        title: "User created successfully",
-        description: `User ${formData.email} has been created.`,
+        title: `${userTypeText} created successfully`,
+        description: `${userTypeText} ${formData.email} has been created.`,
       });
 
       resetForm();
@@ -68,17 +79,42 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const isMasterAdmin = adminAuth?.role === 'master_admin';
+  const isRegularAdmin = adminAuth?.role === 'admin';
+  
+  // Determine what user types can be created
+  const canCreateAdmin = isMasterAdmin;
+  const canCreateUser = isRegularAdmin || isMasterAdmin;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <DialogTitle>Create New Account</DialogTitle>
           <DialogDescription>
-            Create a new user account manually. The user will be able to login immediately with these credentials.
+            {isMasterAdmin 
+              ? "Create a new admin or user account manually. The account will be able to login immediately with these credentials."
+              : "Create a new user account manually. The user will be able to login immediately with these credentials."
+            }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {canCreateAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="userType">Account Type *</Label>
+              <Select value={formData.userType} onValueChange={(value) => handleInputChange('userType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Regular User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name *</Label>
             <div className="relative">
@@ -158,7 +194,7 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
               className="flex-1"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create User
+              Create {formData.userType === 'admin' ? 'Admin' : 'User'}
             </Button>
           </div>
         </form>
