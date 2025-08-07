@@ -25,6 +25,8 @@ import {
   Trophy
 } from 'lucide-react';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
+import { useMasterAdminAnalytics } from '@/hooks/useMasterAdminAnalytics';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AdminRoleManagement } from '@/components/admin/master/AdminRoleManagement';
 import { SystemMonitoring } from '@/components/admin/master/SystemMonitoring';
 import { SecurityCenter } from '@/components/admin/master/SecurityCenter';
@@ -41,6 +43,7 @@ import { LiveSportsIntegration } from '@/components/admin/master/LiveSportsInteg
 
 const AdminMaster = () => {
   const { user, loading, isMasterAdmin } = useMasterAdminAuth();
+  const { analytics } = useMasterAdminAnalytics();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   if (loading) {
@@ -99,8 +102,14 @@ const AdminMaster = () => {
               <Users className="h-4 w-4 text-gaming-gold" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gaming-gold">15,247</div>
-              <p className="text-xs text-muted-foreground">+12% today</p>
+              {analytics ? (
+                <>
+                  <div className="text-2xl font-bold text-gaming-gold">{analytics.totalUsers.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">+{analytics.newUsersToday} today</p>
+                </>
+              ) : (
+                <Skeleton className="h-8 w-20" />
+              )}
             </CardContent>
           </Card>
 
@@ -110,8 +119,14 @@ const AdminMaster = () => {
               <Gamepad2 className="h-4 w-4 text-gaming-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gaming-success">8</div>
-              <p className="text-xs text-muted-foreground">All running</p>
+              {analytics ? (
+                <>
+                  <div className="text-2xl font-bold text-gaming-success">{analytics.activeGames}</div>
+                  <p className="text-xs text-muted-foreground">All running</p>
+                </>
+              ) : (
+                <Skeleton className="h-8 w-12" />
+              )}
             </CardContent>
           </Card>
 
@@ -121,8 +136,14 @@ const AdminMaster = () => {
               <Wallet className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">₹2.4M</div>
-              <p className="text-xs text-muted-foreground">Platform total</p>
+              {analytics ? (
+                <>
+                  <div className="text-2xl font-bold text-primary">₹{(analytics.totalDeposits / 1000000).toFixed(1)}M</div>
+                  <p className="text-xs text-muted-foreground">Platform total</p>
+                </>
+              ) : (
+                <Skeleton className="h-8 w-16" />
+              )}
             </CardContent>
           </Card>
 
@@ -143,8 +164,14 @@ const AdminMaster = () => {
               <BarChart3 className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-500">₹84.7K</div>
-              <p className="text-xs text-muted-foreground">+18% vs yesterday</p>
+              {analytics ? (
+                <>
+                  <div className="text-2xl font-bold text-purple-500">₹{(analytics.platformProfit / 1000).toFixed(1)}K</div>
+                  <p className="text-xs text-muted-foreground">+18% vs yesterday</p>
+                </>
+              ) : (
+                <Skeleton className="h-8 w-16" />
+              )}
             </CardContent>
           </Card>
 
@@ -154,8 +181,14 @@ const AdminMaster = () => {
               <Eye className="h-4 w-4 text-cyan-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-cyan-500">1,247</div>
-              <p className="text-xs text-muted-foreground">Online now</p>
+              {analytics ? (
+                <>
+                  <div className="text-2xl font-bold text-cyan-500">{analytics.liveUsers.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">Online now</p>
+                </>
+              ) : (
+                <Skeleton className="h-8 w-16" />
+              )}
             </CardContent>
           </Card>
         </div>

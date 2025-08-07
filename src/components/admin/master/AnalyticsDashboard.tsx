@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -9,10 +10,45 @@ import {
   Gamepad2,
   Calendar,
   Clock,
-  Target
+  Target,
+  RefreshCw
 } from 'lucide-react';
+import { useMasterAdminAnalytics } from '@/hooks/useMasterAdminAnalytics';
+import { Button } from '@/components/ui/button';
 
 export const AnalyticsDashboard = () => {
+  const { analytics, isLoading, error, refetch } = useMasterAdminAnalytics();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-6 w-20" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !analytics) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Failed to load analytics data</p>
+          <Button onClick={() => refetch()} className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -20,10 +56,20 @@ export const AnalyticsDashboard = () => {
           <h2 className="text-2xl font-bold text-foreground">Analytics Dashboard</h2>
           <p className="text-muted-foreground">Comprehensive platform insights and KPIs</p>
         </div>
-        <Badge variant="outline" className="bg-primary/10 text-primary">
-          <Calendar className="h-3 w-3 mr-1" />
-          Last 24h
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-primary/10 text-primary">
+            <Calendar className="h-3 w-3 mr-1" />
+            Last 24h
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            className="h-8"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       {/* Key Metrics Row */}
@@ -34,7 +80,7 @@ export const AnalyticsDashboard = () => {
             <Users className="h-4 w-4 text-gaming-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gaming-success">342</div>
+            <div className="text-2xl font-bold text-gaming-success">{analytics.newUsersToday.toLocaleString()}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-gaming-success" />
               +12% from yesterday
@@ -48,7 +94,7 @@ export const AnalyticsDashboard = () => {
             <DollarSign className="h-4 w-4 text-gaming-gold" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gaming-gold">₹1.2M</div>
+            <div className="text-2xl font-bold text-gaming-gold">₹{(analytics.totalDeposits / 100000).toFixed(1)}L</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-gaming-success" />
               +24% from yesterday
@@ -62,7 +108,7 @@ export const AnalyticsDashboard = () => {
             <Gamepad2 className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">8,924</div>
+            <div className="text-2xl font-bold text-primary">{analytics.totalGamesPlayed.toLocaleString()}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-gaming-success" />
               +8% from yesterday
@@ -76,7 +122,7 @@ export const AnalyticsDashboard = () => {
             <Target className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-500">₹84.7K</div>
+            <div className="text-2xl font-bold text-purple-500">₹{(analytics.platformProfit / 1000).toFixed(1)}K</div>
             <div className="flex items-center text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 mr-1 text-gaming-success" />
               +18% from yesterday
@@ -96,42 +142,28 @@ export const AnalyticsDashboard = () => {
             <CardDescription>Most played games today</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Color Prediction</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-muted rounded">
-                  <div className="w-4/5 h-2 bg-gaming-gold rounded"></div>
+            {analytics.gameStatistics.map((game, index) => {
+              const maxGames = Math.max(...analytics.gameStatistics.map(g => g.games_played));
+              const widthPercentage = (game.games_played / maxGames) * 100;
+              const colors = ['bg-gaming-gold', 'bg-primary', 'bg-gaming-success', 'bg-orange-500'];
+              
+              return (
+                <div key={game.game_type} className="flex items-center justify-between">
+                  <span className="text-sm font-medium capitalize">
+                    {game.game_type.replace('_', ' ')}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-2 bg-muted rounded">
+                      <div 
+                        className={`h-2 rounded ${colors[index % colors.length]}`}
+                        style={{ width: `${widthPercentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{game.games_played.toLocaleString()}</span>
+                  </div>
                 </div>
-                <span className="text-sm text-muted-foreground">2,847</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Aviator</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-muted rounded">
-                  <div className="w-3/5 h-2 bg-primary rounded"></div>
-                </div>
-                <span className="text-sm text-muted-foreground">1,932</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Andar Bahar</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-muted rounded">
-                  <div className="w-2/5 h-2 bg-gaming-success rounded"></div>
-                </div>
-                <span className="text-sm text-muted-foreground">1,456</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Roulette</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-muted rounded">
-                  <div className="w-1/5 h-2 bg-orange-500 rounded"></div>
-                </div>
-                <span className="text-sm text-muted-foreground">892</span>
-              </div>
-            </div>
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -192,7 +224,7 @@ export const AnalyticsDashboard = () => {
             <CardDescription>All-time platform earnings</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gaming-gold">₹12.4M</div>
+            <div className="text-3xl font-bold text-gaming-gold">₹{(analytics.financialMetrics.totalRevenue / 1000000).toFixed(1)}M</div>
             <div className="flex items-center text-sm text-muted-foreground mt-2">
               <TrendingUp className="h-4 w-4 mr-1 text-gaming-success" />
               Growth rate: +34% this month
@@ -206,7 +238,7 @@ export const AnalyticsDashboard = () => {
             <CardDescription>7-day retention rate</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gaming-success">68.2%</div>
+            <div className="text-3xl font-bold text-gaming-success">{analytics.financialMetrics.playerRetention}%</div>
             <div className="flex items-center text-sm text-muted-foreground mt-2">
               <TrendingUp className="h-4 w-4 mr-1 text-gaming-success" />
               +5.2% from last week
@@ -220,7 +252,7 @@ export const AnalyticsDashboard = () => {
             <CardDescription>Time per user session</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">42 min</div>
+            <div className="text-3xl font-bold text-primary">{analytics.financialMetrics.avgSessionTime} min</div>
             <div className="flex items-center text-sm text-muted-foreground mt-2">
               <TrendingUp className="h-4 w-4 mr-1 text-gaming-success" />
               +8 min from last week
