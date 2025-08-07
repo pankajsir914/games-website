@@ -1794,6 +1794,10 @@ export type Database = {
         Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
         Returns: Json
       }
+      setup_master_admin: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
       start_rummy_game: {
         Args: { p_session_id: string }
         Returns: Json

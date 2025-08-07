@@ -22,6 +22,8 @@ export const MasterAdminAuthProvider = ({ children }: { children: ReactNode }) =
 
   const checkMasterAdminRole = async (userId: string) => {
     try {
+      console.log('Checking master admin role for user:', userId);
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -29,12 +31,16 @@ export const MasterAdminAuthProvider = ({ children }: { children: ReactNode }) =
         .eq('role', 'master_admin')
         .single();
 
+      console.log('Role check response:', { data, error });
+
       if (error && error.code !== 'PGRST116') {
         console.error('Error checking master admin role:', error);
         return false;
       }
 
-      return !!data;
+      const isMaster = !!data;
+      console.log('Is master admin result:', isMaster);
+      return isMaster;
     } catch (error) {
       console.error('Error checking master admin role:', error);
       return false;
@@ -80,17 +86,28 @@ export const MasterAdminAuthProvider = ({ children }: { children: ReactNode }) =
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Attempting to sign in with:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      console.log('Supabase auth response:', { data, error });
+
+      if (error) {
+        console.error('Supabase auth error:', error);
+        throw error;
+      }
 
       // Check if user has master admin role
       if (data.user) {
+        console.log('User authenticated, checking master admin role...');
         const isMaster = await checkMasterAdminRole(data.user.id);
+        console.log('Is master admin:', isMaster);
+        
         if (!isMaster) {
+          console.log('User is not master admin, signing out...');
           await supabase.auth.signOut();
           throw new Error('Access denied. Master Admin privileges required.');
         }
@@ -102,6 +119,7 @@ export const MasterAdminAuthProvider = ({ children }: { children: ReactNode }) =
         description: "Welcome to the Master Admin Console.",
       });
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
         title: "Authentication Failed",
         description: error.message,

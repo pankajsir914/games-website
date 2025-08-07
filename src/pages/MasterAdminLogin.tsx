@@ -148,6 +148,22 @@ const MasterAdminLogin = () => {
           </div>
         </div>
 
+        {/* Setup Instructions */}
+        <Card className="mt-6 bg-gaming-accent/10 border-gaming-accent/20">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gaming-accent mb-2">
+                First Time Setup
+              </p>
+              <p className="text-xs text-muted-foreground">
+                1. Create a regular account via signup<br/>
+                2. Contact developer to grant master admin access<br/>
+                3. Login here with those credentials
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
