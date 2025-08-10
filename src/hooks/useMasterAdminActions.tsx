@@ -1,29 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
 
 export const useMasterAdminActions = () => {
   const qc = useQueryClient();
 
   const createAdmin = useMutation({
     mutationFn: async ({ fullName, email, phone, password, points }: { fullName: string; email: string; phone?: string; password: string; points?: number }) => {
-      const { data, error } = await supabase.rpc('admin_create_admin_user', {
-        p_email: email,
-        p_password: password,
-        p_full_name: fullName,
-        p_phone: phone || null,
+      // Use email as username for backend user
+      const res = await apiFetch('/admin/create-user', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: email,
+          password,
+          role: 'ADMIN',
+          initialPoints: Math.max(0, Number(points || 0)),
+        }),
       });
-      if (error) throw error;
-      const adminId = (data as any)?.user_id;
-      if (points && points > 0 && adminId) {
-        const { error: allocErr } = await supabase.rpc('allocate_admin_credits', {
-          p_admin_id: adminId,
-          p_amount: points,
-          p_notes: 'Initial allocation by master admin',
-        });
-        if (allocErr) throw allocErr;
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || 'Failed to create admin');
       }
-      return data;
+      return body;
     },
     onSuccess: () => {
       toast({ title: 'Admin created', description: 'Admin account created and points allocated.' });
