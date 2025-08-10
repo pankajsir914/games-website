@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validator';
 import { asyncHandler } from '../middleware/rateLimiter';
 import { idempotencyGuard } from '../middleware/idempotency';
-import { GameHistory, Round, Wallet, sequelize } from '../models';
+import { GameHistory, Round, Wallet, sequelize, WalletTransaction } from '../models';
 import { getCurrentRound } from '../services/pokerEngine';
 
 const router = express.Router();
@@ -23,6 +23,15 @@ router.post('/place-bet', requireAuth, idempotencyGuard, validate(betSchema), as
     const pointsBefore = wallet.balance;
     wallet.balance -= amount;
     await wallet.save({ transaction: t });
+
+    // Log wallet transaction (bet debit)
+    await WalletTransaction.create({
+      userId: req.user!.id,
+      actorId: req.user!.id,
+      amount,
+      type: 'debit',
+      reason: `Poker bet - Round ${round.sequence}`,
+    }, { transaction: t });
 
     const history = await GameHistory.create({
       userId: req.user!.id,

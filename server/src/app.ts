@@ -1,18 +1,25 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import hpp from 'hpp';
+import xss from 'xss-clean';
 import { globalLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import walletRoutes from './routes/wallet';
 import pokerRoutes from './routes/poker';
+import { csrfGuard } from './middleware/csrf';
+import { config } from './config/config';
 
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(hpp());
+app.use(xss());
+app.use(cors({ origin: config.corsOrigin, allowedHeaders: ['content-type','authorization','x-idempotency-key','x-csrf-token'], methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }));
 app.use(express.json());
 app.use(globalLimiter);
+app.use(csrfGuard);
 
 // Routes
 app.use('/auth', authRoutes);

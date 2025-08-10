@@ -5,7 +5,7 @@ import { requireAuth, requireRole } from '../middleware/auth';
 import { validate } from '../middleware/validator';
 import { asyncHandler } from '../middleware/rateLimiter';
 import { idempotencyGuard } from '../middleware/idempotency';
-import { sequelize, User, Wallet } from '../models';
+import { sequelize, User, Wallet, WalletTransaction } from '../models';
 
 const router = express.Router();
 
@@ -42,6 +42,23 @@ router.post('/create-user', requireAuth, requireRole('MASTER', 'ADMIN'), idempot
 
       wallet.balance += initialPoints;
       await wallet.save({ transaction: t });
+
+      // Log transactions
+      await WalletTransaction.create({
+        userId: creator.id,
+        actorId: creator.id,
+        amount: initialPoints,
+        type: 'debit',
+        reason: `Initial points assigned to ${username}`,
+      }, { transaction: t });
+
+      await WalletTransaction.create({
+        userId: user.id,
+        actorId: creator.id,
+        amount: initialPoints,
+        type: 'credit',
+        reason: `Initial points received from ${creator.username}`,
+      }, { transaction: t });
     }
 
     return { id: user.id, username: user.username, role: user.role };
@@ -67,6 +84,23 @@ router.post('/assign-points', requireAuth, requireRole('MASTER', 'ADMIN'), idemp
 
     await actorWallet.save({ transaction: t });
     await targetWallet.save({ transaction: t });
+
+    // Log transactions
+    await WalletTransaction.create({
+      userId: actorId,
+      actorId: actorId,
+      amount,
+      type: 'debit',
+      reason: `Points assigned to user ${targetUserId}`,
+    }, { transaction: t });
+
+    await WalletTransaction.create({
+      userId: targetUserId,
+      actorId: actorId,
+      amount,
+      type: 'credit',
+      reason: `Points received from admin ${actorId}`,
+    }, { transaction: t });
 
     return { fromBalance: actorWallet.balance, toBalance: targetWallet.balance };
   });

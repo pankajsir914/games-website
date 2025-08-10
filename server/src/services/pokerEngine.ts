@@ -1,6 +1,7 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { Round, GameHistory, sequelize } from '../models';
+import { WalletTransaction } from '../models/WalletTransaction';
 import { Hand } from 'pokersolver';
 import dayjs from 'dayjs';
 import { config } from '../config/config';
@@ -52,6 +53,14 @@ async function settleRound(round: Round, multiplier: number) {
       await gh.save({ transaction: t });
       if (payout > 0) {
         await sequelize.query('UPDATE wallets SET balance = balance + :payout WHERE "userId" = :userId', { transaction: t, replacements: { payout, userId: gh.userId } });
+        await WalletTransaction.create({
+          userId: gh.userId,
+          actorId: null,
+          amount: payout,
+          type: 'credit',
+          reason: `Poker payout - Round ${round.sequence} (${round.handName}) x${round.payoutMultiplier}`,
+          metadata: { roundId: round.id },
+        }, { transaction: t });
       }
     }
   });
