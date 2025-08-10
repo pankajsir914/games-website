@@ -70,7 +70,7 @@ export const MasterAdminLayout = ({ children }: MasterAdminLayoutProps) => {
             
             <div className="flex items-center space-x-2 text-sm">
               <User className="h-4 w-4" />
-              <span>{masterUser?.email}</span>
+              <span>{masterUser?.username}</span>
             </div>
             
             <Button variant="outline" size="sm" onClick={handleLogout}>
