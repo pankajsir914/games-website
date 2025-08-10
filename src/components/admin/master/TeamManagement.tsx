@@ -20,8 +20,10 @@ import {
   Mail,
   Phone
 } from 'lucide-react';
+import { CreateAdminModal } from './CreateAdminModal';
 
 export const TeamManagement = () => {
+  const [showCreate, setShowCreate] = useState(false);
   const [admins] = useState([
     {
       id: 1,
@@ -113,9 +115,9 @@ export const TeamManagement = () => {
           <h2 className="text-2xl font-bold text-foreground">Team & Admin Management</h2>
           <p className="text-muted-foreground">Manage admin roles, permissions, and team access</p>
         </div>
-        <Button className="bg-gaming-gold text-gaming-gold-foreground hover:bg-gaming-gold/90">
+        <Button className="bg-gaming-gold text-gaming-gold-foreground hover:bg-gaming-gold/90" onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Team Member
+          Add Admin
         </Button>
       </div>
 
@@ -166,105 +168,8 @@ export const TeamManagement = () => {
         </Card>
       </div>
 
-      {/* Add New Admin */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-gaming-gold" />
-            Add New Team Member
-          </CardTitle>
-          <CardDescription>Create new admin accounts with specific roles and permissions</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="admin-name">Full Name</Label>
-                <Input id="admin-name" placeholder="Enter full name" className="bg-background" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="admin-email">Email Address</Label>
-                <Input id="admin-email" type="email" placeholder="Enter email" className="bg-background" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="admin-phone">Phone Number</Label>
-                <Input id="admin-phone" placeholder="Enter phone number" className="bg-background" />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="admin-role">Role</Label>
-                <Select>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="moderator">Moderator</SelectItem>
-                    <SelectItem value="support">Support Staff</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="admin-location">Location</Label>
-                <Input id="admin-location" placeholder="City, Country" className="bg-background" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="admin-password">Temporary Password</Label>
-                <Input id="admin-password" type="password" placeholder="Auto-generated" className="bg-background" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Permissions</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">User Management</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Game Management</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Financial Control</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Content Management</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Analytics Access</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">Security Settings</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">User Support</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-sm">System Monitoring</span>
-              </label>
-            </div>
-          </div>
-          
-          <Button className="bg-gaming-gold text-gaming-gold-foreground hover:bg-gaming-gold/90">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Admin Account
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Add New Admin (moved to modal) */}
+      <CreateAdminModal open={showCreate} onOpenChange={setShowCreate} />
 
       {/* Team Members List */}
       <Card className="bg-gradient-card">

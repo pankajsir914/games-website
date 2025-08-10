@@ -4,9 +4,7 @@ import { toast } from 'sonner';
 
 interface MasterAdminUser {
   id: string;
-  username: string;
   email: string;
-  created_at: string;
 }
 
 interface MasterAdminAuthContextType {
@@ -14,7 +12,7 @@ interface MasterAdminAuthContextType {
   session: string | null;
   loading: boolean;
   isMasterAdmin: boolean;
-  signIn: (username: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -27,91 +25,68 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
 
   useEffect(() => {
-    // Check for existing session on mount
-    const storedSession = localStorage.getItem('master_admin_session');
-    const storedUser = localStorage.getItem('master_admin_user');
-    
-    if (storedSession && storedUser) {
-      setSession(storedSession);
-      setUser(JSON.parse(storedUser));
-      setIsMasterAdmin(true);
-    }
-    
-    setLoading(false);
+    const init = async () => {
+      setLoading(true);
+      const { data } = await supabase.auth.getSession();
+      const currentSession = data.session || null;
+      if (currentSession) {
+        setSession(currentSession.access_token);
+        setUser({ id: currentSession.user.id, email: currentSession.user.email || '' });
+        // Check role
+        const { data: roleData } = await supabase.rpc('get_user_highest_role', { _user_id: currentSession.user.id });
+        setIsMasterAdmin(roleData === 'master_admin');
+      }
+      setLoading(false);
+    };
+    init();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, sess) => {
+      if (sess) {
+        setSession(sess.access_token);
+        setUser({ id: sess.user.id, email: sess.user.email || '' });
+        const { data: roleData } = await supabase.rpc('get_user_highest_role', { _user_id: sess.user.id });
+        setIsMasterAdmin(roleData === 'master_admin');
+      } else {
+        setSession(null);
+        setUser(null);
+        setIsMasterAdmin(false);
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (username: string, password: string) => {
-    try {
-      setLoading(true);
-      console.log('Attempting manual login with:', username);
-      
-      // For now, use hardcoded credentials until migration is approved
-      if (username === 'masteradmin' && password === 'Admin@2024!') {
-        const mockUser: MasterAdminUser = {
-          id: 'master-admin-001',
-          username: 'masteradmin',
-          email: 'masteradmin@system.local',
-          created_at: new Date().toISOString()
-        };
-
-        const sessionToken = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        // Store session and user data
-        localStorage.setItem('master_admin_session', sessionToken);
-        localStorage.setItem('master_admin_user', JSON.stringify(mockUser));
-        
-        setSession(sessionToken);
-        setUser(mockUser);
-        setIsMasterAdmin(true);
-        
-        toast.success('Successfully signed in as Master Admin');
-      } else {
-        toast.error('Invalid credentials');
-        throw new Error('Invalid credentials');
-      }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
-    } finally {
+  const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(error.message);
       setLoading(false);
+      throw error;
     }
+    const user = data.user;
+    const { data: roleData } = await supabase.rpc('get_user_highest_role', { _user_id: user.id });
+    if (roleData !== 'master_admin') {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast.error('Master admin role required');
+      throw new Error('Not a master admin');
+    }
+    toast.success('Signed in as Master Admin');
+    setLoading(false);
   };
 
   const signOut = async () => {
-    try {
-      setLoading(true);
-      
-      // Clear local storage
-      localStorage.removeItem('master_admin_session');
-      localStorage.removeItem('master_admin_user');
-      
-      setUser(null);
-      setSession(null);
-      setIsMasterAdmin(false);
-      
-      toast.success('Successfully signed out');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      // Still clear local data even if logout call fails
-      localStorage.removeItem('master_admin_session');
-      localStorage.removeItem('master_admin_user');
-      setUser(null);
-      setSession(null);
-      setIsMasterAdmin(false);
-    } finally {
-      setLoading(false);
-    }
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setIsMasterAdmin(false);
   };
 
   return (
-    <MasterAdminAuthContext.Provider value={{
-      user,
-      session,
-      loading,
-      isMasterAdmin,
-      signIn,
-      signOut,
-    }}>
+    <MasterAdminAuthContext.Provider value={{ user, session, loading, isMasterAdmin, signIn, signOut }}>
       {children}
     </MasterAdminAuthContext.Provider>
   );
@@ -121,6 +96,6 @@ export const useMasterAdminAuth = () => {
   const context = useContext(MasterAdminAuthContext);
   if (context === undefined) {
     throw new Error('useMasterAdminAuth must be used within a MasterAdminAuthProvider');
-  }
+    }
   return context;
 };

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 
 const MasterAdminLogin = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const MasterAdminLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signIn(username, password);
+      await signIn(email, password);
       navigate('/master-admin');
     } catch (error) {
       // Error handling is done in the hook
@@ -69,13 +69,13 @@ const MasterAdminLogin = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-foreground">Username</Label>
+                <Label htmlFor="email" className="text-foreground">Email</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="masteradmin"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   className="bg-background border-gaming-gold/20 focus:border-gaming-gold"
                   required
                 />
@@ -151,15 +151,8 @@ const MasterAdminLogin = () => {
         {/* Setup Instructions */}
         <Card className="mt-6 bg-gaming-accent/10 border-gaming-accent/20">
           <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gaming-accent mb-2">
-                First Time Setup
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Default credentials for testing:<br/>
-                Username: <code className="bg-gaming-accent/20 px-1 rounded">masteradmin</code><br/>
-                Password: <code className="bg-gaming-accent/20 px-1 rounded">Admin@2024!</code>
-              </p>
+            <div className="text-center text-xs text-muted-foreground">
+              Ensure your Supabase user has the master_admin role. If setting up the first time, run setup_master_admin(email) on your DB.
             </div>
           </CardContent>
         </Card>
@@ -167,7 +160,7 @@ const MasterAdminLogin = () => {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            All login attempts are monitored and logged for security purposes
+            You must be signed into Supabase as a master_admin to access this panel
           </p>
         </div>
       </div>
