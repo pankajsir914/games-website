@@ -25,7 +25,7 @@ async function ensureMasterAdmin() {
 async function bootstrap() {
   try {
     await sequelize.authenticate();
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
     await ensureMasterAdmin();
 
     const server = http.createServer(app);

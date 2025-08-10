@@ -1,16 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import { z, ZodSchema } from 'zod';
+import Joi, { ObjectSchema } from 'joi';
 
-export function validate<T extends ZodSchema<any>>(schema: T) {
+export function validate(schema: { body?: ObjectSchema; params?: ObjectSchema; query?: ObjectSchema }) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse({ body: req.body, params: req.params, query: req.query });
-    if (!result.success) {
-      return res.status(400).json({ error: 'Validation failed', details: result.error.flatten() });
+    const bodySchema = schema.body || Joi.object({});
+    const paramsSchema = schema.params || Joi.object({});
+    const querySchema = schema.query || Joi.object({});
+
+    const { value: body, error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+    const { value: params, error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, stripUnknown: true });
+    const { value: query, error: queryErr } = querySchema.validate(req.query, { abortEarly: false, stripUnknown: true });
+
+    if (bodyErr || paramsErr || queryErr) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: {
+          body: bodyErr?.details,
+          params: paramsErr?.details,
+          query: queryErr?.details,
+        },
+      });
     }
-    // Assign parsed values back (optional)
-    req.body = result.data.body;
-    req.params = result.data.params as any;
-    req.query = result.data.query as any;
+
+    req.body = body;
+    req.params = params as any;
+    req.query = query as any;
     next();
   };
 }

@@ -1,5 +1,5 @@
 import express from 'express';
-import { z } from 'zod';
+import Joi from 'joi';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validator';
 import { asyncHandler } from '../middleware/rateLimiter';
@@ -9,7 +9,7 @@ import { getCurrentRound } from '../services/pokerEngine';
 
 const router = express.Router();
 
-const betSchema = z.object({ body: z.object({ amount: z.number().int().positive(), bet_type: z.string().default('standard') }) });
+const betSchema = { body: Joi.object({ amount: Joi.number().integer().positive().required(), bet_type: Joi.string().default('standard') }) };
 
 router.post('/place-bet', requireAuth, idempotencyGuard, validate(betSchema), asyncHandler(async (req, res) => {
   const { amount, bet_type } = req.body as { amount: number; bet_type: string };
