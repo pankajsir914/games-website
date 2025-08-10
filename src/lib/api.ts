@@ -19,12 +19,24 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers || {});
   headers.set('content-type', 'application/json');
   if (token) headers.set('authorization', `Bearer ${token}`);
+  if (typeof window !== 'undefined') {
+    const csrf = localStorage.getItem('csrf_token');
+    if (csrf) headers.set('x-csrf-token', csrf);
+  }
   const base = getApiBase();
   try {
+    // Prevent mixed-content requests from HTTPS pages to HTTP backends
+    if (typeof window !== 'undefined') {
+      const pageProtocol = window.location.protocol;
+      const baseProtocol = (() => { try { return new URL(base).protocol; } catch { return 'http:'; } })();
+      if (pageProtocol === 'https:' && baseProtocol !== 'https:') {
+        throw new Error('Insecure backend URL: use HTTPS to avoid mixed-content blocking.');
+      }
+    }
     const res = await fetch(`${base}${path}`, { ...options, headers });
     return res;
   } catch (e) {
-    throw new Error('Network error: unable to reach backend. Set a valid API URL in Backend Settings.');
+    throw new Error((e as Error).message || 'Network error: unable to reach backend. Set a valid API URL in Backend Settings.');
   }
 }
 
