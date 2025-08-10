@@ -23,9 +23,6 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
 import AdminGameDashboard from "./pages/AdminGameDashboard";
-import AdminGameSettings from "./pages/AdminGameSettings";
-import AdminSettings from "./pages/AdminSettings";
-import AdminSecurity from "./pages/AdminSecurity";
 import AdminMaster from "./pages/AdminMaster";
 import MasterAdminLogin from "./pages/MasterAdminLogin";
 import { MasterAdminAuthProvider } from "@/hooks/useMasterAdminAuth";
@@ -63,9 +60,9 @@ const App = () => (
               <Route path="/admin/transactions" element={<AdminTransactions />} />
               <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
               <Route path="/admin/game-dashboard/:gameType" element={<AdminGameDashboard />} />
-              <Route path="/admin/game-settings" element={<AdminGameSettings />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
-              <Route path="/admin/security" element={<AdminSecurity />} />
+              <Route path="/admin/game-settings" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin/settings" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin/security" element={<Navigate to="/admin" replace />} />
               
               {/* Master Admin Routes */}
               <Route path="/master-admin/login" element={<MasterAdminLogin />} />

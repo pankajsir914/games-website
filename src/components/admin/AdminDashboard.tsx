@@ -6,10 +6,9 @@ import { GameManagementPanel } from './GameManagementPanel';
 import { BetLogsPage } from './BetLogsPage';
 import { PlayerWalletInsights } from './PlayerWalletInsights';
 import { ResultManagement } from './ResultManagement';
-import { SecurityMonitoring } from './SecurityMonitoring';
 import { AdminLayout } from './AdminLayout';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { AlertTriangle, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export const AdminDashboard = () => {
   const { data: auth, isLoading } = useAdminAuth();
@@ -61,13 +60,12 @@ export const AdminDashboard = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="games">Game Management</TabsTrigger>
             <TabsTrigger value="bets">Bet Logs</TabsTrigger>
             <TabsTrigger value="wallets">Player Wallets</TabsTrigger>
             <TabsTrigger value="results">Results</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -90,9 +88,6 @@ export const AdminDashboard = () => {
             <ResultManagement />
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-6">
-            <SecurityMonitoring />
-          </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>

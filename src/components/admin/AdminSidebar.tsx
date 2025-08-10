@@ -5,11 +5,7 @@ import {
   LayoutDashboard, 
   Users, 
   CreditCard, 
-  Gamepad2, 
-  Settings, 
   CheckCircle,
-  BarChart3,
-  Shield,
   Crown,
   X,
   Zap
@@ -29,9 +25,6 @@ const menuItems = [
   { icon: Users, label: 'Users', href: '/admin/users' },
   { icon: CreditCard, label: 'Transactions', href: '/admin/transactions' },
   { icon: CheckCircle, label: 'Withdrawals', href: '/admin/withdrawals' },
-  { icon: Gamepad2, label: 'Game Settings', href: '/admin/game-settings' },
-  { icon: Settings, label: 'Site Config', href: '/admin/settings' },
-  { icon: Shield, label: 'Security', href: '/admin/security' },
 ];
 
 export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
