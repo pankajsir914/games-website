@@ -25,7 +25,8 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
     password: '',
     fullName: '',
     phone: '',
-    userType: 'user' as UserType
+    userType: 'user' as UserType,
+    initialPoints: '0'
   });
 
   const resetForm = () => {
@@ -34,7 +35,8 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       password: '',
       fullName: '',
       phone: '',
-      userType: 'user'
+      userType: 'user',
+      initialPoints: '0'
     });
   };
 
@@ -54,6 +56,20 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       });
 
       if (error) throw error;
+
+      // If creating admin and initial points provided, allocate credits
+      if (isCreatingAdmin) {
+        const createdAdminId = (data as any)?.user_id;
+        const initPoints = parseFloat(formData.initialPoints || '0');
+        if (createdAdminId && initPoints > 0) {
+          const { error: allocErr } = await supabase.rpc('allocate_admin_credits', {
+            p_admin_id: createdAdminId,
+            p_amount: initPoints,
+            p_notes: 'Initial allocation on admin creation'
+          });
+          if (allocErr) throw allocErr;
+        }
+      }
 
       const userTypeText = isCreatingAdmin ? 'Admin' : 'User';
       toast({
@@ -112,6 +128,25 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {canCreateAdmin && formData.userType === 'admin' && (
+            <div className="space-y-2">
+              <Label htmlFor="initialPoints">Initial Points (for Admin)</Label>
+              <div className="relative">
+                <Shield className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="initialPoints"
+                  type="number"
+                  min={0}
+                  step="1"
+                  placeholder="Enter points to allocate"
+                  value={formData.initialPoints}
+                  onChange={(e) => handleInputChange('initialPoints', e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
           )}
 

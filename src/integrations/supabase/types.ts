@@ -89,6 +89,60 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_credit_accounts: {
+        Row: {
+          admin_id: string
+          balance: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          balance?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          balance?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_credit_transactions: {
+        Row: {
+          admin_id: string
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          to_user_id: string | null
+          tx_type: string
+        }
+        Insert: {
+          admin_id: string
+          amount: number
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          to_user_id?: string | null
+          tx_type: string
+        }
+        Update: {
+          admin_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          to_user_id?: string | null
+          tx_type?: string
+        }
+        Relationships: []
+      }
       andar_bahar_bets: {
         Row: {
           bet_amount: number
@@ -1621,6 +1675,10 @@ export type Database = {
         }
         Returns: Json
       }
+      allocate_admin_credits: {
+        Args: { p_admin_id: string; p_amount: number; p_notes?: string }
+        Returns: Json
+      }
       buy_jackpot_tickets: {
         Args: { p_game_id: string; p_ticket_count: number }
         Returns: Json
@@ -1681,17 +1739,46 @@ export type Database = {
         Args: { p_max_players: number; p_entry_fee: number }
         Returns: Json
       }
+      get_admin_credit_balance: {
+        Args: { _admin_id?: string }
+        Returns: number
+      }
       get_current_jackpot_round: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_financial_management_data: {
+        Args: { p_timeframe?: string }
+        Returns: Json
+      }
+      get_games_management_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_platform_analytics: {
+        Args: { p_timeframe?: string }
         Returns: Json
       }
       get_poker_hand_strength: {
         Args: { hole_cards: Json; community_cards: Json }
         Returns: number
       }
+      get_security_monitoring_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: string
+      }
+      get_users_management_data: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
       }
       has_admin_role: {
         Args: {
@@ -1800,6 +1887,18 @@ export type Database = {
       }
       start_rummy_game: {
         Args: { p_session_id: string }
+        Returns: Json
+      }
+      transfer_admin_credits_to_user: {
+        Args: { p_user_id: string; p_amount: number; p_notes?: string }
+        Returns: Json
+      }
+      update_platform_settings: {
+        Args: { p_settings: Json }
+        Returns: Json
+      }
+      update_user_status: {
+        Args: { p_user_id: string; p_action: string; p_reason?: string }
         Returns: Json
       }
       update_wallet_balance: {

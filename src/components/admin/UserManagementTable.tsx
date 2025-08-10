@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, Edit, Trash2, Ban } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Ban, Coins } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PointsCreditModal } from '@/components/admin/PointsCreditModal';
 
 interface UserFilters {
   search: string;
@@ -34,6 +35,7 @@ interface UserManagementTableProps {
 
 export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
   const { data: users, isLoading } = useAdminUsers();
+  const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -136,6 +138,10 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setCreditModalUser(user.id)}>
+                        <Coins className="mr-2 h-4 w-4" />
+                        Credit Points
+                      </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit User
@@ -155,6 +161,12 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
             ))}
           </TableBody>
         </Table>
+        <PointsCreditModal
+          open={!!creditModalUser}
+          targetUserId={creditModalUser || ''}
+          onOpenChange={(open) => { if (!open) setCreditModalUser(null); }}
+          onComplete={() => setCreditModalUser(null)}
+        />
       </CardContent>
     </Card>
   );
