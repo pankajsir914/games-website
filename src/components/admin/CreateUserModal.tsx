@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,9 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
 
     try {
       const isCreatingAdmin = formData.userType === 'admin';
+      if (isMasterAdmin && !isCreatingAdmin) {
+        throw new Error('Master Admins can only create Admin accounts. Switch to an Admin account to create users.');
+      }
       const functionName = isCreatingAdmin ? 'admin_create_admin_user' : 'admin_create_user';
       
       const { data, error } = await supabase.rpc(functionName, {
@@ -100,8 +103,14 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   
   // Determine what user types can be created
   const canCreateAdmin = isMasterAdmin;
-  const canCreateUser = isRegularAdmin || isMasterAdmin;
+  const canCreateUser = isRegularAdmin;
 
+  // Force admin type for master admin to avoid invalid RPC
+  useEffect(() => {
+    if (isMasterAdmin && formData.userType !== 'admin') {
+      setFormData((prev) => ({ ...prev, userType: 'admin' }));
+    }
+  }, [isMasterAdmin]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -109,8 +118,8 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
           <DialogTitle>Create New Account</DialogTitle>
           <DialogDescription>
             {isMasterAdmin 
-              ? "Create a new admin or user account manually. The account will be able to login immediately with these credentials."
-              : "Create a new user account manually. The user will be able to login immediately with these credentials."
+              ? "Create a new admin account. To create users, sign in as an Admin."
+              : "Create a new user account. The user will be able to login immediately with these credentials."
             }
           </DialogDescription>
         </DialogHeader>
