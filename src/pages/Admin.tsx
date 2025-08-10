@@ -3,7 +3,7 @@ import React from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { DashboardStats } from '@/components/admin/DashboardStats';
 import { RecentActivity } from '@/components/admin/RecentActivity';
-import { QuickActions } from '@/components/admin/QuickActions';
+
 
 const Admin = () => {
   return (
@@ -16,14 +16,7 @@ const Admin = () => {
 
         <DashboardStats />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <RecentActivity />
-          </div>
-          <div>
-            <QuickActions />
-          </div>
-        </div>
+        <RecentActivity />
       </div>
     </AdminLayout>
   );
