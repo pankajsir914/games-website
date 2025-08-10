@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Crown, Shield, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
+import { getApiBase, setApiBase } from '@/lib/api';
 
 const MasterAdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -130,29 +131,19 @@ const MasterAdminLogin = () => {
           </CardContent>
         </Card>
 
-        {/* Security Features */}
-        <div className="mt-6 text-center">
-          <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Shield className="h-3 w-3" />
-              256-bit Encryption
-            </div>
-            <div className="flex items-center gap-1">
-              <Lock className="h-3 w-3" />
-              Secure Session
-            </div>
-            <div className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              Activity Logged
-            </div>
-          </div>
-        </div>
-
-        {/* Setup Instructions */}
-        <Card className="mt-6 bg-gaming-accent/10 border-gaming-accent/20">
-          <CardContent className="pt-6">
-            <div className="text-center text-xs text-muted-foreground">
-              Ensure your Supabase user has the master_admin role. If setting up the first time, run setup_master_admin(email) on your DB.
+        {/* Backend Settings */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-sm">Backend Settings</CardTitle>
+            <CardDescription>Set your Express API base URL</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input defaultValue={getApiBase()} placeholder="http://your-server:4000" id="api-base-input" />
+              <Button type="button" onClick={() => {
+                const el = document.getElementById('api-base-input') as HTMLInputElement | null;
+                if (el?.value) setApiBase(el.value.trim());
+              }}>Save</Button>
             </div>
           </CardContent>
         </Card>
@@ -160,7 +151,7 @@ const MasterAdminLogin = () => {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            You must be signed into Supabase as a master_admin to access this panel
+            API calls use the configured backend URL for Express JWT auth
           </p>
         </div>
       </div>
