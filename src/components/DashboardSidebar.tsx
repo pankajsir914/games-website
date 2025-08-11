@@ -30,14 +30,7 @@ export function DashboardSidebar() {
       count: 24,
       color: 'text-red-500'
     },
-    { 
-      id: 'games', 
-      title: '1win Games', 
-      icon: Crown, 
-      path: '/games',
-      count: 16,
-      color: 'text-gaming-gold'
-    },
+    
     { 
       id: 'sports', 
       title: 'Sports', 
@@ -94,14 +87,7 @@ export function DashboardSidebar() {
       count: 10428,
       color: 'text-gaming-gold'
     },
-    { 
-      id: 'exclusive', 
-      title: 'Only on 1win', 
-      icon: Crown, 
-      path: '/games',
-      count: 42,
-      color: 'text-blue-600'
-    },
+   
     { 
       id: 'drops', 
       title: 'Drops & Wins', 
