@@ -130,7 +130,7 @@ export function DashboardContent() {
               Live-games
             </Button>
             <Button variant="ghost" className="text-primary font-medium">
-              1win Games
+              RRB Games
             </Button>
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
               Trading
