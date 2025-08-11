@@ -67,13 +67,13 @@ const MasterAdminLogin = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-foreground">Username</Label>
+                <Label htmlFor="username" className="text-foreground">Email</Label>
                 <Input
                   id="username"
-                  type="text"
+                  type="email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="master"
+                  placeholder="admin@example.com"
                   className="bg-background border-gaming-gold/20 focus:border-gaming-gold"
                   required
                 />
@@ -132,7 +132,7 @@ const MasterAdminLogin = () => {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            API calls use the configured backend URL for Express JWT auth
+            Powered by Supabase Auth (email/password)
           </p>
         </div>
       </div>
