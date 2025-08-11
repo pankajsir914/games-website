@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { apiFetch } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 // Normalized match shape from backend
@@ -40,10 +40,12 @@ function useMatches(sport: string, kind: 'live' | 'upcoming' | 'results', team: 
       setLoading(true);
       setError(null);
       try {
-        const res = await apiFetch(`/api/${sport}/${kind}${q ? `?${q}` : ''}`);
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || 'Failed to load');
-        if (mounted) setData(json.items as MatchItem[]);
+        const { data, error } = await supabase.functions.invoke('sports-proxy', {
+          body: { sport, kind, date, team }
+        });
+        if (error) throw new Error(error.message || 'Failed to load');
+        const payload = data as any;
+        if (mounted) setData((payload?.items || []) as MatchItem[]);
       } catch (e: any) {
         if (mounted) setError(e.message || 'Failed to load');
       } finally {
