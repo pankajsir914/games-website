@@ -122,23 +122,6 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' }>= ({ spor
 
   return (
     <div className="space-y-8">
-      <Card>
-        <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
-          <div className="md:col-span-2 grid gap-3 md:grid-cols-2">
-            <div>
-              <label className="text-sm text-muted-foreground">Search by team</label>
-              <Input placeholder="Enter team name…" value={team} onChange={(e) => setTeam(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground">Filter by date</label>
-              <Input type="date" value={date ?? ''} onChange={(e) => setDate(e.target.value || null)} />
-            </div>
-          </div>
-          <div className="flex items-end">
-            <Button variant="outline" onClick={() => { setTeam(''); setDate(null); }}>Reset filters</Button>
-          </div>
-        </CardContent>
-      </Card>
 
       <Section title="Live Matches" right={<Badge variant="outline">Auto-refresh 10s</Badge>}>
         <MatchesList {...live} />
