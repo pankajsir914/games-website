@@ -148,14 +148,34 @@ async function cached<T>(key: string, ttlMs: number, fetcher: () => Promise<T>):
 }
 
 async function doFetch(url: string, headers?: Record<string, string>) {
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    const text = await res.text();
-    const err: any = new Error(`Upstream error: ${res.status} ${text}`);
-    err.status = 502;
-    throw err;
+  const baseHeaders: Record<string, string> = {
+    'accept': 'application/json',
+    'user-agent': 'supabase-edge/1.0',
+    ...(headers || {}),
+  };
+
+  let lastErr: any;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: baseHeaders });
+      if (!res.ok) {
+        const text = await res.text();
+        const err: any = new Error(`Upstream error: ${res.status} ${text}`);
+        err.status = 502;
+        throw err;
+      }
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+      // Retry only on network errors or connection resets
+      const msg = String((e as Error).message || '').toLowerCase();
+      if (!msg.includes('connection') && !msg.includes('reset') && !msg.includes('timeout')) break;
+      await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+    }
   }
-  return res.json();
+  const err: any = new Error(`Upstream fetch failed after retries: ${lastErr?.message || 'unknown error'}`);
+  err.status = (lastErr && (lastErr as any).status) || 502;
+  throw err;
 }
 
 Deno.serve(async (req) => {
@@ -185,7 +205,9 @@ Deno.serve(async (req) => {
       if (s === 'cricket' && !CRICAPI_KEY) {
         const err: any = new Error('Cricket API key not configured'); err.status = 500; throw err;
       }
-      const headers = s === 'cricket' ? undefined : { 'x-apisports-key': API_KEY, 'content-type': 'application/json' } as Record<string,string> | undefined;
+      const headers = s === 'cricket'
+        ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
+        : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
       const upstream = await doFetch(url, headers);
       const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
       let normalized = list.map((it) => normalizeItem(s, it));
