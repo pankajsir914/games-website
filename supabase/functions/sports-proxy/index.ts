@@ -8,7 +8,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-type Sport = 'football' | 'cricket' | 'hockey';
+type Sport = 'football' | 'cricket' | 'hockey' | 'basketball' | 'tennis' | 'baseball' | 'boxing' | 'kabaddi' | 'table-tennis';
 
 type Kind = 'live' | 'upcoming' | 'results';
 
@@ -17,12 +17,21 @@ const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY') || Deno.env.get('SPORTS_API_KEY'
 const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
 const CRICKET_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
+const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v1.basketball.api-sports.io';
+const TENNIS_BASE = Deno.env.get('SPORTS_API_TENNIS_BASE') || 'https://v1.tennis.api-sports.io';
+const BASEBALL_BASE = Deno.env.get('SPORTS_API_BASEBALL_BASE') || 'https://v1.baseball.api-sports.io';
 const DEFAULT_TTL = Number(Deno.env.get('SPORTS_CACHE_TTL') || '10'); // seconds
 
 const BASES: Record<Sport, string> = {
   football: FOOTBALL_BASE,
   cricket: CRICKET_BASE,
   hockey: HOCKEY_BASE,
+  basketball: BASKETBALL_BASE,
+  tennis: TENNIS_BASE,
+  baseball: BASEBALL_BASE,
+  boxing: '',
+  kabaddi: '',
+  'table-tennis': '',
 };
 
 // Simple in-memory cache (per function instance)
@@ -35,7 +44,7 @@ function ttlMsFor(kind: Kind) {
 
 function ensureSport(s: string | undefined): Sport {
   const v = (s || '').toLowerCase() as Sport;
-  if (!['football', 'cricket', 'hockey'].includes(v)) {
+  if (!['football', 'cricket', 'hockey', 'basketball', 'tennis', 'baseball', 'boxing', 'kabaddi', 'table-tennis'].includes(v)) {
     throw Object.assign(new Error('Unsupported sport'), { status: 400 });
   }
   return v;
@@ -62,12 +71,15 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     if (q.date) u.searchParams.set('date', q.date);
     return u.toString();
   }
-  // hockey
-  const u = new URL(BASES.hockey + '/games');
-  if (kind === 'live') u.searchParams.set('live', 'all');
-  else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
-  else if (kind === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
-  return u.toString();
+  if (sport === 'hockey' || sport === 'basketball' || sport === 'baseball' || sport === 'tennis') {
+    const u = new URL(BASES[sport] + '/games');
+    if (kind === 'live') u.searchParams.set('live', 'all');
+    else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
+    else if (kind === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
+    return u.toString();
+  }
+  // Unsupported for now: boxing, kabaddi, table-tennis
+  return '';
 }
 
 function normalizeItem(sport: Sport, item: any) {
@@ -195,8 +207,14 @@ Deno.serve(async (req) => {
     const k = (kind || 'live') as Kind;
     const q = { date: date || undefined };
 
-    const url = buildUrl(s, k, q);
-    const key = `${s}:${k}:${q.date || 'any'}`;
+const url = buildUrl(s, k, q);
+if (!url) {
+  return new Response(JSON.stringify({ sport: s, kind: k, count: 0, items: [] }), {
+    headers: corsHeaders,
+    status: 200,
+  });
+}
+const key = `${s}:${k}:${q.date || 'any'}`;
 
     const data = await cached(key, ttlMsFor(k), async () => {
       if (s !== 'cricket' && !API_KEY) {

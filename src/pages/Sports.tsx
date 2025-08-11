@@ -20,7 +20,7 @@ type MatchItem = {
   scores: { home: number | null; away: number | null };
 };
 
-const sports: Array<'cricket' | 'football' | 'hockey'> = ['cricket', 'football', 'hockey'];
+const sports: Array<'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing'> = ['basketball', 'tennis', 'kabaddi', 'baseball', 'table-tennis', 'boxing', 'cricket', 'football', 'hockey'];
 
 function useMatches(sport: string, kind: 'live' | 'upcoming' | 'results', team: string, date: string | null) {
   const [data, setData] = useState<MatchItem[] | null>(null);
@@ -112,7 +112,7 @@ const MatchesList: React.FC<{ data: MatchItem[] | null; loading: boolean; error:
   );
 };
 
-const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' }>= ({ sport }) => {
+const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing' }>= ({ sport }) => {
   const [team, setTeam] = useState('');
   const [date, setDate] = useState<string | null>(null);
 
