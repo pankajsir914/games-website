@@ -1881,6 +1881,10 @@ export type Database = {
         Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
         Returns: Json
       }
+      setup_admin_user: {
+        Args: { user_email: string; full_name: string; phone?: string }
+        Returns: Json
+      }
       setup_master_admin: {
         Args: { user_email: string }
         Returns: undefined
