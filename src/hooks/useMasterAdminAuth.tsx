@@ -54,7 +54,7 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
   const verifyAndLoadMasterAdmin = async (supabaseUser: User) => {
     try {
       // Check highest role via RPC (SECURITY DEFINER function already exists)
-      const { data: roleText, error } = await supabase.rpc('get_user_highest_role');
+      const { data: roleText, error } = await supabase.rpc('get_user_highest_role', { _user_id: supabaseUser.id });
       if (error) throw error;
 
       if (roleText !== 'master_admin') {
