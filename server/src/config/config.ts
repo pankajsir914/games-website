@@ -11,4 +11,11 @@ export const config = {
     password: process.env.MASTER_ADMIN_PASSWORD || 'master123',
     seedBalance: parseInt(process.env.MASTER_ADMIN_SEED_BALANCE || '1000000', 10),
   },
+  sportsApi: {
+    apiKey: process.env.SPORTS_API_KEY || '',
+    footballBase: process.env.SPORTS_API_FOOTBALL_BASE || 'https://v3.football.api-sports.io',
+    cricketBase: process.env.SPORTS_API_CRICKET_BASE || 'https://v1.cricket.api-sports.io',
+    hockeyBase: process.env.SPORTS_API_HOCKEY_BASE || 'https://v1.hockey.api-sports.io',
+    defaultTtlSeconds: parseInt(process.env.SPORTS_CACHE_TTL || '10', 10),
+  },
 };

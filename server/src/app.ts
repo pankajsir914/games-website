@@ -12,6 +12,7 @@ import pokerRoutes from './routes/poker';
 import { csrfGuard } from './middleware/csrf';
 import { config } from './config/config';
 import { swaggerSpec } from './docs/swagger';
+import sportsRoutes from './routes/sports';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/wallet', walletRoutes);
 app.use('/poker', pokerRoutes);
+app.use('/api', sportsRoutes);
 
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
