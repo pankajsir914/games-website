@@ -155,7 +155,7 @@ export function DashboardSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar-background">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center space-x-2">
           <div className="bg-gradient-primary rounded-lg p-2">

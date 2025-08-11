@@ -56,19 +56,19 @@ All colors MUST be HSL.
     --shadow-card: 0 8px 24px -6px hsl(240 10% 3.9% / 0.4);
     --shadow-glow: 0 0 40px hsl(47 96% 53% / 0.2);
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 240 3.7% 15.9%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-foreground: 0 0% 98%;
 
     --sidebar-primary: 240 5.9% 10%;
 
     --sidebar-primary-foreground: 0 0% 98%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent: 240 4.8% 20%;
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent-foreground: 0 0% 98%;
 
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 240 3.7% 20%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
