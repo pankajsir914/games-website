@@ -21,6 +21,7 @@ const Navigation = () => {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/games", label: "Games" },
+    { href: "/sports", label: "Sports" },
     { href: "/color-prediction", label: "Color Prediction" },
     { href: "/ludo", label: "Ludo" },
     { href: "/aviator", label: "Aviator" },

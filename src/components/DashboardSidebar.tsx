@@ -39,6 +39,14 @@ export function DashboardSidebar() {
       color: 'text-gaming-gold'
     },
     { 
+      id: 'sports', 
+      title: 'Sports', 
+      icon: Shield, 
+      path: '/sports',
+      count: 0,
+      color: 'text-blue-500'
+    },
+    { 
       id: 'recommended', 
       title: 'Recommended games', 
       icon: Star, 

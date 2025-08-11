@@ -18,6 +18,7 @@ import Poker from "./pages/Poker";
 import PokerTable from "./pages/PokerTable";
 import Jackpot from "./pages/Jackpot";
 import Wallet from "./pages/Wallet";
+import Sports from "./pages/Sports";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/games" element={<Games />} />
+              <Route path="/sports" element={<Sports />} />
               <Route path="/ludo" element={<Ludo />} />
               <Route path="/aviator" element={<Aviator />} />
               <Route path="/color-prediction" element={<ColorPrediction />} />
