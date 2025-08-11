@@ -33,7 +33,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
         throw new Error('Insecure backend URL: use HTTPS to avoid mixed-content blocking.');
       }
     }
-    const res = await fetch(`${base}${path}`, { ...options, headers });
+    const res = await fetch(`${base}${path}`, { ...options, headers, credentials: 'include' });
     return res;
   } catch (e) {
     throw new Error((e as Error).message || 'Network error: unable to reach backend. Set a valid API URL in Backend Settings.');

@@ -6,19 +6,23 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Crown, Shield, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
+import { getApiBase, setApiBase } from '@/lib/api';
+import { toast } from 'sonner';
 const MasterAdminLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { signIn, loading } = useMasterAdminAuth();
+  const apiBase = getApiBase();
+  const isMixed = typeof window !== 'undefined' && window.location.protocol === 'https:' && apiBase.startsWith('http://');
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signIn(username, password);
       navigate('/master-admin');
     } catch (error) {
-      // Error handling is done in the hook
+      // handled in hook
     }
   };
 
@@ -67,13 +71,13 @@ const MasterAdminLogin = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
+                <Label htmlFor="username" className="text-foreground">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
+                  id="username"
+                  type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="master"
                   className="bg-background border-gaming-gold/20 focus:border-gaming-gold"
                   required
                 />
@@ -128,10 +132,45 @@ const MasterAdminLogin = () => {
           </CardContent>
         </Card>
 
+        {/* Backend Settings */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="text-sm">Backend Settings</CardTitle>
+            <CardDescription>Set your Express API base URL</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input defaultValue={apiBase} placeholder="https://your-secure-api.example.com" id="api-base-input" />
+              <Button type="button" onClick={() => {
+                const el = document.getElementById('api-base-input') as HTMLInputElement | null;
+                const val = el?.value?.trim();
+                if (!val) return;
+                try {
+                  const url = new URL(val);
+                  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.protocol !== 'https:') {
+                    toast.error('Use an HTTPS backend URL to avoid mixed-content blocking.');
+                    return;
+                  }
+                  setApiBase(url.toString().replace(/\/$/, ''));
+                  toast.success('Backend URL saved');
+                } catch {
+                  toast.error('Please enter a valid URL (e.g., https://api.example.com)');
+                }
+              }}>Save</Button>
+            </div>
+            {isMixed && (
+              <div className="mt-3 text-xs text-gaming-danger">
+                Current backend URL is not HTTPS. Browsers will block requests from a secure page to an insecure backend.
+              </div>
+            )}
+
+          </CardContent>
+        </Card>
+
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            Secured via Supabase authentication (no backend URL needed)
+            API calls use the configured backend URL for Express JWT auth
           </p>
         </div>
       </div>

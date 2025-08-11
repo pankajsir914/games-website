@@ -26,6 +26,12 @@ router.post('/create-user', requireAuth, requireRole('MASTER', 'ADMIN'), idempot
     return res.status(403).json({ error: 'Admins can only create users' });
   }
 
+  // Check if user already exists
+  const existing = await User.findOne({ where: { username } });
+  if (existing) {
+    return res.status(409).json({ error: 'User already exists' });
+  }
+
   const hash = await bcrypt.hash(password, 10);
   const result = await sequelize.transaction(async (t) => {
     const user = await User.create({ username, passwordHash: hash, role: role === 'ADMIN' ? 'ADMIN' : 'USER' }, { transaction: t });

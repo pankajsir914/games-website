@@ -18,7 +18,7 @@ const app = express();
 app.use(helmet());
 app.use(hpp());
 app.use(xss());
-app.use(cors({ origin: config.corsOrigin, allowedHeaders: ['content-type','authorization','x-idempotency-key','x-csrf-token'], methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }));
+app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin, allowedHeaders: ['content-type','authorization','x-idempotency-key','x-csrf-token'], methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'], credentials: true }));
 app.use(express.json());
 app.use(globalLimiter);
 app.use(csrfGuard);

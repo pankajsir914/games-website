@@ -8,8 +8,8 @@ export function validate(schema: { body?: ObjectSchema; params?: ObjectSchema; q
     const querySchema = schema.query || Joi.object({});
 
     const { value: body, error: bodyErr } = bodySchema.validate(req.body, { abortEarly: false, stripUnknown: true });
-    const { value: params, error: paramsErr } = paramsSchema.validate(req.params, { abortEarly: false, stripUnknown: true });
-    const { value: query, error: queryErr } = querySchema.validate(req.query, { abortEarly: false, stripUnknown: true });
+    const { value: params, error: paramsErr } = paramsSchema.validate(req.params as any, { abortEarly: false, stripUnknown: true });
+    const { value: query, error: queryErr } = querySchema.validate(req.query as any, { abortEarly: false, stripUnknown: true });
 
     if (bodyErr || paramsErr || queryErr) {
       return res.status(400).json({
