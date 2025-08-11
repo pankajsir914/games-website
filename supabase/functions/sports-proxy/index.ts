@@ -13,8 +13,9 @@ type Sport = 'football' | 'cricket' | 'hockey';
 type Kind = 'live' | 'upcoming' | 'results';
 
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
+const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
 const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
-const CRICKET_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://v1.cricket.api-sports.io';
+const CRICKET_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
 const DEFAULT_TTL = Number(Deno.env.get('SPORTS_CACHE_TTL') || '10'); // seconds
 
@@ -54,10 +55,11 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     return u.toString();
   }
   if (sport === 'cricket') {
-    const u = new URL(BASES.cricket + '/fixtures');
-    if (kind === 'live') u.searchParams.set('live', 'all');
-    else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
-    else if (kind === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
+    const path = kind === 'live' ? '/currentMatches' : '/matches';
+    const u = new URL(BASES.cricket + path);
+    u.searchParams.set('apikey', CRICAPI_KEY);
+    u.searchParams.set('offset', '0');
+    if (q.date) u.searchParams.set('date', q.date);
     return u.toString();
   }
   // hockey
@@ -69,8 +71,47 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
 }
 
 function normalizeItem(sport: Sport, item: any) {
+  // CricAPI normalization
+  if (sport === 'cricket') {
+    const id = item.id || item.matchId || item.unique_id || null;
+    const date = item.date || item.dateTimeGMT || item.matchStartTime || null;
+    const status: string = item.status || item.ms || 'N/A';
+    const leagueName = item.series || item.name || 'Cricket';
+    const venue = item.venue || item.ground || null;
+
+    let home = 'Home';
+    let away = 'Away';
+    if (Array.isArray(item.teamInfo) && item.teamInfo.length >= 2) {
+      home = item.teamInfo[0]?.shortname || item.teamInfo[0]?.name || home;
+      away = item.teamInfo[1]?.shortname || item.teamInfo[1]?.name || away;
+    } else if (Array.isArray(item.teams) && item.teams.length >= 2) {
+      home = item.teams[0] || home;
+      away = item.teams[1] || away;
+    }
+
+    let scoreHome: number | null = null;
+    let scoreAway: number | null = null;
+    if (Array.isArray(item.score)) {
+      scoreHome = typeof item.score[0]?.r === 'number' ? item.score[0].r : scoreHome;
+      scoreAway = typeof item.score[1]?.r === 'number' ? item.score[1].r : scoreAway;
+    }
+
+    return {
+      sport,
+      id,
+      date,
+      league: leagueName,
+      venue,
+      status,
+      teams: { home, away },
+      scores: { home: scoreHome, away: scoreAway },
+      raw: item,
+    };
+  }
+
+  // Default (API-SPORTS football/hockey) normalization
   const fixture = item.fixture || item.game || item.match || {};
-  const league = item.league || item.tournament || {};
+  const leagueMeta = item.league || item.tournament || {};
   const teams = item.teams || (item.homeTeam || item.awayTeam ? { home: item.homeTeam, away: item.awayTeam } : {});
   const goals = item.goals || item.score || item.scores || {};
 
@@ -87,7 +128,7 @@ function normalizeItem(sport: Sport, item: any) {
     sport,
     id: fixture?.id || item?.id || item?.game?.id || null,
     date: fixture?.date || item?.date || item?.time?.date || null,
-    league: league?.name || item?.league?.name || item?.tournament?.name || 'Unknown',
+    league: leagueMeta?.name || item?.league?.name || item?.tournament?.name || 'Unknown',
     venue: fixture?.venue?.name || item?.venue?.name || null,
     status,
     statusShort,
@@ -106,13 +147,8 @@ async function cached<T>(key: string, ttlMs: number, fetcher: () => Promise<T>):
   return data;
 }
 
-async function doFetch(url: string) {
-  if (!API_KEY) {
-    const err: any = new Error('Sports API key not configured');
-    err.status = 500;
-    throw err;
-  }
-  const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY, 'content-type': 'application/json' } });
+async function doFetch(url: string, headers?: Record<string, string>) {
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     const text = await res.text();
     const err: any = new Error(`Upstream error: ${res.status} ${text}`);
@@ -143,9 +179,30 @@ Deno.serve(async (req) => {
     const key = `${s}:${k}:${q.date || 'any'}`;
 
     const data = await cached(key, ttlMsFor(k), async () => {
-      const upstream = await doFetch(url);
+      if (s !== 'cricket' && !API_KEY) {
+        const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
+      }
+      if (s === 'cricket' && !CRICAPI_KEY) {
+        const err: any = new Error('Cricket API key not configured'); err.status = 500; throw err;
+      }
+      const headers = s === 'cricket' ? undefined : { 'x-apisports-key': API_KEY, 'content-type': 'application/json' } as Record<string,string> | undefined;
+      const upstream = await doFetch(url, headers);
       const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
-      return list.map((it) => normalizeItem(s, it));
+      let normalized = list.map((it) => normalizeItem(s, it));
+      if (s === 'cricket') {
+        if (k === 'upcoming') {
+          normalized = normalized.filter((it) => {
+            const sl = String(it.status || '').toLowerCase();
+            return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule');
+          });
+        } else if (k === 'results') {
+          normalized = normalized.filter((it) => {
+            const sl = String(it.status || '').toLowerCase();
+            return sl.includes('won') || sl.includes('result') || sl.includes('completed') || sl.includes('draw') || sl.includes('tied') || sl.includes('abandoned');
+          });
+        }
+      }
+      return normalized;
     });
 
     // Filter client-side by team/date for safety
