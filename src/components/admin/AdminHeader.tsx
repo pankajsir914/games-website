@@ -34,13 +34,11 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
   };
 
   const getRoleIcon = () => {
-    if (adminAuth?.isMasterAdmin) return <Crown className="h-3 w-3 text-gaming-gold" />;
     if (adminAuth?.isAdmin) return <Shield className="h-3 w-3 text-gaming-danger" />;
     return <User className="h-3 w-3 text-primary" />;
   };
 
   const getRoleBadge = () => {
-    if (adminAuth?.isMasterAdmin) return <Badge className="bg-gaming-gold text-gaming-gold-foreground">Master Admin</Badge>;
     if (adminAuth?.isAdmin) return <Badge className="bg-gaming-danger text-gaming-danger-foreground">Admin</Badge>;
     if (adminAuth?.isModerator) return <Badge className="bg-primary text-primary-foreground">Moderator</Badge>;
     return <Badge variant="outline">User</Badge>;

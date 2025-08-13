@@ -31,7 +31,8 @@ export const useAdminAuth = () => {
         const isAdmin = role === 'admin';
         const isModerator = role === 'moderator';
         const isMasterAdmin = role === 'master_admin';
-        const hasAccess = isAdmin || isModerator || isMasterAdmin;
+        // Only allow admin and moderator access, exclude master admin
+        const hasAccess = (isAdmin || isModerator) && !isMasterAdmin;
 
         return {
           user,
