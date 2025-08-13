@@ -58,16 +58,18 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
       if (error) throw error;
 
       if (roleText !== 'master_admin') {
-        // Not a master admin; sign out to avoid partial sessions
-        await supabase.auth.signOut();
+        // Not a master admin; clear session for master admin context only
         setUser(null);
-        toast.error('Master Admin role required');
+        setSession(null);
+        console.log('User is not master admin, clearing master admin session');
       } else {
         // Map to existing shape (keep role as MASTER for compatibility across app)
         setUser({ id: supabaseUser.id, username: supabaseUser.email || 'master', role: 'MASTER' });
       }
     } catch (e: any) {
-      toast.error(e.message || 'Unable to verify admin role');
+      console.error('Master admin verification error:', e.message);
+      setUser(null);
+      setSession(null);
     } finally {
       setLoading(false);
     }
