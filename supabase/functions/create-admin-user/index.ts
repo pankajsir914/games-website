@@ -79,13 +79,15 @@ serve(async (req) => {
 
     console.log(`Auth user created: ${authUser.user.id}`)
 
-    // Create profile entry
+    // Create or update profile entry
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
+      .upsert({
         id: authUser.user.id,
         full_name: fullName,
         phone: phone || null
+      }, {
+        onConflict: 'id'
       })
 
     if (profileError) {
