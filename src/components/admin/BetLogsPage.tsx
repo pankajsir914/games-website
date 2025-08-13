@@ -10,9 +10,9 @@ import { Download, Search, Filter } from 'lucide-react';
 
 export const BetLogsPage = () => {
   const [filters, setFilters] = useState({
-    game: '',
+    game: 'all',
     player: '',
-    result: '',
+    result: 'all',
     dateFrom: '',
     dateTo: ''
   });
@@ -99,7 +99,7 @@ export const BetLogsPage = () => {
                   <SelectValue placeholder="All games" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All games</SelectItem>
+                  <SelectItem value="all">All games</SelectItem>
                   <SelectItem value="color prediction">Color Prediction</SelectItem>
                   <SelectItem value="aviator">Aviator</SelectItem>
                   <SelectItem value="andar bahar">Andar Bahar</SelectItem>
@@ -127,7 +127,7 @@ export const BetLogsPage = () => {
                   <SelectValue placeholder="All results" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All results</SelectItem>
+                  <SelectItem value="all">All results</SelectItem>
                   <SelectItem value="won">Won</SelectItem>
                   <SelectItem value="lost">Lost</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>

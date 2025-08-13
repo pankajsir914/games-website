@@ -143,7 +143,7 @@ export const useBetLogs = (filters?: {
       // Apply filters
       let filteredBets = allBets;
 
-      if (filters?.game) {
+      if (filters?.game && filters.game !== 'all') {
         filteredBets = filteredBets.filter(bet => bet.game.toLowerCase().includes(filters.game!.toLowerCase()));
       }
 
@@ -154,7 +154,7 @@ export const useBetLogs = (filters?: {
         );
       }
 
-      if (filters?.result) {
+      if (filters?.result && filters.result !== 'all') {
         filteredBets = filteredBets.filter(bet => bet.result === filters.result);
       }
 
