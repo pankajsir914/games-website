@@ -45,15 +45,7 @@ serve(async (req) => {
     // Get all users with admin roles
     const { data: adminRoles, error: rolesError } = await supabaseAdmin
       .from('user_roles')
-      .select(`
-        user_id,
-        role,
-        assigned_at,
-        profiles!inner(
-          full_name,
-          phone
-        )
-      `)
+      .select('user_id, role, assigned_at')
       .in('role', ['master_admin', 'admin', 'moderator'])
 
     if (rolesError) {
@@ -68,8 +60,18 @@ serve(async (req) => {
       )
     }
 
-    // Get auth users info using service role
+    // Get user profiles
     const userIds = adminRoles.map(role => role.user_id)
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, phone')
+      .in('id', userIds)
+
+    if (profilesError) {
+      console.warn('Error fetching profiles:', profilesError)
+    }
+
+    // Get auth users info using service role
     const { data: { users }, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
 
     if (usersError) {
@@ -91,7 +93,7 @@ serve(async (req) => {
     const teamMembers = adminRoles.map(role => {
       const authUser = users?.find(u => u.id === role.user_id)
       const wallet = wallets?.find(w => w.user_id === role.user_id)
-      const profile = role.profiles as any
+      const profile = profiles?.find(p => p.id === role.user_id)
 
       return {
         id: role.user_id,
