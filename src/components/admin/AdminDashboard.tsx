@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { OverviewDashboard } from './OverviewDashboard';
 import { GameManagementPanel } from './GameManagementPanel';
 import { BetLogsPage } from './BetLogsPage';
@@ -9,10 +10,12 @@ import { ResultManagement } from './ResultManagement';
 import { AdminLayout } from './AdminLayout';
 import { AdminWalletCard } from './AdminWalletCard';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { Shield, Users, Coins, TrendingUp } from 'lucide-react';
+import { useAdminDashboardStats } from '@/hooks/useAdminDashboardStats';
+import { Shield, Users, Coins, TrendingUp, CreditCard, Banknote, DollarSign, Activity } from 'lucide-react';
 
 export const AdminDashboard = () => {
   const { data: auth, isLoading } = useAdminAuth();
+  const { stats, isLoading: isLoadingStats } = useAdminDashboardStats();
 
   if (isLoading) {
     return (
@@ -62,34 +65,144 @@ export const AdminDashboard = () => {
         {/* Quick Stats Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <AdminWalletCard />
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2,384</div>
-              <p className="text-xs text-muted-foreground">+15% from last month</p>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-16 bg-muted rounded"></div>
+                ) : (
+                  stats?.totalUsers?.toLocaleString() || '0'
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                +{stats?.usersGrowth || 0}% from last month
+              </p>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Points Distributed</CardTitle>
+              <CardTitle className="text-sm font-medium">Points Distributed</CardTitle>
               <Coins className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹45,231</div>
-              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-20 bg-muted rounded"></div>
+                ) : (
+                  `₹${stats?.totalPointsDistributed?.toLocaleString() || '0'}`
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                +{stats?.pointsGrowth || 0}% from last month
+              </p>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-16 bg-muted rounded"></div>
+                ) : (
+                  stats?.activeSessions?.toLocaleString() || '0'
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Live users in last 30 minutes
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Secondary Stats Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Deposits</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-12 bg-muted rounded"></div>
+                ) : (
+                  stats?.pendingDeposits || '0'
+                )}
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                  Needs Review
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Withdrawals</CardTitle>
+              <Banknote className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-12 bg-muted rounded"></div>
+                ) : (
+                  stats?.pendingWithdrawals || '0'
+                )}
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <Badge variant="outline" className="text-orange-600 border-orange-600">
+                  Needs Action
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Bets</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">573</div>
-              <p className="text-xs text-muted-foreground">+201 since last hour</p>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-16 bg-muted rounded"></div>
+                ) : (
+                  stats?.todayBets?.toLocaleString() || '0'
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Live bet activity
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoadingStats ? (
+                  <div className="animate-pulse h-8 w-20 bg-muted rounded"></div>
+                ) : (
+                  `₹${stats?.todayRevenue?.toLocaleString() || '0'}`
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                House edge earnings
+              </p>
             </CardContent>
           </Card>
         </div>
