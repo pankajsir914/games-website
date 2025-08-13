@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Menu, User, LogOut, Shield, Crown } from 'lucide-react';
+import { Bell, Menu, User, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

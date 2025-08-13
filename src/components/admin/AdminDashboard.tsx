@@ -54,7 +54,7 @@ export const AdminDashboard = () => {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
-            <span>Secure Admin Panel</span>
+            <span>Admin Panel</span>
           </div>
         </div>
 

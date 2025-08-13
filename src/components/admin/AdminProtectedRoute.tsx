@@ -55,12 +55,12 @@ export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: Ad
     return <Navigate to="/admin/login" replace />;
   }
 
-  // Check if user has required admin role
+  // STRICT: Only admin and moderator roles allowed, NO master admin access
   const hasRequiredRole = requiredRole === 'moderator' 
     ? adminAuth.hasAccess 
     : adminAuth.isAdmin;
 
-  if (!hasRequiredRole) {
+  if (!hasRequiredRole || adminAuth.role === 'master_admin') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md bg-gradient-card border-amber-500/20">
@@ -70,6 +70,7 @@ export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: Ad
             <CardDescription>
               You don't have the required permissions to access this area.
               {requiredRole === 'admin' && ' Admin role required.'}
+              {adminAuth.role === 'master_admin' && ' Master admins cannot access the admin panel.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
