@@ -20,13 +20,18 @@ import {
   MapPin,
   Mail,
   Phone,
-  MoreVertical
+  MoreVertical,
+  Wallet,
+  Settings
 } from 'lucide-react';
 import { CreateAdminModal } from './CreateAdminModal';
-import { useTeamManagement } from '@/hooks/useTeamManagement';
+import { AdminProfileModal } from './AdminProfileModal';
+import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
 
 export const TeamManagement = () => {
   const [showCreate, setShowCreate] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { teamMembers, isLoading, updateUserStatus, isUpdating } = useTeamManagement();
 
@@ -79,6 +84,16 @@ export const TeamManagement = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleViewProfile = (member: TeamMember) => {
+    setSelectedMember(member);
+    setShowProfile(true);
+  };
+
+  const handleProfileUpdate = () => {
+    // Refresh team data after profile update
+    window.location.reload();
   };
 
   return (
@@ -151,6 +166,14 @@ export const TeamManagement = () => {
       <CreateAdminModal 
         open={showCreate} 
         onOpenChange={setShowCreate} 
+      />
+
+      {/* Admin Profile Modal */}
+      <AdminProfileModal
+        open={showProfile}
+        onOpenChange={setShowProfile}
+        member={selectedMember}
+        onUpdate={handleProfileUpdate}
       />
 
       {/* Team Members List */}
@@ -232,12 +255,16 @@ export const TeamManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewProfile(member)}>
                           <Eye className="h-3 w-3 mr-2" />
-                          View Details
+                          View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewProfile(member)}>
+                          <Wallet className="h-3 w-3 mr-2" />
+                          Manage Points
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                          <Edit className="h-3 w-3 mr-2" />
+                          <Settings className="h-3 w-3 mr-2" />
                           Edit Profile
                         </DropdownMenuItem>
                         {member.role !== 'master_admin' && (
