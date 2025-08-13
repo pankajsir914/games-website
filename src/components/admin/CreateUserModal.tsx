@@ -46,9 +46,6 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
 
     try {
       const isCreatingAdmin = formData.userType === 'admin';
-      if (isMasterAdmin && !isCreatingAdmin) {
-        throw new Error('Master Admins can only create Admin accounts. Switch to an Admin account to create users.');
-      }
       const functionName = isCreatingAdmin ? 'admin_create_admin_user' : 'admin_create_user';
       
       const { data, error } = await supabase.rpc(functionName, {
@@ -103,14 +100,14 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   
   // Determine what user types can be created
   const canCreateAdmin = isMasterAdmin;
-  const canCreateUser = isRegularAdmin;
+  const canCreateUser = isRegularAdmin || isMasterAdmin;
 
-  // Force admin type for master admin to avoid invalid RPC
+  // Set default user type for regular admins
   useEffect(() => {
-    if (isMasterAdmin && formData.userType !== 'admin') {
-      setFormData((prev) => ({ ...prev, userType: 'admin' }));
+    if (isRegularAdmin && formData.userType !== 'user') {
+      setFormData((prev) => ({ ...prev, userType: 'user' }));
     }
-  }, [isMasterAdmin]);
+  }, [isRegularAdmin]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -118,14 +115,14 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
           <DialogTitle>Create New Account</DialogTitle>
           <DialogDescription>
             {isMasterAdmin 
-              ? "Create a new admin account. To create users, sign in as an Admin."
+              ? "Create a new user or admin account."
               : "Create a new user account. The user will be able to login immediately with these credentials."
             }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {canCreateAdmin && (
+          {(canCreateAdmin || canCreateUser) && (
             <div className="space-y-2">
               <Label htmlFor="userType">Account Type *</Label>
               <Select value={formData.userType} onValueChange={(value) => handleInputChange('userType', value)}>
@@ -133,8 +130,8 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
                   <SelectValue placeholder="Select account type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">Regular User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  {canCreateUser && <SelectItem value="user">Regular User</SelectItem>}
+                  {canCreateAdmin && <SelectItem value="admin">Admin</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

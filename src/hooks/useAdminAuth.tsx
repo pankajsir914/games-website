@@ -30,15 +30,15 @@ export const useAdminAuth = () => {
         const role = userRole?.role || null;
         const isAdmin = role === 'admin';
         const isModerator = role === 'moderator';
-        // STRICT SEPARATION: Master admins have NO access to admin panel
         const isMasterAdmin = role === 'master_admin';
-        const hasAccess = (isAdmin || isModerator) && !isMasterAdmin;
+        const hasAccess = isAdmin || isModerator || isMasterAdmin;
 
         return {
           user,
           role,
           isAdmin,
           isModerator,
+          isMasterAdmin,
           hasAccess
         };
       } catch (error) {

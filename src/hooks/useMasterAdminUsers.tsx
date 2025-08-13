@@ -32,18 +32,27 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
-      // Get profiles with wallet data
-      const { data: profiles, error } = await supabase
+      // Get profiles data
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          wallets(current_balance)
-        `)
+        .select('*')
         .limit(50);
 
-      if (error) {
-        console.error('Error fetching users:', error);
-        throw error;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Get wallet data separately
+      const profileIds = profiles?.map(p => p.id) || [];
+      const { data: wallets, error: walletsError } = await supabase
+        .from('wallets')
+        .select('user_id, current_balance')
+        .in('user_id', profileIds);
+
+      if (walletsError) {
+        console.error('Error fetching wallets:', walletsError);
+        // Don't throw error, just continue without wallet data
       }
 
       // Get total count
@@ -51,15 +60,18 @@ export const useMasterAdminUsers = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
+      // Create wallet balance map
+      const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
+
       // Transform the data to match our interface
       const users = profiles?.map((profile: any) => ({
         id: profile.id,
-        email: 'user@example.com', // Can't get email from auth.users directly
+        email: `user-${profile.id.slice(0, 8)}@example.com`, // Mock email format
         full_name: profile.full_name || 'Anonymous',
         phone: profile.phone || '',
         created_at: profile.created_at,
         last_sign_in_at: profile.created_at, // Fallback since we can't access auth.users
-        current_balance: profile.wallets?.[0]?.current_balance || 0,
+        current_balance: walletMap.get(profile.id) || 0,
         total_deposits: 0, // Would need to calculate from wallet_transactions
         total_withdrawals: 0, // Would need to calculate from wallet_transactions
         games_played: 0, // Would need to calculate from game bets
