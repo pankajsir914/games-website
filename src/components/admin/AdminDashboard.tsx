@@ -7,8 +7,9 @@ import { BetLogsPage } from './BetLogsPage';
 import { PlayerWalletInsights } from './PlayerWalletInsights';
 import { ResultManagement } from './ResultManagement';
 import { AdminLayout } from './AdminLayout';
+import { AdminWalletCard } from './AdminWalletCard';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { Shield } from 'lucide-react';
+import { Shield, Users, Coins, TrendingUp } from 'lucide-react';
 
 export const AdminDashboard = () => {
   const { data: auth, isLoading } = useAdminAuth();
@@ -56,6 +57,41 @@ export const AdminDashboard = () => {
             <Shield className="h-4 w-4" />
             <span>Admin Panel</span>
           </div>
+        </div>
+
+        {/* Quick Stats Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <AdminWalletCard />
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">2,384</div>
+              <p className="text-xs text-muted-foreground">+15% from last month</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Points Distributed</CardTitle>
+              <Coins className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹45,231</div>
+              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">573</div>
+              <p className="text-xs text-muted-foreground">+201 since last hour</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Dashboard Tabs */}

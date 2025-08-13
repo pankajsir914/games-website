@@ -20,11 +20,12 @@ interface AdminSidebarProps {
 }
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Overview', href: '/admin' },
-  { icon: LayoutDashboard, label: 'Full Dashboard', href: '/admin/dashboard' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
   { icon: Users, label: 'Users', href: '/admin/users' },
-  { icon: CreditCard, label: 'Transactions', href: '/admin/transactions' },
+  { icon: CreditCard, label: 'Payments', href: '/admin/payments' },
   { icon: CheckCircle, label: 'Withdrawals', href: '/admin/withdrawals' },
+  { icon: CreditCard, label: 'Transactions', href: '/admin/transactions' },
+  { icon: Users, label: 'Bet Logs', href: '/admin/bets' },
 ];
 
 export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {

@@ -22,6 +22,8 @@ import {
 import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PointsCreditModal } from '@/components/admin/PointsCreditModal';
+import { useMasterAdminUsers } from '@/hooks/useMasterAdminUsers';
+import { toast } from '@/hooks/use-toast';
 
 interface UserFilters {
   search: string;
@@ -34,19 +36,40 @@ interface UserManagementTableProps {
 }
 
 export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
-  const { data: users, isLoading } = useAdminUsers();
+  const { users: usersResponse, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
+
+  const users = usersResponse?.users || [];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
         return <Badge className="bg-gaming-success">Active</Badge>;
+      case 'blocked':
+        return <Badge variant="destructive">Blocked</Badge>;
       case 'suspended':
         return <Badge variant="destructive">Suspended</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const handleUserAction = async (userId: string, action: 'block' | 'unblock' | 'suspend') => {
+    try {
+      await updateUserStatus({ userId, action, reason: `${action} by admin` });
+      refetch();
+      toast({
+        title: 'Success',
+        description: `User ${action}ed successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || `Failed to ${action} user`,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -73,11 +96,11 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
 
   // Apply filters
   const filteredUsers = users?.filter(user => {
-    if (filters.search && !user.full_name.toLowerCase().includes(filters.search.toLowerCase()) && 
-        !user.email.toLowerCase().includes(filters.search.toLowerCase())) {
+    if (filters.search && !user.full_name?.toLowerCase().includes(filters.search.toLowerCase()) && 
+        !user.email?.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    if (filters.status !== 'all' && user.status !== filters.status) {
+    if (filters.status !== 'all' && filters.status !== 'active') {
       return false;
     }
     return true;
@@ -105,10 +128,10 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>{user.id.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{user.full_name?.slice(0, 2).toUpperCase() || user.id.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{user.full_name}</div>
+                      <div className="font-medium">{user.full_name || 'No Name'}</div>
                       <div className="text-sm text-muted-foreground">ID: {user.id.slice(0, 8)}</div>
                     </div>
                   </div>
@@ -120,15 +143,15 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium">₹{user.current_balance.toLocaleString()}</span>
+                  <span className="font-medium">₹{user.current_balance?.toLocaleString() || '0'}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-gaming-success">₹{user.total_deposits.toLocaleString()}</span>
+                  <span className="text-gaming-success">₹{user.total_deposits?.toLocaleString() || '0'}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-gaming-danger">₹{user.total_withdrawals.toLocaleString()}</span>
+                  <span className="text-gaming-danger">₹{user.total_withdrawals?.toLocaleString() || '0'}</span>
                 </TableCell>
-                <TableCell>{getStatusBadge(user.status)}</TableCell>
+                <TableCell>{getStatusBadge('active')}</TableCell>
                 <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -142,17 +165,30 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                         <Coins className="mr-2 h-4 w-4" />
                         Credit Points
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit User
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      {true ? (
+                        <DropdownMenuItem 
+                          onClick={() => handleUserAction(user.id, 'block')}
+                          disabled={isUpdating}
+                          className="text-destructive"
+                        >
+                          <Ban className="mr-2 h-4 w-4" />
+                          Block User
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem 
+                          onClick={() => handleUserAction(user.id, 'unblock')}
+                          disabled={isUpdating}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Unblock User
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        onClick={() => handleUserAction(user.id, 'suspend')}
+                        disabled={isUpdating}
+                      >
                         <Ban className="mr-2 h-4 w-4" />
                         Suspend User
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete User
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

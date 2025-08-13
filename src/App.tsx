@@ -24,6 +24,8 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
+import AdminPayments from "./pages/AdminPayments";
+import AdminBets from "./pages/AdminBets";
 import AdminGameDashboard from "./pages/AdminGameDashboard";
 import AdminMaster from "./pages/AdminMaster";
 import MasterAdminLogin from "./pages/MasterAdminLogin";
@@ -85,10 +87,10 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/admin/transactions" 
+                path="/admin/payments" 
                 element={
                   <AdminProtectedRoute>
-                    <AdminTransactions />
+                    <AdminPayments />
                   </AdminProtectedRoute>
                 } 
               />
@@ -97,6 +99,22 @@ const App = () => (
                 element={
                   <AdminProtectedRoute>
                     <AdminWithdrawals />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/transactions" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminTransactions />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/bets" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminBets />
                   </AdminProtectedRoute>
                 } 
               />
