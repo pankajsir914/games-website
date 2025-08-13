@@ -20,6 +20,7 @@ import Jackpot from "./pages/Jackpot";
 import Wallet from "./pages/Wallet";
 import Sports from "./pages/Sports";
 import Admin from "./pages/Admin";
+import AdminLogin from "./pages/AdminLogin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
@@ -28,6 +29,7 @@ import AdminMaster from "./pages/AdminMaster";
 import MasterAdminLogin from "./pages/MasterAdminLogin";
 import { MasterAdminAuthProvider } from "@/hooks/useMasterAdminAuth";
 import { MasterAdminProtectedRoute } from "@/components/auth/MasterAdminProtectedRoute";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -56,12 +58,56 @@ const App = () => (
               <Route path="/poker/table/:tableId" element={<PokerTable />} />
               <Route path="/jackpot" element={<Jackpot />} />
               <Route path="/wallet" element={<Wallet />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/transactions" element={<AdminTransactions />} />
-              <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
-              <Route path="/admin/game-dashboard/:gameType" element={<AdminGameDashboard />} />
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route 
+                path="/admin" 
+                element={
+                  <AdminProtectedRoute>
+                    <Admin />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminDashboard />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/users" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminUsers />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/transactions" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminTransactions />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/withdrawals" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminWithdrawals />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/game-dashboard/:gameType" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminGameDashboard />
+                  </AdminProtectedRoute>
+                } 
+              />
               <Route path="/admin/game-settings" element={<Navigate to="/admin" replace />} />
               <Route path="/admin/settings" element={<Navigate to="/admin" replace />} />
               <Route path="/admin/security" element={<Navigate to="/admin" replace />} />
