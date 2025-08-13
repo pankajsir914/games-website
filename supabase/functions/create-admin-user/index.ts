@@ -97,12 +97,14 @@ serve(async (req) => {
       throw new Error(`Failed to create profile: ${profileError.message}`)
     }
 
-    // Create wallet entry
+    // Create or update wallet entry
     const { error: walletError } = await supabaseAdmin
       .from('wallets')
-      .insert({
+      .upsert({
         user_id: authUser.user.id,
         current_balance: 0
+      }, {
+        onConflict: 'user_id'
       })
 
     if (walletError) {
