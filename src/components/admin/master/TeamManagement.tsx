@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   Users, 
   UserCog, 
@@ -18,73 +19,22 @@ import {
   Clock,
   MapPin,
   Mail,
-  Phone
+  Phone,
+  MoreVertical
 } from 'lucide-react';
 import { CreateAdminModal } from './CreateAdminModal';
+import { useTeamManagement } from '@/hooks/useTeamManagement';
 
 export const TeamManagement = () => {
   const [showCreate, setShowCreate] = useState(false);
-  const [admins] = useState([
-    {
-      id: 1,
-      name: 'Rajesh Kumar',
-      email: 'rajesh@company.com',
-      phone: '+91 98765*****',
-      role: 'master_admin',
-      status: 'active',
-      lastLogin: '2024-01-15 14:30',
-      location: 'Mumbai, IN',
-      permissions: ['all'],
-      joinDate: '2023-01-15',
-      actionsCount: 2847
-    },
-    {
-      id: 2,
-      name: 'Priya Sharma',
-      email: 'priya@company.com',
-      phone: '+91 87654*****',
-      role: 'admin',
-      status: 'active',
-      lastLogin: '2024-01-15 13:45',
-      location: 'Delhi, IN',
-      permissions: ['user_management', 'game_management', 'transactions'],
-      joinDate: '2023-03-10',
-      actionsCount: 1923
-    },
-    {
-      id: 3,
-      name: 'Amit Patel',
-      email: 'amit@company.com',
-      phone: '+91 76543*****',
-      role: 'moderator',
-      status: 'active',
-      lastLogin: '2024-01-15 12:20',
-      location: 'Bangalore, IN',
-      permissions: ['user_support', 'content_management'],
-      joinDate: '2023-06-22',
-      actionsCount: 856
-    },
-    {
-      id: 4,
-      name: 'Sneha Reddy',
-      email: 'sneha@company.com',
-      phone: '+91 65432*****',
-      role: 'support',
-      status: 'inactive',
-      lastLogin: '2024-01-10 16:15',
-      location: 'Hyderabad, IN',
-      permissions: ['user_support'],
-      joinDate: '2023-09-15',
-      actionsCount: 445
-    }
-  ]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { teamMembers, isLoading, updateUserStatus, isUpdating } = useTeamManagement();
 
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'master_admin': return <Badge className="bg-gaming-gold text-gaming-gold-foreground">Master Admin</Badge>;
       case 'admin': return <Badge className="bg-gaming-danger text-gaming-danger-foreground">Admin</Badge>;
       case 'moderator': return <Badge className="bg-primary text-primary-foreground">Moderator</Badge>;
-      case 'support': return <Badge className="bg-gaming-success text-gaming-success-foreground">Support</Badge>;
       default: return <Badge variant="outline">Unknown</Badge>;
     }
   };
@@ -103,9 +53,32 @@ export const TeamManagement = () => {
       case 'master_admin': return <Crown className="h-4 w-4 text-gaming-gold" />;
       case 'admin': return <Shield className="h-4 w-4 text-gaming-danger" />;
       case 'moderator': return <UserCog className="h-4 w-4 text-primary" />;
-      case 'support': return <Users className="h-4 w-4 text-gaming-success" />;
       default: return <Users className="h-4 w-4 text-muted-foreground" />;
     }
+  };
+
+  // Filter team members based on search term
+  const filteredMembers = teamMembers?.filter(member => 
+    member.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  // Calculate role counts
+  const roleStats = {
+    master_admin: teamMembers?.filter(m => m.role === 'master_admin').length || 0,
+    admin: teamMembers?.filter(m => m.role === 'admin').length || 0,
+    moderator: teamMembers?.filter(m => m.role === 'moderator').length || 0,
+  };
+
+  const formatLastLogin = (lastSignIn: string | null) => {
+    if (!lastSignIn) return 'Never';
+    return new Date(lastSignIn).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -122,14 +95,14 @@ export const TeamManagement = () => {
       </div>
 
       {/* Role Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-gradient-card border-gaming-gold/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Master Admins</CardTitle>
             <Crown className="h-4 w-4 text-gaming-gold" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gaming-gold">1</div>
+            <div className="text-2xl font-bold text-gaming-gold">{roleStats.master_admin}</div>
             <p className="text-xs text-muted-foreground">Ultimate access</p>
           </CardContent>
         </Card>
@@ -140,7 +113,7 @@ export const TeamManagement = () => {
             <Shield className="h-4 w-4 text-gaming-danger" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gaming-danger">3</div>
+            <div className="text-2xl font-bold text-gaming-danger">{roleStats.admin}</div>
             <p className="text-xs text-muted-foreground">Full management access</p>
           </CardContent>
         </Card>
@@ -151,105 +124,160 @@ export const TeamManagement = () => {
             <UserCog className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">2</div>
+            <div className="text-2xl font-bold text-primary">{roleStats.moderator}</div>
             <p className="text-xs text-muted-foreground">Content & user moderation</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-card border-gaming-success/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Support Staff</CardTitle>
-            <Users className="h-4 w-4 text-gaming-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gaming-success">6</div>
-            <p className="text-xs text-muted-foreground">Customer support</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Add New Admin (moved to modal) */}
-      <CreateAdminModal open={showCreate} onOpenChange={setShowCreate} />
+      {/* Search */}
+      <Card className="bg-gradient-card">
+        <CardHeader>
+          <CardTitle>Search Team Members</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <Input
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add New Admin Modal */}
+      <CreateAdminModal 
+        open={showCreate} 
+        onOpenChange={setShowCreate} 
+      />
 
       {/* Team Members List */}
       <Card className="bg-gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            Team Members
+            Team Members ({filteredMembers.length})
           </CardTitle>
           <CardDescription>Manage existing team members and their access levels</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {admins.map((admin) => (
-              <div key={admin.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12 bg-primary">
-                    <AvatarFallback className="text-primary-foreground font-semibold">
-                      {admin.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold">{admin.name}</h4>
-                      {getRoleIcon(admin.role)}
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {admin.email}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {admin.phone}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {admin.location}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Last login: {admin.lastLogin}
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-6 w-16" />
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-sm font-semibold">{admin.actionsCount}</div>
-                    <div className="text-xs text-muted-foreground">Actions</div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredMembers.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-12 w-12 bg-primary">
+                      <AvatarFallback className="text-primary-foreground font-semibold">
+                        {member.full_name?.split(' ').map(n => n[0]).join('') || member.email.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold">{member.full_name || 'No Name'}</h4>
+                        {getRoleIcon(member.role)}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {member.email}
+                        </div>
+                        {member.phone && (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {member.phone}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Last login: {formatLastLogin(member.last_sign_in_at)}
+                        </div>
+                        <div>Balance: ₹{member.current_balance.toFixed(2)}</div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex gap-2">
-                    {getRoleBadge(admin.role)}
-                    {getStatusBadge(admin.status)}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
-                    {admin.role !== 'master_admin' && (
-                      <Button size="sm" variant="outline" className="text-gaming-danger">
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Remove
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-4">
+                    <div className="flex gap-2">
+                      {getRoleBadge(member.role)}
+                      {getStatusBadge(member.status)}
+                    </div>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" disabled={isUpdating}>
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Eye className="h-3 w-3 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Edit className="h-3 w-3 mr-2" />
+                          Edit Profile
+                        </DropdownMenuItem>
+                        {member.role !== 'master_admin' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => updateUserStatus({
+                                userId: member.id,
+                                action: member.status === 'active' ? 'suspend' : 'unblock',
+                                reason: `Status change by master admin`
+                              })}
+                            >
+                              <Shield className="h-3 w-3 mr-2" />
+                              {member.status === 'active' ? 'Suspend' : 'Activate'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-gaming-danger"
+                              onClick={() => updateUserStatus({
+                                userId: member.id,
+                                action: 'block',
+                                reason: 'Account blocked by master admin'
+                              })}
+                            >
+                              <Trash2 className="h-3 w-3 mr-2" />
+                              Remove Access
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+              
+              {filteredMembers.length === 0 && !isLoading && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No team members found.
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -271,7 +299,6 @@ export const TeamManagement = () => {
                   <th className="text-center p-2">Master Admin</th>
                   <th className="text-center p-2">Admin</th>
                   <th className="text-center p-2">Moderator</th>
-                  <th className="text-center p-2">Support</th>
                 </tr>
               </thead>
               <tbody className="space-y-1">
@@ -280,13 +307,11 @@ export const TeamManagement = () => {
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">❌</td>
-                  <td className="text-center p-2">❌</td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="p-2">Game Management</td>
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
                   <td className="text-center p-2">❌</td>
                 </tr>
                 <tr className="border-b border-border/50">
@@ -294,18 +319,9 @@ export const TeamManagement = () => {
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">❌</td>
-                  <td className="text-center p-2">❌</td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="p-2">Content Management</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="p-2">User Support</td>
-                  <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">✅</td>
                   <td className="text-center p-2">✅</td>
@@ -313,7 +329,6 @@ export const TeamManagement = () => {
                 <tr className="border-b border-border/50">
                   <td className="p-2">Admin Management</td>
                   <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
                   <td className="text-center p-2">❌</td>
                   <td className="text-center p-2">❌</td>
                 </tr>

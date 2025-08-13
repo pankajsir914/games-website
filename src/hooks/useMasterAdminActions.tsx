@@ -8,41 +8,34 @@ export const useMasterAdminActions = () => {
   const createAdmin = useMutation({
     mutationFn: async ({ fullName, email, phone, password, points }: { fullName: string; email: string; phone?: string; password: string; points?: number }) => {
       try {
-        // Create admin user using Supabase function
-        const { data, error } = await supabase.rpc('admin_create_admin_user', {
-          p_email: email,
-          p_password: password,
-          p_full_name: fullName,
-          p_phone: phone || null
+        // Use the edge function to create admin user
+        const { data, error } = await supabase.functions.invoke('create-admin-user', {
+          body: {
+            email,
+            password,
+            fullName,
+            phone: phone || null,
+            initialPoints: points || 0
+          }
         });
 
         if (error) {
-          if (error.message.includes('duplicate') || error.message.includes('already exists')) {
-            throw new Error('Admin already exists');
-          }
+          console.error('Function invocation error:', error);
           throw new Error(error.message || 'Failed to create admin');
         }
 
-        // Allocate initial points if specified
-        if (points && points > 0 && data && typeof data === 'object' && 'user_id' in data) {
-          const { error: creditError } = await supabase.rpc('allocate_admin_credits', {
-            p_admin_id: (data as any).user_id,
-            p_amount: points,
-            p_notes: 'Initial admin credit allocation'
-          });
-
-          if (creditError) {
-            console.warn('Failed to allocate initial credits:', creditError.message);
-          }
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to create admin');
         }
 
         return data;
       } catch (error: any) {
+        console.error('Admin creation error:', error);
         throw new Error(error.message || 'Failed to create admin');
       }
     },
     onSuccess: () => {
-      toast({ title: 'Admin created', description: 'Admin account created and points allocated.' });
+      toast({ title: 'Admin created', description: 'Admin account created successfully and can now login.' });
       qc.invalidateQueries();
     },
     onError: (err: any) => {

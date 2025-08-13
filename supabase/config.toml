@@ -10,5 +10,11 @@ function_name = "andar-bahar-game-manager"
 cron = "*/10 * * * * *"  # Every 10 seconds
 query_parameters = { action = "auto_manage" }
 
+[functions.create-admin-user]
+verify_jwt = true
+
+[functions.get-team-members]
+verify_jwt = true
+
 [functions.sports-proxy]
 verify_jwt = false
