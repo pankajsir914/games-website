@@ -64,10 +64,11 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     return u.toString();
   }
   if (sport === 'cricket') {
+    // For cricket API: currentMatches for live, matches for upcoming/results
     const path = kind === 'live' ? '/currentMatches' : '/matches';
     const u = new URL(BASES.cricket + path);
     u.searchParams.set('apikey', CRICAPI_KEY);
-    //u.searchParams.set('offset', '0');
+    u.searchParams.set('offset', '0');
     if (q.date) u.searchParams.set('date', q.date);
     return u.toString();
   }
@@ -228,21 +229,31 @@ const key = `${s}:${k}:${q.date || 'any'}`;
         const headers = s === 'cricket'
           ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
           : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
+        
+        console.log(`Fetching ${s} data from: ${url}`);
         const upstream = await doFetch(url, headers);
-        const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
+        console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
+        
+        // Cricket API returns data in 'data' array
+        const list: any[] = s === 'cricket' ? (upstream?.data || []) : (upstream?.response || upstream?.results || upstream?.data || []);
+        console.log(`${s} raw data list length:`, list.length);
+        
         let normalized = list.map((it) => normalizeItem(s, it));
+        console.log(`${s} normalized data:`, normalized.length, 'items');
+        
         if (s === 'cricket') {
           if (k === 'upcoming') {
             normalized = normalized.filter((it) => {
               const sl = String(it.status || '').toLowerCase();
-              return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule');
+              return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule') || sl.includes('fixture');
             });
           } else if (k === 'results') {
             normalized = normalized.filter((it) => {
               const sl = String(it.status || '').toLowerCase();
-              return sl.includes('won') || sl.includes('result') || sl.includes('completed') || sl.includes('draw') || sl.includes('tied') || sl.includes('abandoned');
+              return sl.includes('won') || sl.includes('result') || sl.includes('completed') || sl.includes('draw') || sl.includes('tied') || sl.includes('abandoned') || sl.includes('finished');
             });
           }
+          console.log(`${s} after filtering for ${k}:`, normalized.length, 'items');
         }
         return normalized;
       } catch (error) {
