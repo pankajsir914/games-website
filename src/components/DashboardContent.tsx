@@ -6,6 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { 
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { 
   Menu, Bell, User, Wallet, Play, Target, Zap, TrendingUp, Gamepad2, 
   Crown, Clock, Gift, Dice1, Heart, Trophy, Coins, Users, Star
 } from 'lucide-react';
@@ -14,14 +21,20 @@ export function DashboardContent() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const featuredGame = {
-    title: "The Luxe H.V",
-    subtitle: "GAME OF THE WEEK",
-    description: "Right in the heart: BF Games gives up to x15,000 in Heart of 1win",
-    image: "/lovable-uploads/d76d31c1-2f9d-457e-9033-0c2dbda73658.png",
-    buttonText: "Play",
-    path: "/games"
-  };
+  const promotionalImages = [
+    {
+      image: "/lovable-uploads/d76d31c1-2f9d-457e-9033-0c2dbda73658.png",
+      alt: "Promotional Banner 1"
+    },
+    {
+      image: "/placeholder.svg",
+      alt: "Promotional Banner 2"
+    },
+    {
+      image: "/placeholder.svg", 
+      alt: "Promotional Banner 3"
+    }
+  ];
 
   const popularGames = [
     {
@@ -160,40 +173,28 @@ export function DashboardContent() {
 
       {/* Content */}
       <div className="p-6 space-y-8">
-        {/* Featured Game Banner */}
-        <Card className="overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-border">
-          <CardContent className="p-0">
-            <div className="relative h-64 md:h-80">
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent z-10" />
-              <div 
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ 
-                  backgroundImage: `url('${featuredGame.image}')`,
-                  filter: 'brightness(0.7)'
-                }}
-              />
-              <div className="relative z-20 p-8 h-full flex flex-col justify-center">
-                <Badge className="w-fit mb-4 bg-gaming-gold text-gaming-gold-foreground">
-                  {featuredGame.subtitle}
-                </Badge>
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                  {featuredGame.title}
-                </h1>
-                <p className="text-xl text-gray-200 mb-6 max-w-lg">
-                  {featuredGame.description}
-                </p>
-                <Button 
-                  size="lg" 
-                  className="w-fit bg-white text-black hover:bg-gray-100"
-                  onClick={() => navigate(featuredGame.path)}
-                >
-                  <Play className="h-5 w-5 mr-2" />
-                  {featuredGame.buttonText}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Promotional Carousel */}
+        <Carousel className="w-full">
+          <CarouselContent>
+            {promotionalImages.map((promo, index) => (
+              <CarouselItem key={index}>
+                <Card className="overflow-hidden border-border">
+                  <CardContent className="p-0">
+                    <div className="relative h-64 md:h-80">
+                      <img
+                        src={promo.image}
+                        alt={promo.alt}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-4" />
+          <CarouselNext className="right-4" />
+        </Carousel>
 
         {/* Popular Games Section */}
         <div>
