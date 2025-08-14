@@ -67,7 +67,7 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     const path = kind === 'live' ? '/currentMatches' : '/matches';
     const u = new URL(BASES.cricket + path);
     u.searchParams.set('apikey', CRICAPI_KEY);
-    u.searchParams.set('offset', '0');
+    //u.searchParams.set('offset', '0');
     if (q.date) u.searchParams.set('date', q.date);
     return u.toString();
   }
