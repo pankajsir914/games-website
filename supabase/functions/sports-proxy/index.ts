@@ -15,7 +15,7 @@ type Kind = 'live' | 'upcoming' | 'results';
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
 const CRICAPI_KEY = 'a4cd2ec0-4175-4263-868a-22ef5cbd9316'; // Public cricket API key
 const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
-const CRICKET_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://api.cricapi.com/v1';
+const CRICKET_BASE = 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
 const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v1.basketball.api-sports.io';
 const TENNIS_BASE = Deno.env.get('SPORTS_API_TENNIS_BASE') || 'https://v1.tennis.api-sports.io';
@@ -223,26 +223,36 @@ const key = `${s}:${k}:${q.date || 'any'}`;
       if (s === 'cricket' && !CRICAPI_KEY) {
         const err: any = new Error('Cricket API key not configured'); err.status = 500; throw err;
       }
-      const headers = s === 'cricket'
-        ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
-        : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
-      const upstream = await doFetch(url, headers);
-      const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
-      let normalized = list.map((it) => normalizeItem(s, it));
-      if (s === 'cricket') {
-        if (k === 'upcoming') {
-          normalized = normalized.filter((it) => {
-            const sl = String(it.status || '').toLowerCase();
-            return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule');
-          });
-        } else if (k === 'results') {
-          normalized = normalized.filter((it) => {
-            const sl = String(it.status || '').toLowerCase();
-            return sl.includes('won') || sl.includes('result') || sl.includes('completed') || sl.includes('draw') || sl.includes('tied') || sl.includes('abandoned');
-          });
+      
+      try {
+        const headers = s === 'cricket'
+          ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
+          : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
+        const upstream = await doFetch(url, headers);
+        const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
+        let normalized = list.map((it) => normalizeItem(s, it));
+        if (s === 'cricket') {
+          if (k === 'upcoming') {
+            normalized = normalized.filter((it) => {
+              const sl = String(it.status || '').toLowerCase();
+              return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule');
+            });
+          } else if (k === 'results') {
+            normalized = normalized.filter((it) => {
+              const sl = String(it.status || '').toLowerCase();
+              return sl.includes('won') || sl.includes('result') || sl.includes('completed') || sl.includes('draw') || sl.includes('tied') || sl.includes('abandoned');
+            });
+          }
         }
+        return normalized;
+      } catch (error) {
+        console.error(`Error fetching ${s} data:`, error);
+        // Return empty array instead of throwing for cricket API failures
+        if (s === 'cricket') {
+          return [];
+        }
+        throw error;
       }
-      return normalized;
     });
 
     // Filter client-side by team/date for safety
