@@ -10,6 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar
 } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
@@ -141,17 +142,20 @@ export function DashboardSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center space-x-2">
-          <div className="bg-gradient-primary rounded-lg p-2">
-            <Crown className="h-6 w-6 text-primary-foreground" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="bg-gradient-primary rounded-lg p-2">
+              <Crown className="h-6 w-6 text-primary-foreground" />
+            </div>
+            {!collapsed && (
+              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                GameZone
+              </span>
+            )}
           </div>
-          {!collapsed && (
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              GameZone
-            </span>
-          )}
+          <SidebarTrigger className="h-8 w-8" />
         </div>
         {!collapsed && (
           <div className="relative mt-4">
