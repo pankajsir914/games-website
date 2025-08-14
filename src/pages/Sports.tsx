@@ -20,7 +20,7 @@ type MatchItem = {
   scores: { home: number | null; away: number | null };
 };
 
-const sports: Array<'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing'> = ['basketball', 'tennis', 'kabaddi', 'baseball', 'table-tennis', 'boxing', 'cricket', 'football', 'hockey'];
+const sports: Array<'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing'> = ['cricket', 'football', 'basketball', 'tennis', 'hockey', 'kabaddi', 'baseball', 'table-tennis', 'boxing'];
 
 function useMatches(sport: string, kind: 'live' | 'upcoming' | 'results', team: string, date: string | null) {
   const [data, setData] = useState<MatchItem[] | null>(null);
@@ -154,7 +154,7 @@ const Sports: React.FC = () => {
           <p className="text-muted-foreground">Cricket, Football and Hockey scores with live auto-refresh.</p>
         </div>
 
-        <Tabs defaultValue="football" className="w-full">
+        <Tabs defaultValue="cricket" className="w-full">
           <TabsList className="mb-4">
             {sports.map((s) => (
               <TabsTrigger key={s} value={s} className="capitalize">{s}</TabsTrigger>
