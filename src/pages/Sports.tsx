@@ -55,14 +55,7 @@ function useMatches(sport: string, kind: 'live' | 'upcoming' | 'results', team: 
 
     load();
 
-    // Auto-refresh live every 10s
-    if (kind === 'live') {
-      const id = setInterval(load, 10_000);
-      return () => {
-        mounted = false;
-        clearInterval(id);
-      };
-    }
+    // No auto-refresh to avoid constant loading
 
     return () => { mounted = false; };
   }, [sport, kind, q]);
@@ -123,7 +116,7 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   return (
     <div className="space-y-8">
 
-      <Section title="Live Matches" right={<Badge variant="outline">Auto-refresh 10s</Badge>}>
+      <Section title="Live Matches">
         <MatchesList {...live} />
       </Section>
 
