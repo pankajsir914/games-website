@@ -3,24 +3,29 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoulette } from '@/hooks/useRoulette';
 import { useGameManagement } from '@/hooks/useGameManagement';
+import { useWallet } from '@/hooks/useWallet';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
 import { RouletteWheel } from '@/components/roulette/RouletteWheel';
 import { BettingGrid } from '@/components/roulette/BettingGrid';
 import { GameTimer } from '@/components/roulette/GameTimer';
 import { RouletteHistory } from '@/components/roulette/RouletteHistory';
+import { RouletteLeaderboard } from '@/components/roulette/RouletteLeaderboard';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Trophy, Clock, DollarSign } from 'lucide-react';
 
 const Roulette = () => {
   const { user } = useAuth();
   const { isGamePaused } = useGameManagement();
+  const { walletData } = useWallet();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
   const {
     currentRound,
     userBets,
@@ -30,6 +35,8 @@ const Roulette = () => {
     roundLoading,
     placeBet,
     isPlacingBet,
+    spinWheel,
+    isSpinningWheel,
   } = useRoulette();
   
   const gameIsPaused = isGamePaused('roulette');
@@ -58,7 +65,15 @@ const Roulette = () => {
   }
 
   const isBettingOpen = currentRound?.status === 'betting' && timeRemaining > 0 && !gameIsPaused;
-  const isSpinning = currentRound?.status === 'spinning';
+  const isWheelSpinning = currentRound?.status === 'spinning' || isSpinningWheel;
+  const canSpin = currentRound?.status === 'betting' && timeRemaining <= 0 && userBets.length > 0 && !gameIsPaused;
+
+  const handleSpin = () => {
+    if (canSpin && currentRound) {
+      setIsSpinning(true);
+      spinWheel(currentRound.id);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,10 +90,26 @@ const Roulette = () => {
         )}
         
         <div className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-4">🎰 Roulette</h1>
-          <p className="text-xl text-gray-300">
-            Place your bets and spin the wheel of fortune!
+          <h1 className="text-4xl font-bold mb-4">🎰 European Roulette</h1>
+          <p className="text-xl text-gray-300 mb-4">
+            Single Zero • European Rules • Place your bets and spin the wheel!
           </p>
+          
+          {/* Game Stats */}
+          <div className="flex justify-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>Round #{currentRound?.round_number || 'N/A'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              <span>Balance: ₹{walletData?.current_balance || 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+              <span>Total Bets: ₹{userBets.reduce((sum, bet) => sum + bet.bet_amount, 0)}</span>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -112,29 +143,36 @@ const Roulette = () => {
                   </div>
                 ) : (
                   <RouletteWheel
-                    isSpinning={isSpinning}
+                    isSpinning={isWheelSpinning}
                     winningNumber={currentRound?.winning_number}
+                    onSpinComplete={() => setIsSpinning(false)}
                   />
                 )}
               </CardContent>
             </Card>
 
-            {/* Game Status */}
+            {/* Game Status & Spin Button */}
             {currentRound && (
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <div className="text-lg font-semibold">
                       Round #{currentRound.round_number}
                     </div>
                     
-                    {currentRound.status === 'betting' && (
+                    {currentRound.status === 'betting' && timeRemaining > 0 && (
                       <div className="text-green-600 font-medium">
-                        🟢 Betting is open! Place your bets now.
+                        🟢 Betting is open! Time remaining: {timeRemaining}s
                       </div>
                     )}
                     
-                    {currentRound.status === 'spinning' && (
+                    {currentRound.status === 'betting' && timeRemaining <= 0 && (
+                      <div className="text-orange-600 font-medium">
+                        🟡 Betting closed. Ready to spin!
+                      </div>
+                    )}
+                    
+                    {(currentRound.status === 'spinning' || isWheelSpinning) && (
                       <div className="text-blue-600 font-medium">
                         🔵 Wheel is spinning... Good luck!
                       </div>
@@ -145,6 +183,18 @@ const Roulette = () => {
                         🎯 Winning number: {currentRound.winning_number} ({currentRound.winning_color})
                       </div>
                     )}
+
+                    {/* Spin Button */}
+                    {canSpin && (
+                      <Button
+                        onClick={handleSpin}
+                        disabled={isSpinningWheel || gameIsPaused}
+                        size="lg"
+                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold text-lg px-8 py-3"
+                      >
+                        🎰 SPIN THE WHEEL
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -154,14 +204,18 @@ const Roulette = () => {
           {/* Right Panel */}
           <div className="xl:col-span-1">
             <Tabs defaultValue="history" className="w-full">
-              <TabsList className="grid w-full grid-cols-1">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="history">History</TabsTrigger>
+                <TabsTrigger value="leaderboard">Leaders</TabsTrigger>
               </TabsList>
               <TabsContent value="history" className="space-y-4">
                 <RouletteHistory
                   roundHistory={roundHistory}
                   userBetHistory={userBetHistory}
                 />
+              </TabsContent>
+              <TabsContent value="leaderboard" className="space-y-4">
+                <RouletteLeaderboard />
               </TabsContent>
             </Tabs>
           </div>

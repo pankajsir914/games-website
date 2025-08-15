@@ -120,6 +120,37 @@ export const useRoulette = () => {
     },
   });
 
+  // Spin wheel mutation
+  const spinWheelMutation = useMutation({
+    mutationFn: async (roundId: string) => {
+      const { data, error } = await supabase.functions.invoke('roulette-game-manager', {
+        body: { action: 'spin_wheel', round_id: roundId }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['roulette-current-round'] });
+      queryClient.invalidateQueries({ queryKey: ['roulette-history'] });
+      queryClient.invalidateQueries({ queryKey: ['roulette-user-bet'] });
+      queryClient.invalidateQueries({ queryKey: ['roulette-user-bet-history'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      
+      toast({
+        title: "Round Complete!",
+        description: `Winning number: ${data.winning_number}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Spin Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Calculate time remaining for betting
   useEffect(() => {
     if (!currentRound?.bet_end_time) {
@@ -201,6 +232,10 @@ export const useRoulette = () => {
     });
   };
 
+  const handleSpinWheel = (roundId: string) => {
+    spinWheelMutation.mutate(roundId);
+  };
+
   return {
     currentRound,
     userBets: userBet || [],
@@ -210,5 +245,7 @@ export const useRoulette = () => {
     roundLoading,
     placeBet: handlePlaceBet,
     isPlacingBet: placeBet.isPending,
+    spinWheel: handleSpinWheel,
+    isSpinningWheel: spinWheelMutation.isPending,
   };
 };
