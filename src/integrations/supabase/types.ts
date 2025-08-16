@@ -1791,6 +1791,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      is_master_admin_user: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       join_jackpot_round: {
         Args: { p_amount: number }
         Returns: Json

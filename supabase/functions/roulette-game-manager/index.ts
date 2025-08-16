@@ -53,6 +53,50 @@ serve(async (req) => {
 
     const { action } = await req.json();
 
+    // For create_round and spin_wheel actions, verify master admin access
+    if (action === 'create_round' || action === 'spin_wheel') {
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: 'Authorization required for admin actions' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401
+        });
+      }
+
+      // Verify user and check master admin status
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+      
+      if (userError || !user) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: 'Authentication failed' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401
+        });
+      }
+
+      // Check if user is master admin
+      const { data: isMasterAdmin, error: roleError } = await supabaseClient.rpc('is_master_admin_user', {
+        _user_id: user.id
+      });
+      
+      if (roleError || !isMasterAdmin) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: 'Master admin privileges required for game management' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403
+        });
+      }
+    }
+
     // Check if game is paused
     const { data: gameSettings } = await supabaseClient
       .from('game_settings')
