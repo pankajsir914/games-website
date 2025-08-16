@@ -286,7 +286,10 @@ export const UserManagement = () => {
                   <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12 bg-primary">
                       <AvatarFallback className="text-primary-foreground font-semibold">
-                        {(user.full_name || user.id).slice(0, 2).toUpperCase()}
+                        {(() => {
+                          const name = user.full_name || 'Anonymous User';
+                          return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                        })()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
