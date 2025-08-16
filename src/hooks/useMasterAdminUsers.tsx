@@ -32,63 +32,133 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
-      // Get profiles data
+      try {
+        // Use the comprehensive user management function if available
+        const { data: userManagementData, error: userError } = await supabase
+          .rpc('get_users_management_data', {
+            p_limit: 100,
+            p_offset: 0
+          });
+
+        if (!userError && userManagementData && typeof userManagementData === 'object') {
+          const data = userManagementData as any;
+          return {
+            users: data.users || [],
+            total_count: data.total_count || 0,
+            blocked_users: 0,
+            pending_kyc: 0,
+            high_risk_users: 0
+          } as UsersResponse;
+        }
+      } catch (error) {
+        console.log('RPC function not available, falling back to direct queries');
+      }
+
+      // Fallback to direct queries if RPC function is not available
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .limit(50);
+        .limit(100);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;
       }
 
-      // Get wallet data separately
       const profileIds = profiles?.map(p => p.id) || [];
-      const { data: wallets, error: walletsError } = await supabase
+
+      // Get wallet data
+      const { data: wallets } = await supabase
         .from('wallets')
         .select('user_id, current_balance')
         .in('user_id', profileIds);
 
-      if (walletsError) {
-        console.error('Error fetching wallets:', walletsError);
-        // Don't throw error, just continue without wallet data
-      }
+      // Get transaction summaries
+      const { data: depositSummary } = await supabase
+        .from('wallet_transactions')
+        .select('user_id, amount')
+        .eq('type', 'credit')
+        .ilike('reason', '%deposit%')
+        .in('user_id', profileIds);
+
+      const { data: withdrawalSummary } = await supabase
+        .from('wallet_transactions')
+        .select('user_id, amount')
+        .eq('type', 'debit')
+        .ilike('reason', '%withdrawal%')
+        .in('user_id', profileIds);
+
+      // Get game activity counts
+      const { data: aviatorBets } = await supabase
+        .from('aviator_bets')
+        .select('user_id')
+        .in('user_id', profileIds);
+
+      const { data: colorBets } = await supabase
+        .from('color_prediction_bets')
+        .select('user_id')
+        .in('user_id', profileIds);
+
+      const { data: andarBets } = await supabase
+        .from('andar_bahar_bets')
+        .select('user_id')
+        .in('user_id', profileIds);
+
+      const { data: rouletteBets } = await supabase
+        .from('roulette_bets')
+        .select('user_id')
+        .in('user_id', profileIds);
+
+      // Create summary maps
+      const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
+      
+      const depositMap = new Map();
+      depositSummary?.forEach(d => {
+        depositMap.set(d.user_id, (depositMap.get(d.user_id) || 0) + Number(d.amount));
+      });
+
+      const withdrawalMap = new Map();
+      withdrawalSummary?.forEach(w => {
+        withdrawalMap.set(w.user_id, (withdrawalMap.get(w.user_id) || 0) + Number(w.amount));
+      });
+
+      // Count games played per user
+      const gameCountMap = new Map();
+      [...(aviatorBets || []), ...(colorBets || []), ...(andarBets || []), ...(rouletteBets || [])].forEach(bet => {
+        gameCountMap.set(bet.user_id, (gameCountMap.get(bet.user_id) || 0) + 1);
+      });
 
       // Get total count
       const { count: totalCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
-      // Create wallet balance map
-      const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
-
-      // Transform the data to match our interface
+      // Transform the data
       const users = profiles?.map((profile: any) => ({
         id: profile.id,
-        email: `user-${profile.id.slice(0, 8)}@example.com`, // Mock email format
-        full_name: profile.full_name || 'Anonymous',
+        email: `${profile.full_name?.toLowerCase().replace(/\s+/g, '') || 'user'}@example.com`,
+        full_name: profile.full_name || 'Anonymous User',
         phone: profile.phone || '',
         created_at: profile.created_at,
-        last_sign_in_at: profile.created_at, // Fallback since we can't access auth.users
+        last_sign_in_at: profile.updated_at || profile.created_at,
         current_balance: walletMap.get(profile.id) || 0,
-        total_deposits: 0, // Would need to calculate from wallet_transactions
-        total_withdrawals: 0, // Would need to calculate from wallet_transactions
-        games_played: 0, // Would need to calculate from game bets
-        kyc_status: 'pending', // Default since we don't have KYC table yet
-        is_blocked: false, // Default since we can't check auth.users directly
-        risk_level: 'low' // Default
+        total_deposits: depositMap.get(profile.id) || 0,
+        total_withdrawals: withdrawalMap.get(profile.id) || 0,
+        games_played: gameCountMap.get(profile.id) || 0,
+        kyc_status: 'pending',
+        is_blocked: false,
+        risk_level: 'low'
       })) || [];
 
       return {
         users,
         total_count: totalCount || 0,
-        blocked_users: 0, // Will be implemented when we have user status tracking
-        pending_kyc: 0, // Will be implemented when we have KYC system
-        high_risk_users: 0
+        blocked_users: users.filter(u => u.is_blocked).length,
+        pending_kyc: users.filter(u => u.kyc_status === 'pending').length,
+        high_risk_users: users.filter(u => u.risk_level === 'high').length
       } as UsersResponse;
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
   });
 
   const updateUserStatus = useMutation({
