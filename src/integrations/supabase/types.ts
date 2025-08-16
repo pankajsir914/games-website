@@ -351,6 +351,57 @@ export type Database = {
         }
         Relationships: []
       }
+      banner_promotions: {
+        Row: {
+          click_count: number | null
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          end_date: string | null
+          id: string
+          image_url: string
+          impression_count: number | null
+          is_active: boolean | null
+          redirect_url: string | null
+          start_date: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          click_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          end_date?: string | null
+          id?: string
+          image_url: string
+          impression_count?: number | null
+          is_active?: boolean | null
+          redirect_url?: string | null
+          start_date?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          click_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          impression_count?: number | null
+          is_active?: boolean | null
+          redirect_url?: string | null
+          start_date?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       color_prediction_bets: {
         Row: {
           bet_amount: number
@@ -906,6 +957,54 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          delivered_count: number | null
+          id: string
+          is_scheduled: boolean | null
+          message: string
+          notification_type: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          target_audience: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          delivered_count?: number | null
+          id?: string
+          is_scheduled?: boolean | null
+          message: string
+          notification_type?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          target_audience?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          delivered_count?: number | null
+          id?: string
+          is_scheduled?: boolean | null
+          message?: string
+          notification_type?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          target_audience?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payment_requests: {
         Row: {
           admin_notes: string | null
@@ -1333,6 +1432,63 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          banner_url: string | null
+          created_at: string | null
+          created_by: string | null
+          current_usage: number | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          max_usage: number | null
+          percentage: number | null
+          promotion_type: string
+          start_date: string
+          target_audience: string | null
+          title: string
+          updated_at: string | null
+          value: number | null
+        }
+        Insert: {
+          banner_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_usage?: number | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          max_usage?: number | null
+          percentage?: number | null
+          promotion_type: string
+          start_date: string
+          target_audience?: string | null
+          title: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Update: {
+          banner_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_usage?: number | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          max_usage?: number | null
+          percentage?: number | null
+          promotion_type?: string
+          start_date?: string
+          target_audience?: string | null
+          title?: string
+          updated_at?: string | null
+          value?: number | null
         }
         Relationships: []
       }
