@@ -13,6 +13,7 @@ import Aviator from "./pages/Aviator";
 import ColorPrediction from "./pages/ColorPrediction";
 import AndarBahar from "./pages/AndarBahar";
 import Roulette from "./pages/Roulette";
+import RouletteAdmin from "./pages/RouletteAdmin";
 import Rummy from "./pages/Rummy";
 import Poker from "./pages/Poker";
 import PokerTable from "./pages/PokerTable";
@@ -124,11 +125,19 @@ const App = () => (
                   <AdminProtectedRoute>
                     <AdminGameDashboard />
                   </AdminProtectedRoute>
-                } 
-              />
-              <Route path="/admin/game-settings" element={<Navigate to="/admin" replace />} />
-              <Route path="/admin/settings" element={<Navigate to="/admin" replace />} />
-              <Route path="/admin/security" element={<Navigate to="/admin" replace />} />
+                 } 
+               />
+               <Route 
+                 path="/admin/roulette" 
+                 element={
+                   <AdminProtectedRoute>
+                     <RouletteAdmin />
+                   </AdminProtectedRoute>
+                 } 
+               />
+               <Route path="/admin/game-settings" element={<Navigate to="/admin" replace />} />
+               <Route path="/admin/settings" element={<Navigate to="/admin" replace />} />
+               <Route path="/admin/security" element={<Navigate to="/admin" replace />} />
               
               {/* Master Admin Routes */}
               <Route path="/master-admin/login" element={<MasterAdminLogin />} />

@@ -22,13 +22,19 @@ export const RouletteLeaderboard = () => {
         .from('wallets')
         .select(`
           user_id,
-          current_balance,
-          profiles!inner(full_name)
+          current_balance
         `)
         .order('current_balance', { ascending: false })
         .limit(10);
 
       if (error) throw error;
+
+      // Get profile information separately
+      const userIds = data.map(entry => entry.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
 
       // Get additional stats for each user
       const enrichedData = await Promise.all(
@@ -43,9 +49,11 @@ export const RouletteLeaderboard = () => {
           const totalWinnings = bets?.reduce((sum, bet) => sum + (bet.payout_amount || 0), 0) || 0;
           const gamesPlayed = bets?.length || 0;
 
+          const profile = profiles?.find(p => p.id === entry.user_id);
+
           return {
             user_id: entry.user_id,
-            full_name: entry.profiles?.full_name || 'Anonymous',
+            full_name: profile?.full_name || 'Anonymous',
             current_balance: entry.current_balance,
             total_winnings: totalWinnings,
             games_played: gamesPlayed,

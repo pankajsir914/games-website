@@ -155,8 +155,9 @@ async function spinWheel(supabase: any) {
     throw new Error('Betting period has not ended yet');
   }
 
-  // Generate random winning number (0-36)
-  const winningNumber = Math.floor(Math.random() * 37);
+  // Generate secure random winning number (0-36) using crypto.randomInt
+  const crypto = globalThis.crypto;
+  const winningNumber = crypto.getRandomValues(new Uint32Array(1))[0] % 37;
   
   console.log(`Round ${currentRound.round_number}: Winning number is ${winningNumber}`);
 
@@ -218,8 +219,9 @@ async function autoManageRounds(supabase: any) {
       console.log(`Auto-spinning round ${round.round_number}`);
       
       try {
-        // Generate winning number
-        const winningNumber = Math.floor(Math.random() * 37);
+        // Generate secure random number
+        const crypto = globalThis.crypto;
+        const winningNumber = crypto.getRandomValues(new Uint32Array(1))[0] % 37;
         
         // Update to spinning
         await supabase

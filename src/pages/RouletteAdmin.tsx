@@ -39,10 +39,21 @@ const RouletteAdmin = () => {
     queryFn: async () => {
       const [rounds, bets, users, recentActivity] = await Promise.all([
         supabase.from('roulette_rounds').select('*').order('created_at', { ascending: false }).limit(10),
-        supabase.from('roulette_bets').select('*, profiles!inner(full_name)').order('created_at', { ascending: false }).limit(20),
-        supabase.from('wallets').select('*, profiles!inner(full_name)').order('current_balance', { ascending: false }),
+        supabase.from('roulette_bets').select('*').order('created_at', { ascending: false }).limit(20),
+        supabase.from('wallets').select('*').order('current_balance', { ascending: false }),
         supabase.from('roulette_rounds').select('round_number, winning_number, created_at').eq('status', 'completed').order('created_at', { ascending: false }).limit(50)
       ]);
+
+      // Get user profiles separately
+      const userIds = [...new Set([
+        ...(bets.data?.map(bet => bet.user_id) || []),
+        ...(users.data?.map(user => user.user_id) || [])
+      ])];
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
 
       const totalBets = bets.data?.reduce((sum, bet) => sum + bet.bet_amount, 0) || 0;
       const totalPayouts = bets.data?.reduce((sum, bet) => sum + (bet.payout_amount || 0), 0) || 0;
@@ -50,8 +61,14 @@ const RouletteAdmin = () => {
 
       return {
         rounds: rounds.data || [],
-        bets: bets.data || [],
-        users: users.data || [],
+        bets: (bets.data || []).map(bet => ({
+          ...bet,
+          profile: profiles?.find(p => p.id === bet.user_id)
+        })),
+        users: (users.data || []).map(user => ({
+          ...user,
+          profile: profiles?.find(p => p.id === user.user_id)
+        })),
         recentActivity: recentActivity.data || [],
         totalBets,
         totalPayouts,
@@ -112,9 +129,9 @@ const RouletteAdmin = () => {
       const { error } = await supabase.rpc('update_wallet_balance', {
         p_user_id: userId,
         p_amount: amount,
-        p_transaction_type: amount > 0 ? 'credit' : 'debit',
+        p_type: amount > 0 ? 'credit' : 'debit',
         p_reason: `Admin balance adjustment: ${amount > 0 ? '+' : ''}${amount}`,
-        p_game_type: null,
+        p_game_type: 'casino',
         p_game_session_id: null
       });
       if (error) throw error;
@@ -254,7 +271,7 @@ const RouletteAdmin = () => {
                       <option value="">Select User</option>
                       {adminStats?.users.map((user) => (
                         <option key={user.user_id} value={user.user_id}>
-                          {user.profiles?.full_name || 'Anonymous'} - ₹{user.current_balance}
+                          {user.profile?.full_name || 'Anonymous'} - ₹{user.current_balance}
                         </option>
                       ))}
                     </select>
@@ -293,7 +310,7 @@ const RouletteAdmin = () => {
                   <TableBody>
                     {adminStats?.users.map((user) => (
                       <TableRow key={user.user_id}>
-                        <TableCell>{user.profiles?.full_name || 'Anonymous'}</TableCell>
+                        <TableCell>{user.profile?.full_name || 'Anonymous'}</TableCell>
                         <TableCell>₹{user.current_balance.toLocaleString()}</TableCell>
                         <TableCell>
                           <Badge variant={user.current_balance > 1000 ? 'default' : 'secondary'}>
@@ -376,7 +393,7 @@ const RouletteAdmin = () => {
                   <TableBody>
                     {adminStats?.bets.map((bet) => (
                       <TableRow key={bet.id}>
-                        <TableCell>{bet.profiles?.full_name || 'Anonymous'}</TableCell>
+                        <TableCell>{bet.profile?.full_name || 'Anonymous'}</TableCell>
                         <TableCell>{bet.bet_type} {bet.bet_value}</TableCell>
                         <TableCell>₹{bet.bet_amount}</TableCell>
                         <TableCell>₹{bet.payout_amount || 0}</TableCell>

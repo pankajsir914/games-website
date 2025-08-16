@@ -23,7 +23,7 @@ import { AlertTriangle, Trophy, Clock, DollarSign } from 'lucide-react';
 const Roulette = () => {
   const { user } = useAuth();
   const { isGamePaused } = useGameManagement();
-  const { walletData } = useWallet();
+  const { wallet } = useWallet();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const {
@@ -103,7 +103,7 @@ const Roulette = () => {
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              <span>Balance: ₹{walletData?.current_balance || 0}</span>
+              <span>Balance: ₹{wallet?.current_balance || 0}</span>
             </div>
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4" />
