@@ -73,8 +73,8 @@ export const ContentManagement = () => {
     },
     {
       id: 3,
-      question: 'How long does KYC verification take?',
-      answer: 'KYC verification typically takes 24-48 hours.',
+      question: 'How do I withdraw my winnings?',
+      answer: 'You can withdraw your winnings through the wallet section using your registered bank account.',
       category: 'account',
       status: 'published'
     }

@@ -13,7 +13,7 @@ interface UserData {
   total_deposits: number;
   total_withdrawals: number;
   games_played: number;
-  kyc_status: string;
+  
   is_blocked: boolean;
   risk_level: string;
 }
@@ -22,7 +22,7 @@ interface UsersResponse {
   users: UserData[];
   total_count: number;
   blocked_users: number;
-  pending_kyc: number;
+  
   high_risk_users: number;
 }
 
@@ -145,7 +145,7 @@ export const useMasterAdminUsers = () => {
         total_deposits: depositMap.get(profile.id) || 0,
         total_withdrawals: withdrawalMap.get(profile.id) || 0,
         games_played: gameCountMap.get(profile.id) || 0,
-        kyc_status: 'pending',
+        
         is_blocked: false,
         risk_level: 'low'
       })) || [];
@@ -154,7 +154,7 @@ export const useMasterAdminUsers = () => {
         users,
         total_count: totalCount || 0,
         blocked_users: users.filter(u => u.is_blocked).length,
-        pending_kyc: users.filter(u => u.kyc_status === 'pending').length,
+        
         high_risk_users: users.filter(u => u.risk_level === 'high').length
       } as UsersResponse;
     },

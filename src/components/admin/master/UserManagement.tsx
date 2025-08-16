@@ -45,7 +45,7 @@ export const UserManagement = () => {
   const { users: usersResponse, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
   
   const users = usersResponse?.users || [];
-  const stats = usersResponse || { total_count: 0, blocked_users: 0, pending_kyc: 0, high_risk_users: 0 };
+  const stats = usersResponse || { total_count: 0, blocked_users: 0, high_risk_users: 0 };
 
   const getStatusBadge = (user: any) => {
     const isBlocked = user.is_blocked;
@@ -55,14 +55,6 @@ export const UserManagement = () => {
     return <Badge className="bg-gaming-success text-gaming-success-foreground">Active</Badge>;
   };
 
-  const getKYCBadge = (kycStatus: string) => {
-    switch (kycStatus) {
-      case 'verified': return <Badge className="bg-gaming-success text-gaming-success-foreground">Verified</Badge>;
-      case 'pending': return <Badge className="bg-orange-500 text-white">Pending</Badge>;
-      case 'rejected': return <Badge className="bg-gaming-danger text-gaming-danger-foreground">Rejected</Badge>;
-      default: return <Badge variant="outline">Not Submitted</Badge>;
-    }
-  };
 
   const handleUserAction = async (user: any, action: 'block' | 'unblock' | 'suspend') => {
     setSelectedUser(user);
@@ -198,17 +190,6 @@ export const UserManagement = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending KYC</p>
-                <p className="text-2xl font-bold text-orange-500">{stats.pending_kyc}</p>
-              </div>
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
                 <p className="text-sm text-muted-foreground">High Risk</p>
                 <p className="text-2xl font-bold text-gaming-danger">{stats.high_risk_users}</p>
               </div>
@@ -304,7 +285,6 @@ export const UserManagement = () => {
                   
                   <div className="flex gap-2">
                     {getStatusBadge(user)}
-                    {getKYCBadge(user.kyc_status)}
                   </div>
                 </div>
 

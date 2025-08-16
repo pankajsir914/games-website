@@ -147,14 +147,14 @@ const AdminMaster = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-orange-500/20">
+          <Card className="bg-gradient-card border-cyan-500/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending KYC</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <CardTitle className="text-sm font-medium">Live Sessions</CardTitle>
+              <Activity className="h-4 w-4 text-cyan-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-500">23</div>
-              <p className="text-xs text-muted-foreground">Needs review</p>
+              <div className="text-2xl font-bold text-cyan-500">142</div>
+              <p className="text-xs text-muted-foreground">Active now</p>
             </CardContent>
           </Card>
 
