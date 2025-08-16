@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -1660,8 +1660,8 @@ export type Database = {
       admin_create_admin_user: {
         Args: {
           p_email: string
-          p_password: string
           p_full_name: string
+          p_password: string
           p_phone?: string
         }
         Returns: Json
@@ -1669,8 +1669,8 @@ export type Database = {
       admin_create_user: {
         Args: {
           p_email: string
-          p_password: string
           p_full_name: string
+          p_password: string
           p_phone?: string
         }
         Returns: Json
@@ -1710,33 +1710,33 @@ export type Database = {
       create_admin_alert: {
         Args: {
           p_alert_type: string
+          p_data?: Json
+          p_description?: string
           p_severity: string
           p_title: string
-          p_description?: string
-          p_data?: Json
         }
         Returns: string
       }
       create_aviator_chat_message: {
         Args:
           | {
+              p_amount?: number
               p_message: string
               p_message_type?: string
               p_multiplier?: number
-              p_amount?: number
             }
           | {
-              p_user_id: string
-              p_username: string
+              p_amount?: number
               p_message: string
               p_message_type?: string
               p_multiplier?: number
-              p_amount?: number
+              p_user_id: string
+              p_username: string
             }
         Returns: string
       }
       create_ludo_room: {
-        Args: { p_max_players: number; p_entry_fee: number }
+        Args: { p_entry_fee: number; p_max_players: number }
         Returns: Json
       }
       get_admin_credit_balance: {
@@ -1760,7 +1760,7 @@ export type Database = {
         Returns: Json
       }
       get_poker_hand_strength: {
-        Args: { hole_cards: Json; community_cards: Json }
+        Args: { community_cards: Json; hole_cards: Json }
         Returns: number
       }
       get_security_monitoring_data: {
@@ -1782,8 +1782,8 @@ export type Database = {
       }
       has_admin_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["admin_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -1801,9 +1801,9 @@ export type Database = {
       }
       join_poker_table: {
         Args: {
-          p_table_id: string
-          p_seat_number: number
           p_buy_in_amount: number
+          p_seat_number: number
+          p_table_id: string
         }
         Returns: Json
       }
@@ -1816,53 +1816,53 @@ export type Database = {
         Returns: Json
       }
       lock_wallet_balance: {
-        Args: { p_user_id: string; p_amount: number; p_lock?: boolean }
+        Args: { p_amount: number; p_lock?: boolean; p_user_id: string }
         Returns: Json
       }
       log_admin_activity: {
         Args: {
           p_action_type: string
-          p_target_type?: string
-          p_target_id?: string
           p_details?: Json
+          p_target_id?: string
+          p_target_type?: string
         }
         Returns: string
       }
       place_andar_bahar_bet: {
-        Args: { p_round_id: string; p_bet_side: string; p_bet_amount: number }
+        Args: { p_bet_amount: number; p_bet_side: string; p_round_id: string }
         Returns: Json
       }
       place_aviator_bet: {
         Args: {
-          p_round_id: string
-          p_bet_amount: number
           p_auto_cashout_multiplier?: number
+          p_bet_amount: number
+          p_round_id: string
         }
         Returns: Json
       }
       place_color_prediction_bet: {
-        Args: { p_round_id: string; p_color: string; p_bet_amount: number }
+        Args: { p_bet_amount: number; p_color: string; p_round_id: string }
         Returns: Json
       }
       place_roulette_bet: {
         Args: {
-          p_round_id: string
+          p_bet_amount: number
           p_bet_type: string
           p_bet_value: string
-          p_bet_amount: number
+          p_round_id: string
         }
         Returns: Json
       }
       process_andar_bahar_round: {
         Args: {
           p_round_id: string
-          p_winning_side: string
           p_winning_card: Json
+          p_winning_side: string
         }
         Returns: Json
       }
       process_aviator_crash: {
-        Args: { p_round_id: string; p_crash_multiplier: number }
+        Args: { p_crash_multiplier: number; p_round_id: string }
         Returns: Json
       }
       process_color_prediction_round: {
@@ -1870,7 +1870,7 @@ export type Database = {
         Returns: Json
       }
       process_payment_request: {
-        Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
+        Args: { p_admin_notes?: string; p_request_id: string; p_status: string }
         Returns: Json
       }
       process_roulette_round: {
@@ -1878,11 +1878,11 @@ export type Database = {
         Returns: Json
       }
       process_withdrawal_request: {
-        Args: { p_request_id: string; p_status: string; p_admin_notes?: string }
+        Args: { p_admin_notes?: string; p_request_id: string; p_status: string }
         Returns: Json
       }
       setup_admin_user: {
-        Args: { user_email: string; full_name: string; phone?: string }
+        Args: { full_name: string; phone?: string; user_email: string }
         Returns: Json
       }
       setup_master_admin: {
@@ -1894,7 +1894,7 @@ export type Database = {
         Returns: Json
       }
       transfer_admin_credits_to_user: {
-        Args: { p_user_id: string; p_amount: number; p_notes?: string }
+        Args: { p_amount: number; p_notes?: string; p_user_id: string }
         Returns: Json
       }
       update_platform_settings: {
@@ -1902,17 +1902,17 @@ export type Database = {
         Returns: Json
       }
       update_user_status: {
-        Args: { p_user_id: string; p_action: string; p_reason?: string }
+        Args: { p_action: string; p_reason?: string; p_user_id: string }
         Returns: Json
       }
       update_wallet_balance: {
         Args: {
-          p_user_id: string
           p_amount: number
-          p_type: Database["public"]["Enums"]["transaction_type"]
-          p_reason: string
-          p_game_type?: Database["public"]["Enums"]["game_type"]
           p_game_session_id?: string
+          p_game_type?: Database["public"]["Enums"]["game_type"]
+          p_reason: string
+          p_type: Database["public"]["Enums"]["transaction_type"]
+          p_user_id: string
         }
         Returns: Json
       }
