@@ -1,319 +1,155 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Eye, EyeOff, Coins, Bot } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { Clock, Trophy, Users, Coins } from 'lucide-react';
 import { TeenPattiCard } from './TeenPattiCard';
-import { BettingControls } from './BettingControls';
+import { useTeenPatti } from '@/hooks/useTeenPatti';
+import { useWallet } from '@/hooks/useWallet';
 
-interface TeenPattiGameState {
-  playerCards: any[];
-  systemCards: any[];
-  currentPot: number;
-  currentBet: number;
-  minBet: number;
-  maxBet: number;
-  difficulty: string;
-  phase: string;
-  playerTurn: boolean;
-  playerChips: number;
-  systemChips: number;
-  winner?: string;
-  playerHandRank?: string;
-  systemHandRank?: string;
-}
+const BET_AMOUNTS = [10, 25, 50, 100, 250, 500];
 
-interface TeenPattiGameProps {
-  gameId: string;
-  onLeaveGame: () => void;
-}
+export const TeenPattiGame = () => {
+  const [selectedBet, setSelectedBet] = useState<number>(10);
+  const { 
+    currentRound, 
+    timeRemaining, 
+    loading, 
+    userBets, 
+    roundHistory, 
+    lastResult,
+    hasUserBetInCurrentRound,
+    placeBet 
+  } = useTeenPatti();
+  
+  const { balance } = useWallet();
 
-export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [gameState, setGameState] = useState<TeenPattiGameState | null>(null);
-  const [gameStatus, setGameStatus] = useState<string>('active');
-  const [loading, setLoading] = useState(true);
-  const [showPlayerCards, setShowPlayerCards] = useState(false);
-  const [showSystemCards, setShowSystemCards] = useState(false);
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
-  useEffect(() => {
-    fetchGameState();
-    const interval = setInterval(fetchGameState, 2000); // Refresh every 2 seconds
-    return () => clearInterval(interval);
-  }, [gameId]);
-
-  const fetchGameState = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('teen-patti-manager', {
-        body: { action: 'get-game-state', gameId }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setGameState(data.game);
-        setGameStatus(data.status);
-        
-        // Show system cards if game is finished
-        if (data.game?.phase === 'finished') {
-          setShowSystemCards(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching game state:', error);
-    } finally {
-      setLoading(false);
+  const handlePlaceBet = async () => {
+    if (selectedBet && selectedBet <= balance) {
+      await placeBet(selectedBet);
     }
   };
 
-  const placeBet = async (betType: string, betAmount: number) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('teen-patti-manager', {
-        body: {
-          action: 'place-bet',
-          gameId,
-          betType,
-          betAmount
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: data.message
-        });
-        setGameState(data.gameState);
-        
-        // Show system cards if game ended
-        if (data.gameState?.phase === 'finished') {
-          setShowSystemCards(true);
-        }
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to place bet",
-        variant: "destructive"
-      });
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'betting': return 'bg-green-500';
+      case 'processing': return 'bg-yellow-500';
+      case 'completed': return 'bg-gray-500';
+      default: return 'bg-gray-500';
     }
   };
 
-  const togglePlayerCards = () => {
-    setShowPlayerCards(!showPlayerCards);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-lg">Loading game...</div>
-      </div>
-    );
-  }
-
-  if (!gameState) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-lg mb-4">Game not found</div>
-          <Button onClick={onLeaveGame}>Back to Lobby</Button>
-        </div>
-      </div>
-    );
-  }
+  const currentUserBet = currentRound ? 
+    userBets.find(bet => bet.round_id === currentRound.id) : null;
 
   return (
-    <div className="min-h-screen p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Button
-          variant="outline"
-          onClick={onLeaveGame}
-          className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Leave Game
-        </Button>
-
-        <div className="text-center">
-          <div className="text-white text-2xl font-bold">Teen Patti vs System</div>
-          <Badge variant={gameState.phase === 'betting' ? 'default' : gameState.phase === 'finished' ? 'destructive' : 'secondary'}>
-            {gameState.phase.toUpperCase()}
-          </Badge>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold text-white">Teen Patti</h1>
+          <p className="text-gray-300">Continuous rounds • System-based results</p>
         </div>
 
-        <div className="text-right">
-          <div className="text-gray-400 text-sm">Current Pot</div>
-          <div className="text-yellow-400 text-xl font-bold flex items-center">
-            <Coins className="mr-1 h-5 w-5" />
-            ₹{gameState.currentPot}
-          </div>
-        </div>
-      </div>
-
-      {/* Game Table */}
-      <div className="relative mx-auto max-w-6xl">
-        {/* Center Pot Display */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-          <Card className="bg-gradient-to-br from-yellow-600 to-yellow-800 border-yellow-500">
-            <CardContent className="p-4 text-center">
-              <div className="text-yellow-100 text-sm font-medium">POT</div>
-              <div className="text-white text-2xl font-bold">₹{gameState.currentPot}</div>
-              <div className="text-yellow-200 text-xs">Min Bet: ₹{gameState.minBet}</div>
-              <div className="text-yellow-200 text-xs">Max Bet: ₹{gameState.maxBet}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Game Board */}
-        <div className="relative w-full h-96 bg-gradient-to-br from-green-800 to-green-900 rounded-lg border-8 border-yellow-600">
-          {/* System Player (Top) */}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
-            <Card className={`bg-gray-800 border-gray-600 ${!gameState.playerTurn ? 'ring-4 ring-red-400 shadow-lg shadow-red-400/50' : ''}`}>
-              <CardContent className="p-4 text-center min-w-[180px]">
-                <div className="text-white text-lg font-bold mb-2 flex items-center justify-center">
-                  <Bot className="mr-2 h-5 w-5" />
-                  System ({gameState.difficulty})
+        {/* Current Round */}
+        {currentRound && (
+          <Card className="p-6 bg-black/40 border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <Badge variant="outline" className="text-white border-white">
+                  Round #{currentRound.round_number}
+                </Badge>
+                <Badge className={getStatusColor(currentRound.status)}>
+                  {currentRound.status.toUpperCase()}
+                </Badge>
+              </div>
+              
+              {currentRound.status === 'betting' && (
+                <div className="flex items-center gap-2 text-white">
+                  <Clock className="w-5 h-5" />
+                  <span className="text-2xl font-mono font-bold">
+                    {formatTime(timeRemaining)}
+                  </span>
                 </div>
-                
-                <div className="text-green-400 text-sm mb-3">
-                  Chips: ₹{gameState.systemChips}
-                </div>
-
-                {/* System Cards */}
-                <div className="flex justify-center gap-2 mb-3">
-                  {gameState.systemCards?.map((card: any, index: number) => (
-                    <TeenPattiCard
-                      key={index}
-                      card={showSystemCards ? card : null}
-                      size="medium"
-                      isVisible={showSystemCards}
-                    />
-                  ))}
-                </div>
-
-                {/* System Status */}
-                {gameState.phase === 'finished' && gameState.systemHandRank && (
-                  <Badge variant="outline" className="text-xs">
-                    {gameState.systemHandRank.replace('_', ' ')}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Player (Bottom) */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-            <Card className={`bg-gray-800 border-gray-600 ${gameState.playerTurn ? 'ring-4 ring-blue-400 shadow-lg shadow-blue-400/50' : ''}`}>
-              <CardContent className="p-4 text-center min-w-[180px]">
-                <div className="text-white text-lg font-bold mb-2">
-                  You
-                </div>
-                
-                <div className="text-green-400 text-sm mb-3">
-                  Chips: ₹{gameState.playerChips}
-                </div>
-
-                {/* Player Cards */}
-                <div className="flex justify-center gap-2 mb-3">
-                  {gameState.playerCards?.map((card: any, index: number) => (
-                    <TeenPattiCard
-                      key={index}
-                      card={showPlayerCards ? card : null}
-                      size="medium"
-                      isVisible={showPlayerCards}
-                    />
-                  ))}
-                </div>
-
-                {/* Player Status */}
-                {gameState.phase === 'finished' && gameState.playerHandRank && (
-                  <Badge variant="outline" className="text-xs">
-                    {gameState.playerHandRank.replace('_', ' ')}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Card Controls */}
-      <div className="mt-8 text-center">
-        <div className="flex justify-center gap-4">
-          <Button
-            onClick={togglePlayerCards}
-            variant="outline"
-            className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-          >
-            {showPlayerCards ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-            {showPlayerCards ? 'Hide My Cards' : 'Show My Cards'}
-          </Button>
-          
-          {gameState.phase === 'finished' && (
-            <Button
-              onClick={() => setShowSystemCards(!showSystemCards)}
-              variant="outline"
-              className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-            >
-              {showSystemCards ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-              {showSystemCards ? 'Hide System Cards' : 'Show System Cards'}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Betting Controls */}
-      {gameState.phase === 'betting' && gameState.playerTurn && (
-        <div className="mt-8">
-          <BettingControls
-            isMyTurn={true}
-            currentBet={gameState.currentBet}
-            isBlind={!showPlayerCards}
-            isSeen={showPlayerCards}
-            onPlaceBet={placeBet}
-            activePlayers={2}
-            minBet={gameState.minBet}
-            maxBet={gameState.maxBet}
-          />
-        </div>
-      )}
-
-      {/* Game Status */}
-      <div className="mt-6 text-center">
-        {gameState.phase === 'betting' && (
-          <div className="text-yellow-400 text-lg">
-            {gameState.playerTurn ? "Your turn! Place your bet or fold." : "System is thinking..."}
-          </div>
-        )}
-        {gameState.phase === 'finished' && (
-          <div className="space-y-2">
-            <div className={`text-2xl font-bold ${
-              gameState.winner === 'player' ? 'text-green-400' : 
-              gameState.winner === 'system' ? 'text-red-400' : 'text-yellow-400'
-            }`}>
-              {gameState.winner === 'player' ? 'Congratulations! You Won!' : 
-               gameState.winner === 'system' ? 'System Won!' : 'It\'s a Tie!'}
+              )}
             </div>
-            {gameState.playerHandRank && gameState.systemHandRank && (
-              <div className="text-gray-300">
-                Your hand: {gameState.playerHandRank.replace('_', ' ')} vs System: {gameState.systemHandRank.replace('_', ' ')}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-yellow-400">
+                  <Coins className="w-5 h-5" />
+                  <span className="text-sm text-gray-300">Total Pot</span>
+                </div>
+                <p className="text-2xl font-bold text-white">₹{currentRound.total_pot}</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-blue-400">
+                  <Users className="w-5 h-5" />
+                  <span className="text-sm text-gray-300">Players</span>
+                </div>
+                <p className="text-2xl font-bold text-white">{currentRound.total_players}</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-green-400">
+                  <Trophy className="w-5 h-5" />
+                  <span className="text-sm text-gray-300">Your Balance</span>
+                </div>
+                <p className="text-2xl font-bold text-white">₹{balance}</p>
+              </div>
+            </div>
+
+            {/* User's bet status */}
+            {currentUserBet && (
+              <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                <p className="text-blue-300 text-sm">Your bet: ₹{currentUserBet.bet_amount}</p>
+                {currentUserBet.payout_amount && (
+                  <p className="text-green-400 font-bold">
+                    Won: ₹{currentUserBet.payout_amount} (x{currentUserBet.multiplier})
+                  </p>
+                )}
               </div>
             )}
-            <Button 
-              onClick={onLeaveGame}
-              className="mt-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+          </Card>
+        )}
+
+        {/* Betting Interface */}
+        {currentRound?.status === 'betting' && !hasUserBetInCurrentRound && (
+          <Card className="p-6 bg-black/40 border-gray-700">
+            <h3 className="text-xl font-bold text-white mb-4">Place Your Bet</h3>
+            
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
+              {BET_AMOUNTS.map((amount) => (
+                <Button
+                  key={amount}
+                  variant={selectedBet === amount ? "default" : "outline"}
+                  className={`h-12 ${selectedBet === amount ? 'bg-blue-600 hover:bg-blue-700' : 'border-gray-600 text-white hover:bg-gray-700'}`}
+                  onClick={() => setSelectedBet(amount)}
+                  disabled={amount > balance}
+                >
+                  ₹{amount}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold"
+              onClick={handlePlaceBet}
+              disabled={loading || selectedBet > balance || timeRemaining <= 5}
             >
-              Play Again
+              {loading ? 'Placing Bet...' : `Place Bet ₹${selectedBet}`}
             </Button>
-          </div>
+          </Card>
         )}
       </div>
     </div>
   );
-}
+};

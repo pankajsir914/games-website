@@ -1664,186 +1664,43 @@ export type Database = {
       teen_patti_bets: {
         Row: {
           bet_amount: number
-          bet_type: string
           created_at: string
-          game_id: string
           id: string
-          is_valid: boolean
-          player_id: string
-          pot_amount_after: number
-          pot_amount_before: number
+          multiplier: number | null
+          payout_amount: number | null
+          round_id: string
+          status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           bet_amount: number
-          bet_type: string
           created_at?: string
-          game_id: string
           id?: string
-          is_valid?: boolean
-          player_id: string
-          pot_amount_after?: number
-          pot_amount_before?: number
+          multiplier?: number | null
+          payout_amount?: number | null
+          round_id: string
+          status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           bet_amount?: number
-          bet_type?: string
           created_at?: string
-          game_id?: string
           id?: string
-          is_valid?: boolean
-          player_id?: string
-          pot_amount_after?: number
-          pot_amount_before?: number
+          multiplier?: number | null
+          payout_amount?: number | null
+          round_id?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_teen_patti_bets_game_id"
-            columns: ["game_id"]
+            foreignKeyName: "teen_patti_bets_round_id_fkey"
+            columns: ["round_id"]
             isOneToOne: false
-            referencedRelation: "teen_patti_games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_teen_patti_bets_player_id"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "teen_patti_players"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      teen_patti_games: {
-        Row: {
-          active_players: Json
-          boot_amount: number
-          completed_at: string | null
-          created_at: string
-          current_bet: number
-          current_player_turn: string | null
-          current_pot: number
-          dealer_position: number
-          game_number: number
-          game_state: string
-          id: string
-          started_at: string
-          table_id: string
-          total_players: number
-          updated_at: string
-          winner_id: string | null
-          winning_hand: Json | null
-        }
-        Insert: {
-          active_players?: Json
-          boot_amount?: number
-          completed_at?: string | null
-          created_at?: string
-          current_bet?: number
-          current_player_turn?: string | null
-          current_pot?: number
-          dealer_position?: number
-          game_number?: number
-          game_state?: string
-          id?: string
-          started_at?: string
-          table_id: string
-          total_players?: number
-          updated_at?: string
-          winner_id?: string | null
-          winning_hand?: Json | null
-        }
-        Update: {
-          active_players?: Json
-          boot_amount?: number
-          completed_at?: string | null
-          created_at?: string
-          current_bet?: number
-          current_player_turn?: string | null
-          current_pot?: number
-          dealer_position?: number
-          game_number?: number
-          game_state?: string
-          id?: string
-          started_at?: string
-          table_id?: string
-          total_players?: number
-          updated_at?: string
-          winner_id?: string | null
-          winning_hand?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_teen_patti_games_table_id"
-            columns: ["table_id"]
-            isOneToOne: false
-            referencedRelation: "teen_patti_tables"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      teen_patti_players: {
-        Row: {
-          cards: Json | null
-          chips_in_game: number
-          current_bet: number
-          game_id: string
-          id: string
-          is_blind: boolean
-          is_folded: boolean
-          is_seen: boolean
-          joined_at: string
-          last_action: string | null
-          last_action_time: string | null
-          left_at: string | null
-          seat_number: number
-          status: string
-          total_bet_this_round: number
-          user_id: string
-        }
-        Insert: {
-          cards?: Json | null
-          chips_in_game?: number
-          current_bet?: number
-          game_id: string
-          id?: string
-          is_blind?: boolean
-          is_folded?: boolean
-          is_seen?: boolean
-          joined_at?: string
-          last_action?: string | null
-          last_action_time?: string | null
-          left_at?: string | null
-          seat_number: number
-          status?: string
-          total_bet_this_round?: number
-          user_id: string
-        }
-        Update: {
-          cards?: Json | null
-          chips_in_game?: number
-          current_bet?: number
-          game_id?: string
-          id?: string
-          is_blind?: boolean
-          is_folded?: boolean
-          is_seen?: boolean
-          joined_at?: string
-          last_action?: string | null
-          last_action_time?: string | null
-          left_at?: string | null
-          seat_number?: number
-          status?: string
-          total_bet_this_round?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_teen_patti_players_game_id"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "teen_patti_games"
+            referencedRelation: "teen_patti_rounds"
             referencedColumns: ["id"]
           },
         ]
@@ -1851,52 +1708,94 @@ export type Database = {
       teen_patti_results: {
         Row: {
           created_at: string
-          final_hand: Json
-          final_position: number
-          game_id: string
-          hand_rank: string
           hand_strength: number
+          house_edge: number
           id: string
-          is_winner: boolean
-          tokens_lost: number
-          tokens_won: number
-          user_id: string
+          player_cards: Json
+          round_id: string
+          total_bets: number
+          total_winners: number
+          winning_cards: Json
+          winning_hand: string
         }
         Insert: {
           created_at?: string
-          final_hand: Json
-          final_position: number
-          game_id: string
-          hand_rank: string
           hand_strength: number
+          house_edge?: number
           id?: string
-          is_winner?: boolean
-          tokens_lost?: number
-          tokens_won?: number
-          user_id: string
+          player_cards: Json
+          round_id: string
+          total_bets?: number
+          total_winners?: number
+          winning_cards: Json
+          winning_hand: string
         }
         Update: {
           created_at?: string
-          final_hand?: Json
-          final_position?: number
-          game_id?: string
-          hand_rank?: string
           hand_strength?: number
+          house_edge?: number
           id?: string
-          is_winner?: boolean
-          tokens_lost?: number
-          tokens_won?: number
-          user_id?: string
+          player_cards?: Json
+          round_id?: string
+          total_bets?: number
+          total_winners?: number
+          winning_cards?: Json
+          winning_hand?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_teen_patti_results_game_id"
-            columns: ["game_id"]
+            foreignKeyName: "teen_patti_results_round_id_fkey"
+            columns: ["round_id"]
             isOneToOne: false
-            referencedRelation: "teen_patti_games"
+            referencedRelation: "teen_patti_rounds"
             referencedColumns: ["id"]
           },
         ]
+      }
+      teen_patti_rounds: {
+        Row: {
+          bet_end_time: string
+          bet_start_time: string
+          created_at: string
+          id: string
+          result_time: string | null
+          round_number: number
+          status: string
+          total_players: number
+          total_pot: number
+          updated_at: string
+          winning_cards: Json | null
+          winning_hand_rank: string | null
+        }
+        Insert: {
+          bet_end_time: string
+          bet_start_time?: string
+          created_at?: string
+          id?: string
+          result_time?: string | null
+          round_number: number
+          status?: string
+          total_players?: number
+          total_pot?: number
+          updated_at?: string
+          winning_cards?: Json | null
+          winning_hand_rank?: string | null
+        }
+        Update: {
+          bet_end_time?: string
+          bet_start_time?: string
+          created_at?: string
+          id?: string
+          result_time?: string | null
+          round_number?: number
+          status?: string
+          total_players?: number
+          total_pot?: number
+          updated_at?: string
+          winning_cards?: Json | null
+          winning_hand_rank?: string | null
+        }
+        Relationships: []
       }
       teen_patti_tables: {
         Row: {

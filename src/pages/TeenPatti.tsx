@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { TeenPattiLobby } from '@/components/teenPatti/TeenPattiLobby';
 import { TeenPattiGame } from '@/components/teenPatti/TeenPattiGame';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -7,7 +6,6 @@ import Navigation from '@/components/Navigation';
 
 export default function TeenPatti() {
   const { user } = useAuth();
-  const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(!user);
 
   if (!user) {
@@ -32,17 +30,9 @@ export default function TeenPatti() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+    <div className="min-h-screen">
       <Navigation />
-      
-      {currentGameId ? (
-        <TeenPattiGame 
-          gameId={currentGameId} 
-          onLeaveGame={() => setCurrentGameId(null)} 
-        />
-      ) : (
-        <TeenPattiLobby onJoinGame={setCurrentGameId} />
-      )}
+      <TeenPattiGame />
     </div>
   );
 }
