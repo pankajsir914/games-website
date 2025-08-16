@@ -33,6 +33,14 @@ export const useMasterAdminUsers = () => {
     queryKey: ['master-admin-users'],
     queryFn: async () => {
       try {
+        // First, get admin users to exclude from the RPC call results too
+        const { data: adminUsers } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .in('role', ['admin', 'master_admin']);
+
+        const adminUserIds = adminUsers?.map(u => u.user_id) || [];
+
         // Use the comprehensive user management function if available
         const { data: userManagementData, error: userError } = await supabase
           .rpc('get_users_management_data', {
@@ -42,12 +50,16 @@ export const useMasterAdminUsers = () => {
 
         if (!userError && userManagementData && typeof userManagementData === 'object') {
           const data = userManagementData as any;
+          // Filter out admin users from the results
+          const filteredUsers = (data.users || []).filter((user: any) => 
+            !adminUserIds.includes(user.id)
+          );
+          
           return {
-            users: data.users || [],
-            total_count: data.total_count || 0,
-            blocked_users: 0,
-            pending_kyc: 0,
-            high_risk_users: 0
+            users: filteredUsers,
+            total_count: filteredUsers.length,
+            blocked_users: filteredUsers.filter((u: any) => u.is_blocked).length,
+            high_risk_users: filteredUsers.filter((u: any) => u.risk_level === 'high').length
           } as UsersResponse;
         }
       } catch (error) {
@@ -55,10 +67,25 @@ export const useMasterAdminUsers = () => {
       }
 
       // Fallback to direct queries if RPC function is not available
-      const { data: profiles, error: profilesError } = await supabase
+      // First, get users with admin roles to exclude them
+      const { data: adminUsers } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['admin', 'master_admin']);
+
+      const adminUserIds = adminUsers?.map(u => u.user_id) || [];
+
+      // Get profiles excluding admin users
+      const profileQuery = supabase
         .from('profiles')
         .select('*')
         .limit(100);
+
+      if (adminUserIds.length > 0) {
+        profileQuery.not('id', 'in', `(${adminUserIds.join(',')})`);
+      }
+
+      const { data: profiles, error: profilesError } = await profileQuery;
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -128,10 +155,16 @@ export const useMasterAdminUsers = () => {
         gameCountMap.set(bet.user_id, (gameCountMap.get(bet.user_id) || 0) + 1);
       });
 
-      // Get total count
-      const { count: totalCount } = await supabase
+      // Get total count excluding admin users
+      const totalCountQuery = supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
+
+      if (adminUserIds.length > 0) {
+        totalCountQuery.not('id', 'in', `(${adminUserIds.join(',')})`);
+      }
+
+      const { count: totalCount } = await totalCountQuery;
 
       // Transform the data
       const users = profiles?.map((profile: any) => ({
