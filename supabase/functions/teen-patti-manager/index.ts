@@ -114,6 +114,57 @@ function evaluateHand(cards: Card[]): { rank: string; strength: number; cards: C
   };
 }
 
+function getSystemAction(systemCards: Card[], playerBet: number, currentPot: number, difficulty: string): { action: string; amount: number } {
+  const hand = evaluateHand(systemCards);
+  const handStrength = hand.strength;
+  
+  // Difficulty affects decision making
+  let aggressiveness = 0.5; // Default medium
+  if (difficulty === 'Easy') aggressiveness = 0.3;
+  if (difficulty === 'Hard') aggressiveness = 0.7;
+  
+  const random = Math.random();
+  
+  // Very strong hands (Trail, Pure Sequence)
+  if (handStrength >= HAND_RANKINGS.PURE_SEQUENCE * 1000) {
+    if (random < 0.8 + aggressiveness * 0.2) {
+      return { action: 'raise', amount: Math.max(playerBet * 1.5, playerBet + 20) };
+    }
+    return { action: 'call', amount: playerBet };
+  }
+  
+  // Strong hands (Sequence, Color)
+  if (handStrength >= HAND_RANKINGS.SEQUENCE * 1000) {
+    if (random < 0.6 + aggressiveness * 0.3) {
+      return { action: 'call', amount: playerBet };
+    }
+    if (random < 0.8) {
+      return { action: 'raise', amount: playerBet + 10 };
+    }
+    return { action: 'fold', amount: 0 };
+  }
+  
+  // Medium hands (Pair)
+  if (handStrength >= HAND_RANKINGS.PAIR * 1000) {
+    if (playerBet <= currentPot * 0.3) {
+      return { action: 'call', amount: playerBet };
+    }
+    if (random < 0.4 + aggressiveness * 0.2) {
+      return { action: 'call', amount: playerBet };
+    }
+    return { action: 'fold', amount: 0 };
+  }
+  
+  // Weak hands (High Card)
+  if (playerBet <= currentPot * 0.2) {
+    if (random < 0.5 - aggressiveness * 0.3) {
+      return { action: 'call', amount: playerBet };
+    }
+  }
+  
+  return { action: 'fold', amount: 0 };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -125,450 +176,330 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { method } = req;
-    const url = new URL(req.url);
-    const action = url.pathname.split('/').pop();
+    const body = await req.json();
+    console.log('Teen Patti Manager Request:', body);
 
-    if (method === 'POST') {
-      const body = await req.json();
-      
-      switch (action) {
-        case 'create-table': {
-          const { tableName, entryFee, minPlayers, maxPlayers, minBet, maxBet } = body;
-          const authHeader = req.headers.get('authorization');
-          
-          if (!authHeader) {
-            throw new Error('Authorization required');
-          }
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('Authorization required');
+    }
 
-          const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
-          if (authError || !user) {
-            throw new Error('Invalid authentication');
-          }
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authError || !user) {
+      throw new Error('Invalid authentication');
+    }
 
-          const { data: table, error } = await supabaseClient
-            .from('teen_patti_tables')
-            .insert({
-              table_name: tableName,
-              entry_fee: entryFee,
-              min_players: minPlayers,
-              max_players: maxPlayers,
-              min_bet: minBet,
-              max_bet: maxBet,
-              created_by: user.id
-            })
-            .select()
-            .single();
+    const { action } = body;
 
-          if (error) throw error;
+    switch (action) {
+      case 'start-game': {
+        const { gameMode, entryFee, minBet, maxBet, difficulty } = body;
 
-          return new Response(JSON.stringify({ success: true, table }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+        // Check user wallet balance
+        const { data: wallet, error: walletError } = await supabaseClient
+          .from('wallets')
+          .select('current_balance')
+          .eq('user_id', user.id)
+          .single();
+
+        if (walletError || !wallet || wallet.current_balance < entryFee) {
+          throw new Error('Insufficient balance');
         }
 
-        case 'join-table': {
-          const { tableId } = body;
-          const authHeader = req.headers.get('authorization');
-          
-          if (!authHeader) {
-            throw new Error('Authorization required');
-          }
+        // Deduct entry fee
+        const { error: walletUpdateError } = await supabaseClient
+          .from('wallets')
+          .update({ current_balance: wallet.current_balance - entryFee })
+          .eq('user_id', user.id);
 
-          const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
-          if (authError || !user) {
-            throw new Error('Invalid authentication');
-          }
+        if (walletUpdateError) throw walletUpdateError;
 
-          // Get table info
-          const { data: table, error: tableError } = await supabaseClient
-            .from('teen_patti_tables')
-            .select('*')
-            .eq('id', tableId)
-            .single();
+        // Add wallet transaction
+        const { error: transactionError } = await supabaseClient
+          .from('wallet_transactions')
+          .insert({
+            user_id: user.id,
+            amount: entryFee,
+            type: 'debit',
+            reason: `Teen Patti entry fee - ${gameMode}`,
+            balance_after: wallet.current_balance - entryFee,
+            game_type: 'casino'
+          });
 
-          if (tableError || !table) {
-            throw new Error('Table not found');
-          }
+        if (transactionError) throw transactionError;
 
-          if (table.current_players >= table.max_players) {
-            throw new Error('Table is full');
-          }
+        // Create game session
+        const { data: game, error: gameError } = await supabaseClient
+          .from('game_sessions')
+          .insert({
+            game_type: 'teen_patti',
+            entry_fee: entryFee,
+            max_players: 2,
+            current_players: 2,
+            created_by: user.id,
+            players: {
+              user_ids: [user.id, 'system'],
+              user_data: {
+                [user.id]: { name: 'Player', chips: entryFee },
+                'system': { name: 'System', chips: entryFee }
+              }
+            },
+            status: 'active'
+          })
+          .select()
+          .single();
 
-          // Check user wallet balance
-          const { data: wallet, error: walletError } = await supabaseClient
+        if (gameError) throw gameError;
+
+        // Deal cards
+        const deck = createDeck();
+        const playerCards = [deck[0], deck[1], deck[2]];
+        const systemCards = [deck[3], deck[4], deck[5]];
+
+        // Store game state
+        const gameState = {
+          playerCards,
+          systemCards,
+          currentPot: entryFee * 2,
+          currentBet: minBet,
+          minBet,
+          maxBet,
+          difficulty,
+          phase: 'betting',
+          playerTurn: true,
+          playerChips: entryFee,
+          systemChips: entryFee,
+          gameMode
+        };
+
+        const { error: updateError } = await supabaseClient
+          .from('game_sessions')
+          .update({
+            result: gameState,
+            started_at: new Date().toISOString()
+          })
+          .eq('id', game.id);
+
+        if (updateError) throw updateError;
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          gameId: game.id,
+          message: 'Game started successfully!'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      case 'get-game-state': {
+        const { gameId } = body;
+
+        const { data: game, error: gameError } = await supabaseClient
+          .from('game_sessions')
+          .select('*')
+          .eq('id', gameId)
+          .eq('created_by', user.id)
+          .single();
+
+        if (gameError || !game) {
+          throw new Error('Game not found');
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          game: game.result,
+          status: game.status
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      case 'place-bet': {
+        const { gameId, betType, betAmount } = body;
+
+        const { data: game, error: gameError } = await supabaseClient
+          .from('game_sessions')
+          .select('*')
+          .eq('id', gameId)
+          .eq('created_by', user.id)
+          .single();
+
+        if (gameError || !game) {
+          throw new Error('Game not found');
+        }
+
+        const gameState = game.result;
+        
+        if (!gameState.playerTurn) {
+          throw new Error('Not your turn');
+        }
+
+        if (gameState.phase !== 'betting') {
+          throw new Error('Game is not in betting phase');
+        }
+
+        // Check wallet balance for bet amount
+        const { data: wallet, error: walletError } = await supabaseClient
+          .from('wallets')
+          .select('current_balance')
+          .eq('user_id', user.id)
+          .single();
+
+        if (walletError || !wallet || wallet.current_balance < betAmount) {
+          throw new Error('Insufficient balance');
+        }
+
+        let newGameState = { ...gameState };
+        let gameEnded = false;
+        let winner = null;
+
+        if (betType === 'fold') {
+          // Player folds - System wins
+          winner = 'system';
+          gameEnded = true;
+          newGameState.phase = 'finished';
+          newGameState.winner = 'system';
+        } else {
+          // Player bets - deduct from wallet
+          await supabaseClient
             .from('wallets')
-            .select('current_balance')
-            .eq('user_id', user.id)
-            .single();
-
-          if (walletError || !wallet || wallet.current_balance < table.entry_fee) {
-            throw new Error('Insufficient balance');
-          }
-
-          // Check if game exists for this table
-          let { data: game, error: gameError } = await supabaseClient
-            .from('teen_patti_games')
-            .select('*')
-            .eq('table_id', tableId)
-            .eq('game_state', 'waiting')
-            .single();
-
-          // Create new game if none exists
-          if (!game) {
-            const { data: newGame, error: createGameError } = await supabaseClient
-              .from('teen_patti_games')
-              .insert({
-                table_id: tableId,
-                boot_amount: table.min_bet,
-                game_state: 'waiting'
-              })
-              .select()
-              .single();
-
-            if (createGameError) throw createGameError;
-            game = newGame;
-          }
-
-          // Check if user already joined
-          const { data: existingPlayer } = await supabaseClient
-            .from('teen_patti_players')
-            .select('*')
-            .eq('game_id', game.id)
-            .eq('user_id', user.id)
-            .single();
-
-          if (existingPlayer) {
-            return new Response(JSON.stringify({ success: true, gameId: game.id, message: 'Already joined' }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-          }
-
-          // Find available seat
-          const { data: players, error: playersError } = await supabaseClient
-            .from('teen_patti_players')
-            .select('seat_number')
-            .eq('game_id', game.id);
-
-          if (playersError) throw playersError;
-
-          const occupiedSeats = players?.map(p => p.seat_number) || [];
-          let seatNumber = 1;
-          while (occupiedSeats.includes(seatNumber) && seatNumber <= table.max_players) {
-            seatNumber++;
-          }
-
-          if (seatNumber > table.max_players) {
-            throw new Error('No available seats');
-          }
-
-          // Deduct entry fee from wallet
-          const { error: walletUpdateError } = await supabaseClient
-            .from('wallets')
-            .update({ current_balance: wallet.current_balance - table.entry_fee })
+            .update({ current_balance: wallet.current_balance - betAmount })
             .eq('user_id', user.id);
 
-          if (walletUpdateError) throw walletUpdateError;
-
-          // Add wallet transaction
-          const { error: transactionError } = await supabaseClient
+          await supabaseClient
             .from('wallet_transactions')
             .insert({
               user_id: user.id,
-              amount: table.entry_fee,
+              amount: betAmount,
               type: 'debit',
-              reason: `Teen Patti table entry fee - ${table.table_name}`,
-              balance_after: wallet.current_balance - table.entry_fee,
+              reason: `Teen Patti ${betType} bet`,
+              balance_after: wallet.current_balance - betAmount,
               game_type: 'casino',
-              game_session_id: game.id
+              game_session_id: gameId
             });
 
-          if (transactionError) throw transactionError;
+          newGameState.currentPot += betAmount;
+          newGameState.playerChips -= betAmount;
+          newGameState.currentBet = betAmount;
 
-          // Add player to game
-          const { data: player, error: playerError } = await supabaseClient
-            .from('teen_patti_players')
-            .insert({
-              game_id: game.id,
-              user_id: user.id,
-              seat_number: seatNumber,
-              chips_in_game: table.entry_fee
-            })
-            .select()
-            .single();
+          // System's turn
+          newGameState.playerTurn = false;
+          
+          // Get system action
+          const systemAction = getSystemAction(
+            newGameState.systemCards, 
+            betAmount, 
+            newGameState.currentPot,
+            newGameState.difficulty
+          );
 
-          if (playerError) throw playerError;
-
-          // Update table player count
-          const { error: tableUpdateError } = await supabaseClient
-            .from('teen_patti_tables')
-            .update({ current_players: table.current_players + 1 })
-            .eq('id', tableId);
-
-          if (tableUpdateError) throw tableUpdateError;
-
-          // Update game player count
-          const { error: gameUpdateError } = await supabaseClient
-            .from('teen_patti_games')
-            .update({ total_players: (game.total_players || 0) + 1 })
-            .eq('id', game.id);
-
-          if (gameUpdateError) throw gameUpdateError;
-
-          // Check if we can start the game
-          const newPlayerCount = (game.total_players || 0) + 1;
-          if (newPlayerCount >= table.min_players) {
-            await startGame(supabaseClient, game.id);
+          if (systemAction.action === 'fold') {
+            // System folds - Player wins
+            winner = 'player';
+            gameEnded = true;
+            newGameState.phase = 'finished';
+            newGameState.winner = 'player';
+          } else if (systemAction.action === 'call' || systemAction.action === 'raise') {
+            newGameState.currentPot += systemAction.amount;
+            newGameState.systemChips -= systemAction.amount;
+            
+            if (betType === 'show' || systemAction.action === 'call') {
+              // Showdown
+              const playerHand = evaluateHand(newGameState.playerCards);
+              const systemHand = evaluateHand(newGameState.systemCards);
+              
+              if (playerHand.strength > systemHand.strength) {
+                winner = 'player';
+              } else if (systemHand.strength > playerHand.strength) {
+                winner = 'system';
+              } else {
+                winner = 'tie';
+              }
+              
+              gameEnded = true;
+              newGameState.phase = 'finished';
+              newGameState.winner = winner;
+              newGameState.playerHandRank = playerHand.rank;
+              newGameState.systemHandRank = systemHand.rank;
+            }
           }
-
-          return new Response(JSON.stringify({ 
-            success: true, 
-            gameId: game.id, 
-            playerId: player.id,
-            seatNumber: seatNumber,
-            message: 'Joined table successfully' 
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
         }
 
-        case 'place-bet': {
-          const { gameId, betType, betAmount } = body;
-          const authHeader = req.headers.get('authorization');
+        // Handle game end
+        if (gameEnded) {
+          let winAmount = 0;
           
-          if (!authHeader) {
-            throw new Error('Authorization required');
-          }
-
-          const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
-          if (authError || !user) {
-            throw new Error('Invalid authentication');
-          }
-
-          // Get game and player info
-          const { data: game, error: gameError } = await supabaseClient
-            .from('teen_patti_games')
-            .select('*')
-            .eq('id', gameId)
-            .single();
-
-          if (gameError || !game) {
-            throw new Error('Game not found');
-          }
-
-          const { data: player, error: playerError } = await supabaseClient
-            .from('teen_patti_players')
-            .select('*')
-            .eq('game_id', gameId)
-            .eq('user_id', user.id)
-            .single();
-
-          if (playerError || !player) {
-            throw new Error('Player not found in game');
-          }
-
-          if (game.game_state !== 'betting') {
-            throw new Error('Game is not in betting state');
-          }
-
-          if (game.current_player_turn !== user.id) {
-            throw new Error('Not your turn');
-          }
-
-          if (player.is_folded) {
-            throw new Error('Player has folded');
-          }
-
-          // Validate bet amount
-          const currentBet = game.current_bet || 0;
-          
-          if (betType === 'chaal' && betAmount < currentBet) {
-            throw new Error('Bet amount must be at least equal to current bet');
-          }
-
-          if (betType === 'blind' && player.is_seen) {
-            throw new Error('Cannot place blind bet after seeing cards');
-          }
-
-          // Get wallet balance
-          const { data: wallet, error: walletError } = await supabaseClient
-            .from('wallets')
-            .select('current_balance')
-            .eq('user_id', user.id)
-            .single();
-
-          if (walletError || !wallet || wallet.current_balance < betAmount) {
-            throw new Error('Insufficient balance');
-          }
-
-          // Process bet
-          let newGameState = game.game_state;
-          let nextPlayer = getNextPlayer(supabaseClient, gameId, user.id);
-
-          if (betType === 'pack') {
-            // Fold player
-            await supabaseClient
-              .from('teen_patti_players')
-              .update({ 
-                is_folded: true, 
-                status: 'folded',
-                last_action: 'pack',
-                last_action_time: new Date().toISOString()
-              })
-              .eq('id', player.id);
-          } else {
-            // Deduct from wallet
+          if (winner === 'player') {
+            winAmount = newGameState.currentPot;
+            
+            // Credit player wallet
             await supabaseClient
               .from('wallets')
-              .update({ current_balance: wallet.current_balance - betAmount })
+              .update({ current_balance: wallet.current_balance - betAmount + winAmount })
               .eq('user_id', user.id);
 
-            // Add wallet transaction
             await supabaseClient
               .from('wallet_transactions')
               .insert({
                 user_id: user.id,
-                amount: betAmount,
-                type: 'debit',
-                reason: `Teen Patti ${betType} bet`,
-                balance_after: wallet.current_balance - betAmount,
+                amount: winAmount,
+                type: 'credit',
+                reason: 'Teen Patti win',
+                balance_after: wallet.current_balance - betAmount + winAmount,
                 game_type: 'casino',
                 game_session_id: gameId
               });
-
-            // Update player bet
+          } else if (winner === 'tie') {
+            // Return player's total bet
+            const playerTotalBet = game.entry_fee + betAmount;
+            
             await supabaseClient
-              .from('teen_patti_players')
-              .update({ 
-                current_bet: betAmount,
-                total_bet_this_round: player.total_bet_this_round + betAmount,
-                is_seen: betType === 'chaal' ? true : player.is_seen,
-                last_action: betType,
-                last_action_time: new Date().toISOString()
-              })
-              .eq('id', player.id);
+              .from('wallets')
+              .update({ current_balance: wallet.current_balance - betAmount + playerTotalBet })
+              .eq('user_id', user.id);
 
-            // Add bet record
             await supabaseClient
-              .from('teen_patti_bets')
+              .from('wallet_transactions')
               .insert({
-                game_id: gameId,
-                player_id: player.id,
                 user_id: user.id,
-                bet_type: betType,
-                bet_amount: betAmount,
-                pot_amount_before: game.current_pot,
-                pot_amount_after: game.current_pot + betAmount
+                amount: playerTotalBet,
+                type: 'credit',
+                reason: 'Teen Patti tie - refund',
+                balance_after: wallet.current_balance - betAmount + playerTotalBet,
+                game_type: 'casino',
+                game_session_id: gameId
               });
-
-            // Update game pot and current bet
-            await supabaseClient
-              .from('teen_patti_games')
-              .update({ 
-                current_pot: game.current_pot + betAmount,
-                current_bet: Math.max(currentBet, betAmount)
-              })
-              .eq('id', gameId);
           }
 
-          // Check if game should end
-          const { data: activePlayers } = await supabaseClient
-            .from('teen_patti_players')
-            .select('*')
-            .eq('game_id', gameId)
-            .eq('is_folded', false);
-
-          if (activePlayers && activePlayers.length <= 1) {
-            // End game - last player wins
-            await endGame(supabaseClient, gameId, activePlayers[0]?.user_id);
-            newGameState = 'finished';
-          } else if (betType === 'show' && activePlayers && activePlayers.length === 2) {
-            // Showdown between two players
-            await showdown(supabaseClient, gameId);
-            newGameState = 'finished';
-          } else {
-            // Move to next player
-            const nextPlayerId = await getNextActivePlayer(supabaseClient, gameId, user.id);
-            await supabaseClient
-              .from('teen_patti_games')
-              .update({ 
-                current_player_turn: nextPlayerId,
-                game_state: newGameState
-              })
-              .eq('id', gameId);
-          }
-
-          return new Response(JSON.stringify({ 
-            success: true, 
-            message: `${betType} placed successfully`,
-            gameState: newGameState
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
+          // Update game session
+          await supabaseClient
+            .from('game_sessions')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              result: newGameState
+            })
+            .eq('id', gameId);
+        } else {
+          // Update game state
+          await supabaseClient
+            .from('game_sessions')
+            .update({ result: newGameState })
+            .eq('id', gameId);
         }
 
-        default:
-          throw new Error('Unknown action');
+        return new Response(JSON.stringify({ 
+          success: true, 
+          gameState: newGameState,
+          message: gameEnded ? `Game finished! ${winner === 'player' ? 'You won!' : winner === 'system' ? 'System won!' : 'It\'s a tie!'}` : 'Bet placed successfully'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
+
+      default:
+        throw new Error('Invalid action');
     }
-
-    if (method === 'GET') {
-      switch (action) {
-        case 'tables': {
-          const { data: tables, error } = await supabaseClient
-            .from('teen_patti_tables')
-            .select('*')
-            .eq('status', 'waiting')
-            .order('created_at', { ascending: false });
-
-          if (error) throw error;
-
-          return new Response(JSON.stringify({ success: true, tables }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        case 'game-state': {
-          const gameId = url.searchParams.get('gameId');
-          if (!gameId) throw new Error('Game ID required');
-
-          const { data: game, error: gameError } = await supabaseClient
-            .from('teen_patti_games')
-            .select('*')
-            .eq('id', gameId)
-            .single();
-
-          if (gameError) throw gameError;
-
-          const { data: players, error: playersError } = await supabaseClient
-            .from('teen_patti_players')
-            .select(`
-              *,
-              profiles!inner(full_name)
-            `)
-            .eq('game_id', gameId)
-            .order('seat_number');
-
-          if (playersError) throw playersError;
-
-          return new Response(JSON.stringify({ 
-            success: true, 
-            game,
-            players: players?.map(p => ({
-              ...p,
-              cards: p.user_id === p.user_id ? p.cards : null // Hide cards from other players
-            }))
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        default:
-          throw new Error('Unknown action');
-      }
-    }
-
-    throw new Error('Method not allowed');
 
   } catch (error) {
     console.error('Teen Patti Manager Error:', error);
@@ -581,148 +512,3 @@ serve(async (req) => {
     });
   }
 });
-
-async function startGame(supabaseClient: any, gameId: string) {
-  console.log(`Starting game ${gameId}`);
-  
-  // Deal cards to all players
-  const { data: players, error: playersError } = await supabaseClient
-    .from('teen_patti_players')
-    .select('*')
-    .eq('game_id', gameId)
-    .eq('status', 'active');
-
-  if (playersError || !players) throw playersError;
-
-  const deck = createDeck();
-  let cardIndex = 0;
-
-  for (const player of players) {
-    const playerCards = [
-      deck[cardIndex++],
-      deck[cardIndex++],
-      deck[cardIndex++]
-    ];
-
-    await supabaseClient
-      .from('teen_patti_players')
-      .update({ cards: playerCards })
-      .eq('id', player.id);
-  }
-
-  // Set first player as current turn
-  const firstPlayer = players[0];
-  
-  await supabaseClient
-    .from('teen_patti_games')
-    .update({ 
-      game_state: 'betting',
-      current_player_turn: firstPlayer.user_id,
-      started_at: new Date().toISOString()
-    })
-    .eq('id', gameId);
-}
-
-async function getNextActivePlayer(supabaseClient: any, gameId: string, currentUserId: string): Promise<string | null> {
-  const { data: players, error } = await supabaseClient
-    .from('teen_patti_players')
-    .select('user_id, seat_number')
-    .eq('game_id', gameId)
-    .eq('is_folded', false)
-    .eq('status', 'active')
-    .order('seat_number');
-
-  if (error || !players) return null;
-
-  const currentPlayerIndex = players.findIndex(p => p.user_id === currentUserId);
-  const nextIndex = (currentPlayerIndex + 1) % players.length;
-  
-  return players[nextIndex]?.user_id || null;
-}
-
-async function endGame(supabaseClient: any, gameId: string, winnerId: string) {
-  const { data: game, error: gameError } = await supabaseClient
-    .from('teen_patti_games')
-    .select('current_pot')
-    .eq('id', gameId)
-    .single();
-
-  if (gameError || !game) return;
-
-  // Credit winner with pot
-  const { data: wallet, error: walletError } = await supabaseClient
-    .from('wallets')
-    .select('current_balance')
-    .eq('user_id', winnerId)
-    .single();
-
-  if (!walletError && wallet) {
-    await supabaseClient
-      .from('wallets')
-      .update({ current_balance: wallet.current_balance + game.current_pot })
-      .eq('user_id', winnerId);
-
-    await supabaseClient
-      .from('wallet_transactions')
-      .insert({
-        user_id: winnerId,
-        amount: game.current_pot,
-        type: 'credit',
-        reason: 'Teen Patti game win',
-        balance_after: wallet.current_balance + game.current_pot,
-        game_type: 'casino',
-        game_session_id: gameId
-      });
-  }
-
-  // Update game as finished
-  await supabaseClient
-    .from('teen_patti_games')
-    .update({ 
-      game_state: 'finished',
-      winner_id: winnerId,
-      completed_at: new Date().toISOString()
-    })
-    .eq('id', gameId);
-}
-
-async function showdown(supabaseClient: any, gameId: string) {
-  const { data: players, error } = await supabaseClient
-    .from('teen_patti_players')
-    .select('*')
-    .eq('game_id', gameId)
-    .eq('is_folded', false);
-
-  if (error || !players || players.length !== 2) return;
-
-  // Evaluate hands
-  const player1 = players[0];
-  const player2 = players[1];
-  
-  const hand1 = evaluateHand(player1.cards);
-  const hand2 = evaluateHand(player2.cards);
-
-  const winnerId = hand1.strength > hand2.strength ? player1.user_id : player2.user_id;
-  
-  // Store results
-  for (const player of players) {
-    const hand = player.user_id === player1.user_id ? hand1 : hand2;
-    const isWinner = player.user_id === winnerId;
-    
-    await supabaseClient
-      .from('teen_patti_results')
-      .insert({
-        game_id: gameId,
-        user_id: player.user_id,
-        final_hand: player.cards,
-        hand_rank: hand.rank,
-        hand_strength: hand.strength,
-        tokens_won: isWinner ? 0 : 0, // Will be updated in endGame
-        tokens_lost: player.total_bet_this_round,
-        final_position: isWinner ? 1 : 2,
-        is_winner: isWinner
-      });
-  }
-
-  await endGame(supabaseClient, gameId, winnerId);
-}

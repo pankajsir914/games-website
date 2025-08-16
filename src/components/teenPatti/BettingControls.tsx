@@ -12,6 +12,8 @@ interface BettingControlsProps {
   isSeen: boolean;
   onPlaceBet: (betType: string, amount: number) => void;
   activePlayers: number;
+  minBet?: number;
+  maxBet?: number;
 }
 
 export function BettingControls({ 
@@ -20,7 +22,9 @@ export function BettingControls({
   isBlind, 
   isSeen, 
   onPlaceBet, 
-  activePlayers 
+  activePlayers,
+  minBet = 10,
+  maxBet = 1000 
 }: BettingControlsProps) {
   const [customBetAmount, setCustomBetAmount] = useState(currentBet || 10);
 
@@ -42,14 +46,12 @@ export function BettingControls({
   };
 
   const handlePack = () => {
-    onPlaceBet('pack', 0);
+    onPlaceBet('fold', 0);
   };
 
   const handleShow = () => {
-    onPlaceBet('show', currentBet);
+    onPlaceBet('show', Math.max(currentBet, minBet));
   };
-
-  const canShow = activePlayers === 2 && isSeen;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -100,17 +102,15 @@ export function BettingControls({
             </Button>
 
             {/* Show */}
-            {canShow && (
-              <Button
-                onClick={handleShow}
-                disabled={!isMyTurn}
-                className="h-16 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 flex flex-col items-center justify-center"
-              >
-                <Handshake className="h-4 w-4 mb-1" />
-                <span className="text-sm">Show</span>
-                <span className="text-xs">₹{currentBet}</span>
-              </Button>
-            )}
+            <Button
+              onClick={handleShow}
+              disabled={!isMyTurn}
+              className="h-16 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 flex flex-col items-center justify-center"
+            >
+              <Handshake className="h-4 w-4 mb-1" />
+              <span className="text-sm">Show</span>
+              <span className="text-xs">₹{Math.max(currentBet, minBet)}</span>
+            </Button>
           </div>
 
           {/* Custom Bet Amount */}

@@ -2,38 +2,28 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Eye, EyeOff, Coins } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Coins, Bot } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { TeenPattiCard } from './TeenPattiCard';
 import { BettingControls } from './BettingControls';
 
-interface GamePlayer {
-  id: string;
-  user_id: string;
-  seat_number: number;
-  chips_in_game: number;
-  cards: any[];
-  is_blind: boolean;
-  is_folded: boolean;
-  is_seen: boolean;
-  current_bet: number;
-  total_bet_this_round: number;
-  last_action: string;
-  status: string;
-  profiles: {
-    full_name: string;
-  };
-}
-
-interface TeenPattiGameData {
-  id: string;
-  current_pot: number;
-  current_bet: number;
-  current_player_turn: string;
-  game_state: string;
-  winner_id: string;
+interface TeenPattiGameState {
+  playerCards: any[];
+  systemCards: any[];
+  currentPot: number;
+  currentBet: number;
+  minBet: number;
+  maxBet: number;
+  difficulty: string;
+  phase: string;
+  playerTurn: boolean;
+  playerChips: number;
+  systemChips: number;
+  winner?: string;
+  playerHandRank?: string;
+  systemHandRank?: string;
 }
 
 interface TeenPattiGameProps {
@@ -44,13 +34,11 @@ interface TeenPattiGameProps {
 export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [game, setGame] = useState<TeenPattiGameData | null>(null);
-  const [players, setPlayers] = useState<GamePlayer[]>([]);
+  const [gameState, setGameState] = useState<TeenPattiGameState | null>(null);
+  const [gameStatus, setGameStatus] = useState<string>('active');
   const [loading, setLoading] = useState(true);
-  const [showCards, setShowCards] = useState(false);
-
-  const currentPlayer = players.find(p => p.user_id === user?.id);
-  const isMyTurn = game?.current_player_turn === user?.id;
+  const [showPlayerCards, setShowPlayerCards] = useState(false);
+  const [showSystemCards, setShowSystemCards] = useState(false);
 
   useEffect(() => {
     fetchGameState();
@@ -60,15 +48,20 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
 
   const fetchGameState = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('teen-patti-manager/game-state', {
-        body: { gameId }
+      const { data, error } = await supabase.functions.invoke('teen-patti-manager', {
+        body: { action: 'get-game-state', gameId }
       });
 
       if (error) throw error;
 
       if (data.success) {
-        setGame(data.game);
-        setPlayers(data.players || []);
+        setGameState(data.game);
+        setGameStatus(data.status);
+        
+        // Show system cards if game is finished
+        if (data.game?.phase === 'finished') {
+          setShowSystemCards(true);
+        }
       }
     } catch (error) {
       console.error('Error fetching game state:', error);
@@ -79,8 +72,9 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
 
   const placeBet = async (betType: string, betAmount: number) => {
     try {
-      const { data, error } = await supabase.functions.invoke('teen-patti-manager/place-bet', {
+      const { data, error } = await supabase.functions.invoke('teen-patti-manager', {
         body: {
+          action: 'place-bet',
           gameId,
           betType,
           betAmount
@@ -94,7 +88,12 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
           title: "Success",
           description: data.message
         });
-        fetchGameState();
+        setGameState(data.gameState);
+        
+        // Show system cards if game ended
+        if (data.gameState?.phase === 'finished') {
+          setShowSystemCards(true);
+        }
       }
     } catch (error: any) {
       toast({
@@ -105,13 +104,8 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
     }
   };
 
-  const toggleCardVisibility = () => {
-    if (!showCards && currentPlayer && currentPlayer.is_blind) {
-      // First time seeing cards
-      setShowCards(true);
-    } else {
-      setShowCards(!showCards);
-    }
+  const togglePlayerCards = () => {
+    setShowPlayerCards(!showPlayerCards);
   };
 
   if (loading) {
@@ -122,7 +116,7 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
     );
   }
 
-  if (!game) {
+  if (!gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -147,9 +141,9 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
         </Button>
 
         <div className="text-center">
-          <div className="text-white text-2xl font-bold">Teen Patti</div>
-          <Badge variant={game.game_state === 'betting' ? 'default' : 'secondary'}>
-            {game.game_state.toUpperCase()}
+          <div className="text-white text-2xl font-bold">Teen Patti vs System</div>
+          <Badge variant={gameState.phase === 'betting' ? 'default' : gameState.phase === 'finished' ? 'destructive' : 'secondary'}>
+            {gameState.phase.toUpperCase()}
           </Badge>
         </div>
 
@@ -157,188 +151,166 @@ export function TeenPattiGame({ gameId, onLeaveGame }: TeenPattiGameProps) {
           <div className="text-gray-400 text-sm">Current Pot</div>
           <div className="text-yellow-400 text-xl font-bold flex items-center">
             <Coins className="mr-1 h-5 w-5" />
-            ₹{game.current_pot}
+            ₹{gameState.currentPot}
           </div>
         </div>
       </div>
 
       {/* Game Table */}
-      <div className="relative mx-auto max-w-4xl">
+      <div className="relative mx-auto max-w-6xl">
         {/* Center Pot Display */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
           <Card className="bg-gradient-to-br from-yellow-600 to-yellow-800 border-yellow-500">
             <CardContent className="p-4 text-center">
               <div className="text-yellow-100 text-sm font-medium">POT</div>
-              <div className="text-white text-2xl font-bold">₹{game.current_pot}</div>
-              {game.current_bet > 0 && (
-                <div className="text-yellow-200 text-xs">Min Bet: ₹{game.current_bet}</div>
-              )}
+              <div className="text-white text-2xl font-bold">₹{gameState.currentPot}</div>
+              <div className="text-yellow-200 text-xs">Min Bet: ₹{gameState.minBet}</div>
+              <div className="text-yellow-200 text-xs">Max Bet: ₹{gameState.maxBet}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Player Seats */}
-        <div className="relative w-full h-96 bg-gradient-to-br from-green-800 to-green-900 rounded-full border-8 border-yellow-600">
-          {players.map((player, index) => {
-            const angle = (index * 360) / players.length;
-            const x = 50 + 35 * Math.cos((angle - 90) * Math.PI / 180);
-            const y = 50 + 35 * Math.sin((angle - 90) * Math.PI / 180);
-            
-            const isCurrentTurn = game.current_player_turn === player.user_id;
-            const isMe = player.user_id === user?.id;
+        {/* Game Board */}
+        <div className="relative w-full h-96 bg-gradient-to-br from-green-800 to-green-900 rounded-lg border-8 border-yellow-600">
+          {/* System Player (Top) */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+            <Card className={`bg-gray-800 border-gray-600 ${!gameState.playerTurn ? 'ring-4 ring-red-400 shadow-lg shadow-red-400/50' : ''}`}>
+              <CardContent className="p-4 text-center min-w-[180px]">
+                <div className="text-white text-lg font-bold mb-2 flex items-center justify-center">
+                  <Bot className="mr-2 h-5 w-5" />
+                  System ({gameState.difficulty})
+                </div>
+                
+                <div className="text-green-400 text-sm mb-3">
+                  Chips: ₹{gameState.systemChips}
+                </div>
 
-            return (
-              <div
-                key={player.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${
-                  isCurrentTurn ? 'z-20' : 'z-10'
-                }`}
-                style={{ left: `${x}%`, top: `${y}%` }}
-              >
-                <Card className={`bg-gray-800 border-gray-600 ${
-                  isCurrentTurn ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''
-                } ${player.is_folded ? 'opacity-50' : ''}`}>
-                  <CardContent className="p-3 text-center min-w-[120px]">
-                    <div className="text-white text-sm font-medium mb-1">
-                      {isMe ? 'You' : player.profiles?.full_name || 'Player'}
-                    </div>
-                    
-                    <div className="text-green-400 text-xs mb-2">
-                      ₹{player.chips_in_game}
-                    </div>
+                {/* System Cards */}
+                <div className="flex justify-center gap-2 mb-3">
+                  {gameState.systemCards?.map((card: any, index: number) => (
+                    <TeenPattiCard
+                      key={index}
+                      card={showSystemCards ? card : null}
+                      size="medium"
+                      isVisible={showSystemCards}
+                    />
+                  ))}
+                </div>
 
-                    {/* Player Cards */}
-                    <div className="flex justify-center gap-1 mb-2">
-                      {player.cards && player.cards.length > 0 ? (
-                        isMe ? (
-                          showCards ? (
-                            player.cards.map((card: any, cardIndex: number) => (
-                              <TeenPattiCard
-                                key={cardIndex}
-                                card={card}
-                                size="small"
-                                isVisible={true}
-                              />
-                            ))
-                          ) : (
-                            // Show card backs for own cards when not revealed
-                            [...Array(3)].map((_, cardIndex) => (
-                              <TeenPattiCard
-                                key={cardIndex}
-                                card={null}
-                                size="small"
-                                isVisible={false}
-                              />
-                            ))
-                          )
-                        ) : (
-                          // Show card backs for other players
-                          [...Array(3)].map((_, cardIndex) => (
-                            <TeenPattiCard
-                              key={cardIndex}
-                              card={null}
-                              size="small"
-                              isVisible={false}
-                            />
-                          ))
-                        )
-                      ) : (
-                        <div className="text-gray-500 text-xs">Waiting...</div>
-                      )}
-                    </div>
+                {/* System Status */}
+                {gameState.phase === 'finished' && gameState.systemHandRank && (
+                  <Badge variant="outline" className="text-xs">
+                    {gameState.systemHandRank.replace('_', ' ')}
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                    {/* Player Status */}
-                    <div className="space-y-1">
-                      {player.is_folded && (
-                        <Badge variant="destructive" className="text-xs">Folded</Badge>
-                      )}
-                      {!player.is_folded && (
-                        <>
-                          <Badge variant={player.is_blind ? 'secondary' : 'default'} className="text-xs">
-                            {player.is_blind ? 'Blind' : 'Seen'}
-                          </Badge>
-                          {player.current_bet > 0 && (
-                            <div className="text-yellow-400 text-xs">
-                              Bet: ₹{player.current_bet}
-                            </div>
-                          )}
-                          {player.last_action && (
-                            <div className="text-blue-400 text-xs capitalize">
-                              {player.last_action}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            );
-          })}
+          {/* Player (Bottom) */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+            <Card className={`bg-gray-800 border-gray-600 ${gameState.playerTurn ? 'ring-4 ring-blue-400 shadow-lg shadow-blue-400/50' : ''}`}>
+              <CardContent className="p-4 text-center min-w-[180px]">
+                <div className="text-white text-lg font-bold mb-2">
+                  You
+                </div>
+                
+                <div className="text-green-400 text-sm mb-3">
+                  Chips: ₹{gameState.playerChips}
+                </div>
+
+                {/* Player Cards */}
+                <div className="flex justify-center gap-2 mb-3">
+                  {gameState.playerCards?.map((card: any, index: number) => (
+                    <TeenPattiCard
+                      key={index}
+                      card={showPlayerCards ? card : null}
+                      size="medium"
+                      isVisible={showPlayerCards}
+                    />
+                  ))}
+                </div>
+
+                {/* Player Status */}
+                {gameState.phase === 'finished' && gameState.playerHandRank && (
+                  <Badge variant="outline" className="text-xs">
+                    {gameState.playerHandRank.replace('_', ' ')}
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {/* My Cards Section */}
-      {currentPlayer && currentPlayer.cards && (
-        <div className="mt-8 text-center">
-          <div className="mb-4">
+      {/* Card Controls */}
+      <div className="mt-8 text-center">
+        <div className="flex justify-center gap-4">
+          <Button
+            onClick={togglePlayerCards}
+            variant="outline"
+            className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+          >
+            {showPlayerCards ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+            {showPlayerCards ? 'Hide My Cards' : 'Show My Cards'}
+          </Button>
+          
+          {gameState.phase === 'finished' && (
             <Button
-              onClick={toggleCardVisibility}
+              onClick={() => setShowSystemCards(!showSystemCards)}
               variant="outline"
               className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
             >
-              {showCards ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-              {showCards ? 'Hide Cards' : 'Show Cards'}
+              {showSystemCards ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+              {showSystemCards ? 'Hide System Cards' : 'Show System Cards'}
             </Button>
-          </div>
-          
-          <div className="flex justify-center gap-4">
-            {currentPlayer.cards.map((card: any, index: number) => (
-              <TeenPattiCard
-                key={index}
-                card={showCards ? card : null}
-                size="large"
-                isVisible={showCards}
-              />
-            ))}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Betting Controls */}
-      {game.game_state === 'betting' && !currentPlayer?.is_folded && (
+      {gameState.phase === 'betting' && gameState.playerTurn && (
         <div className="mt-8">
           <BettingControls
-            isMyTurn={isMyTurn}
-            currentBet={game.current_bet}
-            isBlind={currentPlayer?.is_blind || false}
-            isSeen={currentPlayer?.is_seen || false}
+            isMyTurn={true}
+            currentBet={gameState.currentBet}
+            isBlind={!showPlayerCards}
+            isSeen={showPlayerCards}
             onPlaceBet={placeBet}
-            activePlayers={players.filter(p => !p.is_folded).length}
+            activePlayers={2}
+            minBet={gameState.minBet}
+            maxBet={gameState.maxBet}
           />
         </div>
       )}
 
       {/* Game Status */}
       <div className="mt-6 text-center">
-        {game.game_state === 'waiting' && (
-          <div className="text-gray-400">Waiting for more players...</div>
-        )}
-        {game.game_state === 'dealing' && (
-          <div className="text-blue-400">Dealing cards...</div>
-        )}
-        {game.game_state === 'betting' && (
-          <div className="text-yellow-400">
-            {isMyTurn ? "It's your turn!" : `Waiting for ${players.find(p => p.user_id === game.current_player_turn)?.profiles?.full_name || 'player'}`}
+        {gameState.phase === 'betting' && (
+          <div className="text-yellow-400 text-lg">
+            {gameState.playerTurn ? "Your turn! Place your bet or fold." : "System is thinking..."}
           </div>
         )}
-        {game.game_state === 'showdown' && (
-          <div className="text-purple-400">Showdown in progress...</div>
-        )}
-        {game.game_state === 'finished' && game.winner_id && (
-          <div className="text-green-400">
-            {game.winner_id === user?.id ? 'Congratulations! You won!' : 
-             `${players.find(p => p.user_id === game.winner_id)?.profiles?.full_name || 'Player'} won the game!`}
+        {gameState.phase === 'finished' && (
+          <div className="space-y-2">
+            <div className={`text-2xl font-bold ${
+              gameState.winner === 'player' ? 'text-green-400' : 
+              gameState.winner === 'system' ? 'text-red-400' : 'text-yellow-400'
+            }`}>
+              {gameState.winner === 'player' ? 'Congratulations! You Won!' : 
+               gameState.winner === 'system' ? 'System Won!' : 'It\'s a Tie!'}
+            </div>
+            {gameState.playerHandRank && gameState.systemHandRank && (
+              <div className="text-gray-300">
+                Your hand: {gameState.playerHandRank.replace('_', ' ')} vs System: {gameState.systemHandRank.replace('_', ' ')}
+              </div>
+            )}
+            <Button 
+              onClick={onLeaveGame}
+              className="mt-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+            >
+              Play Again
+            </Button>
           </div>
         )}
       </div>
