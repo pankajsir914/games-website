@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,10 @@ import {
 } from 'lucide-react';
 
 const RouletteAdmin = () => {
-  const { user } = useAuth();
+  const { user, loading, isMasterAdmin } = useMasterAdminAuth();
   const queryClient = useQueryClient();
   const [adjustAmount, setAdjustAmount] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
-
-  // Check if user is admin (simplified check)
-  const isAdmin = user?.email?.includes('admin') || user?.id === 'admin-user-id';
 
   // Fetch admin stats
   const { data: adminStats, isLoading: statsLoading } = useQuery({
@@ -76,7 +73,7 @@ const RouletteAdmin = () => {
         activeUsers: new Set(bets.data?.map(bet => bet.user_id)).size
       };
     },
-    enabled: isAdmin,
+    enabled: isMasterAdmin,
     refetchInterval: 5000,
   });
 
@@ -144,7 +141,20 @@ const RouletteAdmin = () => {
     }
   });
 
-  if (!isAdmin) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 pt-24">
+          <div className="text-center text-white">
+            <h1 className="text-4xl font-bold mb-4">Loading...</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !isMasterAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -152,7 +162,7 @@ const RouletteAdmin = () => {
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Access denied. Admin privileges required.
+              Access denied. Master Admin privileges required.
             </AlertDescription>
           </Alert>
         </div>
