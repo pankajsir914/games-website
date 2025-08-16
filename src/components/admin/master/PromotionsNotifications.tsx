@@ -416,17 +416,18 @@ export const PromotionsNotifications = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="banner-title">Banner Title</Label>
-                    <Input 
-                      id="banner-title" 
-                      placeholder="Enter banner title" 
-                      className="bg-background"
-                      value={bannerForm.title}
-                      onChange={(e) => setBannerForm(prev => ({ ...prev, title: e.target.value }))}
-                    />
-                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="banner-title">Banner Title</Label>
+                      <Input 
+                        id="banner-title" 
+                        placeholder="Enter banner title" 
+                        className="bg-background border-input"
+                        value={bannerForm.title}
+                        onChange={(e) => setBannerForm(prev => ({ ...prev, title: e.target.value }))}
+                        autoComplete="off"
+                      />
+                    </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="banner-subtitle">Subtitle (Optional)</Label>
