@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { BannerCarousel } from '@/components/dashboard/BannerCarousel';
 import { 
   Carousel,
   CarouselContent,
@@ -173,28 +174,8 @@ export function DashboardContent() {
 
       {/* Content */}
       <div className="p-6 space-y-8">
-        {/* Promotional Carousel */}
-        <Carousel className="w-full">
-          <CarouselContent>
-            {promotionalImages.map((promo, index) => (
-              <CarouselItem key={index}>
-                <Card className="overflow-hidden border-border">
-                  <CardContent className="p-0">
-                    <div className="relative h-64 md:h-80">
-                      <img
-                        src={promo.image}
-                        alt={promo.alt}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="left-4" />
-          <CarouselNext className="right-4" />
-        </Carousel>
+        {/* Banner Promotions Carousel */}
+        <BannerCarousel />
 
         {/* Popular Games Section */}
         <div>
