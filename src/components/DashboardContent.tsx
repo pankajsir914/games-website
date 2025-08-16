@@ -39,11 +39,11 @@ export function DashboardContent() {
 
   const popularGames = [
     {
-      title: "Cricketer X",
-      provider: "Smartsoft",
+      title: "Teen Patti",
+      provider: "RRB Games",
       image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-blue-600 to-blue-800"
+      path: "/teen-patti",
+      gradient: "from-yellow-600 to-orange-700"
     },
     {
       title: "Super Andar Bahar",
@@ -53,41 +53,6 @@ export function DashboardContent() {
       gradient: "from-red-600 to-red-800"
     },
     {
-      title: "Spins Queen",
-      provider: "Spinomenal",
-      image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-purple-600 to-pink-600"
-    },
-    {
-      title: "Olympian Legends",
-      provider: "Galaxsys",
-      image: "/placeholder.svg",
-      path: "/games", 
-      gradient: "from-blue-500 to-cyan-600"
-    },
-    {
-      title: "Astronaut",
-      provider: "1000IP Gaming",
-      image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-red-500 to-orange-600"
-    },
-    {
-      title: "Balloon",
-      provider: "Smartsoft",
-      image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-cyan-500 to-blue-600"
-    },
-    {
-      title: "JetX",
-      provider: "Smartsoft", 
-      image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-blue-600 to-indigo-700"
-    },
-    {
       title: "Aviator",
       provider: "Spribe",
       image: "/placeholder.svg",
@@ -95,32 +60,53 @@ export function DashboardContent() {
       gradient: "from-red-600 to-red-800"
     },
     {
-      title: "Crazy Time",
-      provider: "Evolution",
+      title: "Color Prediction",
+      provider: "RRB Games",
       image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-yellow-500 to-orange-600"
+      path: "/color-prediction",
+      gradient: "from-green-500 to-emerald-600"
     },
     {
-      title: "Sushi Bar",
-      provider: "Betsoft",
+      title: "Jackpot",
+      provider: "RRB Games",
       image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-green-500 to-teal-600"
+      path: "/jackpot",
+      gradient: "from-purple-600 to-pink-600"
     },
     {
-      title: "Valley of the Gods 2",
-      provider: "Yggdrasil",
+      title: "Roulette",
+      provider: "RRB Games",
       image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-orange-600 to-red-700"
+      path: "/roulette",
+      gradient: "from-red-500 to-rose-600"
     },
     {
-      title: "Winterberries",
-      provider: "Yggdrasil",
+      title: "Poker",
+      provider: "RRB Games", 
       image: "/placeholder.svg",
-      path: "/games",
-      gradient: "from-blue-400 to-purple-600"
+      path: "/poker",
+      gradient: "from-blue-600 to-indigo-700"
+    },
+    {
+      title: "Ludo Multiplayer",
+      provider: "RRB Games",
+      image: "/placeholder.svg",
+      path: "/ludo",
+      gradient: "from-cyan-500 to-blue-600"
+    },
+    {
+      title: "Rummy",
+      provider: "RRB Games",
+      image: "/placeholder.svg",
+      path: "/rummy",
+      gradient: "from-green-600 to-teal-600"
+    },
+    {
+      title: "Sports Betting",
+      provider: "RRB Games",
+      image: "/placeholder.svg",
+      path: "/sports",
+      gradient: "from-orange-500 to-red-600"
     }
   ];
 

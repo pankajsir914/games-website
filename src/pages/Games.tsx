@@ -9,6 +9,13 @@ const Games = () => {
 
   const games = [
     {
+      title: 'Teen Patti',
+      description: 'Classic Indian poker with 3 cards',
+      icon: '🃏',
+      path: '/teen-patti',
+      color: 'from-yellow-600 to-orange-700'
+    },
+    {
       title: 'Ludo',
       description: 'Classic board game with real money betting',
       icon: '🎲',
@@ -32,7 +39,7 @@ const Games = () => {
     {
       title: 'Andar Bahar',
       description: 'Traditional Indian card game',
-      icon: '🃏',
+      icon: '♠️',
       path: '/andar-bahar',
       color: 'from-red-500 to-orange-600'
     },
@@ -53,7 +60,7 @@ const Games = () => {
     {
       title: 'Poker',
       description: 'Texas Hold\'em poker tables',
-      icon: '♠️',
+      icon: '♥️',
       path: '/poker',
       color: 'from-gray-700 to-gray-900'
     },

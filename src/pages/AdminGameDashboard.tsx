@@ -11,18 +11,24 @@ import { RummyGameControl } from '@/components/admin/game-controls/RummyGameCont
 import { RouletteGameControl } from '@/components/admin/game-controls/RouletteGameControl';
 import { PokerGameControl } from '@/components/admin/game-controls/PokerGameControl';
 import { JackpotGameControl } from '@/components/admin/game-controls/JackpotGameControl';
+import { TeenPattiAdminControl } from '@/components/admin/game-controls/TeenPattiGameControl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, BarChart3, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type GameType = 'ludo' | 'aviator' | 'color_prediction' | 'casino' | 'rummy' | 'andar_bahar' | 'roulette' | 'poker' | 'jackpot';
+type GameType = 'teen_patti' | 'ludo' | 'aviator' | 'color_prediction' | 'casino' | 'rummy' | 'andar_bahar' | 'roulette' | 'poker' | 'jackpot';
 
 const AdminGameDashboard = () => {
   const { gameType } = useParams<{ gameType: GameType }>();
   const navigate = useNavigate();
 
   const gameConfig = {
+    teen_patti: {
+      title: 'Teen Patti Control',
+      description: 'Manage Teen Patti tables, hands, and outcomes',
+      icon: '🃏'
+    },
     ludo: {
       title: 'Ludo Game Control',
       description: 'Manage Ludo games, control dice rolls, and manipulate game outcomes',
@@ -72,6 +78,8 @@ const AdminGameDashboard = () => {
 
   const renderGameControl = () => {
     switch (gameType) {
+      case 'teen_patti':
+        return <TeenPattiAdminControl />;
       case 'ludo':
         return <LudoGameControl />;
       case 'aviator':

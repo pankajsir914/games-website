@@ -353,6 +353,21 @@ export const CasinoGameControl = () => {
                       <Button variant="outline" disabled={!cheatMode}>
                         Force Sequence
                       </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Color (Flush)
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force Pair
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Force High Card
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Control Table Outcomes
+                      </Button>
+                      <Button variant="outline" disabled={!cheatMode}>
+                        Manipulate Player Hands
+                      </Button>
                       <Button variant="destructive" disabled={!cheatMode}>
                         Force High Card
                       </Button>

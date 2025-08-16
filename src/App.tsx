@@ -18,6 +18,7 @@ import Rummy from "./pages/Rummy";
 import Poker from "./pages/Poker";
 import PokerTable from "./pages/PokerTable";
 import Jackpot from "./pages/Jackpot";
+import TeenPatti from "./pages/TeenPatti";
 import Wallet from "./pages/Wallet";
 import Sports from "./pages/Sports";
 import Admin from "./pages/Admin";
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/poker" element={<Poker />} />
               <Route path="/poker/table/:tableId" element={<PokerTable />} />
               <Route path="/jackpot" element={<Jackpot />} />
+              <Route path="/teen-patti" element={<TeenPatti />} />
               <Route path="/wallet" element={<Wallet />} />
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
