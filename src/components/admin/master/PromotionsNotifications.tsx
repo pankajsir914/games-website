@@ -476,41 +476,42 @@ export const PromotionsNotifications = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="banner-image">Banner Image</Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                      {bannerPreview ? (
-                        <div className="relative">
-                          <img src={bannerPreview} alt="Banner preview" className="max-w-full h-32 object-cover rounded" />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="absolute -top-2 -right-2"
-                            onClick={() => {
-                              setSelectedBannerFile(null);
-                              setBannerPreview(null);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div>
-                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">Click to upload banner image</p>
-                          <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBannerFileSelect}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="banner-image">Banner Image</Label>
+                      <div className="relative border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
+                        {bannerPreview ? (
+                          <div className="relative">
+                            <img src={bannerPreview} alt="Banner preview" className="max-w-full h-32 object-cover rounded mx-auto" />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="absolute -top-2 -right-2 z-10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBannerFile(null);
+                                setBannerPreview(null);
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="pointer-events-none">
+                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Click to upload banner image</p>
+                            <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerFileSelect}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-0"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
               </div>
               
               <Button 
