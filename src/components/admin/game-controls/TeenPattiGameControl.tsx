@@ -6,29 +6,40 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Coins, Users, TrendingUp, Settings, Crown, Target, BarChart3 } from 'lucide-react';
+import { Coins, Users, TrendingUp, Settings, Crown, Target, BarChart3, Clock, Activity, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export const TeenPattiAdminControl = () => {
+export const TeenPattiGameControl = () => {
   const { toast } = useToast();
   const [gameSettings, setGameSettings] = useState({
     isEnabled: true,
     maintenanceMode: false,
     minBet: 10,
     maxBet: 1000,
-    entryFee: 50,
     houseEdge: 5,
-    maxPlayersPerTable: 5,
-    minPlayersToStart: 2
+    roundDuration: 60, // seconds
+    processingTime: 10, // seconds
+    maxBetPerRound: 50000
   });
 
-  const [gameStats] = useState({
-    activeTables: 12,
-    totalPlayers: 45,
-    revenueToday: 25680,
-    totalHands: 1247,
-    averagePot: 450
+  const [roundStats] = useState({
+    currentRound: 247,
+    activeRound: true,
+    timeRemaining: 45,
+    totalPlayers: 32,
+    totalPot: 15420,
+    revenueToday: 45680,
+    totalRounds: 1247,
+    averagePot: 450,
+    winRate: 48.5
   });
+
+  const [recentRounds] = useState([
+    { id: 246, players: 28, pot: 12450, winningHand: 'Trail', winners: 3 },
+    { id: 245, players: 35, pot: 18920, winningHand: 'Pure Sequence', winners: 2 },
+    { id: 244, players: 22, pot: 9870, winningHand: 'Color', winners: 5 },
+    { id: 243, players: 41, pot: 23150, winningHand: 'Pair', winners: 8 },
+  ]);
 
   const handleSettingChange = (key: string, value: any) => {
     setGameSettings(prev => ({
@@ -46,8 +57,15 @@ export const TeenPattiAdminControl = () => {
     setGameSettings(prev => ({ ...prev, isEnabled: false, maintenanceMode: true }));
     toast({
       title: "Emergency Stop Activated",
-      description: "All Teen Patti tables have been disabled",
+      description: "Teen Patti rounds have been halted",
       variant: "destructive"
+    });
+  };
+
+  const handleForceCompleteRound = () => {
+    toast({
+      title: "Round Completed",
+      description: "Current round has been forcefully completed",
     });
   };
 
@@ -59,6 +77,12 @@ export const TeenPattiAdminControl = () => {
     }).format(amount);
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -68,9 +92,16 @@ export const TeenPattiAdminControl = () => {
             <Crown className="h-6 w-6 text-yellow-500" />
             Teen Patti Control Panel
           </h2>
-          <p className="text-muted-foreground">Manage Teen Patti tables, settings, and player activities</p>
+          <p className="text-muted-foreground">Manage continuous Teen Patti rounds and system settings</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={handleForceCompleteRound}
+            disabled={!roundStats.activeRound}
+          >
+            Force Complete Round
+          </Button>
           <Button 
             variant={gameSettings.isEnabled ? "destructive" : "default"}
             onClick={handleEmergencyStop}
@@ -80,30 +111,49 @@ export const TeenPattiAdminControl = () => {
         </div>
       </div>
 
-      {/* Game Status */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-500">{gameStats.activeTables}</div>
-              <div className="text-sm text-muted-foreground">Active Tables</div>
+      {/* Current Round Status */}
+      <Card className="border-l-4 border-l-blue-500">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-500" />
+              Round #{roundStats.currentRound} Status
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
+            <Badge variant={roundStats.activeRound ? "default" : "secondary"}>
+              {roundStats.activeRound ? "Betting Active" : "Processing"}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-500">{gameStats.totalPlayers}</div>
-              <div className="text-sm text-muted-foreground">Live Players</div>
+              <div className="text-2xl font-bold text-orange-500">
+                {formatTime(roundStats.timeRemaining)}
+              </div>
+              <div className="text-sm text-muted-foreground">Time Remaining</div>
             </div>
-          </CardContent>
-        </Card>
-        
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-500">{roundStats.totalPlayers}</div>
+              <div className="text-sm text-muted-foreground">Active Players</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-500">{formatCurrency(roundStats.totalPot)}</div>
+              <div className="text-sm text-muted-foreground">Current Pot</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-500">{roundStats.winRate}%</div>
+              <div className="text-sm text-muted-foreground">Win Rate</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Game Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-500">{formatCurrency(gameStats.revenueToday)}</div>
+              <div className="text-2xl font-bold text-yellow-500">{formatCurrency(roundStats.revenueToday)}</div>
               <div className="text-sm text-muted-foreground">Today Revenue</div>
             </div>
           </CardContent>
@@ -112,8 +162,8 @@ export const TeenPattiAdminControl = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-500">{gameStats.totalHands}</div>
-              <div className="text-sm text-muted-foreground">Hands Played</div>
+              <div className="text-2xl font-bold text-indigo-500">{roundStats.totalRounds}</div>
+              <div className="text-sm text-muted-foreground">Rounds Completed</div>
             </div>
           </CardContent>
         </Card>
@@ -121,8 +171,19 @@ export const TeenPattiAdminControl = () => {
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-500">{formatCurrency(gameStats.averagePot)}</div>
+              <div className="text-2xl font-bold text-orange-500">{formatCurrency(roundStats.averagePot)}</div>
               <div className="text-sm text-muted-foreground">Avg Pot Size</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-500">
+                {gameSettings.houseEdge}%
+              </div>
+              <div className="text-sm text-muted-foreground">House Edge</div>
             </div>
           </CardContent>
         </Card>
@@ -132,8 +193,8 @@ export const TeenPattiAdminControl = () => {
       <Tabs defaultValue="settings" className="space-y-4">
         <TabsList>
           <TabsTrigger value="settings">Game Settings</TabsTrigger>
-          <TabsTrigger value="tables">Live Tables</TabsTrigger>
-          <TabsTrigger value="players">Player Management</TabsTrigger>
+          <TabsTrigger value="rounds">Live Rounds</TabsTrigger>
+          <TabsTrigger value="history">Round History</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -144,7 +205,7 @@ export const TeenPattiAdminControl = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5" />
-                  Game Control
+                  System Control
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -172,6 +233,40 @@ export const TeenPattiAdminControl = () => {
                     onChange={(e) => handleSettingChange('houseEdge', Number(e.target.value))}
                     min="0"
                     max="20"
+                    step="0.1"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Round Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Round Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Round Duration (seconds)</Label>
+                  <Input
+                    type="number"
+                    value={gameSettings.roundDuration}
+                    onChange={(e) => handleSettingChange('roundDuration', Number(e.target.value))}
+                    min="30"
+                    max="120"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Processing Time (seconds)</Label>
+                  <Input
+                    type="number"
+                    value={gameSettings.processingTime}
+                    onChange={(e) => handleSettingChange('processingTime', Number(e.target.value))}
+                    min="5"
+                    max="30"
                   />
                 </div>
               </CardContent>
@@ -192,6 +287,7 @@ export const TeenPattiAdminControl = () => {
                     type="number"
                     value={gameSettings.minBet}
                     onChange={(e) => handleSettingChange('minBet', Number(e.target.value))}
+                    min="1"
                   />
                 </div>
                 
@@ -201,48 +297,17 @@ export const TeenPattiAdminControl = () => {
                     type="number"
                     value={gameSettings.maxBet}
                     onChange={(e) => handleSettingChange('maxBet', Number(e.target.value))}
+                    min="10"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Table Entry Fee (₹)</Label>
+                  <Label>Max Bet Per Round (₹)</Label>
                   <Input
                     type="number"
-                    value={gameSettings.entryFee}
-                    onChange={(e) => handleSettingChange('entryFee', Number(e.target.value))}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Table Configuration */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Table Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Max Players Per Table</Label>
-                  <Input
-                    type="number"
-                    value={gameSettings.maxPlayersPerTable}
-                    onChange={(e) => handleSettingChange('maxPlayersPerTable', Number(e.target.value))}
-                    min="2"
-                    max="6"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Min Players to Start</Label>
-                  <Input
-                    type="number"
-                    value={gameSettings.minPlayersToStart}
-                    onChange={(e) => handleSettingChange('minPlayersToStart', Number(e.target.value))}
-                    min="2"
-                    max="4"
+                    value={gameSettings.maxBetPerRound}
+                    onChange={(e) => handleSettingChange('maxBetPerRound', Number(e.target.value))}
+                    min="1000"
                   />
                 </div>
               </CardContent>
@@ -253,7 +318,7 @@ export const TeenPattiAdminControl = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
-                  Game Status
+                  Current Status
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -273,9 +338,16 @@ export const TeenPattiAdminControl = () => {
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span>Current House Edge</span>
+                    <span>Round Duration</span>
                     <Badge variant="outline">
-                      {gameSettings.houseEdge}%
+                      {gameSettings.roundDuration}s
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span>System Load</span>
+                    <Badge variant="outline" className="text-green-500">
+                      Normal
                     </Badge>
                   </div>
                 </div>
@@ -284,31 +356,62 @@ export const TeenPattiAdminControl = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="tables">
+        <TabsContent value="rounds">
           <Card>
             <CardHeader>
-              <CardTitle>Live Teen Patti Tables</CardTitle>
+              <CardTitle>Live Round Monitoring</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center text-muted-foreground py-8">
-                Live tables management interface will be implemented here.
-                <br />
-                This will show real-time table status, player counts, and pot sizes.
+              <div className="space-y-4">
+                <div className="text-center py-4 bg-muted/20 rounded-lg">
+                  <h3 className="text-lg font-semibold">Round #{roundStats.currentRound}</h3>
+                  <p className="text-muted-foreground">
+                    {roundStats.activeRound ? 'Betting in progress' : 'Processing results'}
+                  </p>
+                  <div className="mt-2">
+                    <Badge variant="outline" className="text-lg px-4 py-1">
+                      {formatTime(roundStats.timeRemaining)}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="text-center text-muted-foreground">
+                  Real-time round monitoring interface will show:
+                  <br />
+                  • Live bet placement tracking
+                  <br />
+                  • Player activity monitoring  
+                  <br />
+                  • Result generation process
+                  <br />
+                  • Payout distribution status
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="players">
+        <TabsContent value="history">
           <Card>
             <CardHeader>
-              <CardTitle>Player Management</CardTitle>
+              <CardTitle>Recent Round History</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center text-muted-foreground py-8">
-                Player management interface will be implemented here.
-                <br />
-                This will show active players, betting patterns, and moderation tools.
+              <div className="space-y-3">
+                {recentRounds.map((round) => (
+                  <div key={round.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                    <div>
+                      <div className="font-medium">Round #{round.id}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {round.players} players • {round.winningHand} • {round.winners} winners
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">{formatCurrency(round.pot)}</div>
+                      <div className="text-sm text-muted-foreground">Total Pot</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -324,9 +427,17 @@ export const TeenPattiAdminControl = () => {
             </CardHeader>
             <CardContent>
               <div className="text-center text-muted-foreground py-8">
-                Detailed analytics and reporting interface will be implemented here.
+                Detailed analytics dashboard will include:
                 <br />
-                This will include revenue charts, player behavior analysis, and game statistics.
+                • Revenue trends and projections
+                <br />
+                • Player behavior patterns
+                <br />
+                • Round completion statistics
+                <br />
+                • Hand distribution analysis
+                <br />
+                • Peak activity times
               </div>
             </CardContent>
           </Card>

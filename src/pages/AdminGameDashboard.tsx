@@ -11,7 +11,7 @@ import { RummyGameControl } from '@/components/admin/game-controls/RummyGameCont
 import { RouletteGameControl } from '@/components/admin/game-controls/RouletteGameControl';
 import { PokerGameControl } from '@/components/admin/game-controls/PokerGameControl';
 import { JackpotGameControl } from '@/components/admin/game-controls/JackpotGameControl';
-import { TeenPattiAdminControl } from '@/components/admin/game-controls/TeenPattiGameControl';
+import { TeenPattiGameControl } from '@/components/admin/game-controls/TeenPattiGameControl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, BarChart3, Users } from 'lucide-react';
@@ -79,7 +79,7 @@ const AdminGameDashboard = () => {
   const renderGameControl = () => {
     switch (gameType) {
       case 'teen_patti':
-        return <TeenPattiAdminControl />;
+        return <TeenPattiGameControl />;
       case 'ludo':
         return <LudoGameControl />;
       case 'aviator':

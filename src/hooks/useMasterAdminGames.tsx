@@ -121,6 +121,19 @@ export const useMasterAdminGames = () => {
                 }
                 break;
               }
+              case 'teen_patti': {
+                const { data: teenPattiStats } = await supabase
+                  .from('teen_patti_bets')
+                  .select('user_id, bet_amount')
+                  .gte('created_at', today);
+                
+                if (teenPattiStats) {
+                  active_players = new Set(teenPattiStats.map(bet => bet.user_id)).size;
+                  today_revenue = teenPattiStats.reduce((sum, bet) => sum + Number(bet.bet_amount), 0);
+                  total_bets_today = teenPattiStats.length;
+                }
+                break;
+              }
               default:
                 // For games without betting tables, set defaults
                 active_players = Math.floor(Math.random() * 100);
