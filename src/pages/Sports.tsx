@@ -8,6 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
+// Import sports background images
+import cricketBg from '@/assets/cricket-bg.jpg';
+import footballBg from '@/assets/football-bg.jpg';
+import basketballBg from '@/assets/basketball-bg.jpg';
+import tennisBg from '@/assets/tennis-bg.jpg';
+import hockeyBg from '@/assets/hockey-bg.jpg';
+import sportsGenericBg from '@/assets/sports-generic-bg.jpg';
+
 // Normalized match shape from backend
 type MatchItem = {
   id: number | string | null;
@@ -21,6 +29,24 @@ type MatchItem = {
 };
 
 const sports: Array<'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing'> = ['cricket', 'football', 'basketball', 'tennis', 'hockey', 'kabaddi', 'baseball', 'table-tennis', 'boxing'];
+
+// Function to get background image based on sport type
+const getSportBackground = (sport: string): string => {
+  switch (sport.toLowerCase()) {
+    case 'cricket':
+      return cricketBg;
+    case 'football':
+      return footballBg;
+    case 'basketball':
+      return basketballBg;
+    case 'tennis':
+      return tennisBg;
+    case 'hockey':
+      return hockeyBg;
+    default:
+      return sportsGenericBg;
+  }
+};
 
 function useMatches(sport: string, kind: 'live' | 'upcoming' | 'results', team: string, date: string | null) {
   const [data, setData] = useState<MatchItem[] | null>(null);
@@ -73,32 +99,46 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
   </section>
 );
 
-const MatchesList: React.FC<{ data: MatchItem[] | null; loading: boolean; error: string | null }>
-= ({ data, loading, error }) => {
+const MatchesList: React.FC<{ data: MatchItem[] | null; loading: boolean; error: string | null; sport: string }>
+= ({ data, loading, error, sport }) => {
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
   if (error) return <div className="text-destructive">{error}</div>;
   if (!data || data.length === 0) return <div className="text-muted-foreground">No matches.</div>;
+  
+  const backgroundImage = getSportBackground(sport);
+  
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {data.map((m, idx) => (
-        <Card key={`${m.id ?? 'x'}-${idx}`} className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{m.league}</CardTitle>
-              <Badge variant="secondary">{m.status}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{m.date ? new Date(m.date).toLocaleString() : 'TBD'}{m.venue ? ` • ${m.venue}` : ''}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between text-lg font-semibold">
-              <span>{m.teams.home}</span>
-              <span>{m.scores.home ?? '-'}</span>
-            </div>
-            <div className="flex items-center justify-between text-lg font-semibold">
-              <span>{m.teams.away}</span>
-              <span>{m.scores.away ?? '-'}</span>
-            </div>
-          </CardContent>
+        <Card key={`${m.id ?? 'x'}-${idx}`} className="relative overflow-hidden hover:shadow-md transition-shadow group">
+          {/* Background Image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 group-hover:opacity-30 transition-opacity duration-300"
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+          />
+          {/* Gradient overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30" />
+          
+          {/* Content */}
+          <div className="relative z-10">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base text-foreground">{m.league}</CardTitle>
+                <Badge variant="secondary">{m.status}</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{m.date ? new Date(m.date).toLocaleString() : 'TBD'}{m.venue ? ` • ${m.venue}` : ''}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between text-lg font-semibold text-foreground">
+                <span>{m.teams.home}</span>
+                <span className="bg-primary/20 px-2 py-1 rounded text-primary-foreground">{m.scores.home ?? '-'}</span>
+              </div>
+              <div className="flex items-center justify-between text-lg font-semibold text-foreground mt-2">
+                <span>{m.teams.away}</span>
+                <span className="bg-primary/20 px-2 py-1 rounded text-primary-foreground">{m.scores.away ?? '-'}</span>
+              </div>
+            </CardContent>
+          </div>
         </Card>
       ))}
     </div>
@@ -117,15 +157,15 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
     <div className="space-y-8">
 
       <Section title="Live Matches">
-        <MatchesList {...live} />
+        <MatchesList {...live} sport={sport} />
       </Section>
 
       <Section title="Upcoming Matches">
-        <MatchesList {...upcoming} />
+        <MatchesList {...upcoming} sport={sport} />
       </Section>
 
       <Section title="Results">
-        <MatchesList {...results} />
+        <MatchesList {...results} sport={sport} />
       </Section>
     </div>
   );
