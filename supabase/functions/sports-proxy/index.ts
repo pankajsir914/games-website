@@ -64,14 +64,15 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     return u.toString();
   }
   if (sport === 'cricket') {
-    // Check if API key is available
+    // Use CricAPI currentMatches for live, matches for others
     if (!CRICAPI_KEY) {
       console.error('CRICAPI_KEY is not available');
       throw new Error('Cricket API key not configured');
     }
-    // Try the new cricScore API first for all kinds, fallback to existing APIs
-    const u = new URL(BASES.cricket + '/cricScore');
+    const endpoint = kind === 'live' ? '/currentMatches' : '/matches';
+    const u = new URL(BASES.cricket + endpoint);
     u.searchParams.set('apikey', CRICAPI_KEY);
+    u.searchParams.set('offset', '0');
     return u.toString();
   }
   if (sport === 'hockey' || sport === 'basketball' || sport === 'baseball' || sport === 'tennis') {
