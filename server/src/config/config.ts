@@ -18,4 +18,13 @@ export const config = {
     hockeyBase: process.env.SPORTS_API_HOCKEY_BASE || 'https://v1.hockey.api-sports.io',
     defaultTtlSeconds: parseInt(process.env.SPORTS_CACHE_TTL || '10', 10),
   },
+  cricket: {
+    apiKey: process.env.CRICAPI_KEY || 'a4cd2ec0-4175-4263-868a-22ef5cbd9316',
+    refreshInterval: parseInt(process.env.CRICKET_REFRESH_INTERVAL || '120', 10), // seconds
+    enableScheduler: process.env.CRICKET_ENABLE_SCHEDULER !== 'false',
+  },
+  supabase: {
+    url: process.env.SUPABASE_URL || 'https://foiojihgpeehvpwejeqw.supabase.co',
+    serviceKey: process.env.SUPABASE_SERVICE_KEY || '',
+  }
 };

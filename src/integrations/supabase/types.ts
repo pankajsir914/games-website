@@ -957,6 +957,42 @@ export type Database = {
         }
         Relationships: []
       }
+      matches: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          id: string
+          status: string | null
+          team1: string
+          team2: string
+          type: string | null
+          unique_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          status?: string | null
+          team1: string
+          team2: string
+          type?: string | null
+          unique_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          status?: string | null
+          team1?: string
+          team2?: string
+          type?: string | null
+          unique_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -1044,6 +1080,36 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          id: string
+          name: string
+          pid: string
+          stats: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          pid: string
+          stats?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          pid?: string
+          stats?: Json | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1660,6 +1726,41 @@ export type Database = {
           winner_id?: string | null
         }
         Relationships: []
+      }
+      scores: {
+        Row: {
+          id: string
+          match_id: string
+          result: string | null
+          team1_score: string | null
+          team2_score: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          match_id: string
+          result?: string | null
+          team1_score?: string | null
+          team2_score?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          match_id?: string
+          result?: string | null
+          team1_score?: string | null
+          team2_score?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sports_betting_odds: {
         Row: {

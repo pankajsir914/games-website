@@ -9,10 +9,12 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import walletRoutes from './routes/wallet';
 import pokerRoutes from './routes/poker';
+import sportsRoutes from './routes/sports';
+import cricketRoutes from './routes/cricket';
 import { csrfGuard } from './middleware/csrf';
 import { config } from './config/config';
 import { swaggerSpec } from './docs/swagger';
-import sportsRoutes from './routes/sports';
+import { cricketScheduler } from './services/scheduler';
 
 const app = express();
 
@@ -33,14 +35,46 @@ app.use('/admin', adminRoutes);
 app.use('/wallet', walletRoutes);
 app.use('/poker', pokerRoutes);
 app.use('/api', sportsRoutes);
+app.use('/api', cricketRoutes);
 
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
+
+// Cricket Scheduler Status
+app.get('/cricket/status', (_req, res) => {
+  const status = cricketScheduler.getStatus();
+  res.json({ 
+    success: true, 
+    scheduler: status,
+    config: {
+      refreshInterval: config.cricket.refreshInterval,
+      enableScheduler: config.cricket.enableScheduler
+    }
+  });
+});
+
+// Start Cricket Scheduler
+if (config.cricket.enableScheduler) {
+  cricketScheduler.start();
+}
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  cricketScheduler.stop();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  cricketScheduler.stop();
+  process.exit(0);
 });
 
 export default app;
