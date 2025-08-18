@@ -100,17 +100,31 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   return (
     <div className="flex gap-6">
       <div className="flex-1 space-y-8">
-        {/* Add the sports widget at the top */}
-        <SportsWidget 
-          sport={sport === 'football' ? 'football' : 'cricket'} 
-          league={sport === 'football' ? 'premier-league' : 'ipl'}
-          theme="light"
-          height={300}
-        />
+        {/* Enhanced sports widget with animations */}
+        <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <SportsWidget 
+            sport={sport === 'football' ? 'football' : sport === 'cricket' ? 'cricket' : sport === 'basketball' ? 'basketball' : sport === 'tennis' ? 'tennis' : 'football'} 
+            league={
+              sport === 'football' ? 'premier-league' : 
+              sport === 'cricket' ? 'ipl' :
+              sport === 'basketball' ? 'nba' :
+              sport === 'tennis' ? 'atp' :
+              'premier-league'
+            }
+            theme="light"
+            height={420}
+          />
+        </div>
         
-        {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
-        {renderMatches(upcomingData, upcomingLoading, upcomingError, "Upcoming Matches", refreshUpcoming)}
-        {renderMatches(resultsData, resultsLoading, resultsError, "Results", refreshResults)}
+        <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
+        </div>
+        <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          {renderMatches(upcomingData, upcomingLoading, upcomingError, "Upcoming Matches", refreshUpcoming)}
+        </div>
+        <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          {renderMatches(resultsData, resultsLoading, resultsError, "Results", refreshResults)}
+        </div>
       </div>
       
       {/* Bet Slip Sidebar */}
