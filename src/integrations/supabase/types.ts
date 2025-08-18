@@ -1661,6 +1661,165 @@ export type Database = {
         }
         Relationships: []
       }
+      sports_betting_odds: {
+        Row: {
+          bet_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          match_id: string
+          odds: number
+          sport_type: string
+          team_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bet_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          match_id: string
+          odds: number
+          sport_type: string
+          team_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bet_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          match_id?: string
+          odds?: number
+          sport_type?: string
+          team_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sports_matches_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          match_data: Json
+          match_id: string
+          match_kind: string
+          sport_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          match_data: Json
+          match_id: string
+          match_kind: string
+          sport_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          match_data?: Json
+          match_id?: string
+          match_kind?: string
+          sport_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sports_mock_bets: {
+        Row: {
+          bet_amount: number
+          bet_type: string
+          created_at: string | null
+          id: string
+          match_id: string
+          odds_at_bet: number
+          potential_payout: number
+          result_amount: number | null
+          sport_type: string
+          status: string | null
+          team_name: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          bet_type: string
+          created_at?: string | null
+          id?: string
+          match_id: string
+          odds_at_bet: number
+          potential_payout: number
+          result_amount?: number | null
+          sport_type: string
+          status?: string | null
+          team_name?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          bet_type?: string
+          created_at?: string | null
+          id?: string
+          match_id?: string
+          odds_at_bet?: number
+          potential_payout?: number
+          result_amount?: number | null
+          sport_type?: string
+          status?: string | null
+          team_name?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sports_settings: {
+        Row: {
+          api_endpoint: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          refresh_interval: number | null
+          settings: Json | null
+          show_completed: boolean | null
+          show_live: boolean | null
+          show_upcoming: boolean | null
+          sport_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          refresh_interval?: number | null
+          settings?: Json | null
+          show_completed?: boolean | null
+          show_live?: boolean | null
+          show_upcoming?: boolean | null
+          sport_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          refresh_interval?: number | null
+          settings?: Json | null
+          show_completed?: boolean | null
+          show_live?: boolean | null
+          show_upcoming?: boolean | null
+          sport_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       teen_patti_bets: {
         Row: {
           bet_amount: number

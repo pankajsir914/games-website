@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
+import { MatchCard } from '@/components/sports/MatchCard';
+import { BetSlip } from '@/components/sports/BetSlip';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
 
 // Import sports background images
 import cricketBg from '@/assets/cricket-bg.jpg';
