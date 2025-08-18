@@ -64,12 +64,9 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     return u.toString();
   }
   if (sport === 'cricket') {
-    // For cricket API: currentMatches for live, matches for upcoming/results
-    const path = kind === 'live' ? '/currentMatches' : '/matches';
-    const u = new URL(BASES.cricket + path);
+    // Try the new cricScore API first for all kinds, fallback to existing APIs
+    const u = new URL(BASES.cricket + '/cricScore');
     u.searchParams.set('apikey', CRICAPI_KEY);
-    u.searchParams.set('offset', '0');
-    if (q.date) u.searchParams.set('date', q.date);
     return u.toString();
   }
   if (sport === 'hockey' || sport === 'basketball' || sport === 'baseball' || sport === 'tennis') {
@@ -81,6 +78,14 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
   }
   // Unsupported for now: boxing, kabaddi, table-tennis
   return '';
+}
+
+// Additional function to get fallback cricket URLs
+function getCricketFallbackUrls(): string[] {
+  return [
+    `${BASES.cricket}/currentMatches?apikey=${CRICAPI_KEY}&offset=0`,
+    `${BASES.cricket}/matches?apikey=${CRICAPI_KEY}&offset=0`
+  ];
 }
 
 function normalizeItem(sport: Sport, item: any) {
@@ -241,18 +246,49 @@ const key = `${s}:${k}:${q.date || 'any'}`;
           ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
           : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
         
-        console.log(`Fetching ${s} data from: ${url}`);
-        const upstream = await doFetch(url, headers);
-        console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
-        
-        // Cricket API returns data in 'data' array
-        const list: any[] = s === 'cricket' ? (upstream?.data || []) : (upstream?.response || upstream?.results || upstream?.data || []);
-        console.log(`${s} raw data list length:`, list.length);
-        
-        let normalized = list.map((it) => normalizeItem(s, it));
-        console.log(`${s} normalized data:`, normalized.length, 'items');
+        let normalized: any[] = [];
         
         if (s === 'cricket') {
+          // Try the new cricScore API first
+          console.log(`Fetching ${s} data from: ${url}`);
+          try {
+            const upstream = await doFetch(url, headers);
+            console.log(`${s} cricScore API response:`, JSON.stringify(upstream, null, 2));
+            
+            const list: any[] = upstream?.data || [];
+            console.log(`${s} cricScore raw data list length:`, list.length);
+            
+            if (list.length > 0) {
+              normalized = list.map((it) => normalizeItem(s, it));
+              console.log(`${s} cricScore normalized data:`, normalized.length, 'items');
+            }
+          } catch (scoreApiError) {
+            console.log(`cricScore API failed, trying fallback APIs:`, scoreApiError);
+            
+            // Try fallback URLs
+            const fallbackUrls = getCricketFallbackUrls();
+            for (const fallbackUrl of fallbackUrls) {
+              try {
+                console.log(`Trying fallback cricket API: ${fallbackUrl}`);
+                const upstream = await doFetch(fallbackUrl, headers);
+                console.log(`${s} fallback API response:`, JSON.stringify(upstream, null, 2));
+                
+                const list: any[] = upstream?.data || [];
+                console.log(`${s} fallback raw data list length:`, list.length);
+                
+                if (list.length > 0) {
+                  normalized = list.map((it) => normalizeItem(s, it));
+                  console.log(`${s} fallback normalized data:`, normalized.length, 'items');
+                  break; // Success, exit the loop
+                }
+              } catch (fallbackError) {
+                console.log(`Fallback API ${fallbackUrl} failed:`, fallbackError);
+                continue; // Try next fallback
+              }
+            }
+          }
+          
+          // Filter cricket data based on kind
           if (k === 'upcoming') {
             normalized = normalized.filter((it) => {
               const sl = String(it.status || '').toLowerCase();
@@ -265,7 +301,19 @@ const key = `${s}:${k}:${q.date || 'any'}`;
             });
           }
           console.log(`${s} after filtering for ${k}:`, normalized.length, 'items');
+        } else {
+          // Non-cricket sports
+          console.log(`Fetching ${s} data from: ${url}`);
+          const upstream = await doFetch(url, headers);
+          console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
+          
+          const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
+          console.log(`${s} raw data list length:`, list.length);
+          
+          normalized = list.map((it) => normalizeItem(s, it));
+          console.log(`${s} normalized data:`, normalized.length, 'items');
         }
+        
         return normalized;
       } catch (error) {
         console.error(`Error fetching ${s} data:`, error);
