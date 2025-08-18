@@ -13,7 +13,7 @@ type Sport = 'football' | 'cricket' | 'hockey' | 'basketball' | 'tennis' | 'base
 type Kind = 'live' | 'upcoming' | 'results';
 
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
-const CRICAPI_KEY = 'a4cd2ec0-4175-4263-868a-22ef5cbd9316'; // Public cricket API key
+const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
 const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
