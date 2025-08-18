@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
 import { BetSlip } from '@/components/sports/BetSlip';
+import { SportsWidget } from '@/components/sports/SportsWidget';
 
 // Import sports background images
 import cricketBg from '@/assets/cricket-bg.jpg';
@@ -99,6 +100,14 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   return (
     <div className="flex gap-6">
       <div className="flex-1 space-y-8">
+        {/* Add the sports widget at the top */}
+        <SportsWidget 
+          sport={sport === 'football' ? 'football' : 'cricket'} 
+          league={sport === 'football' ? 'premier-league' : 'ipl'}
+          theme="light"
+          height={300}
+        />
+        
         {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
         {renderMatches(upcomingData, upcomingLoading, upcomingError, "Upcoming Matches", refreshUpcoming)}
         {renderMatches(resultsData, resultsLoading, resultsError, "Results", refreshResults)}
