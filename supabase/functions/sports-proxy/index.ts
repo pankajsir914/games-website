@@ -64,6 +64,11 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     return u.toString();
   }
   if (sport === 'cricket') {
+    // Check if API key is available
+    if (!CRICAPI_KEY) {
+      console.error('CRICAPI_KEY is not available');
+      throw new Error('Cricket API key not configured');
+    }
     // Try the new cricScore API first for all kinds, fallback to existing APIs
     const u = new URL(BASES.cricket + '/cricScore');
     u.searchParams.set('apikey', CRICAPI_KEY);
@@ -82,6 +87,7 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
 
 // Additional function to get fallback cricket URLs
 function getCricketFallbackUrls(): string[] {
+  if (!CRICAPI_KEY) return [];
   return [
     `${BASES.cricket}/currentMatches?apikey=${CRICAPI_KEY}&offset=0`,
     `${BASES.cricket}/matches?apikey=${CRICAPI_KEY}&offset=0`
@@ -208,13 +214,18 @@ async function doFetch(url: string, headers?: Record<string, string>) {
 }
 
 Deno.serve(async (req) => {
+  console.log('Sports-proxy function started, method:', req.method);
+  
   // CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Processing request...');
     if (req.method !== 'POST') {
+      console.log('Invalid method:', req.method);
       return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders });
     }
 
