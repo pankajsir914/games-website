@@ -64,15 +64,15 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
     return u.toString();
   }
   if (sport === 'cricket') {
-    // Use CricAPI currentMatches for live, matches for others
+    // Use CricAPI cricScore for live, matches for others
     if (!CRICAPI_KEY) {
       console.error('CRICAPI_KEY is not available');
       throw new Error('Cricket API key not configured');
     }
-    const endpoint = kind === 'live' ? '/currentMatches' : '/matches';
+    const endpoint = kind === 'live' ? '/cricScore' : '/matches';
     const u = new URL(BASES.cricket + endpoint);
     u.searchParams.set('apikey', CRICAPI_KEY);
-    u.searchParams.set('offset', '0');
+    if (endpoint !== '/cricScore') u.searchParams.set('offset', '0');
     return u.toString();
   }
   if (sport === 'hockey' || sport === 'basketball' || sport === 'baseball' || sport === 'tennis') {
@@ -117,6 +117,9 @@ function normalizeItem(sport: Sport, item: any) {
     } else if (item.team1 && item.team2) {
       home = item.team1;
       away = item.team2;
+    } else if (item.t1 && item.t2) {
+      home = item.t1;
+      away = item.t2;
     } else if (item.homeTeam && item.awayTeam) {
       home = item.homeTeam.name || item.homeTeam;
       away = item.awayTeam.name || item.awayTeam;
@@ -124,7 +127,18 @@ function normalizeItem(sport: Sport, item: any) {
 
     let scoreHome: number | null = null;
     let scoreAway: number | null = null;
-    if (Array.isArray(item.score)) {
+
+    // Parse simple runs from CricAPI cricScore format like "123/4 (18.5)"
+    const parseRuns = (s: any): number | null => {
+      if (!s || typeof s !== 'string') return null;
+      const m = s.match(/(\d+)/);
+      return m ? parseInt(m[1], 10) : null;
+    };
+
+    if (item.t1s || item.t2s) {
+      scoreHome = parseRuns(item.t1s);
+      scoreAway = parseRuns(item.t2s);
+    } else if (Array.isArray(item.score)) {
       scoreHome = typeof item.score[0]?.r === 'number' ? item.score[0].r : scoreHome;
       scoreAway = typeof item.score[1]?.r === 'number' ? item.score[1].r : scoreAway;
     } else if (item.scores) {
