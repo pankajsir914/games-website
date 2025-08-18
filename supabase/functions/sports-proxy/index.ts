@@ -250,7 +250,7 @@ const key = `${s}:${k}:${q.date || 'any'}`;
         
         if (s === 'cricket') {
           // Try the new cricScore API first
-          console.log(`Fetching ${s} data from: ${url}`);
+          console.log(`Fetching ${s} data from: ${url.replace(/apikey=[^&]+/,'apikey=***')}`);
           try {
             const upstream = await doFetch(url, headers);
             console.log(`${s} cricScore API response:`, JSON.stringify(upstream, null, 2));
@@ -269,7 +269,7 @@ const key = `${s}:${k}:${q.date || 'any'}`;
             const fallbackUrls = getCricketFallbackUrls();
             for (const fallbackUrl of fallbackUrls) {
               try {
-                console.log(`Trying fallback cricket API: ${fallbackUrl}`);
+                console.log(`Trying fallback cricket API: ${fallbackUrl.replace(/apikey=[^&]+/,'apikey=***')}`);
                 const upstream = await doFetch(fallbackUrl, headers);
                 console.log(`${s} fallback API response:`, JSON.stringify(upstream, null, 2));
                 
