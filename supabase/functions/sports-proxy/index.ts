@@ -275,56 +275,95 @@ const key = `${s}:${k}:${q.date || 'any'}`;
         let normalized: any[] = [];
         
         if (s === 'cricket') {
-          // Try the new cricScore API first
+          // Try the cricScore API
           console.log(`Fetching ${s} data from: ${url.replace(/apikey=[^&]+/,'apikey=***')}`);
           try {
             const upstream = await doFetch(url, headers);
-            console.log(`${s} cricScore API response:`, JSON.stringify(upstream, null, 2));
+            console.log(`${s} cricScore API success, raw response keys:`, Object.keys(upstream || {}));
             
-            const list: any[] = upstream?.data || [];
-            console.log(`${s} cricScore raw data list length:`, list.length);
+            // Handle different response structures from CricAPI
+            let list: any[] = [];
+            if (upstream?.data && Array.isArray(upstream.data)) {
+              list = upstream.data;
+            } else if (Array.isArray(upstream)) {
+              list = upstream;
+            } else if (upstream && typeof upstream === 'object') {
+              // Sometimes the API returns the data directly
+              list = [upstream];
+            }
+            
+            console.log(`${s} cricScore extracted list length:`, list.length);
             
             if (list.length > 0) {
               normalized = list.map((it) => normalizeItem(s, it));
-              console.log(`${s} cricScore normalized data:`, normalized.length, 'items');
+              console.log(`${s} cricScore normalized successfully:`, normalized.length, 'items');
+              console.log('Sample normalized item:', JSON.stringify(normalized[0], null, 2));
+            } else {
+              console.log(`${s} cricScore API returned empty data, response:`, JSON.stringify(upstream, null, 2));
             }
           } catch (scoreApiError) {
-            console.log(`cricScore API failed, trying fallback APIs:`, scoreApiError);
+            console.log(`cricScore API failed:`, scoreApiError);
             
-            // Try fallback URLs
-            const fallbackUrls = getCricketFallbackUrls();
-            for (const fallbackUrl of fallbackUrls) {
-              try {
-                console.log(`Trying fallback cricket API: ${fallbackUrl.replace(/apikey=[^&]+/,'apikey=***')}`);
-                const upstream = await doFetch(fallbackUrl, headers);
-                console.log(`${s} fallback API response:`, JSON.stringify(upstream, null, 2));
-                
-                const list: any[] = upstream?.data || [];
-                console.log(`${s} fallback raw data list length:`, list.length);
-                
-                if (list.length > 0) {
-                  normalized = list.map((it) => normalizeItem(s, it));
-                  console.log(`${s} fallback normalized data:`, normalized.length, 'items');
-                  break; // Success, exit the loop
+            // Only try fallbacks if it's a real API error, not empty data
+            if (String(scoreApiError.message).includes('connection') || String(scoreApiError.message).includes('timeout')) {
+              console.log('Trying fallback APIs due to connection error...');
+              const fallbackUrls = getCricketFallbackUrls();
+              for (const fallbackUrl of fallbackUrls) {
+                try {
+                  console.log(`Trying fallback cricket API: ${fallbackUrl.replace(/apikey=[^&]+/,'apikey=***')}`);
+                  const upstream = await doFetch(fallbackUrl, headers);
+                  
+                  const list: any[] = upstream?.data || [];
+                  if (list.length > 0) {
+                    normalized = list.map((it) => normalizeItem(s, it));
+                    console.log(`${s} fallback normalized successfully:`, normalized.length, 'items');
+                    break;
+                  }
+                } catch (fallbackError) {
+                  console.log(`Fallback API failed:`, fallbackError);
+                  continue;
                 }
-              } catch (fallbackError) {
-                console.log(`Fallback API ${fallbackUrl} failed:`, fallbackError);
-                continue; // Try next fallback
               }
+            } else {
+              // Re-throw non-connection errors
+              throw scoreApiError;
             }
           }
           
-          // Filter cricket data based on kind
+          // Filter cricket data based on kind - be more lenient with filtering
           if (k === 'upcoming') {
+            const beforeFilter = normalized.length;
             normalized = normalized.filter((it) => {
               const sl = String(it.status || '').toLowerCase();
-              return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule') || sl.includes('fixture');
+              return sl.includes('not started') || sl.includes('upcoming') || sl.includes('schedule') || sl.includes('fixture') || sl.includes('toss');
             });
+            console.log(`${s} filtered ${beforeFilter} -> ${normalized.length} for upcoming`);
           } else if (k === 'results') {
+            const beforeFilter = normalized.length;
             normalized = normalized.filter((it) => {
               const sl = String(it.status || '').toLowerCase();
               return sl.includes('won') || sl.includes('result') || sl.includes('completed') || sl.includes('draw') || sl.includes('tied') || sl.includes('abandoned') || sl.includes('finished');
             });
+            console.log(`${s} filtered ${beforeFilter} -> ${normalized.length} for results`);
+          } else if (k === 'live') {
+            // For live, accept more status types
+            const beforeFilter = normalized.length;
+            normalized = normalized.filter((it) => {
+              const sl = String(it.status || '').toLowerCase();
+              return sl.includes('live') || sl.includes('in progress') || sl.includes('rain delay') || sl.includes('1st innings') || sl.includes('2nd innings') || sl.includes('batting') || sl.includes('bowling');
+            });
+            console.log(`${s} filtered ${beforeFilter} -> ${normalized.length} for live`);
+            
+            // If no live matches found, show all data for debugging
+            if (normalized.length === 0 && beforeFilter > 0) {
+              console.log('No live matches found, showing all statuses for debugging:');
+              const allStatuses = [];
+              for (let i = 0; i < Math.min(beforeFilter, 5); i++) {
+                if (normalized.length === 0) normalized = list.map((it) => normalizeItem(s, it)); // Reset normalized
+                allStatuses.push(normalized[i]?.status);
+              }
+              console.log('Available statuses:', allStatuses);
+            }
           }
           console.log(`${s} after filtering for ${k}:`, normalized.length, 'items');
         } else {
