@@ -32,6 +32,10 @@ const sports: Array<'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' 
 
 // Function to get background image based on sport type
 const getSportBackground = (sport: string): string => {
+  if (!sport) {
+    return sportsGenericBg;
+  }
+  
   switch (sport.toLowerCase()) {
     case 'cricket':
       return cricketBg;
