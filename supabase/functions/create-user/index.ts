@@ -14,35 +14,53 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    console.log('Create user function called');
+    
+    // Check environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    console.log('Environment check:', { 
+      hasUrl: !!supabaseUrl, 
+      hasServiceKey: !!supabaseServiceKey 
+    });
 
-    if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
-      return new Response(JSON.stringify({ success: false, error: 'Server configuration error' }), {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing environment variables');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Server configuration error - missing environment variables' 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-      })
+      });
     }
 
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     // Get the current user from the request
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(JSON.stringify({ success: false, error: 'Missing Authorization header' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
-      })
+      });
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: userData } = await supabaseAdmin.auth.getUser(token)
-    if (!userData.user) {
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Getting user data...');
+    
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    if (userError || !userData.user) {
+      console.error('Authentication error:', userError);
       return new Response(JSON.stringify({ success: false, error: 'Not authenticated' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
-      })
+      });
     }
+
+    console.log('User authenticated:', userData.user.id);
 
     // Check if caller is admin or master_admin
     const { data: roleRecord, error: roleErr } = await supabaseAdmin
@@ -50,37 +68,44 @@ serve(async (req) => {
       .select('role')
       .eq('user_id', userData.user.id)
       .in('role', ['admin', 'master_admin'])
-      .maybeSingle()
+      .maybeSingle();
 
     if (roleErr) {
-      console.error('Role fetch error:', roleErr)
+      console.error('Role fetch error:', roleErr);
+      return new Response(JSON.stringify({ success: false, error: 'Role verification failed' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
     }
 
     if (!roleRecord) {
+      console.error('User is not admin:', userData.user.id);
       return new Response(JSON.stringify({ success: false, error: 'Only admins can create users' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
-      })
+      });
     }
 
+    console.log('Admin verified, role:', roleRecord.role);
+
     // Parse request body
-    const { email, password, fullName, phone } = await req.json()
+    const { email, password, fullName, phone } = await req.json();
 
     if (!email || !password || !fullName) {
       return new Response(JSON.stringify({ success: false, error: 'Email, password, and full name are required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      })
+      });
     }
 
     if (typeof password !== 'string' || password.length < 6) {
       return new Response(JSON.stringify({ success: false, error: 'Password must be at least 6 characters' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      })
+      });
     }
 
-    console.log(`Creating regular user: ${email}`)
+    console.log(`Creating regular user: ${email}`);
 
     // Create auth user
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
@@ -88,22 +113,24 @@ serve(async (req) => {
       password,
       email_confirm: true,
       user_metadata: { full_name: fullName, phone: phone || null },
-    })
+    });
 
     if (createErr) {
-      console.error('Auth creation error:', createErr)
+      console.error('Auth creation error:', createErr);
       return new Response(JSON.stringify({ success: false, error: createErr.message }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      })
+      });
     }
 
     if (!created.user) {
       return new Response(JSON.stringify({ success: false, error: 'User creation failed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      })
+      });
     }
+
+    console.log(`Auth user created: ${created.user.id}`);
 
     // Create profile
     const { error: profileErr } = await supabaseAdmin
@@ -113,30 +140,30 @@ serve(async (req) => {
         full_name: fullName, 
         phone: phone || null, 
         created_by: userData.user.id 
-      }, { onConflict: 'id' })
+      }, { onConflict: 'id' });
 
     if (profileErr) {
-      console.error('Profile error:', profileErr)
+      console.error('Profile error:', profileErr);
       // rollback auth user
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id)
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       return new Response(JSON.stringify({ success: false, error: `Failed to create profile: ${profileErr.message}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      })
+      });
     }
 
     // Create wallet
     const { error: walletErr } = await supabaseAdmin
       .from('wallets')
-      .upsert({ user_id: created.user.id, current_balance: 0 }, { onConflict: 'user_id' })
+      .upsert({ user_id: created.user.id, current_balance: 0 }, { onConflict: 'user_id' });
 
     if (walletErr) {
-      console.error('Wallet error:', walletErr)
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id)
+      console.error('Wallet error:', walletErr);
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
       return new Response(JSON.stringify({ success: false, error: `Failed to create wallet: ${walletErr.message}` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      })
+      });
     }
 
     // Log activity (best-effort)
@@ -146,20 +173,22 @@ serve(async (req) => {
         p_target_type: 'user',
         p_target_id: created.user.id,
         p_details: { email, full_name: fullName, created_by_admin: userData.user.id },
-      })
+      });
     } catch (logErr) {
-      console.warn('Activity logging failed:', logErr)
+      console.warn('Activity logging failed:', logErr);
     }
+
+    console.log('User created successfully:', created.user.id);
 
     return new Response(
       JSON.stringify({ success: true, user_id: created.user.id, email: created.user.email, message: 'User created successfully' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    )
+    );
   } catch (err) {
-    console.error('Unexpected error in create-user:', err)
+    console.error('Unexpected error in create-user:', err);
     return new Response(JSON.stringify({ success: false, error: err.message || 'Unexpected error' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
-    })
+    });
   }
 })
