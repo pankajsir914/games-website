@@ -8,26 +8,28 @@ export const useAdminAuth = () => {
     queryKey: ['admin-auth'],
     queryFn: async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (userError) {
-          throw userError;
+        if (sessionError) {
+          // Treat missing session as not authenticated
+          if ((sessionError as any).name === 'AuthSessionMissingError' || (sessionError as any).status === 400) {
+            return null;
+          }
+          throw sessionError;
         }
         
+        const user = session?.user;
         if (!user) return null;
 
-        const { data: userRole, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const { data: highestRole, error: roleError } = await supabase
+          .rpc('get_user_highest_role', { _user_id: user.id });
 
-        if (roleError && roleError.code !== 'PGRST116') {
+        if (roleError) {
           console.error('Role fetch error:', roleError);
-          throw roleError;
+          // Proceed as regular user if role lookup fails
         }
 
-        const role = userRole?.role || null;
+        const role = (highestRole as string) || null;
         const isAdmin = role === 'admin';
         const isModerator = role === 'moderator';
         const isMasterAdmin = role === 'master_admin';
@@ -42,6 +44,9 @@ export const useAdminAuth = () => {
           hasAccess
         };
       } catch (error) {
+        if ((error as any)?.name === 'AuthSessionMissingError') {
+          return null;
+        }
         console.error('Admin auth error:', error);
         throw error;
       }
