@@ -39,7 +39,61 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
     setError(null);
     
     try {
-      // Check cache first if not forcing refresh
+      // For cricket, use direct CricAPI integration for live matches
+      if (sport === 'cricket' && kind === 'live') {
+        const response = await fetch(
+          `https://api.cricapi.com/v1/currentMatches?apikey=a4cd2ec0-4175-4263-868a-22ef5cbd9316&offset=0`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`Cricket API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.status === 'success' && result.data) {
+          const cricketMatches = result.data.map((match: any) => {
+            const homeTeam = match.teamInfo?.[0]?.name || match.teams?.[0] || 'Team A';
+            const awayTeam = match.teamInfo?.[1]?.name || match.teams?.[1] || 'Team B';
+            
+            const homeScore = match.score?.[0];
+            const awayScore = match.score?.[1];
+            
+            return {
+              id: match.id,
+              sport: 'cricket',
+              date: match.dateTimeGMT || match.date,
+              league: match.name || 'Cricket Match',
+              venue: match.venue,
+              status: match.status,
+              teams: {
+                home: homeTeam,
+                away: awayTeam
+              },
+              scores: {
+                home: homeScore?.r || null,
+                away: awayScore?.r || null
+              },
+              overs: homeScore && awayScore ? {
+                home: homeScore.o?.toString() || '0',
+                away: awayScore.o?.toString() || '0'
+              } : undefined,
+              wickets: homeScore && awayScore ? {
+                home: homeScore.w || 0,
+                away: awayScore.w || 0
+              } : undefined,
+              raw: match
+            } as SportsMatch;
+          });
+          
+          setData(cricketMatches);
+          setLastRefresh(new Date());
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Check cache first if not forcing refresh for other sports
       if (!forceRefresh) {
         const { data: cachedData } = await supabase
           .from('sports_matches_cache')
@@ -57,7 +111,7 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
         }
       }
 
-      // Fetch from API
+      // Fetch from API for other sports
       const { data: apiData, error: apiError } = await supabase.functions.invoke('sports-proxy', {
         body: { sport, kind, date: null, team: '' }
       });
