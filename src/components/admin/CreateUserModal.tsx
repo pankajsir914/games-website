@@ -45,7 +45,13 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
     setLoading(true);
 
     try {
-      // Simple RPC call - no edge functions
+      console.log('Creating user with data:', {
+        email: formData.email,
+        userType: formData.userType,
+        fullName: formData.fullName
+      });
+
+      // Call RPC function
       const { data, error } = await supabase.rpc('create_user_simple', {
         p_email: formData.email,
         p_password: formData.password,
@@ -54,9 +60,16 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         p_user_type: formData.userType
       });
 
-      if (error) throw error;
+      console.log('RPC Response:', { data, error });
+
+      if (error) {
+        console.error('RPC Error:', error);
+        throw error;
+      }
       
       const result = data as any;
+      console.log('Parsed result:', result);
+      
       if (!result?.success) {
         throw new Error(result?.error || 'Failed to create user');
       }
@@ -64,16 +77,32 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       const userTypeText = formData.userType === 'admin' ? 'Admin' : 'User';
       toast({
         title: `${userTypeText} created successfully`,
-        description: `${userTypeText} ${formData.email} has been created.`,
+        description: result.message || `${userTypeText} ${formData.email} has been created.`,
       });
 
       resetForm();
       onOpenChange(false);
       onUserCreated?.();
     } catch (error: any) {
+      console.error('Create user error:', error);
+      
+      // Show user-friendly error messages
+      let errorMessage = error.message;
+      if (errorMessage.includes('User already registered')) {
+        errorMessage = 'A user with this email already exists.';
+      } else if (errorMessage.includes('invalid email')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (errorMessage.includes('Password')) {
+        errorMessage = 'Password must be at least 6 characters long.';
+      } else if (errorMessage.includes('Only master admins')) {
+        errorMessage = 'Only master admins can create admin users.';
+      } else if (errorMessage.includes('Only admins')) {
+        errorMessage = 'You do not have permission to create users.';
+      }
+
       toast({
         title: 'Failed to create user',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

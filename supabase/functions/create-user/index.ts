@@ -89,7 +89,7 @@ serve(async (req) => {
     console.log('Admin verified, role:', roleRecord.role);
 
     // Parse request body
-    const { email, password, fullName, phone } = await req.json();
+    const { email, password, fullName, phone, userType = 'user' } = await req.json();
 
     if (!email || !password || !fullName) {
       return new Response(JSON.stringify({ success: false, error: 'Email, password, and full name are required' }), {
@@ -105,7 +105,15 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Creating regular user: ${email}`);
+    // Check if trying to create admin user
+    if (userType === 'admin' && roleRecord.role !== 'master_admin') {
+      return new Response(JSON.stringify({ success: false, error: 'Only master admins can create admin users' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    console.log(`Creating ${userType} user: ${email}`);
 
     // Create auth user
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
@@ -166,13 +174,33 @@ serve(async (req) => {
       });
     }
 
+    // Assign admin role if userType is admin
+    if (userType === 'admin') {
+      const { error: roleErr } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({ 
+          user_id: created.user.id, 
+          role: 'admin', 
+          assigned_by: userData.user.id 
+        }, { onConflict: 'user_id,role' });
+
+      if (roleErr) {
+        console.error('Role assignment error:', roleErr);
+        await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+        return new Response(JSON.stringify({ success: false, error: `Failed to assign admin role: ${roleErr.message}` }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+    }
+
     // Log activity (best-effort)
     try {
       await supabaseAdmin.rpc('log_admin_activity', {
-        p_action_type: 'create_user',
+        p_action_type: userType === 'admin' ? 'create_admin_user' : 'create_user',
         p_target_type: 'user',
         p_target_id: created.user.id,
-        p_details: { email, full_name: fullName, created_by_admin: userData.user.id },
+        p_details: { email, full_name: fullName, user_type: userType, created_by_admin: userData.user.id },
       });
     } catch (logErr) {
       console.warn('Activity logging failed:', logErr);
@@ -181,7 +209,13 @@ serve(async (req) => {
     console.log('User created successfully:', created.user.id);
 
     return new Response(
-      JSON.stringify({ success: true, user_id: created.user.id, email: created.user.email, message: 'User created successfully' }),
+      JSON.stringify({ 
+        success: true, 
+        user_id: created.user.id, 
+        email: created.user.email, 
+        user_type: userType,
+        message: `${userType === 'admin' ? 'Admin' : 'User'} created successfully` 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (err) {
