@@ -2534,6 +2534,16 @@ export type Database = {
         Args: { p_entry_fee: number; p_max_players: number }
         Returns: Json
       }
+      create_user_simple: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_password: string
+          p_phone?: string
+          p_user_type?: string
+        }
+        Returns: Json
+      }
       get_admin_credit_balance: {
         Args: { _admin_id?: string }
         Returns: number

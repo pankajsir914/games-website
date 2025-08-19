@@ -45,64 +45,23 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
     setLoading(true);
 
     try {
-      const isCreatingAdmin = formData.userType === 'admin';
+      // Simple RPC call - no edge functions
+      const { data, error } = await supabase.rpc('create_user_simple', {
+        p_email: formData.email,
+        p_password: formData.password,
+        p_full_name: formData.fullName,
+        p_phone: formData.phone || null,
+        p_user_type: formData.userType
+      });
 
-      if (isCreatingAdmin) {
-        try {
-          const { data, error } = await supabase.functions.invoke('create-admin-user', {
-            body: {
-              email: formData.email,
-              password: formData.password,
-              fullName: formData.fullName,
-              phone: formData.phone || null,
-              initialPoints: parseFloat(formData.initialPoints || '0') || 0,
-            },
-          });
-          if (error) throw error;
-          if (!data?.success) throw new Error(data?.error || 'Failed to create admin');
-        } catch (err: any) {
-          // Fallback: direct fetch to edge function URL
-          const { data: { session } } = await supabase.auth.getSession();
-          const accessToken = session?.access_token;
-          const res = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/create-admin-user', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'authorization': `Bearer ${accessToken}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk'
-            },
-            body: JSON.stringify({
-              email: formData.email,
-              password: formData.password,
-              fullName: formData.fullName,
-              phone: formData.phone || null,
-              initialPoints: parseFloat(formData.initialPoints || '0') || 0,
-            })
-          });
-          const json = await res.json().catch(() => ({ success: false, error: 'Invalid response' }));
-          if (!res.ok || !json?.success) {
-            throw new Error(json?.error || 'Failed to create admin');
-          }
-        }
-      } else {
-        // Simple: regular user creation via edge function
-        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('create-user', {
-          body: {
-            email: formData.email,
-            password: formData.password,
-            fullName: formData.fullName,
-            phone: formData.phone || null,
-          },
-        });
-
-        if (edgeError) throw edgeError;
-        const edgeResult = edgeData as any;
-        if (!edgeResult?.success) {
-          throw new Error(edgeResult?.error || 'Failed to create user');
-        }
+      if (error) throw error;
+      
+      const result = data as any;
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to create user');
       }
 
-      const userTypeText = isCreatingAdmin ? 'Admin' : 'User';
+      const userTypeText = formData.userType === 'admin' ? 'Admin' : 'User';
       toast({
         title: `${userTypeText} created successfully`,
         description: `${userTypeText} ${formData.email} has been created.`,
