@@ -143,6 +143,66 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_security_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      admin_sessions: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       andar_bahar_bets: {
         Row: {
           bet_amount: number
@@ -2518,8 +2578,21 @@ export type Database = {
         Args: { p_bet_id: string; p_current_multiplier: number }
         Returns: Json
       }
+      check_admin_ip_whitelist: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_chat_rate_limit: {
         Args: { p_user_id: string }
+        Returns: boolean
+      }
+      check_enhanced_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_max_attempts?: number
+          p_progressive_penalty?: boolean
+          p_window_minutes?: number
+        }
         Returns: boolean
       }
       check_rate_limit: {
@@ -2768,6 +2841,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      validate_admin_input: {
+        Args: { p_input: string; p_input_type?: string; p_max_length?: number }
+        Returns: string
+      }
+      validate_admin_session: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       validate_and_sanitize_input: {
         Args: { p_allow_html?: boolean; p_input: string; p_max_length?: number }
