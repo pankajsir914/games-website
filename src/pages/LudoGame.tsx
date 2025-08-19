@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import LudoLobby from '@/components/ludo/LudoLobby';
+import ImprovedLudoBoard from '@/components/ludo/ImprovedLudoBoard';
+import GameControls from '@/components/ludo/GameControls';
+import GameHeader from '@/components/ludo/GameHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useLudoGame } from '@/hooks/useLudoGame';
 import { useWallet } from '@/hooks/useWallet';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Coins } from 'lucide-react';
+import { GameState, Token, ActivePlayer } from '@/types/ludo';
 
 export default function LudoGame() {
   const navigate = useNavigate();
@@ -24,6 +28,33 @@ export default function LudoGame() {
   } = useLudoGame();
   
   const [gameMode, setGameMode] = useState<'lobby' | 'game'>('lobby');
+  // Mock game state for the demo board
+  const [mockGameState, setMockGameState] = useState<GameState>({
+    currentPlayer: 'red' as ActivePlayer,
+    diceValue: 1,
+    canRoll: true,
+    isRolling: false,
+    consecutiveSixes: 0,
+    winner: null,
+    lastRoll: null,
+    selectedToken: null
+  });
+
+  // Mock tokens for the demo board
+  const [mockTokens, setMockTokens] = useState<Record<ActivePlayer, Token[]>>({
+    red: [
+      { id: 'red-1', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+      { id: 'red-2', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+      { id: 'red-3', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+      { id: 'red-4', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false }
+    ],
+    yellow: [
+      { id: 'yellow-1', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+      { id: 'yellow-2', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+      { id: 'yellow-3', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+      { id: 'yellow-4', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false }
+    ]
+  });
 
   // Handle joining a game
   const handleJoinGame = async (gameId: string) => {
@@ -41,6 +72,118 @@ export default function LudoGame() {
       }
     } catch (error) {
       console.error('Failed to join game:', error);
+    }
+  };
+
+  // Mock game functions for demo
+  const handleMockRollDice = () => {
+    setMockGameState(prev => ({
+      ...prev,
+      isRolling: true,
+      canRoll: false
+    }));
+
+    setTimeout(() => {
+      const newDiceValue = Math.floor(Math.random() * 6) + 1;
+      setMockGameState(prev => ({
+        ...prev,
+        diceValue: newDiceValue,
+        isRolling: false,
+        canRoll: false,
+        lastRoll: newDiceValue,
+        consecutiveSixes: newDiceValue === 6 ? prev.consecutiveSixes + 1 : 0
+      }));
+
+      // Make tokens movable if dice is 6 (to get out of base) or if tokens are on board
+      if (newDiceValue === 6) {
+        setMockTokens(prev => ({
+          ...prev,
+          [mockGameState.currentPlayer]: prev[mockGameState.currentPlayer].map(token => ({
+            ...token,
+            canMove: true
+          }))
+        }));
+      }
+    }, 1000);
+  };
+
+  const handleMockResetGame = () => {
+    setMockGameState({
+      currentPlayer: 'red' as ActivePlayer,
+      diceValue: 1,
+      canRoll: true,
+      isRolling: false,
+      consecutiveSixes: 0,
+      winner: null,
+      lastRoll: null,
+      selectedToken: null
+    });
+    
+    setMockTokens({
+      red: [
+        { id: 'red-1', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+        { id: 'red-2', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+        { id: 'red-3', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+        { id: 'red-4', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false }
+      ],
+      yellow: [
+        { id: 'yellow-1', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+        { id: 'yellow-2', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+        { id: 'yellow-3', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+        { id: 'yellow-4', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false }
+      ]
+    });
+  };
+
+  const handleTokenClick = (tokenId: string) => {
+    const token = Object.values(mockTokens).flat().find(t => t.id === tokenId);
+    if (token && token.canMove) {
+      // Mock token movement logic
+      setMockTokens(prev => {
+        const updated = { ...prev };
+        const playerTokens = updated[token.player as ActivePlayer];
+        const tokenIndex = playerTokens.findIndex(t => t.id === tokenId);
+        
+        if (tokenIndex !== -1) {
+          const newToken = { ...playerTokens[tokenIndex] };
+          
+          if (newToken.position === 'base' && mockGameState.diceValue === 6) {
+            // Move token from base to starting position
+            newToken.position = 'board';
+            newToken.boardPosition = 1;
+          } else if (newToken.position === 'board' && newToken.boardPosition !== null) {
+            // Move token forward
+            const newPosition = newToken.boardPosition + mockGameState.diceValue;
+            if (newPosition >= 57) {
+              newToken.position = 'home';
+              newToken.isHome = true;
+              newToken.boardPosition = null;
+            } else {
+              newToken.boardPosition = newPosition;
+            }
+          }
+          
+          newToken.canMove = false;
+          updated[token.player as ActivePlayer][tokenIndex] = newToken;
+        }
+        
+        return updated;
+      });
+
+      // Switch turns (unless it was a 6)
+      if (mockGameState.diceValue !== 6) {
+        setMockGameState(prev => ({
+          ...prev,
+          currentPlayer: prev.currentPlayer === 'red' ? 'yellow' : 'red',
+          canRoll: true,
+          consecutiveSixes: 0
+        }));
+      } else {
+        setMockGameState(prev => ({
+          ...prev,
+          canRoll: true
+        }));
+      }
     }
   };
 
@@ -148,9 +291,32 @@ export default function LudoGame() {
               loading={gameLoading}
             />
           ) : (
-            <div className="text-center text-white">
-              <h2 className="text-2xl font-bold mb-4">Game Board Coming Soon</h2>
-              <p>Game board component will be implemented next</p>
+            <div className="space-y-4">
+              <GameHeader gameState={mockGameState} />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Game Board */}
+                <div className="lg:col-span-2 flex justify-center">
+                  <div className="bg-white/10 backdrop-blur border-white/20 rounded-3xl p-6">
+                    <ImprovedLudoBoard
+                      tokens={mockTokens}
+                      onTokenClick={handleTokenClick}
+                      currentPlayer={mockGameState.currentPlayer}
+                      diceValue={mockGameState.diceValue}
+                      isRolling={mockGameState.isRolling}
+                    />
+                  </div>
+                </div>
+                
+                {/* Game Controls */}
+                <div className="flex justify-center lg:justify-start">
+                  <GameControls
+                    gameState={mockGameState}
+                    onRollDice={handleMockRollDice}
+                    onResetGame={handleMockResetGame}
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
