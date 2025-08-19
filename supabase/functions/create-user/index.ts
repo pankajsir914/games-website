@@ -32,18 +32,17 @@ serve(async (req) => {
     if (!caller.user) throw new Error("Not authenticated");
 
     // Check caller role: admin OR master_admin can create regular users
-    const { data: roleData, error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.user.id)
-      .in("role", ["admin", "master_admin"])
-      .maybeSingle();
+    const { data: highestRole, error: roleErr } = await supabaseAdmin.rpc('get_user_highest_role', {
+      _user_id: caller.user.id,
+    });
 
     if (roleErr) throw new Error(roleErr.message);
-    if (!roleData) throw new Error("Only admins can create users");
+    if (!highestRole || !['admin', 'master_admin'].includes(highestRole as string)) {
+      throw new Error('Only admins can create users');
+    }
 
     // Parse request body
-    const { email, password, fullName, phone } = await req.json();
+    const { email, password, fullName, phone, userType = 'user' } = await req.json();
 
     // Validate inputs
     if (!email || !password || !fullName) {
@@ -51,6 +50,11 @@ serve(async (req) => {
     }
     if (typeof password !== "string" || password.length < 6) {
       throw new Error("Password must be at least 6 characters");
+    }
+
+    // Enforce admin-only creation rules
+    if (userType === 'admin' && (highestRole as string) !== 'master_admin') {
+      throw new Error('Only master admins can create admin users');
     }
 
     // Create the auth user
@@ -101,6 +105,17 @@ serve(async (req) => {
       throw new Error(`Failed to create wallet: ${walletError.message}`);
     }
 
+    // If admin account requested, assign admin role
+    if (userType === 'admin') {
+      const { error: roleInsertErr } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({ user_id: newUserId, role: 'admin', assigned_by: caller.user.id }, { onConflict: 'user_id,role' });
+      if (roleInsertErr) {
+        await supabaseAdmin.auth.admin.deleteUser(newUserId);
+        throw new Error(`Failed to assign admin role: ${roleInsertErr.message}`);
+      }
+    }
+
     // Log activity (best effort)
     try {
       await supabaseAdmin.rpc("log_admin_activity", {
@@ -111,6 +126,7 @@ serve(async (req) => {
           email,
           full_name: fullName,
           created_by: caller.user.id,
+          user_type: userType,
         },
       });
     } catch (e) {

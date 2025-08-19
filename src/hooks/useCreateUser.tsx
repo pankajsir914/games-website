@@ -32,20 +32,22 @@ export const useCreateUser = () => {
         throw new Error('Password must be at least 6 characters long');
       }
 
-      // Use the simplified create_user_simple function that handles permissions internally
-      const { data: result, error: rpcError } = await supabase.rpc('create_user_simple', {
-        p_email: userData.email,
-        p_password: userData.password,
-        p_full_name: userData.fullName,
-        p_phone: userData.phone || null,
-        p_user_type: userData.userType
+      // Call Edge Function directly (handles permissions)
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: userData.email,
+          password: userData.password,
+          fullName: userData.fullName,
+          phone: userData.phone || null,
+          userType: userData.userType
+        }
       });
 
-      if (rpcError) {
-        throw new Error(rpcError.message);
+      if (fnError) {
+        throw new Error(fnError.message);
       }
 
-      const typedResult = result as { success: boolean; user_id?: string; error?: string };
+      const typedResult = fnData as { success: boolean; user_id?: string; error?: string };
       if (!typedResult?.success) {
         throw new Error(typedResult?.error || 'Failed to create user');
       }
