@@ -7,6 +7,8 @@ import { Eye, EyeOff, Crown, Shield, Lock, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import { toast } from 'sonner';
+import { MobileRestriction } from '@/components/MobileRestriction';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
 const MasterAdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +17,12 @@ const MasterAdminLogin = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { signIn, loading, user, isMasterAdmin } = useMasterAdminAuth();
+  const { isMobile, isTablet, isDesktop } = useDeviceDetection();
+
+  // Block access on mobile devices
+  if (isMobile || isTablet) {
+    return <MobileRestriction />;
+  }
 
   // Redirect if already authenticated as master admin
   useEffect(() => {

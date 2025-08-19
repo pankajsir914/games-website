@@ -40,11 +40,19 @@ import { PromotionsNotifications } from '@/components/admin/master/PromotionsNot
 import { ContentManagement } from '@/components/admin/master/ContentManagement';
 import { TeamManagement } from '@/components/admin/master/TeamManagement';
 import { LiveSportsIntegration } from '@/components/admin/master/LiveSportsIntegration';
+import { MobileRestriction } from '@/components/MobileRestriction';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
 const AdminMaster = () => {
   const { user, loading, isMasterAdmin } = useMasterAdminAuth();
   const { analytics } = useMasterAdminAnalytics();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { isMobile, isTablet, isDesktop } = useDeviceDetection();
+
+  // Block access on mobile/tablet devices
+  if (isMobile || isTablet) {
+    return <MobileRestriction />;
+  }
 
   if (loading) {
     return (
