@@ -800,6 +800,129 @@ export type Database = {
           },
         ]
       }
+      ludo_match_logs: {
+        Row: {
+          action: string
+          actor: string
+          created_at: string
+          id: string
+          match_id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          actor: string
+          created_at?: string
+          id?: string
+          match_id: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          actor?: string
+          created_at?: string
+          id?: string
+          match_id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ludo_match_logs_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "ludo_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ludo_match_state: {
+        Row: {
+          board: Json
+          consecutive_sixes: number
+          dice_history: Json
+          id: string
+          last_move: Json | null
+          match_id: string
+          seed: string
+          turn: string
+          updated_at: string
+        }
+        Insert: {
+          board?: Json
+          consecutive_sixes?: number
+          dice_history?: Json
+          id?: string
+          last_move?: Json | null
+          match_id: string
+          seed: string
+          turn?: string
+          updated_at?: string
+        }
+        Update: {
+          board?: Json
+          consecutive_sixes?: number
+          dice_history?: Json
+          id?: string
+          last_move?: Json | null
+          match_id?: string
+          seed?: string
+          turn?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ludo_match_state_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "ludo_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ludo_matches: {
+        Row: {
+          bot_difficulty: string
+          completed_at: string | null
+          created_at: string
+          entry_fee: number
+          id: string
+          mode: string
+          status: string
+          user_id: string
+          winner: string | null
+        }
+        Insert: {
+          bot_difficulty?: string
+          completed_at?: string | null
+          created_at?: string
+          entry_fee: number
+          id?: string
+          mode: string
+          status?: string
+          user_id: string
+          winner?: string | null
+        }
+        Update: {
+          bot_difficulty?: string
+          completed_at?: string | null
+          created_at?: string
+          entry_fee?: number
+          id?: string
+          mode?: string
+          status?: string
+          user_id?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ludo_matches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ludo_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ludo_moves: {
         Row: {
           created_at: string
@@ -956,6 +1079,78 @@ export type Database = {
           winner_id?: string | null
         }
         Relationships: []
+      }
+      ludo_users: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          status: string
+          username: string
+          wallet_balance: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          status?: string
+          username: string
+          wallet_balance?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          status?: string
+          username?: string
+          wallet_balance?: number
+        }
+        Relationships: []
+      }
+      ludo_wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          match_id: string | null
+          meta: Json | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          meta?: Json | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          meta?: Json | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ludo_wallet_transactions_match_id"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "ludo_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ludo_wallet_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ludo_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       matches: {
         Row: {
