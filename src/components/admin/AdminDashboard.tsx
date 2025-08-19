@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { OverviewDashboard } from './OverviewDashboard';
-import { GameManagementPanel } from './GameManagementPanel';
+
 import { BetLogsPage } from './BetLogsPage';
 import { PlayerWalletInsights } from './PlayerWalletInsights';
 import { ResultManagement } from './ResultManagement';
@@ -209,9 +209,8 @@ export const AdminDashboard = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="games">Game Management</TabsTrigger>
             <TabsTrigger value="bets">Bet Logs</TabsTrigger>
             <TabsTrigger value="wallets">Player Wallets</TabsTrigger>
             <TabsTrigger value="results">Results</TabsTrigger>
@@ -221,9 +220,6 @@ export const AdminDashboard = () => {
             <OverviewDashboard />
           </TabsContent>
 
-          <TabsContent value="games" className="space-y-6">
-            <GameManagementPanel />
-          </TabsContent>
 
           <TabsContent value="bets" className="space-y-6">
             <BetLogsPage />
