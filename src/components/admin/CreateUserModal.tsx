@@ -141,20 +141,6 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {(canCreateAdmin || canCreateUser) && (
-            <div className="space-y-2">
-              <Label htmlFor="userType">Account Type *</Label>
-              <Select value={formData.userType} onValueChange={(value) => handleInputChange('userType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select account type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {canCreateUser && <SelectItem value="user">Regular User</SelectItem>}
-                  {canCreateAdmin && <SelectItem value="admin">Admin</SelectItem>}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {canCreateAdmin && formData.userType === 'admin' && (
             <div className="space-y-2">
