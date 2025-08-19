@@ -60,55 +60,20 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         if (error) throw error;
         if (!data?.success) throw new Error(data?.error || 'Failed to create admin');
       } else {
-        console.log('Creating user via RPC first...');
-        try {
-          // 1) Try RPC (runs on DB side and can work even if edge fetch fails client-side)
-          const { data: rpcData, error: rpcError } = await supabase.rpc('admin_create_user', {
-            p_email: formData.email,
-            p_password: formData.password,
-            p_full_name: formData.fullName,
-            p_phone: formData.phone || null
-          });
+        // Simple: regular user creation via edge function
+        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            phone: formData.phone || null,
+          },
+        });
 
-          if (rpcError) {
-            console.error('RPC failed, falling back to edge function...', rpcError);
-          } else {
-            const rpcResult = rpcData as any;
-            if (rpcResult?.success) {
-              console.log('User created via RPC');
-              // Done
-            } else {
-              console.warn('RPC returned non-success, message:', rpcResult);
-            }
-          }
-
-          // If RPC didn't succeed, attempt edge function as fallback
-          if (!(rpcData as any)?.success) {
-            console.log('Attempting edge function fallback...');
-            const { data: edgeData, error: edgeError } = await supabase.functions.invoke('create-user', {
-              body: {
-                email: formData.email,
-                password: formData.password,
-                fullName: formData.fullName,
-                phone: formData.phone || null,
-              },
-            });
-
-            console.log('Edge function response:', { edgeData, edgeError });
-
-            if (edgeError) {
-              throw new Error(edgeError.message || 'Edge function failed');
-            }
-
-            const edgeResult = edgeData as any;
-            if (!edgeResult?.success) {
-              throw new Error(edgeResult?.error || 'Failed to create user');
-            }
-            console.log('User created successfully via edge function');
-          }
-        } catch (createError) {
-          console.error('User creation failed:', createError);
-          throw createError;
+        if (edgeError) throw edgeError;
+        const edgeResult = edgeData as any;
+        if (!edgeResult?.success) {
+          throw new Error(edgeResult?.error || 'Failed to create user');
         }
       }
 
@@ -139,16 +104,16 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   const isMasterAdmin = adminAuth?.role === 'master_admin';
   const isRegularAdmin = adminAuth?.role === 'admin';
   
-  // Determine what user types can be created
-  const canCreateAdmin = isMasterAdmin || isRegularAdmin;
+  // Determine what user types can be created (simple rule)
+  const canCreateAdmin = isMasterAdmin; // only master admin can create admins
   const canCreateUser = isRegularAdmin || isMasterAdmin;
 
-  // If admin cannot create admins, force 'user'
+  // Force regular admins to 'user'
   useEffect(() => {
-    if (!canCreateAdmin && formData.userType !== 'user') {
+    if (isRegularAdmin && formData.userType !== 'user') {
       setFormData((prev) => ({ ...prev, userType: 'user' }));
     }
-  }, [canCreateAdmin]);
+  }, [isRegularAdmin]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">

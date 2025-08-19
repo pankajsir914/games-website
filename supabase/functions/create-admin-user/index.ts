@@ -36,16 +36,16 @@ serve(async (req) => {
       throw new Error('Not authenticated')
     }
 
-    // Check if the current user has permission (admin or master_admin)
+    // Check if the current user is a master admin
     const { data: userRole } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', userData.user.id)
-      .in('role', ['admin', 'master_admin'])
+      .eq('role', 'master_admin')
       .maybeSingle()
 
     if (!userRole) {
-      throw new Error('Only admins can create admin users')
+      throw new Error('Only master admins can create admin users')
     }
 
     // Parse request body
