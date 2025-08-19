@@ -1756,6 +1756,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_attempts: {
+        Row: {
+          attempt_count: number | null
+          blocked_until: string | null
+          created_at: string | null
+          endpoint: string
+          first_attempt_at: string | null
+          id: string
+          ip_address: unknown | null
+          last_attempt_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          endpoint: string
+          first_attempt_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          last_attempt_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          endpoint?: string
+          first_attempt_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          last_attempt_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       roulette_bets: {
         Row: {
           bet_amount: number
@@ -2486,6 +2522,14 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       cleanup_inactive_poker_players: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -2724,6 +2768,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      validate_and_sanitize_input: {
+        Args: { p_allow_html?: boolean; p_input: string; p_max_length?: number }
+        Returns: string
       }
     }
     Enums: {
