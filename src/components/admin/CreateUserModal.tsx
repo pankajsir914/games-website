@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail, Lock, User, Phone, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { useCreateUser } from '@/hooks/useCreateUser';
 
 interface CreateUserModalProps {
   open: boolean;
@@ -19,15 +18,17 @@ type UserType = 'user' | 'admin';
 
 export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUserModalProps) => {
   const { data: adminAuth } = useAdminAuth();
-  const [loading, setLoading] = useState(false);
+  const { createUser, isLoading } = useCreateUser();
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
     phone: '',
     userType: 'user' as UserType,
-    initialPoints: '0'
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetForm = () => {
     setFormData({
@@ -36,116 +37,91 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       fullName: '',
       phone: '',
       userType: 'user',
-      initialPoints: '0'
     });
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long';
+    }
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    }
+
+    if (formData.phone && formData.phone.length < 10) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (!validateForm()) {
+      return;
+    }
 
-    try {
-      console.log('Creating user with data:', {
-        email: formData.email,
-        userType: formData.userType,
-        fullName: formData.fullName
-      });
+    const result = await createUser({
+      email: formData.email.trim(),
+      password: formData.password,
+      fullName: formData.fullName.trim(),
+      phone: formData.phone.trim() || undefined,
+      userType: formData.userType,
+    });
 
-      // Call RPC function instead of Edge Function
-      let data, error;
-      
-      if (formData.userType === 'admin') {
-        // Use admin creation function for admin users
-        const result = await supabase.rpc('admin_create_admin_user', {
-          p_email: formData.email,
-          p_password: formData.password,
-          p_full_name: formData.fullName,
-          p_phone: formData.phone || null
-        });
-        data = result.data;
-        error = result.error;
-      } else {
-        // Use regular user creation function for regular users
-        const result = await supabase.rpc('admin_create_user', {
-          p_email: formData.email,
-          p_password: formData.password,
-          p_full_name: formData.fullName,
-          p_phone: formData.phone || null
-        });
-        data = result.data;
-        error = result.error;
-      }
-
-      console.log('RPC Response:', { data, error });
-
-      if (error) {
-        console.error('RPC Error:', error);
-        throw error;
-      }
-      
-      const result = data as any;
-      if (!result?.success) {
-        throw new Error(result?.error || 'Failed to create user');
-      }
-
-      const userTypeText = formData.userType === 'admin' ? 'Admin' : 'User';
-      toast({
-        title: `${userTypeText} created successfully`,
-        description: result.message || `${userTypeText} ${formData.email} has been created.`,
-      });
-
+    if (result.success) {
       resetForm();
       onOpenChange(false);
       onUserCreated?.();
-    } catch (error: any) {
-      console.error('Create user error:', error);
-      
-      // Show user-friendly error messages
-      let errorMessage = error.message || 'An unexpected error occurred';
-      
-      if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
-        errorMessage = 'A user with this email already exists.';
-      } else if (errorMessage.includes('invalid email') || errorMessage.includes('email')) {
-        errorMessage = 'Please enter a valid email address.';
-      } else if (errorMessage.includes('Password') || errorMessage.includes('password')) {
-        errorMessage = 'Password must be at least 6 characters long.';
-      } else if (errorMessage.includes('Only master admins')) {
-        errorMessage = 'Only master admins can create admin users.';
-      } else if (errorMessage.includes('Only admins')) {
-        errorMessage = 'You do not have permission to create users.';
-      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network') || errorMessage.includes('fetch')) {
-        errorMessage = 'Unable to connect to server. Please try again.';
-      } else if (errorMessage.includes('required')) {
-        errorMessage = 'Please fill in all required fields.';
-      }
-
-      toast({
-        title: 'Failed to create user',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   const isMasterAdmin = adminAuth?.role === 'master_admin';
   const isRegularAdmin = adminAuth?.role === 'admin';
   
-  // Determine what user types can be created (simple rule)
-  const canCreateAdmin = isMasterAdmin; // only master admin can create admins
+  // Determine what user types can be created
+  const canCreateAdmin = isMasterAdmin;
   const canCreateUser = isRegularAdmin || isMasterAdmin;
 
-  // Force regular admins to 'user'
+  // Force regular admins to 'user' type
   useEffect(() => {
     if (isRegularAdmin && formData.userType !== 'user') {
-      setFormData((prev) => ({ ...prev, userType: 'user' }));
+      setFormData(prev => ({ ...prev, userType: 'user' }));
     }
-  }, [isRegularAdmin]);
+  }, [isRegularAdmin, formData.userType]);
+
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
+  if (!canCreateUser) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -153,7 +129,7 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
           <DialogTitle>Create New Account</DialogTitle>
           <DialogDescription>
             {isMasterAdmin 
-              ? "Create a new user or admin account."
+              ? "Create a new user or admin account with the details below."
               : "Create a new user account. The user will be able to login immediately with these credentials."
             }
           </DialogDescription>
@@ -188,14 +164,17 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
                 placeholder="Enter full name"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className="pl-10"
-                required
+                className={`pl-10 ${errors.fullName ? 'border-destructive' : ''}`}
+                disabled={isLoading}
               />
             </div>
+            {errors.fullName && (
+              <p className="text-sm text-destructive">{errors.fullName}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email">Email Address *</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -204,14 +183,17 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
                 placeholder="Enter email address"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="pl-10"
-                required
+                className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
+                disabled={isLoading}
               />
             </div>
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Optional)</Label>
+            <Label htmlFor="phone">Phone Number (Optional)</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -220,9 +202,13 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
                 placeholder="Enter phone number"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="pl-10"
+                className={`pl-10 ${errors.phone ? 'border-destructive' : ''}`}
+                disabled={isLoading}
               />
             </div>
+            {errors.phone && (
+              <p className="text-sm text-destructive">{errors.phone}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -235,11 +221,13 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
                 placeholder="Create a password (min. 6 characters)"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className="pl-10"
-                minLength={6}
-                required
+                className={`pl-10 ${errors.password ? 'border-destructive' : ''}`}
+                disabled={isLoading}
               />
             </div>
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
           </div>
 
           <div className="flex gap-2 pt-4">
@@ -248,15 +236,16 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="flex-1"
+              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="flex-1"
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create {formData.userType === 'admin' ? 'Admin' : 'User'}
             </Button>
           </div>

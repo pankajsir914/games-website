@@ -21,6 +21,3 @@ verify_jwt = false
 
 [functions.ludo-game-manager]
 verify_jwt = true
-
-[functions.create-user]
-verify_jwt = true
