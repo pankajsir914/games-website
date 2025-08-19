@@ -25,15 +25,22 @@ export default function LudoGame() {
   
   const [gameMode, setGameMode] = useState<'lobby' | 'game'>('lobby');
 
-  // Handle creating a new match
-  const handleCreateMatch = async (mode: '2p' | '4p', entryFee: number, botDifficulty: 'easy' | 'normal' | 'pro') => {
+  // Handle joining a game
+  const handleJoinGame = async (gameId: string) => {
     try {
-      const result = await createMatch(mode, entryFee, botDifficulty);
+      // Convert gameId to appropriate parameters and create a match
+      const entryFees = { '1': 10, '2': 25, '3': 50, '4': 5, '5': 100 };
+      const modes = { '1': '4p', '2': '2p', '3': '4p', '4': '4p', '5': '4p' };
+      
+      const entryFee = entryFees[gameId as keyof typeof entryFees] || 10;
+      const mode = modes[gameId as keyof typeof modes] as '2p' | '4p' || '4p';
+      
+      const result = await createMatch(mode, entryFee, 'normal');
       if (result.success) {
         setGameMode('game');
       }
     } catch (error) {
-      console.error('Failed to create match:', error);
+      console.error('Failed to join game:', error);
     }
   };
 
@@ -136,7 +143,7 @@ export default function LudoGame() {
           {gameMode === 'lobby' ? (
             <LudoLobby
               user={user}
-              onCreateMatch={handleCreateMatch}
+              onJoinGame={handleJoinGame}
               onGetHistory={getMatchHistory}
               loading={gameLoading}
             />

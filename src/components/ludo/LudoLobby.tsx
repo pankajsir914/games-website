@@ -12,24 +12,27 @@ import { toast } from '@/hooks/use-toast';
 
 interface LudoLobbyProps {
   user: any;
-  onCreateMatch: (mode: '2p' | '4p', entryFee: number, botDifficulty: 'easy' | 'normal' | 'pro') => Promise<void>;
+  onJoinGame: (gameId: string) => Promise<void>;
   onGetHistory: (limit?: number) => Promise<any[]>;
   loading: boolean;
 }
 
-const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onCreateMatch, onGetHistory, loading }) => {
+const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, loading }) => {
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [gameHistory, setGameHistory] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'history'>('create');
-  
-  // Create room form
-  const [maxPlayers, setMaxPlayers] = useState<number>(2);
-  const [entryFee, setEntryFee] = useState<number>(10);
-  const [botDifficulty, setBotDifficulty] = useState<'easy' | 'normal' | 'pro'>('normal');
+  const [activeTab, setActiveTab] = useState<'join' | 'history'>('join');
 
-  const handleCreateRoom = async () => {
-    const mode = maxPlayers === 2 ? '2p' : '4p';
-    await onCreateMatch(mode, entryFee, botDifficulty);
+  // Mock available games with bot players appearing as real players
+  const mockAvailableGames = [
+    { id: '1', entryFee: 10, players: ['Rahul K.', 'Priya S.'], maxPlayers: 4, waitingPlayers: 2 },
+    { id: '2', entryFee: 25, players: ['Amit P.'], maxPlayers: 2, waitingPlayers: 1 },
+    { id: '3', entryFee: 50, players: ['Neha M.', 'Ravi T.', 'Sneha B.'], maxPlayers: 4, waitingPlayers: 1 },
+    { id: '4', entryFee: 5, players: ['Vikash R.'], maxPlayers: 4, waitingPlayers: 3 },
+    { id: '5', entryFee: 100, players: ['Anjali S.', 'Rohit K.'], maxPlayers: 4, waitingPlayers: 2 },
+  ];
+
+  const handleJoinGame = async (gameId: string) => {
+    await onJoinGame(gameId);
   };
 
   const loadGameHistory = async () => {
@@ -73,7 +76,7 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onCreateMatch, onGetHistory
       {/* Tab Navigation */}
       <div className="flex justify-center space-x-4">
         {[
-          { id: 'create', label: 'Create Game', icon: Trophy },
+          { id: 'join', label: 'Join Game', icon: Users },
           { id: 'history', label: 'Game History', icon: Clock },
         ].map(({ id, label, icon: Icon }) => (
           <Button
@@ -89,66 +92,74 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onCreateMatch, onGetHistory
       </div>
 
 
-      {/* Create Game Tab */}
-      {activeTab === 'create' && (
-        <Card className="max-w-md mx-auto bg-card/50 backdrop-blur border-border/50">
+      {/* Join Game Tab */}
+      {activeTab === 'join' && (
+        <Card className="bg-card/50 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5" />
-              Create New Game
+              <Users className="w-5 h-5" />
+              Available Games
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="maxPlayers">Number of Players</Label>
-              <Select value={maxPlayers.toString()} onValueChange={(value) => setMaxPlayers(parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">2 Players</SelectItem>
-                  <SelectItem value="4">4 Players</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <CardContent>
+            {mockAvailableGames.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No games available right now</p>
+                <p className="text-sm">Check back in a few minutes!</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {mockAvailableGames.map((game) => (
+                  <Card key={game.id} className="bg-card border-border hover:bg-card/80 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Coins className="w-4 h-4 text-yellow-500" />
+                              ₹{game.entryFee} Entry
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                              <Users className="w-4 h-4" />
+                              {game.maxPlayers - game.waitingPlayers}/{game.maxPlayers} Players
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {game.waitingPlayers} waiting
+                          </Badge>
+                        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="entryFee">Entry Fee (₹)</Label>
-              <Input
-                id="entryFee"
-                type="number"
-                min="1"
-                max="500"
-                value={entryFee}
-                onChange={(e) => setEntryFee(Math.max(1, Math.min(500, parseInt(e.target.value) || 1)))}
-                placeholder="Enter amount"
-              />
-              <p className="text-xs text-muted-foreground">
-                Winner takes 90% (₹{(entryFee * maxPlayers * 0.9).toFixed(2)}), 10% platform fee
-              </p>
-            </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Current Players:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {game.players.map((player, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {player}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="botDifficulty">Bot Difficulty</Label>
-              <Select value={botDifficulty} onValueChange={(value: 'easy' | 'normal' | 'pro') => setBotDifficulty(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button 
-              onClick={handleCreateRoom}
-              disabled={loading}
-              className="w-full"
-            >
-              {loading ? 'Creating...' : `Create Game (₹${entryFee})`}
-            </Button>
+                        <div className="pt-2">
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Win Pot: ₹{(game.entryFee * game.maxPlayers * 0.9).toFixed(0)}
+                          </div>
+                          <Button 
+                            onClick={() => handleJoinGame(game.id)}
+                            disabled={loading}
+                            className="w-full"
+                            size="sm"
+                          >
+                            {loading ? 'Joining...' : `Join Game (₹${game.entryFee})`}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

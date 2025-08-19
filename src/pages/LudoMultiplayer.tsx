@@ -221,7 +221,7 @@ const LudoMultiplayer = () => {
         <div className="pt-16">
           <LudoLobby 
             user={user} 
-            onCreateMatch={async () => {}} 
+            onJoinGame={async () => {}} 
             onGetHistory={async () => []} 
             loading={isLoading} 
           />
