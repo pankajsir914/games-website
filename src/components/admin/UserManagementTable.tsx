@@ -99,13 +99,44 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
 
   // Apply filters
   const filteredUsers = users?.filter(user => {
-    if (filters.search && !user.full_name?.toLowerCase().includes(filters.search.toLowerCase()) && 
-        !user.email?.toLowerCase().includes(filters.search.toLowerCase())) {
-      return false;
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      const matchesName = user.full_name?.toLowerCase().includes(searchLower);
+      const matchesEmail = user.email?.toLowerCase().includes(searchLower);
+      const matchesPhone = user.phone?.toLowerCase().includes(searchLower);
+      const matchesId = user.id.toLowerCase().includes(searchLower);
+      
+      if (!matchesName && !matchesEmail && !matchesPhone && !matchesId) {
+        return false;
+      }
     }
+    
+    // Status filter - for now we only have active users since we can't modify auth.users
     if (filters.status !== 'all' && filters.status !== 'active') {
       return false;
     }
+    
+    // Date filter
+    if (filters.dateRange !== 'all') {
+      const userDate = new Date(user.created_at);
+      const now = new Date();
+      
+      switch (filters.dateRange) {
+        case 'today':
+          if (userDate.toDateString() !== now.toDateString()) return false;
+          break;
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (userDate < weekAgo) return false;
+          break;
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          if (userDate < monthAgo) return false;
+          break;
+      }
+    }
+    
     return true;
   });
 
@@ -127,7 +158,7 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers?.map((user) => (
+            {filteredUsers && filteredUsers.length > 0 ? filteredUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center space-x-3">
@@ -183,24 +214,21 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                         <Coins className="mr-2 h-4 w-4" />
                         Credit Points
                       </DropdownMenuItem>
-                      {true ? (
-                        <DropdownMenuItem 
-                          onClick={() => handleUserAction(user.id, 'block')}
-                          disabled={isUpdating}
-                          className="text-destructive"
-                        >
-                          <Ban className="mr-2 h-4 w-4" />
-                          Block User
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem 
-                          onClick={() => handleUserAction(user.id, 'unblock')}
-                          disabled={isUpdating}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Unblock User
-                        </DropdownMenuItem>
-                      )}
+                      <DropdownMenuItem 
+                        onClick={() => handleUserAction(user.id, 'block')}
+                        disabled={isUpdating}
+                        className="text-destructive"
+                      >
+                        <Ban className="mr-2 h-4 w-4" />
+                        Block User
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleUserAction(user.id, 'unblock')}
+                        disabled={isUpdating}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Unblock User
+                      </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleUserAction(user.id, 'suspend')}
                         disabled={isUpdating}
@@ -212,7 +240,17 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={isMasterAdmin ? 9 : 8} className="text-center py-8">
+                  <div className="text-muted-foreground">
+                    {filters.search || filters.status !== 'all' || filters.dateRange !== 'all' 
+                      ? 'No users found matching your filters.' 
+                      : 'No users found.'}
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
         <PointsCreditModal

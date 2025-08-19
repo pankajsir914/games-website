@@ -89,19 +89,22 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       console.error('Create user error:', error);
       
       // Show user-friendly error messages
-      let errorMessage = error.message;
-      if (errorMessage.includes('User already registered')) {
+      let errorMessage = error.message || 'An unexpected error occurred';
+      
+      if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
         errorMessage = 'A user with this email already exists.';
-      } else if (errorMessage.includes('invalid email')) {
+      } else if (errorMessage.includes('invalid email') || errorMessage.includes('email')) {
         errorMessage = 'Please enter a valid email address.';
-      } else if (errorMessage.includes('Password')) {
+      } else if (errorMessage.includes('Password') || errorMessage.includes('password')) {
         errorMessage = 'Password must be at least 6 characters long.';
       } else if (errorMessage.includes('Only master admins')) {
         errorMessage = 'Only master admins can create admin users.';
       } else if (errorMessage.includes('Only admins')) {
         errorMessage = 'You do not have permission to create users.';
-      } else if (errorMessage.includes('Failed to fetch')) {
-        errorMessage = 'Server temporarily unavailable. Please try again.';
+      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+        errorMessage = 'Unable to connect to server. Please try again.';
+      } else if (errorMessage.includes('required')) {
+        errorMessage = 'Please fill in all required fields.';
       }
 
       toast({
@@ -145,23 +148,21 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
-          {canCreateAdmin && formData.userType === 'admin' && (
+          {canCreateAdmin && (
             <div className="space-y-2">
-              <Label htmlFor="initialPoints">Initial Points (for Admin)</Label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="initialPoints"
-                  type="number"
-                  min={0}
-                  step="1"
-                  placeholder="Enter points to allocate"
-                  value={formData.initialPoints}
-                  onChange={(e) => handleInputChange('initialPoints', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <Label htmlFor="userType">Account Type</Label>
+              <Select
+                value={formData.userType}
+                onValueChange={(value: UserType) => handleInputChange('userType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Regular User</SelectItem>
+                  <SelectItem value="admin">Admin User</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
