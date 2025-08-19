@@ -64,8 +64,18 @@ export default function LudoGame() {
   });
 
   // Handle opening setup modal
-  const handleJoinGame = () => {
+  const handleJoinGame = async (gameId: string) => {
     setShowSetup(true);
+  };
+
+  // Handle getting match history
+  const handleGetHistory = async (limit?: number) => {
+    try {
+      return await getMatchHistory(limit);
+    } catch (error) {
+      console.error('Failed to get match history:', error);
+      return [];
+    }
   };
 
   // Handle starting game from setup
@@ -288,7 +298,7 @@ export default function LudoGame() {
             <LudoLobby
               user={user}
               onJoinGame={handleJoinGame}
-              onGetHistory={getMatchHistory}
+              onGetHistory={handleGetHistory}
               loading={gameLoading}
             />
             ) : (
@@ -333,7 +343,6 @@ export default function LudoGame() {
             onBackToLobby={handleBackToLobby}
             isOpen={showWinner}
           />
-        }
         </div>
       </div>
     </div>
