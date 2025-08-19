@@ -36,7 +36,15 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            // Forward the user's auth so RLS functions (auth.uid()) work
+            Authorization: req.headers.get('Authorization') || ''
+          }
+        }
+      }
     );
 
     const { action, roomId, playerId, moveData } = await req.json();
