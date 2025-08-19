@@ -53,90 +53,32 @@ export const useCreateUser = () => {
         throw new Error('Only master admins can create admin users');
       }
 
-      // Create auth user using admin API
-      const { data: newUser, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.fullName,
-          phone: userData.phone || null
-        }
-      });
-
-      if (authError) {
-        throw new Error(authError.message);
-      }
-
-      if (!newUser.user) {
-        throw new Error('Failed to create user account');
-      }
-
-      const userId = newUser.user.id;
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          full_name: userData.fullName,
-          phone: userData.phone || null,
-          created_by: currentUser.user.id
-        });
-
-      if (profileError) {
-        // Clean up auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(userId);
-        throw new Error(`Failed to create user profile: ${profileError.message}`);
-      }
-
-      // Create wallet
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .insert({
-          user_id: userId,
-          current_balance: 0
-        });
-
-      if (walletError) {
-        // Clean up auth user and profile if wallet creation fails
-        await supabase.auth.admin.deleteUser(userId);
-        await supabase.from('profiles').delete().eq('id', userId);
-        throw new Error(`Failed to create user wallet: ${walletError.message}`);
-      }
-
-      // Assign admin role if needed
-      if (userData.userType === 'admin') {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userId,
-            role: 'admin',
-            assigned_by: currentUser.user.id
+      // Use the appropriate RPC function based on user type
+      const { data: result, error: rpcError } = userData.userType === 'admin' 
+        ? await supabase.rpc('admin_create_admin_user', {
+            p_email: userData.email,
+            p_password: userData.password,
+            p_full_name: userData.fullName,
+            p_phone: userData.phone || null
+          })
+        : await supabase.rpc('admin_create_user', {
+            p_email: userData.email,
+            p_password: userData.password,
+            p_full_name: userData.fullName,
+            p_phone: userData.phone || null
           });
 
-        if (roleError) {
-          console.warn('Failed to assign admin role:', roleError.message);
-          // Don't fail the entire operation for role assignment
-        }
+      if (rpcError) {
+        throw new Error(rpcError.message);
       }
 
-      // Log admin activity (best effort)
-      try {
-        await supabase.rpc('log_admin_activity', {
-          p_action_type: userData.userType === 'admin' ? 'create_admin_user' : 'create_user',
-          p_target_type: 'user',
-          p_target_id: userId,
-          p_details: {
-            email: userData.email,
-            full_name: userData.fullName,
-            user_type: userData.userType,
-            created_by: currentUser.user.id
-          }
-        });
-      } catch (logError) {
-        console.warn('Failed to log admin activity:', logError);
+      const typedResult = result as { success: boolean; user_id?: string; error?: string } | null;
+
+      if (!typedResult?.success) {
+        throw new Error(typedResult?.error || 'Failed to create user');
       }
+
+      const userId = typedResult.user_id;
 
       toast({
         title: "Success",
