@@ -52,13 +52,29 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       });
 
       // Call RPC function instead of Edge Function
-      const { data, error } = await supabase.rpc('create_user_simple', {
-        p_email: formData.email,
-        p_password: formData.password,
-        p_full_name: formData.fullName,
-        p_phone: formData.phone || null,
-        p_user_type: formData.userType,
-      });
+      let data, error;
+      
+      if (formData.userType === 'admin') {
+        // Use admin creation function for admin users
+        const result = await supabase.rpc('admin_create_admin_user', {
+          p_email: formData.email,
+          p_password: formData.password,
+          p_full_name: formData.fullName,
+          p_phone: formData.phone || null
+        });
+        data = result.data;
+        error = result.error;
+      } else {
+        // Use regular user creation function for regular users
+        const result = await supabase.rpc('admin_create_user', {
+          p_email: formData.email,
+          p_password: formData.password,
+          p_full_name: formData.fullName,
+          p_phone: formData.phone || null
+        });
+        data = result.data;
+        error = result.error;
+      }
 
       console.log('RPC Response:', { data, error });
 
