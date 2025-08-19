@@ -13,6 +13,9 @@ query_parameters = { action = "auto_manage" }
 [functions.create-admin-user]
 verify_jwt = true
 
+[functions.create-user]
+verify_jwt = true
+
 [functions.get-team-members]
 verify_jwt = true
 
