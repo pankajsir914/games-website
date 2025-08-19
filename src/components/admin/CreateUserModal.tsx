@@ -143,15 +143,15 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   const isRegularAdmin = adminAuth?.role === 'admin';
   
   // Determine what user types can be created
-  const canCreateAdmin = isMasterAdmin;
+  const canCreateAdmin = isMasterAdmin || isRegularAdmin;
   const canCreateUser = isRegularAdmin || isMasterAdmin;
 
-  // Set default user type for regular admins
+  // If admin cannot create admins, force 'user'
   useEffect(() => {
-    if (isRegularAdmin && formData.userType !== 'user') {
+    if (!canCreateAdmin && formData.userType !== 'user') {
       setFormData((prev) => ({ ...prev, userType: 'user' }));
     }
-  }, [isRegularAdmin]);
+  }, [canCreateAdmin]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
