@@ -219,7 +219,12 @@ const LudoMultiplayer = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="pt-16">
-          <LudoLobby onJoinRoom={handleJoinRoom} />
+          <LudoLobby 
+            user={user} 
+            onCreateMatch={async () => {}} 
+            onGetHistory={async () => []} 
+            loading={isLoading} 
+          />
         </div>
       </div>
     );

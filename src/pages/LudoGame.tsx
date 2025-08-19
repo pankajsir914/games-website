@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
-import { LudoLobby } from '@/components/ludo/LudoLobby';
+import LudoLobby from '@/components/ludo/LudoLobby';
 import { LudoAuth } from '@/components/ludo/LudoAuth';
 import { useLudoAuth } from '@/hooks/useLudoAuth';
 import { useLudoGame } from '@/hooks/useLudoGame';

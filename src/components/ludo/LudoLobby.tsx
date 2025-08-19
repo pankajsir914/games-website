@@ -11,41 +11,30 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
 interface LudoLobbyProps {
-  onJoinRoom: (roomId: string) => void;
+  user: any;
+  onCreateMatch: (mode: '2p' | '4p', entryFee: number, botDifficulty: 'easy' | 'normal' | 'pro') => Promise<void>;
+  onGetHistory: (limit?: number) => Promise<any[]>;
+  loading: boolean;
 }
 
-const LudoLobby: React.FC<LudoLobbyProps> = ({ onJoinRoom }) => {
-  const { user } = useAuth();
-  const { 
-    createRoom, 
-    joinRoom, 
-    getAvailableRooms, 
-    getGameHistory, 
-    isLoading 
-  } = useLudoBackend();
-  
-  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'history'>('join');
+const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onCreateMatch, onGetHistory, loading }) => {
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [gameHistory, setGameHistory] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'history'>('create');
   
   // Create room form
   const [maxPlayers, setMaxPlayers] = useState<number>(2);
   const [entryFee, setEntryFee] = useState<number>(10);
+  const [botDifficulty, setBotDifficulty] = useState<'easy' | 'normal' | 'pro'>('normal');
 
-  // Load available rooms
-  const loadAvailableRooms = async () => {
-    try {
-      const rooms = await getAvailableRooms();
-      setAvailableRooms(rooms || []);
-    } catch (error) {
-      console.error('Error loading rooms:', error);
-    }
+  const handleCreateRoom = async () => {
+    const mode = maxPlayers === 2 ? '2p' : '4p';
+    await onCreateMatch(mode, entryFee, botDifficulty);
   };
 
-  // Load game history
   const loadGameHistory = async () => {
     try {
-      const history = await getGameHistory();
+      const history = await onGetHistory();
       setGameHistory(history || []);
     } catch (error) {
       console.error('Error loading history:', error);
@@ -53,50 +42,10 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ onJoinRoom }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'join') {
-      loadAvailableRooms();
-      const interval = setInterval(loadAvailableRooms, 5000); // Refresh every 5 seconds
-      return () => clearInterval(interval);
-    } else if (activeTab === 'history') {
+    if (activeTab === 'history') {
       loadGameHistory();
     }
   }, [activeTab]);
-
-  const handleCreateRoom = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to create a room",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const result = await createRoom(maxPlayers, entryFee);
-      onJoinRoom(result.room_id);
-    } catch (error) {
-      // Error already handled in hook
-    }
-  };
-
-  const handleJoinRoom = async (roomId: string) => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to join a room",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await joinRoom(roomId);
-      onJoinRoom(roomId);
-    } catch (error) {
-      // Error already handled in hook
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const statusColors = {
@@ -124,7 +73,6 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ onJoinRoom }) => {
       {/* Tab Navigation */}
       <div className="flex justify-center space-x-4">
         {[
-          { id: 'join', label: 'Join Game', icon: Users },
           { id: 'create', label: 'Create Game', icon: Trophy },
           { id: 'history', label: 'Game History', icon: Clock },
         ].map(({ id, label, icon: Icon }) => (
@@ -140,64 +88,6 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ onJoinRoom }) => {
         ))}
       </div>
 
-      {/* Join Games Tab */}
-      {activeTab === 'join' && (
-        <Card className="bg-card/50 backdrop-blur border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Available Games
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {availableRooms.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No available games at the moment</p>
-                <p className="text-sm">Be the first to create one!</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {availableRooms.map((room) => (
-                  <Card key={room.id} className="bg-card border-border hover:border-primary/50 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">Room #{room.id.slice(-8)}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {room.current_players}/{room.max_players} players
-                            </p>
-                          </div>
-                          {getStatusBadge(room.status)}
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <Coins className="w-4 h-4 text-yellow-500" />
-                          <span>₹{room.entry_fee} entry fee</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>Created {new Date(room.created_at).toLocaleTimeString()}</span>
-                        </div>
-                        
-                        <Button 
-                          onClick={() => handleJoinRoom(room.id)}
-                          disabled={isLoading || room.current_players >= room.max_players}
-                          className="w-full"
-                        >
-                          {room.current_players >= room.max_players ? 'Full' : 'Join Game'}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Create Game Tab */}
       {activeTab === 'create' && (
@@ -238,12 +128,26 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ onJoinRoom }) => {
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="botDifficulty">Bot Difficulty</Label>
+              <Select value={botDifficulty} onValueChange={(value: 'easy' | 'normal' | 'pro') => setBotDifficulty(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button 
               onClick={handleCreateRoom}
-              disabled={isLoading}
+              disabled={loading}
               className="w-full"
             >
-              {isLoading ? 'Creating...' : `Create Game (₹${entryFee})`}
+              {loading ? 'Creating...' : `Create Game (₹${entryFee})`}
             </Button>
           </CardContent>
         </Card>
