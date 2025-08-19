@@ -19,6 +19,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+      return new Response(JSON.stringify({ success: false, error: 'Server configuration error' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      })
+    }
+
     // Get the current user from the request
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {

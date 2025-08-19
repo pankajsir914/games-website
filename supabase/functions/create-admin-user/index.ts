@@ -19,8 +19,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+      throw new Error('Server configuration error')
+    }
+
     // Get the current user from the request
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing Authorization header')
+    }
+    
     const token = authHeader.replace('Bearer ', '')
     const { data: userData } = await supabaseAdmin.auth.getUser(token)
 
