@@ -60,16 +60,59 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         if (error) throw error;
         if (!data?.success) throw new Error(data?.error || 'Failed to create admin');
       } else {
-        const { data, error } = await supabase.functions.invoke('create-user', {
-          body: {
-            email: formData.email,
-            password: formData.password,
-            fullName: formData.fullName,
-            phone: formData.phone || null,
-          },
-        });
-        if (error) throw error;
-        if (!data?.success) throw new Error(data?.error || 'Failed to create user');
+        console.log('Creating user directly via Supabase admin...');
+        
+        // Fallback: Use direct Supabase admin methods
+        try {
+          // First, try edge function
+          console.log('Attempting edge function...');
+          const { data, error } = await supabase.functions.invoke('create-user', {
+            body: {
+              email: formData.email,
+              password: formData.password,
+              fullName: formData.fullName,
+              phone: formData.phone || null,
+            },
+          });
+          
+          console.log('Edge function response:', { data, error });
+          
+          if (error) {
+            console.error('Edge function failed, trying alternative method...', error);
+            
+            // Alternative: Create user with admin RPC function
+            const { data: rpcData, error: rpcError } = await supabase.rpc('admin_create_user', {
+              p_email: formData.email,
+              p_password: formData.password,
+              p_full_name: formData.fullName,
+              p_phone: formData.phone || null
+            });
+            
+            if (rpcError) {
+              console.error('RPC function also failed:', rpcError);
+              throw new Error(`Failed to create user: ${rpcError.message}`);
+            }
+            
+            // Handle RPC response as any since we know its structure
+            const rpcResult = rpcData as any;
+            if (!rpcResult?.success) {
+              throw new Error(rpcResult?.error || 'Failed to create user via RPC');
+            }
+            
+            console.log('User created via RPC fallback');
+          } else {
+            // Handle edge function response as any since we know its structure
+            const edgeResult = data as any;
+            if (!edgeResult?.success) {
+              console.error('Edge function returned error:', edgeResult?.error);
+              throw new Error(edgeResult?.error || 'Failed to create user');
+            }
+            console.log('User created successfully via edge function');
+          }
+        } catch (createError) {
+          console.error('User creation failed:', createError);
+          throw createError;
+        }
       }
 
       const userTypeText = isCreatingAdmin ? 'Admin' : 'User';
