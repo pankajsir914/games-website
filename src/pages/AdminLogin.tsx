@@ -49,7 +49,11 @@ const AdminLogin = () => {
     try {
       await signIn(email, password);
       
-      // The useAdminAuth hook will refetch and redirect will happen via useEffect
+      // Wait for auth state to update, then redirect
+      setTimeout(() => {
+        window.location.href = '/admin';
+      }, 1000);
+      
       toast({
         title: "Login successful",
         description: "Welcome to the admin panel!",
