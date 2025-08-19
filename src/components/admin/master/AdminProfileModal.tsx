@@ -82,24 +82,41 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
 
     setIsUpdatingPoints(true);
     try {
-      const { data, error } = await supabase.rpc('allocate_admin_credits', {
-        p_admin_id: member.id,
-        p_amount: parseFloat(pointsAmount),
-        p_notes: `Points allocated by master admin`
-      });
+      // For master admin allocating credits to admins
+      if (member.role === 'admin') {
+        const { data, error } = await supabase.rpc('allocate_admin_credits', {
+          p_admin_id: member.id,
+          p_amount: parseFloat(pointsAmount),
+          p_notes: `Credits allocated by master admin`
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Points Allocated",
-        description: `Successfully allocated ₹${pointsAmount} to ${member.full_name || member.email}`,
-      });
+        toast({
+          title: "Credits Allocated",
+          description: `Successfully allocated ₹${pointsAmount} admin credits to ${member.full_name || member.email}`,
+        });
+      } else {
+        // For transferring points to users from admin balance
+        const { data, error } = await supabase.rpc('transfer_admin_credits_to_user', {
+          p_user_id: member.id,
+          p_amount: parseFloat(pointsAmount),
+          p_notes: `Points transferred by master admin`
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Points Transferred",
+          description: `Successfully transferred ₹${pointsAmount} to ${member.full_name || member.email}`,
+        });
+      }
       
       setPointsAmount('');
       onUpdate?.();
     } catch (error: any) {
       toast({
-        title: "Allocation Failed",
+        title: "Transfer Failed",
         description: error.message,
         variant: "destructive"
       });
