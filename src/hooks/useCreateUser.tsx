@@ -53,29 +53,48 @@ export const useCreateUser = () => {
         throw new Error('Only master admins can create admin users');
       }
 
-      // Use the appropriate RPC function based on user type
-      const { data: result, error: rpcError } = userData.userType === 'admin' 
-        ? await supabase.rpc('admin_create_admin_user', {
-            p_email: userData.email,
-            p_password: userData.password,
-            p_full_name: userData.fullName,
-            p_phone: userData.phone || null
+      // Create user via Edge/DB functions depending on type
+      let typedResult: { success: boolean; user_id?: string; error?: string } | null = null;
+
+      if (userData.userType === 'admin') {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) throw new Error('You must be logged in to create users');
+
+        const resp = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/create-admin-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            email: userData.email,
+            password: userData.password,
+            fullName: userData.fullName,
+            phone: userData.phone || null
           })
-        : await supabase.rpc('admin_create_user', {
-            p_email: userData.email,
-            p_password: userData.password,
-            p_full_name: userData.fullName,
-            p_phone: userData.phone || null
-          });
+        });
 
-      if (rpcError) {
-        throw new Error(rpcError.message);
-      }
+        const json = await resp.json().catch(() => null);
+        if (!resp.ok || !json?.success) {
+          throw new Error(json?.error || 'Failed to create admin user');
+        }
+        typedResult = json;
+      } else {
+        const { data: result, error: rpcError } = await supabase.rpc('admin_create_user', {
+          p_email: userData.email,
+          p_password: userData.password,
+          p_full_name: userData.fullName,
+          p_phone: userData.phone || null
+        });
 
-      const typedResult = result as { success: boolean; user_id?: string; error?: string } | null;
-
-      if (!typedResult?.success) {
-        throw new Error(typedResult?.error || 'Failed to create user');
+        if (rpcError) {
+          throw new Error(rpcError.message);
+        }
+        typedResult = (result as any) ?? null;
+        if (!typedResult?.success) {
+          throw new Error(typedResult?.error || 'Failed to create user');
+        }
       }
 
       const userId = typedResult.user_id;
