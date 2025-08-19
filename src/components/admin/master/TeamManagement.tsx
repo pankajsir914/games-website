@@ -237,7 +237,7 @@ export const TeamManagement = () => {
                           <Clock className="h-3 w-3" />
                           Last login: {formatLastLogin(member.last_sign_in_at)}
                         </div>
-                        <div>Balance: ₹{member.current_balance.toFixed(2)}</div>
+                        <div>Balance: ₹{(member.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       </div>
                     </div>
                   </div>
