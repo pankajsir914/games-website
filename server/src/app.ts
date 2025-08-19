@@ -37,6 +37,10 @@ app.use('/poker', pokerRoutes);
 app.use('/api', sportsRoutes);
 app.use('/api', cricketRoutes);
 
+// Ludo Game Routes
+import ludoRoutes from './routes/ludoRoutes';
+app.use('/api', ludoRoutes);
+
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
