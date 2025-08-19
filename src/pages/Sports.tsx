@@ -82,16 +82,20 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
       {error && <div className="text-destructive">{error}</div>}
       {!loading && !error && (!data || data.length === 0) && <div className="text-muted-foreground">No matches.</div>}
       {data && data.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((match, idx) => (
-            <MatchCard
-              key={`${match.id ?? 'x'}-${idx}`}
-              match={match}
-              sportBackground={sportBackground}
-              onBetSelect={handleBetSelect}
-              showBetting={title !== 'Results'} // Hide betting for completed matches
-            />
-          ))}
+        <div className="relative">
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+            {data.map((match, idx) => (
+              <div key={`${match.id ?? 'x'}-${idx}`} className="flex-none w-96">
+                <MatchCard
+                  match={match}
+                  sportBackground={sportBackground}
+                  onBetSelect={handleBetSelect}
+                  showBetting={title !== 'Results'} // Hide betting for completed matches
+                  isLandscape={true}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </Section>
