@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-
+import { supabase } from '@/integrations/supabase/client';
 export interface LudoMatch {
   id: string;
   mode: '2p' | '4p';
@@ -74,32 +74,37 @@ export const useLudoGame = () => {
   ) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/ludo/create', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ mode, entryFee, botDifficulty }),
+      const maxPlayers = mode === '2p' ? 2 : 4;
+      const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
+        body: {
+          action: 'create_room',
+          moveData: { maxPlayers, entryFee }
+        }
       });
 
-      const data = await response.json();
+      if (error) throw error;
+      if (!data?.room_id) throw new Error('Failed to create room');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create match');
-      }
-
-      // Fetch the created match state
-      await getMatchState(data.matchId);
+      setCurrentMatch({
+        id: data.room_id,
+        mode,
+        entryFee,
+        status: 'created',
+        botDifficulty,
+        createdAt: new Date().toISOString(),
+      });
 
       toast({
-        title: "Match Created!",
-        description: `${mode} match started with ${entryFee} tokens entry fee`,
+        title: 'Room joined',
+        description: `${mode} game starting with ₹${entryFee} entry`,
       });
 
-      return { success: true, matchId: data.matchId };
+      return { success: true, matchId: data.room_id };
     } catch (error: any) {
       toast({
-        title: "Failed to create match",
-        description: error.message,
-        variant: "destructive",
+        title: 'Failed to create match',
+        description: error.message ?? 'Please try again',
+        variant: 'destructive',
       });
       throw error;
     } finally {
