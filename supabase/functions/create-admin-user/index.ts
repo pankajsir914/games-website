@@ -85,7 +85,8 @@ serve(async (req) => {
       .upsert({
         id: authUser.user.id,
         full_name: fullName,
-        phone: phone || null
+        phone: phone || null,
+        created_by: userData.user.id
       }, {
         onConflict: 'id'
       })

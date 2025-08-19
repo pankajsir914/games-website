@@ -13,6 +13,8 @@ interface UserData {
   total_deposits: number;
   total_withdrawals: number;
   games_played: number;
+  created_by?: string;
+  creator_name?: string;
   
   is_blocked: boolean;
   risk_level: string;

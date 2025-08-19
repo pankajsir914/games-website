@@ -23,6 +23,7 @@ import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PointsCreditModal } from '@/components/admin/PointsCreditModal';
 import { useMasterAdminUsers } from '@/hooks/useMasterAdminUsers';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
 
 interface UserFilters {
@@ -36,10 +37,12 @@ interface UserManagementTableProps {
 }
 
 export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
+  const { data: adminAuth } = useAdminAuth();
   const { users: usersResponse, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
 
   const users = usersResponse?.users || [];
+  const isMasterAdmin = adminAuth?.role === 'master_admin';
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -117,6 +120,7 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
               <TableHead>Balance</TableHead>
               <TableHead>Total Deposits</TableHead>
               <TableHead>Total Withdrawals</TableHead>
+              {isMasterAdmin && <TableHead>Created By</TableHead>}
               <TableHead>Status</TableHead>
               <TableHead>Join Date</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -151,6 +155,20 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                 <TableCell>
                   <span className="text-gaming-danger">₹{user.total_withdrawals?.toLocaleString() || '0'}</span>
                 </TableCell>
+                {isMasterAdmin && (
+                  <TableCell>
+                    {user.creator_name ? (
+                      <div className="flex items-center gap-1">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">{user.creator_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{user.creator_name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">System</span>
+                    )}
+                  </TableCell>
+                )}
                 <TableCell>{getStatusBadge('active')}</TableCell>
                 <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>

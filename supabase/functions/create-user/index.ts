@@ -101,7 +101,12 @@ serve(async (req) => {
     // Create profile
     const { error: profileErr } = await supabaseAdmin
       .from('profiles')
-      .upsert({ id: created.user.id, full_name: fullName, phone: phone || null }, { onConflict: 'id' })
+      .upsert({ 
+        id: created.user.id, 
+        full_name: fullName, 
+        phone: phone || null, 
+        created_by: userData.user.id 
+      }, { onConflict: 'id' })
 
     if (profileErr) {
       console.error('Profile error:', profileErr)
