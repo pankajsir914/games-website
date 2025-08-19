@@ -51,13 +51,15 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         fullName: formData.fullName
       });
 
-      // Call RPC function
-      const { data, error } = await supabase.rpc('create_user_simple', {
-        p_email: formData.email,
-        p_password: formData.password,
-        p_full_name: formData.fullName,
-        p_phone: formData.phone || null,
-        p_user_type: formData.userType
+      // Call Edge Function directly to avoid RPC JSON parsing issues
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          phone: formData.phone || null,
+          userType: formData.userType,
+        },
       });
 
       console.log('RPC Response:', { data, error });
