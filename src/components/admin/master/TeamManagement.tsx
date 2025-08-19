@@ -26,11 +26,13 @@ import {
 } from 'lucide-react';
 import { CreateAdminModal } from './CreateAdminModal';
 import { AdminProfileModal } from './AdminProfileModal';
+import { EditProfileModal } from './EditProfileModal';
 import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
 
 export const TeamManagement = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { teamMembers, isLoading, updateUserStatus, isUpdating } = useTeamManagement();
@@ -176,6 +178,14 @@ export const TeamManagement = () => {
         onUpdate={handleProfileUpdate}
       />
 
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        open={showEditProfile}
+        onOpenChange={setShowEditProfile}
+        member={selectedMember}
+        onUpdate={handleProfileUpdate}
+      />
+
       {/* Team Members List */}
       <Card className="bg-gradient-card">
         <CardHeader>
@@ -263,7 +273,10 @@ export const TeamManagement = () => {
                           <Wallet className="h-3 w-3 mr-2" />
                           Manage Points
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedMember(member);
+                          setShowEditProfile(true);
+                        }}>
                           <Settings className="h-3 w-3 mr-2" />
                           Edit Profile
                         </DropdownMenuItem>
