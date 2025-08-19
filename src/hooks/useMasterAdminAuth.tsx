@@ -55,21 +55,54 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
     try {
       // Check highest role via RPC (SECURITY DEFINER function already exists)
       const { data: roleText, error } = await supabase.rpc('get_user_highest_role', { _user_id: supabaseUser.id });
-      if (error) throw error;
+      if (error) {
+        console.error('Role verification failed:', error);
+        throw error;
+      }
 
       if (roleText !== 'master_admin') {
         // Not a master admin; clear session for master admin context only
         setUser(null);
         setSession(null);
-        console.log('User is not master admin, clearing master admin session');
+        console.log('User is not master admin, role:', roleText);
+        
+        // Log unauthorized access attempt
+        setTimeout(() => {
+          supabase.rpc('log_admin_activity', {
+            p_action_type: 'unauthorized_master_admin_access',
+            p_target_type: 'auth',
+            p_details: { 
+              user_id: supabaseUser.id, 
+              email: supabaseUser.email,
+              actual_role: roleText,
+              timestamp: new Date().toISOString()
+            }
+          });
+        }, 0);
       } else {
         // Map to existing shape (keep role as MASTER for compatibility across app)
         setUser({ id: supabaseUser.id, username: supabaseUser.email || 'master', role: 'MASTER' });
+        
+        // Log successful master admin access
+        setTimeout(() => {
+          supabase.rpc('log_admin_activity', {
+            p_action_type: 'master_admin_login_success',
+            p_target_type: 'auth',
+            p_details: { 
+              user_id: supabaseUser.id,
+              email: supabaseUser.email,
+              timestamp: new Date().toISOString()
+            }
+          });
+        }, 0);
+        
+        console.log('Master admin verified successfully');
       }
     } catch (e: any) {
       console.error('Master admin verification error:', e.message);
       setUser(null);
       setSession(null);
+      toast.error('Failed to verify master admin access');
     } finally {
       setLoading(false);
     }
@@ -78,22 +111,76 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      toast.success('Signed in as Master Admin');
+      // Check rate limiting before attempting sign in
+      const { data: canProceed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+        p_endpoint: 'master_admin_login',
+        p_max_attempts: 5,
+        p_window_minutes: 15
+      });
+
+      if (rateLimitError) {
+        console.warn('Rate limit check failed:', rateLimitError);
+        // Continue with login attempt but log the issue
+      }
+
+      if (canProceed === false) {
+        throw new Error('Too many login attempts. Please try again in 15 minutes.');
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password
+      });
+      
+      if (error) {
+        // Log failed attempt
+        setTimeout(() => {
+          supabase.rpc('log_admin_activity', {
+            p_action_type: 'master_admin_login_failed',
+            p_target_type: 'auth',
+            p_details: { email, error: error.message, timestamp: new Date().toISOString() }
+          });
+        }, 0);
+        
+        throw error;
+      }
+
       // onAuthStateChange will finish loading the user and role
+      // Success will be logged in verifyAndLoadMasterAdmin
     } catch (e: any) {
-      toast.error(e.message || 'Login failed');
-      throw e;
+      const errorMessage = e.message || 'Login failed';
+      console.error('Master admin sign in error:', errorMessage);
+      throw new Error(errorMessage);
     } finally {
-      // loading will be cleared by verifyAndLoadMasterAdmin
+      // loading will be cleared by verifyAndLoadMasterAdmin or error handling
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
+    try {
+      // Log master admin logout
+      if (user) {
+        setTimeout(() => {
+          supabase.rpc('log_admin_activity', {
+            p_action_type: 'master_admin_logout',
+            p_target_type: 'auth',
+            p_details: { 
+              user_id: user.id,
+              email: user.username,
+              timestamp: new Date().toISOString()
+            }
+          });
+        }, 0);
+      }
+
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      toast.success('Signed out successfully');
+    } catch (error: any) {
+      console.error('Sign out error:', error);
+      toast.error('Sign out failed');
+    }
   };
 
   const isMasterAdmin = user?.role === 'MASTER';
