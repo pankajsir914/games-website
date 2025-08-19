@@ -32,69 +32,22 @@ export const useCreateUser = () => {
         throw new Error('Password must be at least 6 characters long');
       }
 
-      // Check admin permissions
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) {
-        throw new Error('You must be logged in to create users');
-      }
-
-      // Get current user's role
-      const { data: roleData } = await supabase.rpc('get_user_highest_role', {
-        _user_id: currentUser.user.id
+      // Use the simplified create_user_simple function that handles permissions internally
+      const { data: result, error: rpcError } = await supabase.rpc('create_user_simple', {
+        p_email: userData.email,
+        p_password: userData.password,
+        p_full_name: userData.fullName,
+        p_phone: userData.phone || null,
+        p_user_type: userData.userType
       });
 
-      const currentUserRole = roleData as string;
-      
-      if (!['admin', 'master_admin'].includes(currentUserRole)) {
-        throw new Error('Only admins can create users');
+      if (rpcError) {
+        throw new Error(rpcError.message);
       }
 
-      if (userData.userType === 'admin' && currentUserRole !== 'master_admin') {
-        throw new Error('Only master admins can create admin users');
-      }
-
-      // Create user via Edge/DB functions depending on type
-      let typedResult: { success: boolean; user_id?: string; error?: string } | null = null;
-
-      if (userData.userType === 'admin') {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-        if (!accessToken) throw new Error('You must be logged in to create users');
-
-        const resp = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/create-admin-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({
-            email: userData.email,
-            password: userData.password,
-            fullName: userData.fullName,
-            phone: userData.phone || null
-          })
-        });
-
-        const json = await resp.json().catch(() => null);
-        if (!resp.ok || !json?.success) {
-          throw new Error(json?.error || 'Failed to create admin user');
-        }
-        typedResult = json;
-      } else {
-        const { data: result, error: rpcError } = await supabase.rpc('admin_create_user', {
-          p_email: userData.email,
-          p_password: userData.password,
-          p_full_name: userData.fullName,
-          p_phone: userData.phone || null
-        });
-
-        if (rpcError) {
-          throw new Error(rpcError.message);
-        }
-        typedResult = (result as any) ?? null;
-        if (!typedResult?.success) {
-          throw new Error(typedResult?.error || 'Failed to create user');
-        }
+      const typedResult = result as { success: boolean; user_id?: string; error?: string };
+      if (!typedResult?.success) {
+        throw new Error(typedResult?.error || 'Failed to create user');
       }
 
       const userId = typedResult.user_id;
