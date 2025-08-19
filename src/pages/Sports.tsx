@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +55,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
 );
 
 const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing' }>= ({ sport }) => {
+  const navigate = useNavigate();
   const [selectedBet, setSelectedBet] = useState<{ odds: any; type: string } | null>(null);
   
   const { data: liveData, loading: liveLoading, error: liveError, refresh: refreshLive } = useSportsData(sport, 'live');
@@ -82,20 +84,34 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
       {error && <div className="text-destructive">{error}</div>}
       {!loading && !error && (!data || data.length === 0) && <div className="text-muted-foreground">No matches.</div>}
       {data && data.length > 0 && (
-        <div className="relative">
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            {data.map((match, idx) => (
-              <div key={`${match.id ?? 'x'}-${idx}`} className="flex-none w-96">
-                <MatchCard
-                  match={match}
-                  sportBackground={sportBackground}
-                  onBetSelect={handleBetSelect}
-                  showBetting={title !== 'Results'} // Hide betting for completed matches
-                  isLandscape={true}
-                />
-              </div>
-            ))}
+        <div className="space-y-4">
+          <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+              {data.slice(0, 3).map((match, idx) => (
+                <div key={`${match.id ?? 'x'}-${idx}`} className="flex-none w-96">
+                  <MatchCard
+                    match={match}
+                    sportBackground={sportBackground}
+                    onBetSelect={handleBetSelect}
+                    showBetting={title !== 'Results'} // Hide betting for completed matches
+                    isLandscape={true}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
+          {data.length > 3 && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => navigate(`/sports/${sport}/${title.toLowerCase().replace(' ', '-')}`)}
+                className="bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 border-primary/20"
+              >
+                See More ({data.length - 3} more matches)
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </Section>

@@ -22,6 +22,7 @@ import Jackpot from "./pages/Jackpot";
 import TeenPatti from "./pages/TeenPatti";
 import Wallet from "./pages/Wallet";
 import Sports from "./pages/Sports";
+import SportsMatches from "./pages/SportsMatches";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import AdminUsers from "./pages/AdminUsers";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/games" element={<Games />} />
               <Route path="/sports" element={<Sports />} />
+              <Route path="/sports/:sport/:type" element={<SportsMatches />} />
               <Route path="/ludo" element={<Ludo />} />
               <Route path="/ludo-game" element={<LudoGame />} />
               <Route path="/aviator" element={<Aviator />} />
