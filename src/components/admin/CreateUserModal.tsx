@@ -46,29 +46,30 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
 
     try {
       const isCreatingAdmin = formData.userType === 'admin';
-      const functionName = isCreatingAdmin ? 'admin_create_admin_user' : 'admin_create_user';
-      
-      const { data, error } = await supabase.rpc(functionName, {
-        p_email: formData.email,
-        p_password: formData.password,
-        p_full_name: formData.fullName,
-        p_phone: formData.phone || null
-      });
 
-      if (error) throw error;
-
-      // If creating admin and initial points provided, allocate credits
       if (isCreatingAdmin) {
-        const createdAdminId = (data as any)?.user_id;
-        const initPoints = parseFloat(formData.initialPoints || '0');
-        if (createdAdminId && initPoints > 0) {
-          const { error: allocErr } = await supabase.rpc('allocate_admin_credits', {
-            p_admin_id: createdAdminId,
-            p_amount: initPoints,
-            p_notes: 'Initial allocation on admin creation'
-          });
-          if (allocErr) throw allocErr;
-        }
+        const { data, error } = await supabase.functions.invoke('create-admin-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            phone: formData.phone || null,
+            initialPoints: parseFloat(formData.initialPoints || '0') || 0,
+          },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Failed to create admin');
+      } else {
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            phone: formData.phone || null,
+          },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Failed to create user');
       }
 
       const userTypeText = isCreatingAdmin ? 'Admin' : 'User';
@@ -82,9 +83,9 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
       onUserCreated?.();
     } catch (error: any) {
       toast({
-        title: "Failed to create user",
+        title: 'Failed to create user',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);

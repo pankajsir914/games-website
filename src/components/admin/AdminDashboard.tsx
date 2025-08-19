@@ -232,7 +232,6 @@ export const AdminDashboard = () => {
           <TabsContent value="results" className="space-y-6">
             <ResultManagement />
           </TabsContent>
-
         </Tabs>
       </div>
     </AdminLayout>
