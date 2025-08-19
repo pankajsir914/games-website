@@ -100,6 +100,8 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
         errorMessage = 'Only master admins can create admin users.';
       } else if (errorMessage.includes('Only admins')) {
         errorMessage = 'You do not have permission to create users.';
+      } else if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Server temporarily unavailable. Please try again.';
       }
 
       toast({
