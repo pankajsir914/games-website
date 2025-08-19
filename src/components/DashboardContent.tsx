@@ -91,7 +91,7 @@ export function DashboardContent() {
       title: "Ludo Multiplayer",
       provider: "RRB Games",
       image: "/placeholder.svg",
-      path: "/ludo",
+      path: "/ludo-game",
       gradient: "from-cyan-500 to-blue-600"
     },
     {

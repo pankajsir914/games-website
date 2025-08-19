@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Games from "./pages/Games";
 import Ludo from "./pages/Ludo";
+import LudoGame from "./pages/LudoGame";
 import Aviator from "./pages/Aviator";
 import ColorPrediction from "./pages/ColorPrediction";
 import AndarBahar from "./pages/AndarBahar";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/games" element={<Games />} />
               <Route path="/sports" element={<Sports />} />
               <Route path="/ludo" element={<Ludo />} />
+              <Route path="/ludo-game" element={<LudoGame />} />
               <Route path="/aviator" element={<Aviator />} />
               <Route path="/color-prediction" element={<ColorPrediction />} />
               <Route path="/andar-bahar" element={<AndarBahar />} />

@@ -31,7 +31,14 @@ export function DashboardSidebar() {
       count: 24,
       color: 'text-red-500'
     },
-    
+    { 
+      id: 'ludo', 
+      title: 'Ludo Game', 
+      icon: Dice1, 
+      path: '/ludo-game',
+      count: 12,
+      color: 'text-cyan-500'
+    },
     { 
       id: 'sports', 
       title: 'Sports', 
