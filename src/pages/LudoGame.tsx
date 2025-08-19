@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import LudoLobby from '@/components/ludo/LudoLobby';
-import { LudoAuth } from '@/components/ludo/LudoAuth';
-import { useLudoAuth } from '@/hooks/useLudoAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useLudoGame } from '@/hooks/useLudoGame';
+import { useWallet } from '@/hooks/useWallet';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Coins } from 'lucide-react';
 
 export default function LudoGame() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, login, logout, loading: authLoading } = useLudoAuth();
+  const { user } = useAuth();
+  const { wallet } = useWallet();
   const { 
     currentMatch, 
     gameState, 
@@ -66,7 +67,7 @@ export default function LudoGame() {
   };
 
   // Show authentication screen if not logged in
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
         <Navigation />
@@ -74,9 +75,14 @@ export default function LudoGame() {
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-white mb-2">🎲 Ludo Game</h1>
-              <p className="text-gray-300">Play classic Ludo with tokens and win big!</p>
+              <p className="text-gray-300">Please login to play Ludo with real money!</p>
             </div>
-            <LudoAuth onLogin={login} loading={authLoading} />
+            <Button 
+              onClick={() => navigate('/')} 
+              className="w-full"
+            >
+              Go to Login
+            </Button>
           </div>
         </div>
       </div>
@@ -105,20 +111,20 @@ export default function LudoGame() {
                     </Button>
                   )}
                   <div>
-                    <h2 className="text-xl font-bold text-white">Welcome, {user?.username}!</h2>
+                    <h2 className="text-xl font-bold text-white">Welcome, {user?.user_metadata?.full_name || 'Player'}!</h2>
                     <div className="flex items-center gap-2 text-yellow-300">
                       <Coins className="w-4 h-4" />
-                      <span className="font-semibold">{user?.walletBalance} tokens</span>
+                      <span className="font-semibold">₹{wallet?.current_balance || 0} tokens</span>
                     </div>
                   </div>
                 </div>
                 
                 <Button
                   variant="outline"
-                  onClick={logout}
+                  onClick={() => navigate('/dashboard')}
                   className="bg-red-500/20 border-red-500/30 text-white hover:bg-red-500/30"
                 >
-                  Logout
+                  Back to Dashboard
                 </Button>
               </div>
             </CardContent>
@@ -129,7 +135,7 @@ export default function LudoGame() {
         <div className="max-w-6xl mx-auto">
           {gameMode === 'lobby' ? (
             <LudoLobby
-              user={user!}
+              user={user}
               onCreateMatch={handleCreateMatch}
               onGetHistory={getMatchHistory}
               loading={gameLoading}
