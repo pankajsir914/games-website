@@ -46,15 +46,29 @@ All colors MUST be HSL.
     --gaming-danger: 0 84.2% 60.2%;
     --gaming-danger-foreground: 0 0% 98%;
     
+    /* Ludo Player Colors */
+    --ludo-red: 0 85% 60%;
+    --ludo-yellow: 45 93% 58%;
+    --ludo-green: 120 60% 50%;
+    --ludo-blue: 217 91% 60%;
+    
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(47 96% 53%), hsl(38 92% 50%));
     --gradient-hero: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(240 5% 6%) 50%, hsl(240 8% 8%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(240 3.7% 15.9%), hsl(240 5% 18%));
+    --gradient-ludo-board: linear-gradient(135deg, hsl(120 40% 95%) 0%, hsl(140 30% 90%) 50%, hsl(160 20% 85%) 100%);
+    --gradient-ludo-red: linear-gradient(135deg, hsl(0 85% 60%), hsl(0 75% 50%));
+    --gradient-ludo-yellow: linear-gradient(135deg, hsl(45 93% 58%), hsl(35 83% 48%));
+    --gradient-ludo-green: linear-gradient(135deg, hsl(120 60% 50%), hsl(110 50% 40%));
+    --gradient-ludo-blue: linear-gradient(135deg, hsl(217 91% 60%), hsl(207 81% 50%));
     
     /* Shadows */
     --shadow-gaming: 0 10px 30px -10px hsl(47 96% 53% / 0.3);
     --shadow-card: 0 8px 24px -6px hsl(240 10% 3.9% / 0.4);
     --shadow-glow: 0 0 40px hsl(47 96% 53% / 0.2);
+    --shadow-ludo-token: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --shadow-ludo-board: 0 20px 60px rgba(0, 0, 0, 0.2);
+    --shadow-dice: 0 8px 25px rgba(0, 0, 0, 0.4);
 
     --sidebar-background: 240 3.7% 15.9%;
 

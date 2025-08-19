@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import LudoLobby from '@/components/ludo/LudoLobby';
-import ImprovedLudoBoard from '@/components/ludo/ImprovedLudoBoard';
-import GameControls from '@/components/ludo/GameControls';
-import GameHeader from '@/components/ludo/GameHeader';
+import PremiumLudoBoard from '@/components/ludo/PremiumLudoBoard';
+import GameControlPanel from '@/components/ludo/GameControlPanel';
+import GameSetupModal from '@/components/ludo/GameSetupModal';
+import WinnerCelebration from '@/components/ludo/WinnerCelebration';
+import { useLudoSounds } from '@/hooks/useLudoSounds';
 import { useAuth } from '@/hooks/useAuth';
 import { useLudoGame } from '@/hooks/useLudoGame';
 import { useWallet } from '@/hooks/useWallet';
@@ -28,6 +30,11 @@ export default function LudoGame() {
   } = useLudoGame();
   
   const [gameMode, setGameMode] = useState<'lobby' | 'game'>('lobby');
+  const [showSetup, setShowSetup] = useState(false);
+  const [showWinner, setShowWinner] = useState(false);
+  const [playerCount, setPlayerCount] = useState<2 | 4>(2);
+  const [entryFee, setEntryFee] = useState(100);
+  const { isMuted, toggleMute, playDiceRoll, playTokenMove, playWin } = useLudoSounds();
   // Mock game state for the demo board
   const [mockGameState, setMockGameState] = useState<GameState>({
     currentPlayer: 'red' as ActivePlayer,
@@ -56,27 +63,22 @@ export default function LudoGame() {
     ]
   });
 
-  // Handle joining a game
-  const handleJoinGame = async (gameId: string) => {
-    try {
-      // Convert gameId to appropriate parameters and create a match
-      const entryFees = { '1': 10, '2': 25, '3': 50, '4': 5, '5': 100 };
-      const modes = { '1': '4p', '2': '2p', '3': '4p', '4': '4p', '5': '4p' };
-      
-      const entryFee = entryFees[gameId as keyof typeof entryFees] || 10;
-      const mode = modes[gameId as keyof typeof modes] as '2p' | '4p' || '4p';
-      
-      const result = await createMatch(mode, entryFee, 'normal');
-      if (result.success) {
-        setGameMode('game');
-      }
-    } catch (error) {
-      console.error('Failed to join game:', error);
-    }
+  // Handle opening setup modal
+  const handleJoinGame = () => {
+    setShowSetup(true);
   };
 
-  // Mock game functions for demo
+  // Handle starting game from setup
+  const handleStartGame = (players: 2 | 4, fee: number) => {
+    setPlayerCount(players);
+    setEntryFee(fee);
+    setGameMode('game');
+    setShowSetup(false);
+  };
+
+  // Enhanced game functions with sound
   const handleMockRollDice = () => {
+    playDiceRoll();
     setMockGameState(prev => ({
       ...prev,
       isRolling: true,
@@ -94,7 +96,6 @@ export default function LudoGame() {
         consecutiveSixes: newDiceValue === 6 ? prev.consecutiveSixes + 1 : 0
       }));
 
-      // Make tokens movable if dice is 6 (to get out of base) or if tokens are on board
       if (newDiceValue === 6) {
         setMockTokens(prev => ({
           ...prev,
@@ -290,35 +291,49 @@ export default function LudoGame() {
               onGetHistory={getMatchHistory}
               loading={gameLoading}
             />
-          ) : (
-            <div className="space-y-4">
-              <GameHeader gameState={mockGameState} />
+            ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-3">
+                <PremiumLudoBoard
+                  tokens={mockTokens}
+                  onTokenClick={handleTokenClick}
+                  currentPlayer={mockGameState.currentPlayer}
+                  diceValue={mockGameState.diceValue}
+                  isRolling={mockGameState.isRolling}
+                  onDiceClick={handleMockRollDice}
+                  canRoll={mockGameState.canRoll}
+                />
+              </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Game Board */}
-                <div className="lg:col-span-2 flex justify-center">
-                  <div className="bg-white/10 backdrop-blur border-white/20 rounded-3xl p-6">
-                    <ImprovedLudoBoard
-                      tokens={mockTokens}
-                      onTokenClick={handleTokenClick}
-                      currentPlayer={mockGameState.currentPlayer}
-                      diceValue={mockGameState.diceValue}
-                      isRolling={mockGameState.isRolling}
-                    />
-                  </div>
-                </div>
-                
-                {/* Game Controls */}
-                <div className="flex justify-center lg:justify-start">
-                  <GameControls
-                    gameState={mockGameState}
-                    onRollDice={handleMockRollDice}
-                    onResetGame={handleMockResetGame}
-                  />
-                </div>
+              <div className="lg:col-span-1">
+                <GameControlPanel
+                  gameState={mockGameState}
+                  onResetGame={handleMockResetGame}
+                  isMuted={isMuted}
+                  onToggleMute={toggleMute}
+                  playerCount={playerCount}
+                  entryFee={entryFee}
+                  onTimeUp={() => {}}
+                />
               </div>
             </div>
           )}
+
+          <GameSetupModal
+            open={showSetup}
+            onClose={() => setShowSetup(false)}
+            onStartGame={handleStartGame}
+            walletBalance={wallet?.current_balance || 0}
+          />
+
+          <WinnerCelebration
+            winner={mockGameState.winner}
+            winAmount={entryFee * 2}
+            onPlayAgain={handleMockResetGame}
+            onBackToLobby={handleBackToLobby}
+            isOpen={showWinner}
+          />
+        }
         </div>
       </div>
     </div>
