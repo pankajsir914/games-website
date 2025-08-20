@@ -12,7 +12,7 @@ type Sport = 'football' | 'cricket' | 'hockey' | 'basketball' | 'tennis' | 'base
 
 type Kind = 'live' | 'upcoming' | 'results';
 
-const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
+const API_KEY = Deno.env.get('SPORTS_API_KEY') || 'f13eef6df6fa9a8e916f1fe998a45ae2';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
 const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
