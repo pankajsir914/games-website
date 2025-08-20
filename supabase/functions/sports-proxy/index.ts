@@ -14,13 +14,19 @@ type Kind = 'live' | 'upcoming' | 'results';
 
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || 'f13eef6df6fa9a8e916f1fe998a45ae2';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
-const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
+
+// Validate URL-like bases from env; fall back to known hosts if invalid
+function safeUrlBase(v: string | undefined, fallback: string) {
+  return v && /^https?:\/\//.test(v) ? v : fallback;
+}
+
+const FOOTBALL_BASE = safeUrlBase(Deno.env.get('SPORTS_API_FOOTBALL_BASE'), 'https://v3.football.api-sports.io');
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
-const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
-const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v1.basketball.api-sports.io';
-const TENNIS_BASE = Deno.env.get('SPORTS_API_TENNIS_BASE') || 'https://v1.tennis.api-sports.io';
-const BASEBALL_BASE = Deno.env.get('SPORTS_API_BASEBALL_BASE') || 'https://v1.baseball.api-sports.io';
-const CRICKET_APISPORTS_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://v1.cricket.api-sports.io';
+const HOCKEY_BASE = safeUrlBase(Deno.env.get('SPORTS_API_HOCKEY_BASE'), 'https://v1.hockey.api-sports.io');
+const BASKETBALL_BASE = safeUrlBase(Deno.env.get('SPORTS_API_BASKETBALL_BASE'), 'https://v1.basketball.api-sports.io');
+const TENNIS_BASE = safeUrlBase(Deno.env.get('SPORTS_API_TENNIS_BASE'), 'https://v1.tennis.api-sports.io');
+const BASEBALL_BASE = safeUrlBase(Deno.env.get('SPORTS_API_BASEBALL_BASE'), 'https://v1.baseball.api-sports.io');
+const CRICKET_APISPORTS_BASE = safeUrlBase(Deno.env.get('SPORTS_API_CRICKET_BASE'), 'https://v1.cricket.api-sports.io');
 const DEFAULT_TTL = Number(Deno.env.get('SPORTS_CACHE_TTL') || '10'); // seconds
 
 const BASES: Record<Sport, string> = {
