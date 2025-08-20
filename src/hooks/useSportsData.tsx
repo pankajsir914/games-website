@@ -65,67 +65,7 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
     setError(null);
     
     try {
-      // For cricket, use direct CricAPI integration and filter by status
-      if (sport === 'cricket') {
-        const response = await fetch(
-          `https://api.cricapi.com/v1/currentMatches?apikey=a4cd2ec0-4175-4263-868a-22ef5cbd9316&offset=0`
-        );
-        
-        if (!response.ok) {
-          throw new Error(`Cricket API error: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.status === 'success' && result.data) {
-          const allMatches = result.data.map((match: any) => {
-            const homeTeam = match.teamInfo?.[0]?.name || match.teams?.[0] || 'Team A';
-            const awayTeam = match.teamInfo?.[1]?.name || match.teams?.[1] || 'Team B';
-            
-            const homeScore = match.score?.[0];
-            const awayScore = match.score?.[1];
-            
-            return {
-              id: match.id,
-              sport: 'cricket',
-              date: match.dateTimeGMT || match.date,
-              league: match.name || 'Cricket Match',
-              venue: match.venue,
-              status: match.status,
-              teams: {
-                home: homeTeam,
-                away: awayTeam
-              },
-              scores: {
-                home: homeScore?.r || null,
-                away: awayScore?.r || null
-              },
-              overs: homeScore && awayScore ? {
-                home: homeScore.o?.toString() || '0',
-                away: awayScore.o?.toString() || '0'
-              } : undefined,
-              wickets: homeScore && awayScore ? {
-                home: homeScore.w || 0,
-                away: awayScore.w || 0
-              } : undefined,
-              raw: match
-            } as SportsMatch;
-          });
-          
-          // Filter matches based on their status
-          const filteredMatches = allMatches.filter((match: SportsMatch) => {
-            const matchCategory = categorizeMatchByStatus(match.status);
-            return matchCategory === kind;
-          });
-          
-          setData(filteredMatches);
-          setLastRefresh(new Date());
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Check cache first if not forcing refresh for other sports
+      // Check cache first if not forcing refresh
       if (!forceRefresh) {
         const { data: cachedData } = await supabase
           .from('sports_matches_cache')
@@ -143,84 +83,33 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
         }
       }
 
-      // Fetch from API for other sports
+      // Fetch from API using sports-proxy edge function for all sports
       const { data: apiData, error: apiError } = await supabase.functions.invoke('sports-proxy', {
         body: { sport, kind, date: null, team: '' }
       });
 
-      if (apiError) throw new Error(apiError.message);
+      if (apiError) {
+        console.error(`API error for ${sport}:`, apiError);
+        throw new Error(apiError.message);
+      }
       
       const matches = apiData?.items || [];
+      console.log(`Received ${matches.length} matches for ${sport} ${kind}`);
       
-      // Filter matches from other sports APIs based on status
-      const filteredMatches = matches.filter((match: SportsMatch) => {
-        const matchCategory = categorizeMatchByStatus(match.status);
-        return matchCategory === kind;
-      });
-      
-      // If no matches found after filtering, only show sample data for non-football sports to demonstrate the interface
-      if (filteredMatches.length === 0) {
-        // For football, don't show sample data - show empty state
-        if (sport === 'football') {
-          setData([]);
-        } else {
-          const sampleMatches = [
-            {
-              id: 'sample-1',
-              sport: sport,
-              date: new Date().toISOString(),
-              league: `${sport.charAt(0).toUpperCase() + sport.slice(1)} Championship`,
-              venue: `${sport.charAt(0).toUpperCase() + sport.slice(1)} Stadium`,
-              status: kind === 'live' ? 'Live' : kind === 'upcoming' ? 'Fixture' : 'Result',
-              teams: { 
-                home: sport === 'cricket' ? 'India' : 'Team A', 
-                away: sport === 'cricket' ? 'Australia' : 'Team B' 
-              },
-              scores: { 
-                home: kind === 'results' ? 145 : kind === 'live' ? 89 : null, 
-                away: kind === 'results' ? 132 : kind === 'live' ? 76 : null 
-              },
-              overs: sport === 'cricket' && kind !== 'upcoming' ? { home: '20.0', away: '18.3' } : undefined,
-              commentary: sport === 'cricket' ? ['Great batting display', 'Excellent bowling'] : undefined,
-              raw: {}
-            },
-            {
-              id: 'sample-2',
-              sport: sport,
-              date: new Date(Date.now() + 86400000).toISOString(),
-              league: `${sport.charAt(0).toUpperCase() + sport.slice(1)} League`,
-              venue: `${sport.charAt(0).toUpperCase() + sport.slice(1)} Arena`,
-              status: kind === 'live' ? 'Live' : kind === 'upcoming' ? 'Not Started' : 'Completed',
-              teams: { 
-                home: sport === 'cricket' ? 'England' : 'Team C', 
-                away: sport === 'cricket' ? 'South Africa' : 'Team D' 
-              },
-              scores: { 
-                home: kind === 'results' ? 201 : kind === 'live' ? 156 : null, 
-                away: kind === 'results' ? 198 : kind === 'live' ? 134 : null 
-              },
-              overs: sport === 'cricket' && kind !== 'upcoming' ? { home: '20.0', away: '19.2' } : undefined,
-              commentary: sport === 'cricket' ? ['Thrilling finish', 'Close contest'] : undefined,
-              raw: {}
-            }
-          ];
-          setData(sampleMatches);
-        }
-      } else {
-        setData(filteredMatches);
-      }
+      // For all sports, show the actual API data or empty state
+      setData(matches);
       setLastRefresh(new Date());
 
-      // Cache the filtered results
-      const cacheData = filteredMatches.map((match: SportsMatch) => ({
-        sport_type: sport,
-        match_kind: kind,
-        match_id: match.id,
-        match_data: match,
-        expires_at: new Date(Date.now() + 30 * 1000).toISOString() // 30 seconds
-      }));
+      // Cache the results
+      if (matches.length > 0) {
+        const cacheData = matches.map((match: SportsMatch) => ({
+          sport_type: sport,
+          match_kind: kind,
+          match_id: match.id,
+          match_data: match,
+          expires_at: new Date(Date.now() + 30 * 1000).toISOString() // 30 seconds
+        }));
 
-      if (cacheData.length > 0) {
         await supabase
           .from('sports_matches_cache')
           .upsert(cacheData, { 

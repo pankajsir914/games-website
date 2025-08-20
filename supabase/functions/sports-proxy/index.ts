@@ -335,11 +335,16 @@ if (s === 'cricket' && !keyForSport('cricket') && !CRICAPI_KEY) {
 }
       
       try {
-const headers = s === 'cricket'
-  ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
-  : apiSportsHeadersFor(s);
+        // Debug logging for API keys
+        console.log(`Processing ${s} request for ${k}`);
+        const apiKey = keyForSport(s);
+        console.log(`API key for ${s}:`, apiKey ? 'present' : 'missing');
+        
+        const headers = s === 'cricket'
+          ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
+          : apiSportsHeadersFor(s);
 
-let normalized: any[] = [];
+        let normalized: any[] = [];
 
 if (s === 'cricket') {
   // Prefer API-SPORTS Cricket first
@@ -442,14 +447,30 @@ if (s === 'cricket') {
 } else {
   // Non-cricket sports
   console.log(`Fetching ${s} data from: ${url}`);
+  console.log(`Using headers:`, JSON.stringify(headers, null, 2));
   const upstream = await doFetch(url, headers);
-  console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
+  console.log(`${s} API response structure:`, {
+    hasResponse: !!upstream?.response,
+    hasResults: !!upstream?.results,
+    hasData: !!upstream?.data,
+    responseLength: upstream?.response?.length || 0,
+    resultsLength: upstream?.results?.length || 0,
+    dataLength: upstream?.data?.length || 0,
+  });
   
   const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
   console.log(`${s} raw data list length:`, list.length);
   
+  if (list.length > 0) {
+    console.log(`${s} sample raw item:`, JSON.stringify(list[0], null, 2));
+  }
+  
   normalized = list.map((it) => normalizeItem(s, it));
   console.log(`${s} normalized data:`, normalized.length, 'items');
+  
+  if (normalized.length > 0) {
+    console.log(`${s} sample normalized item:`, JSON.stringify(normalized[0], null, 2));
+  }
 }
         
         return normalized;
