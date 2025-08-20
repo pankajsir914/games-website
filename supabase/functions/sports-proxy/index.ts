@@ -419,13 +419,19 @@ if (s === 'cricket') {
         return normalized;
       } catch (error) {
         console.error(`Error fetching ${s} data:`, error);
-        // Return mock data for any sport if API fails
+        
+        // For football, don't use mock data - throw the error to show real API issues
+        if (s === 'football') {
+          console.log(`Football API error - not using mock data`);
+          throw error;
+        }
+        
+        // Return mock data for other sports if API fails
         console.log(`Returning mock ${s} data due to API error`);
         
         const getMockTeams = (sport: string) => {
           const teams = {
             cricket: [['India', 'IND'], ['Australia', 'AUS'], ['England', 'ENG'], ['South Africa', 'SA']],
-            football: [['Real Madrid', 'RM'], ['Barcelona', 'BAR'], ['Manchester United', 'MU'], ['Liverpool', 'LIV']],
             basketball: [['Lakers', 'LAL'], ['Warriors', 'GSW'], ['Bulls', 'CHI'], ['Heat', 'MIA']],
             tennis: [['Djokovic', 'DJO'], ['Nadal', 'NAD'], ['Federer', 'FED'], ['Murray', 'MUR']],
             hockey: [['Rangers', 'NYR'], ['Bruins', 'BOS'], ['Kings', 'LAK'], ['Hawks', 'CHI']],
@@ -434,7 +440,7 @@ if (s === 'cricket') {
             'table-tennis': [['China', 'CHN'], ['Japan', 'JPN'], ['Germany', 'GER'], ['Sweden', 'SWE']],
             boxing: [['Fighter A', 'FA'], ['Fighter B', 'FB'], ['Champion X', 'CX'], ['Challenger Y', 'CY']]
           };
-          return teams[sport] || teams.football;
+          return teams[sport] || [['Team A', 'TA'], ['Team B', 'TB']];
         };
         
         const sportTeams = getMockTeams(s);
