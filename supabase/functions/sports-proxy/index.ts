@@ -301,7 +301,7 @@ if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
       try {
 const headers = s === 'cricket'
   ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
-  : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
+  : { 'x-apisports-key': API_KEY, 'x-rapidapi-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
 
 let normalized: any[] = [];
 

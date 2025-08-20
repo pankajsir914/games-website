@@ -26,36 +26,29 @@ export interface SportsSettings {
   settings: any;
 }
 
-// Function to categorize matches based on status
+// Function to categorize matches based on status (handles API-SPORTS short codes)
 function categorizeMatchByStatus(status: string): 'live' | 'upcoming' | 'results' {
-  const statusLower = status.toLowerCase();
-  
-  // Live/Ongoing matches
-  if (statusLower.includes('live') || 
-      statusLower.includes('in progress') || 
-      statusLower.includes('ongoing') || 
-      statusLower.includes('playing') ||
-      statusLower.includes('1st innings') ||
-      statusLower.includes('2nd innings') ||
-      statusLower.includes('break') ||
-      statusLower.includes('rain') ||
-      statusLower.includes('delay')) {
+  const s = (status || '').toLowerCase().trim();
+
+  // Treat common short codes and phrases
+  const isOneOf = (vals: string[]) => vals.some(v => s === v || s.includes(v));
+
+  // Live/Ongoing (football: 1H, HT, 2H, ET, P; also phrases)
+  if (isOneOf(['live', 'in progress', 'ongoing', 'playing']) || isOneOf(['1h', 'ht', '2h', 'et', 'p'])) {
     return 'live';
   }
-  
-  // Completed/Past matches
-  if (statusLower.includes('won') || 
-      statusLower.includes('completed') || 
-      statusLower.includes('finished') || 
-      statusLower.includes('result') ||
-      statusLower.includes('declared') ||
-      statusLower.includes('ended') ||
-      statusLower.includes('match tied') ||
-      statusLower.includes('no result')) {
+
+  // Completed/Past (football: FT, AET, PEN; general phrases)
+  if (isOneOf(['ft', 'aet', 'pen']) || isOneOf(['won', 'completed', 'finished', 'result', 'ended', 'declared', 'match tied', 'no result'])) {
     return 'results';
   }
-  
-  // Default to upcoming for not started matches
+
+  // Upcoming/Not started (football: NS; general phrases)
+  if (isOneOf(['ns', 'not started', 'scheduled', 'tbd', 'fixture', 'postp', 'postponed'])) {
+    return 'upcoming';
+  }
+
+  // Default to upcoming if status is unknown
   return 'upcoming';
 }
 
