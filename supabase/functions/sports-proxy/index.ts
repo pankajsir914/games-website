@@ -14,19 +14,13 @@ type Kind = 'live' | 'upcoming' | 'results';
 
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || 'f13eef6df6fa9a8e916f1fe998a45ae2';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
-
-// Validate URL-like bases from env; fall back to known hosts if invalid
-function safeUrlBase(v: string | undefined, fallback: string) {
-  return v && /^https?:\/\//.test(v) ? v : fallback;
-}
-
-const FOOTBALL_BASE = safeUrlBase(Deno.env.get('SPORTS_API_FOOTBALL_BASE'), 'https://v3.football.api-sports.io');
+const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
-const HOCKEY_BASE = safeUrlBase(Deno.env.get('SPORTS_API_HOCKEY_BASE'), 'https://v1.hockey.api-sports.io');
-const BASKETBALL_BASE = safeUrlBase(Deno.env.get('SPORTS_API_BASKETBALL_BASE'), 'https://v1.basketball.api-sports.io');
-const TENNIS_BASE = safeUrlBase(Deno.env.get('SPORTS_API_TENNIS_BASE'), 'https://v1.tennis.api-sports.io');
-const BASEBALL_BASE = safeUrlBase(Deno.env.get('SPORTS_API_BASEBALL_BASE'), 'https://v1.baseball.api-sports.io');
-const CRICKET_APISPORTS_BASE = safeUrlBase(Deno.env.get('SPORTS_API_CRICKET_BASE'), 'https://v1.cricket.api-sports.io');
+const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
+const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v1.basketball.api-sports.io';
+const TENNIS_BASE = Deno.env.get('SPORTS_API_TENNIS_BASE') || 'https://v1.tennis.api-sports.io';
+const BASEBALL_BASE = Deno.env.get('SPORTS_API_BASEBALL_BASE') || 'https://v1.baseball.api-sports.io';
+const CRICKET_APISPORTS_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://v1.cricket.api-sports.io';
 const DEFAULT_TTL = Number(Deno.env.get('SPORTS_CACHE_TTL') || '10'); // seconds
 
 const BASES: Record<Sport, string> = {
@@ -40,36 +34,6 @@ const BASES: Record<Sport, string> = {
   kabaddi: '',
   'table-tennis': '',
 };
-
-// Per-sport API keys (fallback to SPORTS_API_KEY if specific key is missing)
-const KEY_FOOTBALL = Deno.env.get('SPORTS_API_KEY_FOOTBALL') || Deno.env.get('FOOTBALL_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
-const KEY_CRICKET_APISPORTS = Deno.env.get('SPORTS_API_KEY_CRICKET') || Deno.env.get('CRICKET_API_SPORTS_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
-const KEY_HOCKEY = Deno.env.get('SPORTS_API_KEY_HOCKEY') || Deno.env.get('HOCKEY_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
-const KEY_BASKETBALL = Deno.env.get('SPORTS_API_KEY_BASKETBALL') || Deno.env.get('BASKETBALL_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
-const KEY_TENNIS = Deno.env.get('SPORTS_API_KEY_TENNIS') || Deno.env.get('TENNIS_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
-const KEY_BASEBALL = Deno.env.get('SPORTS_API_KEY_BASEBALL') || Deno.env.get('BASEBALL_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
-
-function keyForSport(s: Sport): string {
-  switch (s) {
-    case 'football': return KEY_FOOTBALL;
-    case 'cricket': return KEY_CRICKET_APISPORTS;
-    case 'hockey': return KEY_HOCKEY;
-    case 'basketball': return KEY_BASKETBALL;
-    case 'tennis': return KEY_TENNIS;
-    case 'baseball': return KEY_BASEBALL;
-    default: return Deno.env.get('SPORTS_API_KEY') || '';
-  }
-}
-
-function apiSportsHeadersFor(s: Sport): Record<string, string> {
-  const k = keyForSport(s);
-  return {
-    'x-apisports-key': k,
-    'accept': 'application/json',
-    'user-agent': 'supabase-edge/1.0',
-  } as Record<string, string>;
-}
-
 
 // Simple in-memory cache (per function instance)
 const cache = new Map<string, { expires: number; data: any }>();
@@ -324,100 +288,22 @@ if (!url && s !== 'cricket') {
     status: 200,
   });
 }
-
-// Generate mock data for when APIs are unavailable
-function generateMockData(sport: Sport, kind: Kind): any[] {
-  const mockTeams: Record<Sport, { home: string, away: string }[]> = {
-    football: [
-      { home: 'Manchester United', away: 'Chelsea' },
-      { home: 'Liverpool', away: 'Arsenal' },
-      { home: 'Manchester City', away: 'Tottenham' }
-    ],
-    cricket: [
-      { home: 'India', away: 'Australia' },
-      { home: 'England', away: 'Pakistan' },
-      { home: 'South Africa', away: 'New Zealand' }
-    ],
-    basketball: [
-      { home: 'Lakers', away: 'Warriors' },
-      { home: 'Celtics', away: 'Heat' },
-      { home: 'Bulls', away: 'Knicks' }
-    ],
-    tennis: [
-      { home: 'Djokovic', away: 'Nadal' },
-      { home: 'Federer', away: 'Murray' },
-      { home: 'Medvedev', away: 'Tsitsipas' }
-    ],
-    hockey: [
-      { home: 'Rangers', away: 'Devils' },
-      { home: 'Bruins', away: 'Canadiens' },
-      { home: 'Kings', away: 'Sharks' }
-    ],
-    baseball: [
-      { home: 'Yankees', away: 'Red Sox' },
-      { home: 'Dodgers', away: 'Giants' },
-      { home: 'Cubs', away: 'Cardinals' }
-    ],
-    boxing: [
-      { home: 'Fighter A', away: 'Fighter B' },
-      { home: 'Champion', away: 'Challenger' }
-    ],
-    kabaddi: [
-      { home: 'Team A', away: 'Team B' },
-      { home: 'Raiders', away: 'Defenders' }
-    ],
-    'table-tennis': [
-      { home: 'Player A', away: 'Player B' },
-      { home: 'Champion', away: 'Challenger' }
-    ]
-  };
-
-  const teams = mockTeams[sport] || [{ home: 'Team A', away: 'Team B' }];
-  
-  return teams.map((team, index) => {
-    const isLive = kind === 'live';
-    const isUpcoming = kind === 'upcoming';
-    const isResults = kind === 'results';
-    
-    return {
-      sport,
-      id: `mock-${sport}-${index + 1}`,
-      date: isUpcoming 
-        ? new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000).toISOString()
-        : new Date(Date.now() - (isResults ? (index + 1) * 24 * 60 * 60 * 1000 : 0)).toISOString(),
-      league: `${sport.charAt(0).toUpperCase() + sport.slice(1)} League`,
-      venue: `Stadium ${index + 1}`,
-      status: isLive ? 'In Progress' : (isUpcoming ? 'Not Started' : 'Finished'),
-      teams: team,
-      scores: isResults 
-        ? { home: Math.floor(Math.random() * 5) + 1, away: Math.floor(Math.random() * 5) + 1 }
-        : (isLive ? { home: Math.floor(Math.random() * 3), away: Math.floor(Math.random() * 3) } 
-        : { home: null, away: null }),
-      raw: { mock: true, sport, kind }
-    };
-  });
-}
 const key = `${s}:${k}:${q.date || 'any'}`;
 
     const data = await cached(key, ttlMsFor(k), async () => {
-if (s !== 'cricket' && !keyForSport(s)) {
-  const err: any = new Error(`API key not configured for ${s}`); err.status = 500; throw err;
+if (s !== 'cricket' && !API_KEY) {
+  const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
 }
-if (s === 'cricket' && !keyForSport('cricket') && !CRICAPI_KEY) {
+if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
   const err: any = new Error('No cricket provider keys configured'); err.status = 500; throw err;
 }
       
       try {
-        // Debug logging for API keys
-        console.log(`Processing ${s} request for ${k}`);
-        const apiKey = keyForSport(s);
-        console.log(`API key for ${s}:`, apiKey ? 'present' : 'missing');
-        
-        const headers = s === 'cricket'
-          ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
-          : apiSportsHeadersFor(s);
+const headers = s === 'cricket'
+  ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
+  : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
 
-        let normalized: any[] = [];
+let normalized: any[] = [];
 
 if (s === 'cricket') {
   // Prefer API-SPORTS Cricket first
@@ -429,7 +315,7 @@ if (s === 'cricket') {
     return u.toString();
   })();
 
-  const apisportsHeaders: Record<string,string> = apiSportsHeadersFor('cricket');
+  const apisportsHeaders: Record<string,string> = { 'x-apisports-key': API_KEY, 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
   const cricapiHeaders: Record<string,string> = { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
 
   try {
@@ -520,43 +406,26 @@ if (s === 'cricket') {
 } else {
   // Non-cricket sports
   console.log(`Fetching ${s} data from: ${url}`);
-  console.log(`Using headers:`, JSON.stringify(headers, null, 2));
   const upstream = await doFetch(url, headers);
-  console.log(`${s} API response structure:`, {
-    hasResponse: !!upstream?.response,
-    hasResults: !!upstream?.results,
-    hasData: !!upstream?.data,
-    responseLength: upstream?.response?.length || 0,
-    resultsLength: upstream?.results?.length || 0,
-    dataLength: upstream?.data?.length || 0,
-  });
+  console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
   
   const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
   console.log(`${s} raw data list length:`, list.length);
   
-  if (list.length > 0) {
-    console.log(`${s} sample raw item:`, JSON.stringify(list[0], null, 2));
-  }
-  
   normalized = list.map((it) => normalizeItem(s, it));
   console.log(`${s} normalized data:`, normalized.length, 'items');
-  
-  if (normalized.length > 0) {
-    console.log(`${s} sample normalized item:`, JSON.stringify(normalized[0], null, 2));
-  }
 }
         
         return normalized;
       } catch (error) {
         console.error(`Error fetching ${s} data:`, error);
-        
-        // Return mock data for all sports if API fails
+        // Return mock data for any sport if API fails
         console.log(`Returning mock ${s} data due to API error`);
         
         const getMockTeams = (sport: string) => {
           const teams = {
-            football: [['Manchester United', 'MUN'], ['Chelsea', 'CHE'], ['Liverpool', 'LIV'], ['Arsenal', 'ARS']],
             cricket: [['India', 'IND'], ['Australia', 'AUS'], ['England', 'ENG'], ['South Africa', 'SA']],
+            football: [['Real Madrid', 'RM'], ['Barcelona', 'BAR'], ['Manchester United', 'MU'], ['Liverpool', 'LIV']],
             basketball: [['Lakers', 'LAL'], ['Warriors', 'GSW'], ['Bulls', 'CHI'], ['Heat', 'MIA']],
             tennis: [['Djokovic', 'DJO'], ['Nadal', 'NAD'], ['Federer', 'FED'], ['Murray', 'MUR']],
             hockey: [['Rangers', 'NYR'], ['Bruins', 'BOS'], ['Kings', 'LAK'], ['Hawks', 'CHI']],
@@ -565,7 +434,7 @@ if (s === 'cricket') {
             'table-tennis': [['China', 'CHN'], ['Japan', 'JPN'], ['Germany', 'GER'], ['Sweden', 'SWE']],
             boxing: [['Fighter A', 'FA'], ['Fighter B', 'FB'], ['Champion X', 'CX'], ['Challenger Y', 'CY']]
           };
-          return teams[sport] || [['Team A', 'TA'], ['Team B', 'TB']];
+          return teams[sport] || teams.football;
         };
         
         const sportTeams = getMockTeams(s);

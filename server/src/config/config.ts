@@ -13,11 +13,6 @@ export const config = {
   },
   sportsApi: {
     apiKey: process.env.SPORTS_API_KEY || '',
-    // Per-sport keys (fallback to SPORTS_API_KEY)
-    footballKey: process.env.SPORTS_API_KEY_FOOTBALL || process.env.SPORTS_API_KEY || '',
-    cricketKey: process.env.SPORTS_API_KEY_CRICKET || process.env.SPORTS_API_KEY || '',
-    hockeyKey: process.env.SPORTS_API_KEY_HOCKEY || process.env.SPORTS_API_KEY || '',
-
     footballBase: process.env.SPORTS_API_FOOTBALL_BASE || 'https://v3.football.api-sports.io',
     cricketBase: process.env.SPORTS_API_CRICKET_BASE || 'https://v1.cricket.api-sports.io',
     hockeyBase: process.env.SPORTS_API_HOCKEY_BASE || 'https://v1.hockey.api-sports.io',

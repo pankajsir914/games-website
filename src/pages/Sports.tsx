@@ -159,7 +159,7 @@ const Sports: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Sports Dashboard</h1>
-          <p className="text-muted-foreground">Live matches, upcoming fixtures, and results with real-time betting odds.</p>
+          <p className="text-muted-foreground">Live matches, upcoming fixtures, and results with mock betting.</p>
         </div>
 
         <Tabs defaultValue="cricket" className="w-full">
