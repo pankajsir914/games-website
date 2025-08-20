@@ -41,6 +41,36 @@ const BASES: Record<Sport, string> = {
   'table-tennis': '',
 };
 
+// Per-sport API keys (fallback to SPORTS_API_KEY if specific key is missing)
+const KEY_FOOTBALL = Deno.env.get('SPORTS_API_KEY_FOOTBALL') || Deno.env.get('FOOTBALL_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
+const KEY_CRICKET_APISPORTS = Deno.env.get('SPORTS_API_KEY_CRICKET') || Deno.env.get('CRICKET_API_SPORTS_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
+const KEY_HOCKEY = Deno.env.get('SPORTS_API_KEY_HOCKEY') || Deno.env.get('HOCKEY_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
+const KEY_BASKETBALL = Deno.env.get('SPORTS_API_KEY_BASKETBALL') || Deno.env.get('BASKETBALL_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
+const KEY_TENNIS = Deno.env.get('SPORTS_API_KEY_TENNIS') || Deno.env.get('TENNIS_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
+const KEY_BASEBALL = Deno.env.get('SPORTS_API_KEY_BASEBALL') || Deno.env.get('BASEBALL_API_KEY') || Deno.env.get('SPORTS_API_KEY') || '';
+
+function keyForSport(s: Sport): string {
+  switch (s) {
+    case 'football': return KEY_FOOTBALL;
+    case 'cricket': return KEY_CRICKET_APISPORTS;
+    case 'hockey': return KEY_HOCKEY;
+    case 'basketball': return KEY_BASKETBALL;
+    case 'tennis': return KEY_TENNIS;
+    case 'baseball': return KEY_BASEBALL;
+    default: return Deno.env.get('SPORTS_API_KEY') || '';
+  }
+}
+
+function apiSportsHeadersFor(s: Sport): Record<string, string> {
+  const k = keyForSport(s);
+  return {
+    'x-apisports-key': k,
+    'accept': 'application/json',
+    'user-agent': 'supabase-edge/1.0',
+  } as Record<string, string>;
+}
+
+
 // Simple in-memory cache (per function instance)
 const cache = new Map<string, { expires: number; data: any }>();
 
@@ -297,17 +327,17 @@ if (!url && s !== 'cricket') {
 const key = `${s}:${k}:${q.date || 'any'}`;
 
     const data = await cached(key, ttlMsFor(k), async () => {
-if (s !== 'cricket' && !API_KEY) {
-  const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
+if (s !== 'cricket' && !keyForSport(s)) {
+  const err: any = new Error(`API key not configured for ${s}`); err.status = 500; throw err;
 }
-if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
+if (s === 'cricket' && !keyForSport('cricket') && !CRICAPI_KEY) {
   const err: any = new Error('No cricket provider keys configured'); err.status = 500; throw err;
 }
       
       try {
 const headers = s === 'cricket'
   ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
-  : { 'x-apisports-key': API_KEY, 'x-rapidapi-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
+  : apiSportsHeadersFor(s);
 
 let normalized: any[] = [];
 
@@ -321,7 +351,7 @@ if (s === 'cricket') {
     return u.toString();
   })();
 
-  const apisportsHeaders: Record<string,string> = { 'x-apisports-key': API_KEY, 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
+  const apisportsHeaders: Record<string,string> = apiSportsHeadersFor('cricket');
   const cricapiHeaders: Record<string,string> = { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
 
   try {

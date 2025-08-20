@@ -34,9 +34,16 @@ function ensureSport(s: string): Sport {
   return sport;
 }
 
-function headers() {
+function apiKeyFor(sport: Sport) {
+  if (sport === 'football') return config.sportsApi.footballKey || config.sportsApi.apiKey;
+  if (sport === 'cricket') return config.sportsApi.cricketKey || config.sportsApi.apiKey;
+  if (sport === 'hockey') return config.sportsApi.hockeyKey || config.sportsApi.apiKey;
+  return config.sportsApi.apiKey;
+}
+
+function headers(sport: Sport) {
   return {
-    'x-apisports-key': API_KEY,
+    'x-apisports-key': apiKeyFor(sport),
     'content-type': 'application/json',
   } as Record<string, string>;
 }
@@ -132,13 +139,14 @@ function normalizeItem(sport: Sport, item: any) {
   };
 }
 
-async function doFetch(url: string) {
-  if (!API_KEY) {
-    const err: any = new Error('Sports API key not configured');
+async function doFetch(url: string, sport: Sport) {
+  const key = apiKeyFor(sport);
+  if (!key) {
+    const err: any = new Error(`Sports API key not configured for ${sport}`);
     err.status = 500;
     throw err;
   }
-  const res = await fetch(url, { headers: headers() });
+  const res = await fetch(url, { headers: headers(sport) });
   if (!res.ok) {
     const text = await res.text();
     const err: any = new Error(`Upstream error: ${res.status} ${text}`);
@@ -178,7 +186,7 @@ async function handle(kind: 'live' | 'upcoming' | 'results', req: express.Reques
   const url = buildUrl(sport, kind, q);
   const key = `${sport}:${kind}:${q.date || 'any'}`;
   const data = await cached(key, ttlMsFor(kind), async () => {
-    const upstream = await doFetch(url);
+    const upstream = await doFetch(url, sport);
     const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
     return list.map((it) => normalizeItem(sport, it));
   });
