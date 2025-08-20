@@ -26,6 +26,39 @@ export interface SportsSettings {
   settings: any;
 }
 
+// Function to categorize matches based on status
+function categorizeMatchByStatus(status: string): 'live' | 'upcoming' | 'results' {
+  const statusLower = status.toLowerCase();
+  
+  // Live/Ongoing matches
+  if (statusLower.includes('live') || 
+      statusLower.includes('in progress') || 
+      statusLower.includes('ongoing') || 
+      statusLower.includes('playing') ||
+      statusLower.includes('1st innings') ||
+      statusLower.includes('2nd innings') ||
+      statusLower.includes('break') ||
+      statusLower.includes('rain') ||
+      statusLower.includes('delay')) {
+    return 'live';
+  }
+  
+  // Completed/Past matches
+  if (statusLower.includes('won') || 
+      statusLower.includes('completed') || 
+      statusLower.includes('finished') || 
+      statusLower.includes('result') ||
+      statusLower.includes('declared') ||
+      statusLower.includes('ended') ||
+      statusLower.includes('match tied') ||
+      statusLower.includes('no result')) {
+    return 'results';
+  }
+  
+  // Default to upcoming for not started matches
+  return 'upcoming';
+}
+
 export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'results') {
   const [data, setData] = useState<SportsMatch[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,8 +72,8 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
     setError(null);
     
     try {
-      // For cricket, use direct CricAPI integration for live matches
-      if (sport === 'cricket' && kind === 'live') {
+      // For cricket, use direct CricAPI integration and filter by status
+      if (sport === 'cricket') {
         const response = await fetch(
           `https://api.cricapi.com/v1/currentMatches?apikey=a4cd2ec0-4175-4263-868a-22ef5cbd9316&offset=0`
         );
@@ -52,7 +85,7 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
         const result = await response.json();
         
         if (result.status === 'success' && result.data) {
-          const cricketMatches = result.data.map((match: any) => {
+          const allMatches = result.data.map((match: any) => {
             const homeTeam = match.teamInfo?.[0]?.name || match.teams?.[0] || 'Team A';
             const awayTeam = match.teamInfo?.[1]?.name || match.teams?.[1] || 'Team B';
             
@@ -86,7 +119,13 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
             } as SportsMatch;
           });
           
-          setData(cricketMatches);
+          // Filter matches based on their status
+          const filteredMatches = allMatches.filter((match: SportsMatch) => {
+            const matchCategory = categorizeMatchByStatus(match.status);
+            return matchCategory === kind;
+          });
+          
+          setData(filteredMatches);
           setLastRefresh(new Date());
           setLoading(false);
           return;
@@ -120,8 +159,14 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
       
       const matches = apiData?.items || [];
       
-      // If API returns empty results, show sample data to demonstrate the interface
-      if (matches.length === 0) {
+      // Filter matches from other sports APIs based on status
+      const filteredMatches = matches.filter((match: SportsMatch) => {
+        const matchCategory = categorizeMatchByStatus(match.status);
+        return matchCategory === kind;
+      });
+      
+      // If no matches found after filtering, show sample data to demonstrate the interface
+      if (filteredMatches.length === 0) {
         const sampleMatches = [
           {
             id: 'sample-1',
@@ -164,12 +209,12 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
         ];
         setData(sampleMatches);
       } else {
-        setData(matches);
+        setData(filteredMatches);
       }
       setLastRefresh(new Date());
 
-      // Cache the results
-      const cacheData = matches.map((match: SportsMatch) => ({
+      // Cache the filtered results
+      const cacheData = filteredMatches.map((match: SportsMatch) => ({
         sport_type: sport,
         match_kind: kind,
         match_id: match.id,
