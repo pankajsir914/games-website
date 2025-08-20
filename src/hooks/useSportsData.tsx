@@ -90,7 +90,10 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
 
       if (apiError) {
         console.error(`API error for ${sport}:`, apiError);
-        throw new Error(apiError.message);
+        // Return empty array instead of throwing error to prevent breaking the UI
+        setData([]);
+        setLastRefresh(new Date());
+        return;
       }
       
       const matches = apiData?.items || [];
@@ -119,7 +122,10 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
       }
 
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch sports data');
+      console.error(`Failed to fetch ${sport} ${kind} data:`, err);
+      setError(`Unable to load ${sport} data. Please check your connection.`);
+      // Set empty data on error
+      setData([]);
     } finally {
       setLoading(false);
     }
