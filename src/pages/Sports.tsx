@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
 import { BetSlip } from '@/components/sports/BetSlip';
-
+import { SportsWidget } from '@/components/sports/SportsWidget';
 
 // Import sports background images
 import cricketBg from '@/assets/cricket-bg.jpg';
@@ -55,7 +54,6 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
 );
 
 const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing' }>= ({ sport }) => {
-  const navigate = useNavigate();
   const [selectedBet, setSelectedBet] = useState<{ odds: any; type: string } | null>(null);
   
   const { data: liveData, loading: liveLoading, error: liveError, refresh: refreshLive } = useSportsData(sport, 'live');
@@ -84,34 +82,16 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
       {error && <div className="text-destructive">{error}</div>}
       {!loading && !error && (!data || data.length === 0) && <div className="text-muted-foreground">No matches.</div>}
       {data && data.length > 0 && (
-        <div className="space-y-4">
-          <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-              {data.slice(0, 3).map((match, idx) => (
-                <div key={`${match.id ?? 'x'}-${idx}`} className="flex-none w-96">
-                  <MatchCard
-                    match={match}
-                    sportBackground={sportBackground}
-                    onBetSelect={handleBetSelect}
-                    showBetting={title !== 'Results'} // Hide betting for completed matches
-                    isLandscape={true}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-          {data.length > 3 && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => navigate(`/sports/${sport}/${title.toLowerCase().replace(' ', '-')}`)}
-                className="bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 border-primary/20"
-              >
-                See More ({data.length - 3} more matches)
-              </Button>
-            </div>
-          )}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {data.map((match, idx) => (
+            <MatchCard
+              key={`${match.id ?? 'x'}-${idx}`}
+              match={match}
+              sportBackground={sportBackground}
+              onBetSelect={handleBetSelect}
+              showBetting={title !== 'Results'} // Hide betting for completed matches
+            />
+          ))}
         </div>
       )}
     </Section>
@@ -120,6 +100,21 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   return (
     <div className="flex gap-6">
       <div className="flex-1 space-y-8">
+        {/* Enhanced sports widget with animations */}
+        <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <SportsWidget 
+            sport={sport === 'football' ? 'football' : sport === 'cricket' ? 'cricket' : sport === 'basketball' ? 'basketball' : sport === 'tennis' ? 'tennis' : 'football'} 
+            league={
+              sport === 'football' ? 'premier-league' : 
+              sport === 'cricket' ? 'ipl' :
+              sport === 'basketball' ? 'nba' :
+              sport === 'tennis' ? 'atp' :
+              'premier-league'
+            }
+            theme="light"
+            height={420}
+          />
+        </div>
         
         <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
           {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
