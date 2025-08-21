@@ -32,7 +32,7 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
   };
 
   const handleViewDetails = () => {
-    navigate(`/sports/match/${match.sport}/${match.id}`);
+    navigate(`/match-details/${match.sport}/${match.id}`);
   };
 
   return (
@@ -93,16 +93,28 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
                 </div>
               </div>
 
-              {/* Action Button */}
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleViewDetails}
-                className="w-full bg-gradient-to-r from-primary via-primary to-primary/80 hover:from-primary/90 hover:via-primary/80 hover:to-primary/60 shadow-md hover:shadow-lg transition-all duration-300 hover-scale"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View Details
-              </Button>
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/sports/bet/${match.sport}/${match.id}`)}
+                  disabled={match.status.toLowerCase().includes('completed') || match.status.toLowerCase().includes('won')}
+                  className="bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/15 hover:to-accent/15 border-primary/30 hover:border-primary/50 transition-all duration-300 hover-scale"
+                >
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  Bet
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleViewDetails}
+                  className="bg-gradient-to-r from-primary via-primary to-primary/80 hover:from-primary/90 hover:via-primary/80 hover:to-primary/60 shadow-md hover:shadow-lg transition-all duration-300 hover-scale"
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  Details
+                </Button>
+              </div>
             </div>
 
             {/* Center Section - Enhanced Teams and Scores */}
@@ -432,16 +444,24 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
                 </div>
               )}
 
-              {/* Enhanced Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={handleViewDetails}
-                  className="flex-1 bg-gradient-to-r from-primary via-primary to-primary/80 hover:from-primary/90 hover:via-primary/80 hover:to-primary/60 shadow-md hover:shadow-lg transition-all duration-300 hover-scale py-3"
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <Button 
+                  variant="outline" 
+                  className="bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/15 hover:to-accent/15 border-primary/30 hover:border-primary/50 transition-all duration-300 hover-scale"
+                  onClick={() => navigate(`/sports/bet/${match.sport}/${match.id}`)}
+                  disabled={match.status.toLowerCase().includes('completed') || match.status.toLowerCase().includes('won')}
                 >
-                  <Eye className="h-5 w-5 mr-2" />
-                  Match Details
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Bet
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="bg-gradient-to-r from-primary via-primary to-primary/80 hover:from-primary/90 hover:via-primary/80 hover:to-primary/60 shadow-md hover:shadow-lg transition-all duration-300 hover-scale"
+                  onClick={handleViewDetails}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Details
                 </Button>
               </div>
             </CardContent>

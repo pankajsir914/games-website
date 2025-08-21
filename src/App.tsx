@@ -23,6 +23,8 @@ import TeenPatti from "./pages/TeenPatti";
 import Wallet from "./pages/Wallet";
 import Sports from "./pages/Sports";
 import SportsMatches from "./pages/SportsMatches";
+import SportsBet from "./pages/SportsBet";
+import MatchDetails from "./pages/MatchDetails";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import AdminUsers from "./pages/AdminUsers";
@@ -55,6 +57,8 @@ const App = () => (
               <Route path="/games" element={<Games />} />
               <Route path="/sports" element={<Sports />} />
               <Route path="/sports/:sport/:type" element={<SportsMatches />} />
+              <Route path="/sports/bet/:sport/:matchId" element={<SportsBet />} />
+              <Route path="/match-details/:sport/:matchId" element={<MatchDetails />} />
               <Route path="/ludo" element={<Ludo />} />
               <Route path="/ludo-game" element={<LudoGame />} />
               <Route path="/aviator" element={<Aviator />} />
