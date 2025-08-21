@@ -9,6 +9,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
+import { MatchCardSkeleton } from '@/components/sports/MatchCardSkeleton';
 import { BetSlip } from '@/components/sports/BetSlip';
 
 
@@ -80,10 +81,22 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
         </Button>
       )}
     >
-      {loading && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>}
+      {loading && (
+        <div className="space-y-4">
+          <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+              {[1, 2, 3].map((idx) => (
+                <div key={`skeleton-${idx}`} className="flex-none w-96">
+                  <MatchCardSkeleton isLandscape={true} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {error && <div className="text-destructive">{error}</div>}
       {!loading && !error && (!data || data.length === 0) && <div className="text-muted-foreground">No matches.</div>}
-      {data && data.length > 0 && (
+      {!loading && data && data.length > 0 && (
         <div className="space-y-4">
           <div className="relative">
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
