@@ -10,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
 import { MatchCardSkeleton } from '@/components/sports/MatchCardSkeleton';
-import { BetSlip } from '@/components/sports/BetSlip';
 
 
 // Import sports background images
@@ -57,7 +56,6 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
 
 const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing' }>= ({ sport }) => {
   const navigate = useNavigate();
-  const [selectedBet, setSelectedBet] = useState<{ odds: any; type: string } | null>(null);
   
   const { 
     data: liveData, 
@@ -90,10 +88,6 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   // useAutoRefresh(backgroundRefreshLive, 30, true);
   // useAutoRefresh(backgroundRefreshUpcoming, 60, true);
   // useAutoRefresh(backgroundRefreshResults, 120, true);
-
-  const handleBetSelect = (odds: any, type: string) => {
-    setSelectedBet({ odds, type });
-  };
 
   const sportBackground = getSportBackground(sport);
 
@@ -145,7 +139,6 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
                   <MatchCard
                     match={match}
                     sportBackground={sportBackground}
-                    onBetSelect={handleBetSelect}
                     showBetting={title !== 'Results'} // Hide betting for completed matches
                     isLandscape={true}
                   />
@@ -171,29 +164,15 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   );
 
   return (
-    <div className="flex gap-6">
-      <div className="flex-1 space-y-8">
-        
-        <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
-        </div>
-        <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          {renderMatches(upcomingData, upcomingLoading, upcomingError, "Upcoming Matches", refreshUpcoming)}
-        </div>
-        <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-          {renderMatches(resultsData, resultsLoading, resultsError, "Results", refreshResults)}
-        </div>
+    <div className="space-y-8">
+      <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
       </div>
-      
-      {/* Bet Slip Sidebar */}
-      <div className="w-80 hidden lg:block">
-        <div className="sticky top-24">
-          <BetSlip
-            match={selectedBet ? (liveData?.[0] || upcomingData?.[0]) as SportsMatch : null as any}
-            selectedBet={selectedBet}
-            onClose={() => setSelectedBet(null)}
-          />
-        </div>
+      <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        {renderMatches(upcomingData, upcomingLoading, upcomingError, "Upcoming Matches", refreshUpcoming)}
+      </div>
+      <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+        {renderMatches(resultsData, resultsLoading, resultsError, "Results", refreshResults)}
       </div>
     </div>
   );
