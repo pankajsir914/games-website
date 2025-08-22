@@ -86,12 +86,10 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
     backgroundRefresh: backgroundRefreshResults 
   } = useSportsData(sport, 'results');
 
-  // Auto-refresh live matches every 30 seconds in background
-  useAutoRefresh(backgroundRefreshLive, 30, true);
-  // Auto-refresh upcoming matches every 60 seconds in background
-  useAutoRefresh(backgroundRefreshUpcoming, 60, true);
-  // Auto-refresh results every 120 seconds in background  
-  useAutoRefresh(backgroundRefreshResults, 120, true);
+  // Disabled auto-refresh to avoid constant updates
+  // useAutoRefresh(backgroundRefreshLive, 30, true);
+  // useAutoRefresh(backgroundRefreshUpcoming, 60, true);
+  // useAutoRefresh(backgroundRefreshResults, 120, true);
 
   const handleBetSelect = (odds: any, type: string) => {
     setSelectedBet({ odds, type });
