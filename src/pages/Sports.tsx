@@ -59,12 +59,39 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
   const navigate = useNavigate();
   const [selectedBet, setSelectedBet] = useState<{ odds: any; type: string } | null>(null);
   
-  const { data: liveData, loading: liveLoading, error: liveError, refresh: refreshLive } = useSportsData(sport, 'live');
-  const { data: upcomingData, loading: upcomingLoading, error: upcomingError, refresh: refreshUpcoming } = useSportsData(sport, 'upcoming');
-  const { data: resultsData, loading: resultsLoading, error: resultsError, refresh: refreshResults } = useSportsData(sport, 'results');
+  const { 
+    data: liveData, 
+    loading: liveLoading, 
+    refreshing: liveRefreshing, 
+    error: liveError, 
+    refresh: refreshLive, 
+    backgroundRefresh: backgroundRefreshLive 
+  } = useSportsData(sport, 'live');
+  
+  const { 
+    data: upcomingData, 
+    loading: upcomingLoading, 
+    refreshing: upcomingRefreshing, 
+    error: upcomingError, 
+    refresh: refreshUpcoming, 
+    backgroundRefresh: backgroundRefreshUpcoming 
+  } = useSportsData(sport, 'upcoming');
+  
+  const { 
+    data: resultsData, 
+    loading: resultsLoading, 
+    refreshing: resultsRefreshing, 
+    error: resultsError, 
+    refresh: refreshResults, 
+    backgroundRefresh: backgroundRefreshResults 
+  } = useSportsData(sport, 'results');
 
-  // Auto-refresh live matches every 30 seconds
-  useAutoRefresh(refreshLive, 30, true);
+  // Auto-refresh live matches every 30 seconds in background
+  useAutoRefresh(backgroundRefreshLive, 30, true);
+  // Auto-refresh upcoming matches every 60 seconds in background
+  useAutoRefresh(backgroundRefreshUpcoming, 60, true);
+  // Auto-refresh results every 120 seconds in background  
+  useAutoRefresh(backgroundRefreshResults, 120, true);
 
   const handleBetSelect = (odds: any, type: string) => {
     setSelectedBet({ odds, type });
@@ -99,9 +126,24 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
       {!loading && data && data.length > 0 && (
         <div className="space-y-4">
           <div className="relative">
+            {/* Subtle refreshing indicator */}
+            {(title === 'Live Matches' && liveRefreshing) || 
+             (title === 'Upcoming Matches' && upcomingRefreshing) || 
+             (title === 'Results' && resultsRefreshing) ? (
+              <div className="absolute top-0 right-0 z-10">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded px-2 py-1">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  Updating...
+                </div>
+              </div>
+            ) : null}
+            
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
               {data.slice(0, 3).map((match, idx) => (
-                <div key={`${match.id ?? 'x'}-${idx}`} className="flex-none w-96">
+                <div 
+                  key={`${match.id ?? 'x'}-${idx}`} 
+                  className="flex-none w-96 transition-all duration-500 ease-in-out"
+                >
                   <MatchCard
                     match={match}
                     sportBackground={sportBackground}

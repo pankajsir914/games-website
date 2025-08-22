@@ -61,14 +61,20 @@ function categorizeMatchByStatus(status: string): 'live' | 'upcoming' | 'results
 
 export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'results') {
   const [data, setData] = useState<SportsMatch[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  const fetchData = useCallback(async (forceRefresh = false) => {
+  const fetchData = useCallback(async (forceRefresh = false, isBackground = false) => {
     if (!sport || !kind) return;
     
-    setLoading(true);
+    // Only show loading for initial load, not background refreshes
+    if (!isBackground && !data) {
+      setInitialLoading(true);
+    } else if (isBackground) {
+      setRefreshing(true);
+    }
     setError(null);
     
     try {
@@ -127,7 +133,8 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
           
           setData(filteredMatches);
           setLastRefresh(new Date());
-          setLoading(false);
+          setInitialLoading(false);
+          setRefreshing(false);
           return;
         }
       }
@@ -145,7 +152,8 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
           const matches = cachedData.map(item => item.match_data as unknown as SportsMatch);
           setData(matches);
           setLastRefresh(new Date());
-          setLoading(false);
+          setInitialLoading(false);
+          setRefreshing(false);
           return;
         }
       }
@@ -234,17 +242,27 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
     } catch (err: any) {
       setError(err.message || 'Failed to fetch sports data');
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }, [sport, kind]);
 
-  const refresh = () => fetchData(true);
+  const refresh = () => fetchData(true, false);
+  const backgroundRefresh = () => fetchData(true, true);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refresh, lastRefresh };
+  return { 
+    data, 
+    loading: initialLoading, 
+    refreshing, 
+    error, 
+    refresh, 
+    backgroundRefresh, 
+    lastRefresh 
+  };
 }
 
 export function useSportsSettings() {
