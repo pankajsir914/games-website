@@ -136,55 +136,27 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
         </div>
 
         {/* Betting Odds (if enabled) */}
-        {showBetting && (
+        {showBetting && odds.length > 0 && (
           <div className="pt-2 border-t border-border">
-            {!showOdds ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowOdds(true)}
-                className="w-full text-xs text-muted-foreground"
-              >
-                <TrendingUp className="h-3 w-3 mr-1" />
-                View Odds
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground">Odds</span>
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-foreground">Odds</span>
+              <div className="space-y-1">
+                {odds.slice(0, 2).map((odd) => (
                   <Button
-                    variant="ghost"
+                    key={odd.id}
+                    variant="outline"
                     size="sm"
-                    onClick={() => setShowOdds(false)}
-                    className="h-auto p-1 text-xs text-muted-foreground"
+                    onClick={() => onBetSelect?.(odd, odd.bet_type)}
+                    className="w-full h-auto p-2"
                   >
-                    ×
+                    <div className="flex justify-between items-center w-full">
+                      <span className="text-xs">{odd.bet_type}</span>
+                      <span className="font-medium text-primary">{odd.odds.toFixed(1)}x</span>
+                    </div>
                   </Button>
-                </div>
-                {odds.length > 0 ? (
-                  <div className="space-y-1">
-                    {odds.slice(0, 2).map((odd) => (
-                      <Button
-                        key={odd.id}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onBetSelect?.(odd, odd.bet_type)}
-                        className="w-full h-auto p-2"
-                      >
-                        <div className="flex justify-between items-center w-full">
-                          <span className="text-xs">{odd.bet_type}</span>
-                          <span className="font-medium text-primary">{odd.odds.toFixed(1)}x</span>
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-2 text-xs text-muted-foreground">
-                    No odds available
-                  </div>
-                )}
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
       </CardContent>
