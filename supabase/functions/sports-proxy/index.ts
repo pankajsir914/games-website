@@ -14,7 +14,8 @@ type Kind = 'live' | 'upcoming' | 'results';
 
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
-const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
+const SPORTMONKS_API_TOKEN = Deno.env.get('SPORTMONKS_API_TOKEN') || '';
+const FOOTBALL_BASE = 'https://api.sportmonks.com/v3/football';
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
 const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v1.basketball.api-sports.io';
@@ -53,14 +54,34 @@ function ensureSport(s: string | undefined): Sport {
 
 function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
   if (sport === 'football') {
+    // Sportmonks API
     const u = new URL(BASES.football + '/fixtures');
-    if (kind === 'live') u.searchParams.set('live', 'all');
-    else if (kind === 'upcoming') {
-      if (q.date) { u.searchParams.set('date', q.date); u.searchParams.set('status', 'NS'); }
-      else u.searchParams.set('next', '50');
+    u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
+    u.searchParams.set('include', 'league;participants');
+    
+    if (kind === 'live') {
+      // Get live matches
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      u.searchParams.set('filters', `date:${today};status:LIVE,HT,ET,BREAK,PEN_LIVE`);
+    } else if (kind === 'upcoming') {
+      // Get upcoming matches
+      const now = new Date();
+      const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days ahead
+      if (q.date) {
+        u.searchParams.set('filters', `date:${q.date};status:NS,TBA,POSTPONED`);
+      } else {
+        u.searchParams.set('filters', `dateBetween:${now.toISOString().split('T')[0]},${endDate.toISOString().split('T')[0]};status:NS,TBA`);
+      }
     } else if (kind === 'results') {
-      if (q.date) { u.searchParams.set('date', q.date); u.searchParams.set('status', 'FT'); }
-      else u.searchParams.set('last', '50');
+      // Get completed matches
+      if (q.date) {
+        u.searchParams.set('filters', `date:${q.date};status:FT,AET,FT_PEN`);
+      } else {
+        const now = new Date();
+        const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+        u.searchParams.set('filters', `dateBetween:${startDate.toISOString().split('T')[0]},${now.toISOString().split('T')[0]};status:FT,AET,FT_PEN`);
+      }
     }
     return u.toString();
   }
@@ -189,7 +210,48 @@ function normalizeItem(sport: Sport, item: any) {
     };
   }
 
-  // Default (API-SPORTS football/hockey) normalization
+  // Check if this is Sportmonks football data
+  if (sport === 'football' && item.participants) {
+    // Sportmonks API normalization
+    const home = item.participants?.find((p: any) => p.meta?.location === 'home');
+    const away = item.participants?.find((p: any) => p.meta?.location === 'away');
+    
+    const statusMap: Record<string, string> = {
+      'NS': 'Not Started',
+      'TBA': 'To Be Announced',
+      'POSTPONED': 'Postponed',
+      'CANCELLED': 'Cancelled',
+      'LIVE': 'Live',
+      'HT': 'Half Time',
+      'FT': 'Full Time',
+      'AET': 'After Extra Time',
+      'FT_PEN': 'Full Time (Penalties)',
+      'ET': 'Extra Time',
+      'BREAK': 'Break',
+      'PEN_LIVE': 'Penalty Shootout'
+    };
+    
+    return {
+      sport,
+      id: item.id || null,
+      date: item.starting_at || null,
+      league: item.league?.name || 'Unknown',
+      venue: item.venue?.name || null,
+      status: statusMap[item.state?.state] || item.state?.state || 'N/A',
+      statusShort: item.state?.state,
+      teams: { 
+        home: home?.name || 'Home', 
+        away: away?.name || 'Away' 
+      },
+      scores: { 
+        home: home?.meta?.score || null, 
+        away: away?.meta?.score || null 
+      },
+      raw: item,
+    };
+  }
+  
+  // Default (API-SPORTS hockey/other sports) normalization
   const fixture = item.fixture || item.game || item.match || {};
   const leagueMeta = item.league || item.tournament || {};
   const teams = item.teams || (item.homeTeam || item.awayTeam ? { home: item.homeTeam, away: item.awayTeam } : {});
@@ -291,7 +353,11 @@ if (!url && s !== 'cricket') {
 const key = `${s}:${k}:${q.date || 'any'}`;
 
     const data = await cached(key, ttlMsFor(k), async () => {
-if (s !== 'cricket' && !API_KEY) {
+// Check for required API keys based on sport
+if (s === 'football' && !SPORTMONKS_API_TOKEN) {
+  const err: any = new Error('Sportmonks API token not configured'); err.status = 500; throw err;
+}
+if (s !== 'cricket' && s !== 'football' && !API_KEY) {
   const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
 }
 if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
@@ -299,7 +365,10 @@ if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
 }
       
       try {
+// Set headers based on sport
 const headers = s === 'cricket'
+  ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
+  : s === 'football'
   ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
   : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
 
@@ -403,8 +472,19 @@ if (s === 'cricket') {
     console.log(`${s} filtered ${beforeFilter} -> ${normalized.length} for live`);
   }
   console.log(`${s} after filtering for ${k}:`, normalized.length, 'items');
+} else if (s === 'football') {
+  // Sportmonks football
+  console.log(`Fetching football data from Sportmonks: ${url}`);
+  const upstream = await doFetch(url, headers);
+  console.log(`football API response:`, JSON.stringify(upstream, null, 2));
+  
+  const list: any[] = upstream?.data || [];
+  console.log(`football raw data list length:`, list.length);
+  
+  normalized = list.map((it) => normalizeItem(s, it));
+  console.log(`football normalized data:`, normalized.length, 'items');
 } else {
-  // Non-cricket sports
+  // Other sports (hockey, basketball, etc.)
   console.log(`Fetching ${s} data from: ${url}`);
   const upstream = await doFetch(url, headers);
   console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
