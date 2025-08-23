@@ -54,35 +54,32 @@ function ensureSport(s: string | undefined): Sport {
 
 function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
   if (sport === 'football') {
-    // Sportmonks API
+    // Sportmonks API - using correct filter syntax
     const u = new URL(BASES.football + '/fixtures');
     u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
     u.searchParams.set('include', 'league;participants');
     
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
     if (kind === 'live') {
-      // Get live matches
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      u.searchParams.set('filters', `date:${today};status:LIVE,HT,ET,BREAK,PEN_LIVE`);
+      // Get live matches - filter by live states
+      u.searchParams.set('filters', 'fixtureStates:1,2,3,4,5'); // LIVE, HT, ET, BREAK, PEN_LIVE
     } else if (kind === 'upcoming') {
-      // Get upcoming matches
-      const now = new Date();
-      const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days ahead
-      if (q.date) {
-        u.searchParams.set('filters', `date:${q.date};status:NS,TBA,POSTPONED`);
-      } else {
-        u.searchParams.set('filters', `dateBetween:${now.toISOString().split('T')[0]},${endDate.toISOString().split('T')[0]};status:NS,TBA`);
-      }
+      // Get upcoming matches - next 7 days
+      const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); 
+      const end = endDate.toISOString().split('T')[0];
+      u.searchParams.set('filters', 'fixtureStates:17,18'); // NS and TBA states
+      u.searchParams.set('filters[starts_between]', `${today} 00:00:00,${end} 23:59:59`);
     } else if (kind === 'results') {
-      // Get completed matches
-      if (q.date) {
-        u.searchParams.set('filters', `date:${q.date};status:FT,AET,FT_PEN`);
-      } else {
-        const now = new Date();
-        const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-        u.searchParams.set('filters', `dateBetween:${startDate.toISOString().split('T')[0]},${now.toISOString().split('T')[0]};status:FT,AET,FT_PEN`);
-      }
+      // Get completed matches - last 7 days
+      const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const start = startDate.toISOString().split('T')[0];
+      u.searchParams.set('filters', 'fixtureStates:6,7,8'); // FT, AET, FT_PEN states
+      u.searchParams.set('filters[starts_between]', `${start} 00:00:00,${today} 23:59:59`);
     }
+    
+    console.log(`Fetching football data from Sportmonks: ${u.toString()}`);
     return u.toString();
   }
 if (sport === 'cricket') {
