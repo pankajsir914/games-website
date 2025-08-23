@@ -9,6 +9,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
+import { FootballMatchCard } from '@/components/sports/FootballMatchCard';
 import { MatchCardSkeleton } from '@/components/sports/MatchCardSkeleton';
 
 
@@ -136,12 +137,19 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
                   key={`${match.id ?? 'x'}-${idx}`} 
                   className="flex-none w-96 transition-all duration-500 ease-in-out"
                 >
-                  <MatchCard
-                    match={match}
-                    sportBackground={sportBackground}
-                    showBetting={title !== 'Results'} // Hide betting for completed matches
-                    isLandscape={true}
-                  />
+                  {sport === 'football' ? (
+                    <FootballMatchCard
+                      match={match}
+                      showBetting={title !== 'Results'}
+                    />
+                  ) : (
+                    <MatchCard
+                      match={match}
+                      sportBackground={sportBackground}
+                      showBetting={title !== 'Results'}
+                      isLandscape={true}
+                    />
+                  )}
                 </div>
               ))}
             </div>
