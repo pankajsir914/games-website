@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
 import { FootballMatchCard } from '@/components/sports/FootballMatchCard';
+import { CricketMatchCard } from '@/components/sports/CricketMatchCard';
 import { MatchCardSkeleton } from '@/components/sports/MatchCardSkeleton';
 
 
@@ -141,6 +142,10 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
                     <FootballMatchCard
                       match={match}
                       showBetting={title !== 'Results'}
+                    />
+                  ) : sport === 'cricket' ? (
+                    <CricketMatchCard
+                      match={match}
                     />
                   ) : (
                     <MatchCard
