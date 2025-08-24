@@ -22,7 +22,7 @@ export function CricketMatchCard({ match }: CricketMatchCardProps) {
       scoreStr += `/${wickets}`;
     }
     if (overs && overs !== "0") {
-      scoreStr += ` (${overs} ov)`;
+      scoreStr += ` (${overs})`;
     }
     return scoreStr;
   };
@@ -41,86 +41,78 @@ export function CricketMatchCard({ match }: CricketMatchCardProps) {
   const awayRunRate = calculateRunRate(match.scores?.away, match.overs?.away);
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-background to-secondary/5 border-primary/20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b border-primary/20">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-background to-secondary/5 border-primary/20">
+      {/* Compact Header */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-2 border-b border-primary/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Trophy className="h-3 w-3 text-primary" />
+            <span className="text-xs font-medium text-muted-foreground truncate max-w-[150px]">
               {match.league || "Cricket Match"}
             </span>
           </div>
           <Badge 
             variant={isLive ? "destructive" : isCompleted ? "secondary" : "outline"}
-            className={`${isLive ? "animate-pulse" : ""}`}
+            className={`text-[10px] px-1.5 py-0 ${isLive ? "animate-pulse" : ""}`}
           >
             {match.status}
           </Badge>
         </div>
 
         {match.venue && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3" />
-            <span>{match.venue}</span>
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
+            <MapPin className="h-2.5 w-2.5" />
+            <span className="truncate">{match.venue}</span>
           </div>
         )}
       </div>
 
-      {/* Match Content */}
-      <div className="p-4 space-y-4">
+      {/* Compact Match Content */}
+      <div className="p-2 space-y-2">
         {/* Teams and Scores */}
-        <div className="space-y-3">
-          {/* First Innings / Batting Team */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-secondary/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
+        <div className="space-y-1.5">
+          {/* First Team */}
+          <div className="flex items-center justify-between p-1.5 rounded bg-secondary/20 border border-secondary/30">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                <Users className="h-3 w-3 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-foreground">{match.teams?.home || "Team A"}</p>
-                {match.scores?.home !== null && (
-                  <p className="text-xs text-muted-foreground">
-                    {match.overs?.home && match.overs.home !== "0" ? "1st Innings" : "Yet to bat"}
-                  </p>
-                )}
+                <p className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                  {match.teams?.home || "Team A"}
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xl font-bold text-foreground">
+              <p className="text-sm font-bold text-foreground">
                 {formatCricketScore(match.scores?.home, match.wickets?.home, match.overs?.home)}
               </p>
               {homeRunRate && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                  <TrendingUp className="h-3 w-3" />
+                <p className="text-[10px] text-muted-foreground">
                   RR: {homeRunRate}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Second Innings / Bowling Team */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-secondary/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center">
-                <Users className="h-5 w-5 text-secondary-foreground" />
+          {/* Second Team */}
+          <div className="flex items-center justify-between p-1.5 rounded bg-secondary/20 border border-secondary/30">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-secondary/50 flex items-center justify-center">
+                <Users className="h-3 w-3 text-secondary-foreground" />
               </div>
               <div>
-                <p className="font-semibold text-foreground">{match.teams?.away || "Team B"}</p>
-                {match.scores?.away !== null && (
-                  <p className="text-xs text-muted-foreground">
-                    {match.overs?.away && match.overs.away !== "0" ? "2nd Innings" : "Yet to bat"}
-                  </p>
-                )}
+                <p className="text-xs font-semibold text-foreground truncate max-w-[120px]">
+                  {match.teams?.away || "Team B"}
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xl font-bold text-foreground">
+              <p className="text-sm font-bold text-foreground">
                 {formatCricketScore(match.scores?.away, match.wickets?.away, match.overs?.away)}
               </p>
               {awayRunRate && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                  <TrendingUp className="h-3 w-3" />
+                <p className="text-[10px] text-muted-foreground">
                   RR: {awayRunRate}
                 </p>
               )}
@@ -130,25 +122,26 @@ export function CricketMatchCard({ match }: CricketMatchCardProps) {
 
         {/* Match Result for completed matches */}
         {isCompleted && match.raw?.result && (
-          <div className="text-center p-2 bg-primary/10 rounded-lg">
-            <p className="text-sm font-semibold text-primary">{match.raw.result}</p>
+          <div className="text-center p-1 bg-primary/10 rounded">
+            <p className="text-[10px] font-semibold text-primary truncate">{match.raw.result}</p>
           </div>
         )}
 
         {/* Match Time */}
         {!isLive && !isCompleted && match.date && (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{format(new Date(match.date), "PPp")}</span>
+          <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>{format(new Date(match.date), "MMM d, h:mm a")}</span>
           </div>
         )}
 
         {/* Action Button */}
         <Button
-          className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          size="sm"
+          className="w-full h-7 text-xs bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
           onClick={() => navigate(`/match/${match.id}`, { state: { match, sport: 'cricket' } })}
         >
-          {isLive ? "Watch Live" : isCompleted ? "View Scorecard" : "View Details"}
+          {isLive ? "Live" : isCompleted ? "Scorecard" : "Details"}
         </Button>
       </div>
     </Card>
