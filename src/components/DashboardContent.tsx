@@ -182,10 +182,6 @@ export function DashboardContent() {
                           alt={game.title}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                        <div className="absolute bottom-2 left-2 text-white font-bold text-lg">
-                          {game.title}
-                        </div>
                       </div>
                     ) : (
                       <div className={`h-32 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
