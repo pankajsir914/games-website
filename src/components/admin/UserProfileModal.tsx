@@ -152,7 +152,7 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
                             {user.creator_name || 'Admin'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            ID: {user.created_by.slice(0, 8)}...
+                            Admin Account
                           </p>
                         </div>
                       </div>
