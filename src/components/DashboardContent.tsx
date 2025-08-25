@@ -48,7 +48,7 @@ export function DashboardContent() {
     {
       title: "Super Andar Bahar",
       provider: "Evolution",
-      image: "/placeholder.svg", 
+      image: "/lovable-uploads/ab20.jpg", 
       path: "/andar-bahar",
       gradient: "from-red-600 to-red-800"
     },
