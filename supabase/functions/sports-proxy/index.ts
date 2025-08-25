@@ -15,7 +15,7 @@ type Kind = 'live' | 'upcoming' | 'results';
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
 const SPORTMONKS_API_TOKEN = Deno.env.get('SPORTMONKS_API_TOKEN') || '';
-const FOOTBALL_BASE = 'https://api.sportmonks.com/v3/football';
+const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
 const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v1.basketball.api-sports.io';
@@ -54,32 +54,10 @@ function ensureSport(s: string | undefined): Sport {
 
 function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
   if (sport === 'football') {
-    // Sportmonks API - using correct filter syntax
     const u = new URL(BASES.football + '/fixtures');
-    u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
-    u.searchParams.set('include', 'league;participants');
-    
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    
-    if (kind === 'live') {
-      // Get live matches - filter by live states
-      u.searchParams.set('filters', 'fixtureStates:1,2,3,4,5'); // LIVE, HT, ET, BREAK, PEN_LIVE
-    } else if (kind === 'upcoming') {
-      // Get upcoming matches - next 7 days
-      const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); 
-      const end = endDate.toISOString().split('T')[0];
-      u.searchParams.set('filters', 'fixtureStates:17,18'); // NS and TBA states
-      u.searchParams.set('filters[starts_between]', `${today} 00:00:00,${end} 23:59:59`);
-    } else if (kind === 'results') {
-      // Get completed matches - last 7 days
-      const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const start = startDate.toISOString().split('T')[0];
-      u.searchParams.set('filters', 'fixtureStates:6,7,8'); // FT, AET, FT_PEN states
-      u.searchParams.set('filters[starts_between]', `${start} 00:00:00,${today} 23:59:59`);
-    }
-    
-    console.log(`Fetching football data from Sportmonks: ${u.toString()}`);
+    if (kind === 'live') u.searchParams.set('live', 'all');
+    else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
+    else if (kind === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
     return u.toString();
   }
 if (sport === 'cricket') {
@@ -351,10 +329,7 @@ const key = `${s}:${k}:${q.date || 'any'}`;
 
     const data = await cached(key, ttlMsFor(k), async () => {
 // Check for required API keys based on sport
-if (s === 'football' && !SPORTMONKS_API_TOKEN) {
-  const err: any = new Error('Sportmonks API token not configured'); err.status = 500; throw err;
-}
-if (s !== 'cricket' && s !== 'football' && !API_KEY) {
+if (s !== 'cricket' && !API_KEY) {
   const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
 }
 if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
@@ -364,8 +339,6 @@ if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
       try {
 // Set headers based on sport
 const headers = s === 'cricket'
-  ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
-  : s === 'football'
   ? { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>
   : { 'x-apisports-key': API_KEY, 'content-type': 'application/json', 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' } as Record<string, string>;
 
@@ -470,16 +443,16 @@ if (s === 'cricket') {
   }
   console.log(`${s} after filtering for ${k}:`, normalized.length, 'items');
 } else if (s === 'football') {
-  // Sportmonks football
-  console.log(`Fetching football data from Sportmonks: ${url}`);
+  // API-SPORTS football
+  console.log(`Fetching ${s} data from: ${url}`);
   const upstream = await doFetch(url, headers);
-  console.log(`football API response:`, JSON.stringify(upstream, null, 2));
+  console.log(`${s} API response:`, JSON.stringify(upstream, null, 2));
   
-  const list: any[] = upstream?.data || [];
-  console.log(`football raw data list length:`, list.length);
+  const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
+  console.log(`${s} raw data list length:`, list.length);
   
   normalized = list.map((it) => normalizeItem(s, it));
-  console.log(`football normalized data:`, normalized.length, 'items');
+  console.log(`${s} normalized data:`, normalized.length, 'items');
 } else {
   // Other sports (hockey, basketball, etc.)
   console.log(`Fetching ${s} data from: ${url}`);
