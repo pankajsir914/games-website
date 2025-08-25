@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useMasterAdminUsers } from '@/hooks/useMasterAdminUsers';
 import { PointsCreditModal } from '@/components/admin/PointsCreditModal';
+import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { toast } from '@/hooks/use-toast';
 
 export const UserManagement = () => {
@@ -39,6 +40,7 @@ export const UserManagement = () => {
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [profileModalUser, setProfileModalUser] = useState<any>(null);
   const [actionType, setActionType] = useState<'block' | 'unblock' | 'suspend' | null>(null);
   const [reason, setReason] = useState('');
   
@@ -88,10 +90,7 @@ export const UserManagement = () => {
   };
 
   const handleViewProfile = (user: any) => {
-    toast({
-      title: "Profile View",
-      description: `Opening profile for ${user.full_name || 'User'}`,
-    });
+    setProfileModalUser(user);
   };
 
   const handleViewWallet = (user: any) => {
@@ -435,6 +434,13 @@ export const UserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        user={profileModalUser}
+        isOpen={!!profileModalUser}
+        onClose={() => setProfileModalUser(null)}
+      />
     </div>
   );
 };
