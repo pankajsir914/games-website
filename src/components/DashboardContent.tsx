@@ -41,14 +41,14 @@ export function DashboardContent() {
     {
       title: "Teen Patti",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/teen3.jpg",
       path: "/teen-patti",
       gradient: "from-yellow-600 to-orange-700"
     },
     {
       title: "Super Andar Bahar",
       provider: "Evolution",
-      image: "/public/lovable-uploads/ab20.jpg", 
+      image: "/lovable-uploads/ab20.jpg", 
       path: "/andar-bahar",
       gradient: "from-red-600 to-red-800"
     },
@@ -62,7 +62,7 @@ export function DashboardContent() {
     {
       title: "Color Prediction",
       provider: "RRB Games",
-      image: "/lovable-uploads/teen3.jpg",
+      image: "/lovable-uploads/cmatch20.jpg",
       path: "/color-prediction",
       gradient: "from-green-500 to-emerald-600"
     },
@@ -175,11 +175,25 @@ export function DashboardContent() {
               >
                 <CardContent className="p-0">
                   <div className="relative overflow-hidden rounded-t-lg">
-                    <div className={`h-32 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
-                      <div className="text-white font-bold text-lg text-center px-2">
-                        {game.title}
+                    {game.image && game.image !== "/placeholder.svg" ? (
+                      <div className="relative h-32">
+                        <img 
+                          src={game.image} 
+                          alt={game.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                        <div className="absolute bottom-2 left-2 text-white font-bold text-lg">
+                          {game.title}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className={`h-32 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
+                        <div className="text-white font-bold text-lg text-center px-2">
+                          {game.title}
+                        </div>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                       <Play className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
