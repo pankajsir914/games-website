@@ -45,18 +45,12 @@ export const AddMoneyModal = ({ open, onOpenChange }: AddMoneyModalProps) => {
 
     setIsSubmitting(true);
     try {
-      // Calculate bonus points
-      const bonusMultiplier = pointsAmount >= 10000 ? 1.15 : 
-                             pointsAmount >= 5000 ? 1.10 : 
-                             pointsAmount >= 1000 ? 1.05 : 1;
-      const totalPoints = Math.floor(pointsAmount * bonusMultiplier);
-
       // Use the update_wallet_balance function
       const { error } = await supabase.rpc('update_wallet_balance', {
         p_user_id: user.id,
-        p_amount: totalPoints,
+        p_amount: pointsAmount,
         p_type: 'credit',
-        p_reason: `Points Added${bonusMultiplier > 1 ? ' (with bonus)' : ''}`,
+        p_reason: 'Points Added',
         p_game_type: null,
         p_game_session_id: null
       });
@@ -65,7 +59,7 @@ export const AddMoneyModal = ({ open, onOpenChange }: AddMoneyModalProps) => {
 
       toast({
         title: "Points Added Successfully",
-        description: `${totalPoints.toLocaleString()} points have been added to your wallet`,
+        description: `${pointsAmount.toLocaleString()} points have been added to your wallet`,
       });
       
       onOpenChange(false);
@@ -135,32 +129,12 @@ export const AddMoneyModal = ({ open, onOpenChange }: AddMoneyModalProps) => {
           {amount && parseInt(amount) >= 100 && (
             <Card className="bg-gaming-primary/5">
               <CardContent className="p-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Points to Add:</span>
-                    <span className="font-bold">{parseInt(amount || '0').toLocaleString()}</span>
-                  </div>
-                  {parseInt(amount) >= 1000 && (
-                    <div className="flex justify-between text-gaming-success">
-                      <span className="text-sm">Bonus Points:</span>
-                      <span className="font-bold">
-                        +{Math.floor(
-                          parseInt(amount) * 
-                          (parseInt(amount) >= 10000 ? 0.15 : parseInt(amount) >= 5000 ? 0.10 : 0.05)
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  <Separator />
-                  <div className="flex justify-between text-lg">
-                    <span className="font-medium">Total Points:</span>
-                    <span className="font-bold text-gaming-primary">
-                      {Math.floor(
-                        parseInt(amount || '0') * 
-                        (parseInt(amount) >= 10000 ? 1.15 : parseInt(amount) >= 5000 ? 1.10 : parseInt(amount) >= 1000 ? 1.05 : 1)
-                      ).toLocaleString()}
-                    </span>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Points to Add</span>
+                  <span className="text-lg font-bold text-gaming-primary">
+                    <Coins className="h-5 w-5 inline mr-1" />
+                    {parseInt(amount).toLocaleString()}
+                  </span>
                 </div>
               </CardContent>
             </Card>
