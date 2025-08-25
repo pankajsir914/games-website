@@ -47,7 +47,7 @@ const Wallet = () => {
                     className="h-16 flex flex-col gap-2"
                   >
                     <Plus className="h-6 w-6" />
-                    Add Money
+                    Add Points
                   </Button>
                   <Button 
                     onClick={() => setWithdrawMoneyOpen(true)}
