@@ -44,10 +44,10 @@ export const PointsCreditModal = ({ open, onOpenChange, targetUserId, onComplete
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Available Admin Balance</Label>
+            <Label>Available Admin Points</Label>
             <div className="flex items-center gap-2 text-foreground">
-              <Coins className="h-4 w-4" />
-              <span className="font-medium">{isLoadingBalance ? 'Loading…' : `₹${balance.toLocaleString()}`}</span>
+              <Coins className="h-4 w-4 text-gaming-primary" />
+              <span className="font-medium">{isLoadingBalance ? 'Loading…' : Math.floor(balance).toLocaleString()} pts</span>
             </div>
           </div>
 
