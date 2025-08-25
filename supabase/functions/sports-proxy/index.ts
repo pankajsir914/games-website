@@ -20,6 +20,13 @@ const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
 const SPORTMONKS_API_TOKEN = Deno.env.get('SPORTMONKS_API_TOKEN') || '';
 const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY') || '';
 
+console.log('API Keys Status:', {
+  SPORTS_API_KEY: API_KEY ? 'configured' : 'missing',
+  CRICAPI_KEY: CRICAPI_KEY ? 'configured' : 'missing',
+  SPORTMONKS_API_TOKEN: SPORTMONKS_API_TOKEN ? 'configured' : 'missing',
+  ODDS_API_KEY: ODDS_API_KEY ? 'configured' : 'missing'
+});
+
 // API Base URLs
 const SPORTMONKS_BASE = 'https://api.sportmonks.com/v3';
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';

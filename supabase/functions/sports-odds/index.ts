@@ -11,6 +11,8 @@ const corsHeaders = {
 const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY') || '';
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 
+console.log('Odds API Key Status:', ODDS_API_KEY ? 'configured' : 'missing');
+
 // Cache for odds data
 const cache = new Map<string, { expires: number; data: any }>();
 
