@@ -39,12 +39,57 @@ export const useMasterAdminUsers = () => {
     queryKey: ['master-admin-users'],
     queryFn: async () => {
       try {
-        // Try the new comprehensive function first
+        // Try the existing RPC function that works for all admins
+        const { data: userManagementData, error: userError } = await supabase
+          .rpc('get_users_management_data', {
+            p_limit: 200,
+            p_offset: 0,
+            p_search: null,
+            p_status: 'all'
+          });
+
+        if (!userError && userManagementData && typeof userManagementData === 'object') {
+          console.log('Fetched users from get_users_management_data:', userManagementData);
+          const data = userManagementData as any;
+          
+          // Map the data to our expected format
+          const users = (data.users || []).map((user: any) => ({
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name || 'Unknown User',
+            phone: user.phone || '',
+            avatar_url: user.avatar_url,
+            created_at: user.created_at,
+            last_sign_in_at: user.last_sign_in_at,
+            email_confirmed_at: user.email_confirmed_at,
+            current_balance: user.current_balance || 0,
+            total_deposits: user.total_deposits || 0,
+            total_withdrawals: user.total_withdrawals || 0,
+            games_played: user.games_played || 0,
+            status: user.status || 'offline',
+            is_blocked: false,
+            risk_level: 'low' as const,
+            created_by: user.created_by,
+            creator_name: user.creator_name,
+            user_role: user.user_role
+          }));
+          
+          return {
+            users,
+            total_count: data.total_count || users.length,
+            blocked_users: 0,
+            high_risk_users: 0,
+            online_count: users.filter((u: any) => u.status === 'online').length,
+            recently_active_count: users.filter((u: any) => u.status === 'recently_active').length
+          } as UsersResponse;
+        }
+
+        // Try the master admin only function as fallback
         const { data: allUsersData, error: allUsersError } = await supabase
           .rpc('get_all_users_for_master_admin');
 
         if (!allUsersError && allUsersData) {
-          console.log('Fetched users from database:', allUsersData);
+          console.log('Fetched users from master admin function:', allUsersData);
           const usersData = allUsersData as any;
           
           return {
@@ -54,23 +99,6 @@ export const useMasterAdminUsers = () => {
             high_risk_users: 0,
             online_count: usersData.online_count || 0,
             recently_active_count: usersData.recently_active_count || 0
-          } as UsersResponse;
-        }
-
-        // Fallback to existing RPC function
-        const { data: userManagementData, error: userError } = await supabase
-          .rpc('get_users_management_data', {
-            p_limit: 100,
-            p_offset: 0
-          });
-
-        if (!userError && userManagementData && typeof userManagementData === 'object') {
-          const data = userManagementData as any;
-          return {
-            users: data.users || [],
-            total_count: data.total_count || 0,
-            blocked_users: 0,
-            high_risk_users: 0
           } as UsersResponse;
         }
       } catch (error) {
