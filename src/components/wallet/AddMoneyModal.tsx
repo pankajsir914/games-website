@@ -143,7 +143,7 @@ export const AddMoneyModal = ({ open, onOpenChange }: AddMoneyModalProps) => {
           <Button
             onClick={handleAddPoints}
             disabled={!amount || parseInt(amount) < 100 || isSubmitting}
-            className="w-full bg-gaming-primary hover:bg-gaming-primary/90"
+            className="w-full"
           >
             {isSubmitting ? (
               "Adding Points..."
