@@ -2095,6 +2095,57 @@ export type Database = {
         }
         Relationships: []
       }
+      sports_match_settings: {
+        Row: {
+          betting_enabled: boolean | null
+          commission_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          custom_odds: Json | null
+          disabled_reason: string | null
+          id: string
+          is_featured: boolean | null
+          match_data: Json
+          match_id: string
+          max_bet_amount: number | null
+          min_bet_amount: number | null
+          sport_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          betting_enabled?: boolean | null
+          commission_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_odds?: Json | null
+          disabled_reason?: string | null
+          id?: string
+          is_featured?: boolean | null
+          match_data: Json
+          match_id: string
+          max_bet_amount?: number | null
+          min_bet_amount?: number | null
+          sport_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          betting_enabled?: boolean | null
+          commission_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_odds?: Json | null
+          disabled_reason?: string | null
+          id?: string
+          is_featured?: boolean | null
+          match_data?: Json
+          match_id?: string
+          max_bet_amount?: number | null
+          min_bet_amount?: number | null
+          sport_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sports_matches_cache: {
         Row: {
           created_at: string | null
@@ -2732,6 +2783,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_match_betting_settings: {
+        Args: { p_sport_type?: string }
+        Returns: Json
+      }
       get_platform_analytics: {
         Args: { p_timeframe?: string }
         Returns: Json
@@ -2872,6 +2927,15 @@ export type Database = {
       }
       start_rummy_game: {
         Args: { p_session_id: string }
+        Returns: Json
+      }
+      toggle_match_betting: {
+        Args: {
+          p_enabled: boolean
+          p_match_data?: Json
+          p_match_id: string
+          p_sport_type: string
+        }
         Returns: Json
       }
       transfer_admin_credits_to_user: {
