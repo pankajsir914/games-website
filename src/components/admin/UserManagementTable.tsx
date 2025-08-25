@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, Edit, Trash2, Ban, Coins } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Ban, Coins, Sliders } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +22,10 @@ import {
 import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PointsCreditModal } from '@/components/admin/PointsCreditModal';
+import { BetLimitModal } from '@/components/admin/BetLimitModal';
 import { useMasterAdminUsers } from '@/hooks/useMasterAdminUsers';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
-
 interface UserFilters {
   search: string;
   status: string;
@@ -40,7 +40,7 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
   const { data: adminAuth } = useAdminAuth();
   const { users: usersResponse, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
-
+  const [limitsModalUser, setLimitsModalUser] = useState<{ id: string; name?: string } | null>(null);
   const users = usersResponse?.users || [];
   const isMasterAdmin = adminAuth?.role === 'master_admin';
 
@@ -214,6 +214,10 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                         <Coins className="mr-2 h-4 w-4" />
                         Credit Points
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLimitsModalUser({ id: user.id, name: user.full_name })}>
+                        <Sliders className="mr-2 h-4 w-4" />
+                        Set Bet Limits
+                      </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleUserAction(user.id, 'block')}
                         disabled={isUpdating}
@@ -258,6 +262,12 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
           targetUserId={creditModalUser || ''}
           onOpenChange={(open) => { if (!open) setCreditModalUser(null); }}
           onComplete={() => setCreditModalUser(null)}
+        />
+        <BetLimitModal
+          open={!!limitsModalUser}
+          userId={limitsModalUser?.id || ''}
+          userName={limitsModalUser?.name}
+          onOpenChange={(open) => { if (!open) setLimitsModalUser(null); }}
         />
       </CardContent>
     </Card>

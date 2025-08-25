@@ -641,6 +641,42 @@ export type Database = {
         }
         Relationships: []
       }
+      global_betting_limits: {
+        Row: {
+          daily_limit: number | null
+          id: string
+          limit_type: string
+          max_single_bet: number
+          min_bet_amount: number | null
+          monthly_limit: number | null
+          updated_at: string | null
+          updated_by: string | null
+          weekly_limit: number | null
+        }
+        Insert: {
+          daily_limit?: number | null
+          id?: string
+          limit_type: string
+          max_single_bet?: number
+          min_bet_amount?: number | null
+          monthly_limit?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_limit?: number | null
+        }
+        Update: {
+          daily_limit?: number | null
+          id?: string
+          limit_type?: string
+          max_single_bet?: number
+          min_bet_amount?: number | null
+          monthly_limit?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_limit?: number | null
+        }
+        Relationships: []
+      }
       jackpot_entries: {
         Row: {
           amount: number
@@ -2450,6 +2486,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_betting_limits: {
+        Row: {
+          applied_by: string | null
+          created_at: string | null
+          daily_limit: number | null
+          id: string
+          is_custom: boolean | null
+          max_bet_amount: number
+          monthly_limit: number | null
+          reason: string | null
+          updated_at: string | null
+          user_id: string | null
+          weekly_limit: number | null
+        }
+        Insert: {
+          applied_by?: string | null
+          created_at?: string | null
+          daily_limit?: number | null
+          id?: string
+          is_custom?: boolean | null
+          max_bet_amount?: number
+          monthly_limit?: number | null
+          reason?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weekly_limit?: number | null
+        }
+        Update: {
+          applied_by?: string | null
+          created_at?: string | null
+          daily_limit?: number | null
+          id?: string
+          is_custom?: boolean | null
+          max_bet_amount?: number
+          monthly_limit?: number | null
+          reason?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weekly_limit?: number | null
+        }
+        Relationships: []
+      }
       user_payment_methods: {
         Row: {
           account_holder_name: string | null
@@ -2799,6 +2877,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_user_bet_limits: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: string
@@ -2915,6 +2997,17 @@ export type Database = {
       }
       process_withdrawal_request: {
         Args: { p_admin_notes?: string; p_request_id: string; p_status: string }
+        Returns: Json
+      }
+      set_user_bet_limits: {
+        Args: {
+          p_daily_limit?: number
+          p_max_bet: number
+          p_monthly_limit?: number
+          p_reason?: string
+          p_user_id: string
+          p_weekly_limit?: number
+        }
         Returns: Json
       }
       setup_admin_user: {
