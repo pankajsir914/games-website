@@ -7,6 +7,7 @@ import { AddMoneyModal } from '@/components/wallet/AddMoneyModal';
 import { WithdrawMoneyModal } from '@/components/wallet/WithdrawMoneyModal';
 import { PaymentRequestsCard } from '@/components/wallet/PaymentRequestsCard';
 import { WithdrawalRequestsCard } from '@/components/wallet/WithdrawalRequestsCard';
+import { PaymentMethodsCard } from '@/components/wallet/PaymentMethodsCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Minus, History, CreditCard, Banknote } from 'lucide-react';
@@ -61,6 +62,7 @@ const Wallet = () => {
               </CardContent>
             </Card>
 
+            <PaymentMethodsCard />
 
             <TransactionHistory />
           </div>

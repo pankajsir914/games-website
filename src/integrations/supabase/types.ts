@@ -2396,6 +2396,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_payment_methods: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          created_at: string | null
+          id: string
+          ifsc_code: string | null
+          is_primary: boolean | null
+          is_verified: boolean | null
+          method_type: string
+          nickname: string | null
+          updated_at: string | null
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string
+          ifsc_code?: string | null
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          method_type: string
+          nickname?: string | null
+          updated_at?: string | null
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string
+          ifsc_code?: string | null
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          method_type?: string
+          nickname?: string | null
+          updated_at?: string | null
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
