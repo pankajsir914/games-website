@@ -5,12 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
 import { MatchCard } from '@/components/sports/MatchCard';
 import { FootballMatchCard } from '@/components/sports/FootballMatchCard';
 import { CricketMatchCard } from '@/components/sports/CricketMatchCard';
+import { EnhancedMatchCard } from '@/components/sports/EnhancedMatchCard';
 import { MatchCardSkeleton } from '@/components/sports/MatchCardSkeleton';
 
 
@@ -138,10 +139,13 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
                   key={`${match.id ?? 'x'}-${idx}`} 
                   className="flex-none w-96 transition-all duration-500 ease-in-out"
                 >
-                  {sport === 'football' ? (
-                    <FootballMatchCard
+                  {/* Use EnhancedMatchCard for football and basketball with hybrid data */}
+                  {(sport === 'football' || sport === 'basketball') ? (
+                    <EnhancedMatchCard
                       match={match}
+                      sport={sport}
                       showBetting={title !== 'Results'}
+                      showOdds={title !== 'Results'}
                     />
                   ) : sport === 'cricket' ? (
                     <CricketMatchCard

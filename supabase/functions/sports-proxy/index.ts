@@ -1,5 +1,7 @@
 // Supabase Edge Function: sports-proxy
-// Securely fetches sports data from API-SPORTS and returns normalized results
+// Hybrid sports data system:
+// - SportsMonk for comprehensive match data, fixtures, teams, leagues
+// - Separate odds provider for betting odds and lines
 // Supports caching and filtering. Public function with CORS enabled.
 
 const corsHeaders = {
@@ -12,9 +14,15 @@ type Sport = 'football' | 'cricket' | 'hockey' | 'basketball' | 'tennis' | 'base
 
 type Kind = 'live' | 'upcoming' | 'results';
 
+// API Keys
 const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
 const SPORTMONKS_API_TOKEN = Deno.env.get('SPORTMONKS_API_TOKEN') || '';
+const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY') || '';
+
+// API Base URLs
+const SPORTMONKS_BASE = 'https://api.sportmonks.com/v3';
+const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 const FOOTBALL_BASE = Deno.env.get('SPORTS_API_FOOTBALL_BASE') || 'https://v3.football.api-sports.io';
 const CRICKET_BASE = 'https://api.cricapi.com/v1';
 const HOCKEY_BASE = Deno.env.get('SPORTS_API_HOCKEY_BASE') || 'https://v1.hockey.api-sports.io';
@@ -25,10 +33,10 @@ const CRICKET_APISPORTS_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https
 const DEFAULT_TTL = Number(Deno.env.get('SPORTS_CACHE_TTL') || '10'); // seconds
 
 const BASES: Record<Sport, string> = {
-  football: FOOTBALL_BASE,
+  football: SPORTMONKS_BASE,  // Changed to use SportsMonk for football
   cricket: CRICKET_BASE,
   hockey: HOCKEY_BASE,
-  basketball: BASKETBALL_BASE,
+  basketball: SPORTMONKS_BASE,  // SportsMonk also supports basketball
   tennis: TENNIS_BASE,
   baseball: BASEBALL_BASE,
   boxing: '',
@@ -53,25 +61,57 @@ function ensureSport(s: string | undefined): Sport {
 }
 
 function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
-  if (sport === 'football') {
-    const u = new URL(BASES.football + '/fixtures');
-    if (kind === 'live') u.searchParams.set('live', 'all');
-    else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
-    else if (kind === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
+  // SportsMonk API for football and basketball
+  if (sport === 'football' || sport === 'basketball') {
+    if (SPORTMONKS_API_TOKEN) {
+      const sportPath = sport === 'football' ? 'football' : 'basketball';
+      const u = new URL(`${SPORTMONKS_BASE}/${sportPath}/fixtures`);
+      
+      // Add API token
+      u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
+      
+      // Include essential data
+      u.searchParams.set('include', 'participants,league,venue,state,scores');
+      
+      // Filter by status
+      if (kind === 'live') {
+        u.searchParams.set('filters[status]', 'LIVE,HT,ET,PEN_LIVE,BREAK');
+      } else if (kind === 'upcoming') {
+        u.searchParams.set('filters[status]', 'NS,TBA,POSTPONED');
+        if (q.date) {
+          u.searchParams.set('filters[starting_at]', `${q.date},${q.date} 23:59:59`);
+        }
+      } else if (kind === 'results') {
+        u.searchParams.set('filters[status]', 'FT,AET,FT_PEN,CANCELLED,AWARDED,ABANDONED');
+        if (q.date) {
+          u.searchParams.set('filters[starting_at]', `${q.date},${q.date} 23:59:59`);
+        }
+      }
+      
+      return u.toString();
+    } else {
+      // Fallback to API-SPORTS if SportsMonk token not available
+      const u = new URL(FOOTBALL_BASE + '/fixtures');
+      if (kind === 'live') u.searchParams.set('live', 'all');
+      else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
+      else if (kind === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
+      return u.toString();
+    }
+  }
+  
+  if (sport === 'cricket') {
+    // Prefer API-SPORTS in main logic; build CricAPI URL only if key is present for fallback
+    const endpoint = kind === 'live' ? '/cricScore' : '/matches';
+    if (!CRICAPI_KEY) {
+      return '';
+    }
+    const u = new URL(BASES.cricket + endpoint);
+    u.searchParams.set('apikey', CRICAPI_KEY);
+    if (endpoint !== '/cricScore') u.searchParams.set('offset', '0');
     return u.toString();
   }
-if (sport === 'cricket') {
-  // Prefer API-SPORTS in main logic; build CricAPI URL only if key is present for fallback
-  const endpoint = kind === 'live' ? '/cricScore' : '/matches';
-  if (!CRICAPI_KEY) {
-    return '';
-  }
-  const u = new URL(BASES.cricket + endpoint);
-  u.searchParams.set('apikey', CRICAPI_KEY);
-  if (endpoint !== '/cricScore') u.searchParams.set('offset', '0');
-  return u.toString();
-}
-  if (sport === 'hockey' || sport === 'basketball' || sport === 'baseball' || sport === 'tennis') {
+  
+  if (sport === 'hockey' || sport === 'baseball' || sport === 'tennis') {
     const u = new URL(BASES[sport] + '/games');
     if (kind === 'live') u.searchParams.set('live', 'all');
     else if (kind === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
@@ -185,9 +225,9 @@ function normalizeItem(sport: Sport, item: any) {
     };
   }
 
-  // Check if this is Sportmonks football data
+  // Check if this is Sportmonks data (new API v3 structure)
   if (sport === 'football' && item.participants) {
-    // Sportmonks API normalization
+    // Sportmonks API v3 normalization
     const home = item.participants?.find((p: any) => p.meta?.location === 'home');
     const away = item.participants?.find((p: any) => p.meta?.location === 'away');
     
@@ -219,8 +259,33 @@ function normalizeItem(sport: Sport, item: any) {
         away: away?.name || 'Away' 
       },
       scores: { 
-        home: home?.meta?.score || null, 
-        away: away?.meta?.score || null 
+        home: item.scores?.find((s: any) => s.participant_id === home?.id)?.score?.goals || null,
+        away: item.scores?.find((s: any) => s.participant_id === away?.id)?.score?.goals || null
+      },
+      raw: item,
+    };
+  }
+  
+  // Check if this is Sportmonks basketball data
+  if (sport === 'basketball' && item.participants) {
+    const home = item.participants?.find((p: any) => p.meta?.location === 'home');
+    const away = item.participants?.find((p: any) => p.meta?.location === 'away');
+    
+    return {
+      sport,
+      id: item.id || null,
+      date: item.starting_at || null,
+      league: item.league?.name || 'Unknown',
+      venue: item.venue?.name || null,
+      status: item.state?.state || 'N/A',
+      statusShort: item.state?.state,
+      teams: { 
+        home: home?.name || 'Home', 
+        away: away?.name || 'Away' 
+      },
+      scores: { 
+        home: item.scores?.find((s: any) => s.participant_id === home?.id)?.score?.points || null,
+        away: item.scores?.find((s: any) => s.participant_id === away?.id)?.score?.points || null
       },
       raw: item,
     };
