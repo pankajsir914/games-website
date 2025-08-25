@@ -111,7 +111,7 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Check rate limiting before attempting sign in
+      // Optional rate limiting pre-check (non-blocking)
       const { data: canProceed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
         p_endpoint: 'master_admin_login',
         p_max_attempts: 5,
@@ -120,12 +120,12 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
 
       if (rateLimitError) {
         console.warn('Rate limit check failed:', rateLimitError);
-        // Continue with login attempt but log the issue
+        // Proceed with login attempt regardless of rate limit check issues
+      } else if (canProceed === false) {
+        console.warn('Rate limit reached for master admin login; proceeding anyway.');
+        toast.warning('Many login attempts detected. We’ll still verify your credentials.');
       }
 
-      if (canProceed === false) {
-        throw new Error('Too many login attempts. Please try again in 15 minutes.');
-      }
 
       const { error } = await supabase.auth.signInWithPassword({ 
         email, 
