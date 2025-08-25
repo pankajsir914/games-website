@@ -62,7 +62,7 @@ export function DashboardContent() {
     {
       title: "Color Prediction",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/teen3.jpg",
       path: "/color-prediction",
       gradient: "from-green-500 to-emerald-600"
     },
