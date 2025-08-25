@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, RefreshCw, Plus, Trash2, Edit, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Plus, Trash2, Edit, AlertCircle, Ban, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -24,8 +24,20 @@ import {
   Users,
   Target,
   TrendingUp,
-  Globe
+  Globe,
+  DollarSign,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
+
+interface MatchBettingSettings {
+  matchId: string;
+  sportType: string;
+  bettingEnabled: boolean;
+  minBet: number;
+  maxBet: number;
+  commissionRate: number;
+}
 
 export const LiveSportsIntegration = () => {
   const { toast } = useToast();
@@ -36,6 +48,15 @@ export const LiveSportsIntegration = () => {
   const [upcomingData, setUpcomingData] = useState<any>(null);
   const [resultsData, setResultsData] = useState<any>(null);
   const [selectedSport, setSelectedSport] = useState('cricket');
+  const [matchSettings, setMatchSettings] = useState<Record<string, MatchBettingSettings>>({});
+  const [isManageMatchOpen, setIsManageMatchOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [bettingConfig, setBettingConfig] = useState({
+    bettingEnabled: false,
+    minBet: 10,
+    maxBet: 10000,
+    commissionRate: 0.05
+  });
   const [providerSettings, setProviderSettings] = useState({
     name: '',
     sport: '',
@@ -48,18 +69,18 @@ export const LiveSportsIntegration = () => {
   const [sportsProviders, setSportsProviders] = useState([
     {
       id: 1,
-      name: 'API-SPORTS (Football)',
-      sport: 'Football',
+      name: 'SportMonks',
+      sport: 'Cricket',
       status: 'connected',
       events: 0,
       lastSync: 'Never',
-      reliability: 99.5,
-      cost: 'Free Tier',
-      endpoint: 'https://api-football-v1.p.rapidapi.com/v3'
+      reliability: 99.8,
+      cost: 'Premium',
+      endpoint: 'https://cricket.sportmonks.com/api/v2.0'
     },
     {
       id: 2,
-      name: 'CricAPI (Cricket)',
+      name: 'CricAPI',
       sport: 'Cricket', 
       status: 'connected',
       events: 0,
@@ -70,6 +91,17 @@ export const LiveSportsIntegration = () => {
     },
     {
       id: 3,
+      name: 'API-SPORTS (Football)',
+      sport: 'Football',
+      status: 'connected',
+      events: 0,
+      lastSync: 'Never',
+      reliability: 99.5,
+      cost: 'Free Tier',
+      endpoint: 'https://api-football-v1.p.rapidapi.com/v3'
+    },
+    {
+      id: 4,
       name: 'API-SPORTS (Hockey)',
       sport: 'Hockey',
       status: 'connected',
@@ -109,6 +141,9 @@ export const LiveSportsIntegration = () => {
           ? { ...provider, lastSync: 'Just now', events: data?.items?.length || 0 }
           : provider
       ));
+      
+      // Load match settings from database
+      await loadMatchSettings(sport);
 
       toast({
         title: "Data Updated",
@@ -122,6 +157,137 @@ export const LiveSportsIntegration = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Load match betting settings from database
+  const loadMatchSettings = async (sport: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_match_betting_settings', { p_sport_type: sport });
+      
+      if (error) throw error;
+      
+      // Check if data is an object with matches property
+      const matchData = data as any;
+      if (matchData?.matches && Array.isArray(matchData.matches)) {
+        const settings: Record<string, MatchBettingSettings> = {};
+        matchData.matches.forEach((match: any) => {
+          settings[match.match_id] = {
+            matchId: match.match_id,
+            sportType: match.sport_type,
+            bettingEnabled: match.betting_enabled,
+            minBet: match.min_bet_amount,
+            maxBet: match.max_bet_amount,
+            commissionRate: match.commission_rate
+          };
+        });
+        setMatchSettings(settings);
+      }
+    } catch (error: any) {
+      console.error('Failed to load match settings:', error);
+    }
+  };
+  
+  // Toggle match betting
+  const toggleMatchBetting = async (match: any) => {
+    const matchId = match.id || match.match_id;
+    const currentSettings = matchSettings[matchId];
+    const newEnabled = !currentSettings?.bettingEnabled;
+    
+    try {
+      const { data, error } = await supabase.rpc('toggle_match_betting', {
+        p_match_id: matchId,
+        p_sport_type: selectedSport,
+        p_enabled: newEnabled,
+        p_match_data: match
+      });
+      
+      if (error) throw error;
+      
+      // Update local state
+      setMatchSettings(prev => ({
+        ...prev,
+        [matchId]: {
+          matchId,
+          sportType: selectedSport,
+          bettingEnabled: newEnabled,
+          minBet: bettingConfig.minBet,
+          maxBet: bettingConfig.maxBet,
+          commissionRate: bettingConfig.commissionRate
+        }
+      }));
+      
+      toast({
+        title: "Betting Status Updated",
+        description: `Betting ${newEnabled ? 'enabled' : 'disabled'} for ${match.teams?.home} vs ${match.teams?.away}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update match betting status",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Open match management dialog
+  const openManageMatch = (match: any) => {
+    const matchId = match.id || match.match_id;
+    const currentSettings = matchSettings[matchId];
+    
+    setSelectedMatch(match);
+    setBettingConfig({
+      bettingEnabled: currentSettings?.bettingEnabled || false,
+      minBet: currentSettings?.minBet || 10,
+      maxBet: currentSettings?.maxBet || 10000,
+      commissionRate: currentSettings?.commissionRate || 0.05
+    });
+    setIsManageMatchOpen(true);
+  };
+  
+  // Save match settings
+  const saveMatchSettings = async () => {
+    if (!selectedMatch) return;
+    
+    const matchId = selectedMatch.id || selectedMatch.match_id;
+    
+    try {
+      const { data, error } = await supabase.rpc('toggle_match_betting', {
+        p_match_id: matchId,
+        p_sport_type: selectedSport,
+        p_enabled: bettingConfig.bettingEnabled,
+        p_match_data: {
+          ...selectedMatch,
+          min_bet_amount: bettingConfig.minBet,
+          max_bet_amount: bettingConfig.maxBet,
+          commission_rate: bettingConfig.commissionRate
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Update local state
+      setMatchSettings(prev => ({
+        ...prev,
+        [matchId]: {
+          matchId,
+          sportType: selectedSport,
+          ...bettingConfig
+        }
+      }));
+      
+      setIsManageMatchOpen(false);
+      
+      toast({
+        title: "Settings Saved",
+        description: `Match settings updated successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save match settings",
+        variant: "destructive"
+      });
     }
   };
 
@@ -212,49 +378,92 @@ export const LiveSportsIntegration = () => {
   };
 
   // Render match item
-  const renderMatchItem = (match: any, index: number) => (
-    <div key={`${match.id || index}`} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-gaming-gold/10 rounded-lg flex items-center justify-center">
-          <Trophy className="h-5 w-5 text-gaming-gold" />
+  const renderMatchItem = (match: any, index: number) => {
+    const matchId = match.id || match.match_id;
+    const settings = matchSettings[matchId];
+    const isBettingEnabled = settings?.bettingEnabled || false;
+    
+    return (
+      <div key={`${matchId || index}`} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gaming-gold/10 rounded-lg flex items-center justify-center">
+            <Trophy className="h-5 w-5 text-gaming-gold" />
+          </div>
+          
+          <div>
+            <h4 className="font-semibold">{match.teams?.home || 'Team A'} vs {match.teams?.away || 'Team B'}</h4>
+            <p className="text-sm text-muted-foreground">{match.league || 'League'}</p>
+            <div className="flex items-center gap-4 mt-1">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {match.date ? new Date(match.date).toLocaleString() : 'TBD'}
+                </span>
+              </div>
+              {match.venue && (
+                <span className="text-xs text-muted-foreground">• {match.venue}</span>
+              )}
+            </div>
+          </div>
         </div>
         
-        <div>
-          <h4 className="font-semibold">{match.teams?.home} vs {match.teams?.away}</h4>
-          <p className="text-sm text-muted-foreground">{match.league}</p>
-          <div className="flex items-center gap-4 mt-1">
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {match.date ? new Date(match.date).toLocaleString() : 'TBD'}
-              </span>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-sm font-semibold">
+              {match.scores?.home ?? '-'} - {match.scores?.away ?? '-'}
             </div>
-            {match.venue && (
-              <span className="text-xs text-muted-foreground">• {match.venue}</span>
+            <div className="text-xs text-muted-foreground">Score</div>
+          </div>
+          
+          {getStatusBadge(match.status)}
+          
+          {/* Betting Status Badge */}
+          <div className="flex items-center gap-2">
+            {isBettingEnabled ? (
+              <Badge className="bg-gaming-success/20 text-gaming-success">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Betting ON
+              </Badge>
+            ) : (
+              <Badge className="bg-gaming-danger/20 text-gaming-danger">
+                <Ban className="h-3 w-3 mr-1" />
+                Betting OFF
+              </Badge>
             )}
           </div>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-4">
-        <div className="text-right">
-          <div className="text-sm font-semibold">
-            {match.scores?.home ?? '-'} - {match.scores?.away ?? '-'}
+          
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant={isBettingEnabled ? "destructive" : "default"}
+              onClick={() => toggleMatchBetting(match)}
+              className="min-w-[100px]"
+            >
+              {isBettingEnabled ? (
+                <>
+                  <ToggleLeft className="h-3 w-3 mr-1" />
+                  Disable
+                </>
+              ) : (
+                <>
+                  <ToggleRight className="h-3 w-3 mr-1" />
+                  Enable
+                </>
+              )}
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => openManageMatch(match)}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Settings
+            </Button>
           </div>
-          <div className="text-xs text-muted-foreground">Score</div>
-        </div>
-        
-        {getStatusBadge(match.status)}
-        
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline">
-            <Settings className="h-3 w-3 mr-1" />
-            Manage
-          </Button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -633,6 +842,115 @@ export const LiveSportsIntegration = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Match Settings Dialog */}
+      <Dialog open={isManageMatchOpen} onOpenChange={setIsManageMatchOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Match Betting Settings</DialogTitle>
+            <DialogDescription>
+              Configure betting parameters for {selectedMatch?.teams?.home} vs {selectedMatch?.teams?.away}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Match Info */}
+            <div className="p-4 bg-background/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold">{selectedMatch?.teams?.home} vs {selectedMatch?.teams?.away}</h4>
+                  <p className="text-sm text-muted-foreground">{selectedMatch?.league}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedMatch?.date ? new Date(selectedMatch.date).toLocaleString() : 'TBD'}
+                  </p>
+                </div>
+                {getStatusBadge(selectedMatch?.status)}
+              </div>
+            </div>
+            
+            {/* Betting Configuration */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="betting-enabled">Enable Betting</Label>
+                  <p className="text-xs text-muted-foreground">Allow users to place bets on this match</p>
+                </div>
+                <Switch 
+                  id="betting-enabled"
+                  checked={bettingConfig.bettingEnabled}
+                  onCheckedChange={(checked) => setBettingConfig(prev => ({ ...prev, bettingEnabled: checked }))}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="min-bet">Minimum Bet Amount (₹)</Label>
+                  <Input 
+                    id="min-bet"
+                    type="number"
+                    value={bettingConfig.minBet}
+                    onChange={(e) => setBettingConfig(prev => ({ ...prev, minBet: Number(e.target.value) }))}
+                    disabled={!bettingConfig.bettingEnabled}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="max-bet">Maximum Bet Amount (₹)</Label>
+                  <Input 
+                    id="max-bet"
+                    type="number"
+                    value={bettingConfig.maxBet}
+                    onChange={(e) => setBettingConfig(prev => ({ ...prev, maxBet: Number(e.target.value) }))}
+                    disabled={!bettingConfig.bettingEnabled}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="commission">Commission Rate (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    id="commission"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={bettingConfig.commissionRate * 100}
+                    onChange={(e) => setBettingConfig(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
+                    disabled={!bettingConfig.bettingEnabled}
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Platform commission on winning bets</p>
+              </div>
+              
+              {/* Betting Status Summary */}
+              {bettingConfig.bettingEnabled && (
+                <Alert className="bg-gaming-success/10 border-gaming-success/20">
+                  <CheckCircle className="h-4 w-4 text-gaming-success" />
+                  <AlertDescription>
+                    Betting is enabled with ₹{bettingConfig.minBet} - ₹{bettingConfig.maxBet} limits and {(bettingConfig.commissionRate * 100).toFixed(2)}% commission
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsManageMatchOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={saveMatchSettings}
+              className="bg-gaming-success text-gaming-success-foreground hover:bg-gaming-success/90"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Save Settings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
