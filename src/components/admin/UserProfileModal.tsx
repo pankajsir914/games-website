@@ -149,10 +149,10 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
                         <Shield className="h-4 w-4 text-gaming-primary" />
                         <div>
                           <p className="font-semibold text-gaming-primary">
-                            {user.creator_name || 'Admin'}
+                            {user.creator_name || 'Admin User'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Admin Account
+                            Admin ID: {user.created_by.slice(0, 8)}...
                           </p>
                         </div>
                       </div>
