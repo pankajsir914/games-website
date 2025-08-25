@@ -6,26 +6,30 @@ interface UserData {
   id: string;
   email: string;
   full_name: string;
-  phone: string;
+  phone?: string;
+  avatar_url?: string;
   created_at: string;
-  last_sign_in_at: string;
+  last_sign_in_at?: string | null;
+  email_confirmed_at?: string | null;
   current_balance: number;
   total_deposits: number;
   total_withdrawals: number;
   games_played: number;
+  status: 'online' | 'recently_active' | 'offline';
+  is_blocked?: boolean;
+  risk_level?: 'low' | 'medium' | 'high';
   created_by?: string;
   creator_name?: string;
-  
-  is_blocked: boolean;
-  risk_level: string;
+  user_role?: string;
 }
 
 interface UsersResponse {
   users: UserData[];
   total_count: number;
   blocked_users: number;
-  
   high_risk_users: number;
+  online_count?: number;
+  recently_active_count?: number;
 }
 
 export const useMasterAdminUsers = () => {
@@ -34,7 +38,46 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
-      // First, get users with admin roles to exclude them
+      try {
+        // Try the new comprehensive function first
+        const { data: allUsersData, error: allUsersError } = await supabase
+          .rpc('get_all_users_for_master_admin');
+
+        if (!allUsersError && allUsersData) {
+          console.log('Fetched users from database:', allUsersData);
+          const usersData = allUsersData as any;
+          
+          return {
+            users: usersData.users || [],
+            total_count: usersData.total_count || 0,
+            blocked_users: 0,
+            high_risk_users: 0,
+            online_count: usersData.online_count || 0,
+            recently_active_count: usersData.recently_active_count || 0
+          } as UsersResponse;
+        }
+
+        // Fallback to existing RPC function
+        const { data: userManagementData, error: userError } = await supabase
+          .rpc('get_users_management_data', {
+            p_limit: 100,
+            p_offset: 0
+          });
+
+        if (!userError && userManagementData && typeof userManagementData === 'object') {
+          const data = userManagementData as any;
+          return {
+            users: data.users || [],
+            total_count: data.total_count || 0,
+            blocked_users: 0,
+            high_risk_users: 0
+          } as UsersResponse;
+        }
+      } catch (error) {
+        console.log('RPC functions not available, falling back to direct queries', error);
+      }
+
+      // Final fallback to direct queries
       const { data: adminUsers } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -64,131 +107,132 @@ export const useMasterAdminUsers = () => {
         .select('user_id, current_balance')
         .in('user_id', profileIds);
 
-      // Get transaction summaries
-      const { data: depositSummary } = await supabase
-        .from('wallet_transactions')
-        .select('user_id, amount')
-        .eq('type', 'credit')
-        .ilike('reason', '%deposit%')
-        .in('user_id', profileIds);
-
-      const { data: withdrawalSummary } = await supabase
-        .from('wallet_transactions')
-        .select('user_id, amount')
-        .eq('type', 'debit')
-        .ilike('reason', '%withdrawal%')
-        .in('user_id', profileIds);
-
-      // Get game activity counts
-      const { data: aviatorBets } = await supabase
-        .from('aviator_bets')
-        .select('user_id')
-        .in('user_id', profileIds);
-
-      const { data: colorBets } = await supabase
-        .from('color_prediction_bets')
-        .select('user_id')
-        .in('user_id', profileIds);
-
-      const { data: andarBets } = await supabase
-        .from('andar_bahar_bets')
-        .select('user_id')
-        .in('user_id', profileIds);
-
-      const { data: rouletteBets } = await supabase
-        .from('roulette_bets')
-        .select('user_id')
-        .in('user_id', profileIds);
-
-      // Create summary maps
       const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
-      
-      const depositMap = new Map();
-      depositSummary?.forEach(d => {
-        depositMap.set(d.user_id, (depositMap.get(d.user_id) || 0) + Number(d.amount));
+
+      // Get transactions summary
+      const { data: deposits } = await supabase
+        .from('wallet_transactions')
+        .select('user_id, amount')
+        .in('user_id', profileIds)
+        .eq('type', 'credit')
+        .ilike('reason', '%deposit%');
+
+      const { data: withdrawals } = await supabase
+        .from('wallet_transactions')
+        .select('user_id, amount')
+        .in('user_id', profileIds)
+        .eq('type', 'debit')
+        .ilike('reason', '%withdraw%');
+
+      // Aggregate deposits and withdrawals by user
+      const depositMap = new Map<string, number>();
+      deposits?.forEach(d => {
+        const current = depositMap.get(d.user_id) || 0;
+        depositMap.set(d.user_id, current + Number(d.amount));
       });
 
-      const withdrawalMap = new Map();
-      withdrawalSummary?.forEach(w => {
-        withdrawalMap.set(w.user_id, (withdrawalMap.get(w.user_id) || 0) + Number(w.amount));
+      const withdrawalMap = new Map<string, number>();
+      withdrawals?.forEach(w => {
+        const current = withdrawalMap.get(w.user_id) || 0;
+        withdrawalMap.set(w.user_id, current + Number(w.amount));
       });
 
-      // Count games played per user
-      const gameCountMap = new Map();
-      [...(aviatorBets || []), ...(colorBets || []), ...(andarBets || []), ...(rouletteBets || [])].forEach(bet => {
-        gameCountMap.set(bet.user_id, (gameCountMap.get(bet.user_id) || 0) + 1);
+      // Get game counts
+      const gameQueries = profileIds.map(async (userId) => {
+        const aviatorCount = supabase
+          .from('aviator_bets')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        const colorCount = supabase
+          .from('color_prediction_bets')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        const andarCount = supabase
+          .from('andar_bahar_bets')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        const rouletteCount = supabase
+          .from('roulette_bets')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        const [aviator, color, andar, roulette] = await Promise.all([
+          aviatorCount,
+          colorCount,
+          andarCount,
+          rouletteCount
+        ]);
+
+        return {
+          userId,
+          count: (aviator.count || 0) + (color.count || 0) + (andar.count || 0) + (roulette.count || 0)
+        };
       });
 
-      // Get total count excluding admin users
-      const totalCountQuery = supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const gameCounts = await Promise.all(gameQueries);
+      const gameCountMap = new Map(gameCounts.map(g => [g.userId, g.count]));
 
-      if (adminUserIds.length > 0) {
-        totalCountQuery.not('id', 'in', `(${adminUserIds.join(',')})`);
-      }
-
-      const { count: totalCount } = await totalCountQuery;
-
-      // Transform the data
-      const users = profiles?.map((profile: any) => ({
+      // Format the data
+      const users = userProfiles.map(profile => ({
         id: profile.id,
-        email: `${profile.full_name?.toLowerCase().replace(/\s+/g, '') || 'user'}@example.com`,
-        full_name: profile.full_name || 'Anonymous User',
+        email: `user${profile.id.slice(0, 8)}@example.com`,
+        full_name: profile.full_name || 'Unknown User',
         phone: profile.phone || '',
+        avatar_url: profile.avatar_url,
         created_at: profile.created_at,
-        last_sign_in_at: profile.updated_at || profile.created_at,
+        last_sign_in_at: null,
         current_balance: walletMap.get(profile.id) || 0,
         total_deposits: depositMap.get(profile.id) || 0,
         total_withdrawals: withdrawalMap.get(profile.id) || 0,
         games_played: gameCountMap.get(profile.id) || 0,
-        
+        status: 'offline' as const,
         is_blocked: false,
-        risk_level: 'low'
-      })) || [];
+        risk_level: 'low' as const,
+        created_by: profile.created_by
+      }));
 
       return {
         users,
-        total_count: totalCount || 0,
-        blocked_users: users.filter(u => u.is_blocked).length,
-        
-        high_risk_users: users.filter(u => u.risk_level === 'high').length
+        total_count: users.length,
+        blocked_users: 0,
+        high_risk_users: 0
       } as UsersResponse;
     },
-    refetchInterval: 60000,
+    refetchInterval: 60000, // Refetch every minute
   });
 
   const updateUserStatus = useMutation({
-    mutationFn: async ({ userId, action, reason }: { 
-      userId: string; 
-      action: 'block' | 'unblock' | 'suspend'; 
-      reason?: string 
-    }) => {
-      // Create an admin alert for user status change since we can't modify auth.users directly
-      const { data, error } = await supabase
+    mutationFn: async ({ userId, action, reason }: { userId: string; action: 'block' | 'unblock' | 'suspend'; reason?: string }) => {
+      // Since we can't directly modify auth.users, we'll create an alert
+      const { error } = await supabase
         .from('admin_alerts')
         .insert({
           alert_type: 'user_action',
           severity: 'medium',
-          title: `User ${action} request`,
-          description: `Request to ${action} user ${userId}. Reason: ${reason || 'No reason provided'}`
+          title: `User ${action} requested`,
+          description: `Action: ${action} for user ${userId}. Reason: ${reason || 'No reason provided'}`,
+          data: { userId, action, reason }
         });
 
       if (error) throw error;
-      return { success: true, userId, action };
+
+      return { success: true };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-admin-users'] });
       toast({
-        title: "User status updated",
-        description: `User has been ${variables.action}ed successfully.`,
+        title: 'Success',
+        description: 'User status update request logged',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Update failed",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });

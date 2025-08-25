@@ -2665,6 +2665,10 @@ export type Database = {
         Args: { _admin_id?: string }
         Returns: number
       }
+      get_all_users_for_master_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_current_jackpot_round: {
         Args: Record<PropertyKey, never>
         Returns: Json
