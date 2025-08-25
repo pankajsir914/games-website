@@ -131,30 +131,6 @@ export const AddMoneyModal = ({ open, onOpenChange }: AddMoneyModalProps) => {
             <p className="text-xs text-muted-foreground">Minimum: 100 points</p>
           </div>
 
-          <Separator />
-
-          <Card className="bg-gradient-to-br from-gaming-primary/10 to-gaming-secondary/10">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">Bonus Points</span>
-                <Gift className="h-4 w-4 text-gaming-gold" />
-              </div>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span>Add 1000+ points</span>
-                  <span className="text-gaming-success">+5% bonus</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Add 5000+ points</span>
-                  <span className="text-gaming-success">+10% bonus</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Add 10000+ points</span>
-                  <span className="text-gaming-gold font-bold">+15% bonus</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {amount && parseInt(amount) >= 100 && (
             <Card className="bg-gaming-primary/5">
