@@ -1737,6 +1737,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          requires_password_change: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -1746,6 +1747,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          requires_password_change?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -1755,6 +1757,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          requires_password_change?: boolean | null
           updated_at?: string | null
         }
         Relationships: []

@@ -79,7 +79,7 @@ serve(async (req) => {
 
     const newUserId = authUser.user.id;
 
-    // Create profile
+    // Create profile with password change required flag
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .upsert(
@@ -88,6 +88,7 @@ serve(async (req) => {
           full_name: fullName,
           phone: phone || null,
           created_by: caller.user.id,
+          requires_password_change: true, // Require password change on first login
         },
         { onConflict: "id" }
       );

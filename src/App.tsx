@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { PasswordChangeWrapper } from "@/components/auth/PasswordChangeWrapper";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Games from "./pages/Games";
@@ -46,12 +47,13 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <MasterAdminAuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
+      <PasswordChangeWrapper>
+        <MasterAdminAuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/games" element={<Games />} />
@@ -165,6 +167,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </MasterAdminAuthProvider>
+    </PasswordChangeWrapper>
     </AuthProvider>
   </QueryClientProvider>
 );
