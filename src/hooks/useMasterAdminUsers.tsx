@@ -34,41 +34,6 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
-      try {
-        // First, get admin users to exclude from the RPC call results too
-        const { data: adminUsers } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .in('role', ['admin', 'master_admin']);
-
-        const adminUserIds = adminUsers?.map(u => u.user_id) || [];
-
-        // Use the comprehensive user management function if available
-        const { data: userManagementData, error: userError } = await supabase
-          .rpc('get_users_management_data', {
-            p_limit: 100,
-            p_offset: 0
-          });
-
-        if (!userError && userManagementData && typeof userManagementData === 'object') {
-          const data = userManagementData as any;
-          // Filter out admin users from the results
-          const filteredUsers = (data.users || []).filter((user: any) => 
-            !adminUserIds.includes(user.id)
-          );
-          
-          return {
-            users: filteredUsers,
-            total_count: filteredUsers.length,
-            blocked_users: filteredUsers.filter((u: any) => u.is_blocked).length,
-            high_risk_users: filteredUsers.filter((u: any) => u.risk_level === 'high').length
-          } as UsersResponse;
-        }
-      } catch (error) {
-        console.log('RPC function not available, falling back to direct queries');
-      }
-
-      // Fallback to direct queries if RPC function is not available
       // First, get users with admin roles to exclude them
       const { data: adminUsers } = await supabase
         .from('user_roles')
@@ -77,24 +42,21 @@ export const useMasterAdminUsers = () => {
 
       const adminUserIds = adminUsers?.map(u => u.user_id) || [];
 
-      // Get profiles excluding admin users
-      const profileQuery = supabase
+      // Get all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
+        .order('created_at', { ascending: false })
         .limit(100);
-
-      if (adminUserIds.length > 0) {
-        profileQuery.not('id', 'in', `(${adminUserIds.join(',')})`);
-      }
-
-      const { data: profiles, error: profilesError } = await profileQuery;
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;
       }
 
-      const profileIds = profiles?.map(p => p.id) || [];
+      // Filter out admin users from profiles
+      const userProfiles = profiles?.filter(p => !adminUserIds.includes(p.id)) || [];
+      const profileIds = userProfiles.map(p => p.id);
 
       // Get wallet data
       const { data: wallets } = await supabase
