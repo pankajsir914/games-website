@@ -141,6 +141,35 @@ function getCricketFallbackUrls(): string[] {
 function normalizeItem(sport: Sport, item: any) {
   // CricAPI normalization and API-SPORTS cricket support
   if (sport === 'cricket') {
+    // SportMonks cricket (v2) shape
+    if (item && (item.localteam || item.visitorteam)) {
+      const homeName = item.localteam?.name || item.localteam?.short_code || 'Home';
+      const awayName = item.visitorteam?.name || item.visitorteam?.short_code || 'Away';
+      const status = item.status?.name || item.status || item.state?.state || 'N/A';
+      const date = item.starting_at || item.starting_at_timestamp || item.starting_at_date || item.date || null;
+
+      let scoreHome: number | null = null;
+      let scoreAway: number | null = null;
+      if (Array.isArray(item.runs)) {
+        const homeRun = item.runs.find((r: any) => r.team_id === item.localteam_id);
+        const awayRun = item.runs.find((r: any) => r.team_id === item.visitorteam_id);
+        const getTotal = (r: any) => (r?.score?.total ?? r?.total ?? r?.runs ?? null);
+        scoreHome = homeRun ? getTotal(homeRun) : null;
+        scoreAway = awayRun ? getTotal(awayRun) : null;
+      }
+
+      return {
+        sport,
+        id: item.id || null,
+        date,
+        league: item.league?.name || 'Cricket',
+        venue: item.venue?.name || null,
+        status,
+        teams: { home: homeName, away: awayName },
+        scores: { home: scoreHome, away: scoreAway },
+        raw: item,
+      };
+    }
     // If this looks like API-SPORTS shape, reuse default normalization
     if (item && (item.fixture || item.game || item.match)) {
       const fixture = item.fixture || item.game || item.match || {};
@@ -404,7 +433,7 @@ const key = `${s}:${k}:${q.date || 'any'}`;
 if (s !== 'cricket' && !API_KEY) {
   const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
 }
-if (s === 'cricket' && !API_KEY && !CRICAPI_KEY) {
+if (s === 'cricket' && !SPORTMONKS_API_TOKEN && !API_KEY && !CRICAPI_KEY) {
   const err: any = new Error('No cricket provider keys configured'); err.status = 500; throw err;
 }
       
@@ -417,30 +446,55 @@ const headers = s === 'cricket'
 let normalized: any[] = [];
 
 if (s === 'cricket') {
-  // Prefer API-SPORTS Cricket first
-  const cricketFixturesUrl = (() => {
-    const u = new URL(CRICKET_APISPORTS_BASE + '/fixtures');
-    if (k === 'live') u.searchParams.set('live', 'all');
-    else if (k === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
-    else if (k === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
-    return u.toString();
-  })();
+  // Try SportMonks (v2) first if configured
+  if (SPORTMONKS_API_TOKEN) {
+    const sportMonksUrl = (() => {
+      const u = new URL('https://cricket.sportmonks.com/api/v2.0/fixtures');
+      u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
+      u.searchParams.set('include', 'localteam,visitorteam,league,venue,runs');
+      return u.toString();
+    })();
 
-  const apisportsHeaders: Record<string,string> = { 'x-apisports-key': API_KEY, 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
-  const cricapiHeaders: Record<string,string> = { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
-
-  try {
-    console.log(`Fetching cricket (API-SPORTS) from: ${cricketFixturesUrl}`);
-    const upstream = await doFetch(cricketFixturesUrl, apisportsHeaders);
-    const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
-    console.log(`cricket API-SPORTS list length:`, list.length);
-    if (list.length > 0) {
-      normalized = list.map((it) => normalizeItem(s, it));
-      console.log(`cricket API-SPORTS normalized:`, normalized.length, 'items');
+    try {
+      console.log(`Fetching cricket (SportMonks) from: ${sportMonksUrl.replace(/api_token=[^&]+/, 'api_token=***')}`);
+      const upstream = await doFetch(sportMonksUrl);
+      const list: any[] = Array.isArray(upstream?.data) ? upstream.data : [];
+      console.log(`cricket SportMonks list length:`, list.length);
+      if (list.length > 0) {
+        normalized = list.map((it) => normalizeItem(s, it));
+        console.log(`cricket SportMonks normalized:`, normalized.length, 'items');
+      }
+    } catch (e) {
+      console.log('SportMonks cricket fetch failed:', e);
     }
-  } catch (e) {
-    console.log('API-SPORTS cricket fetch failed:', e);
   }
+
+  // Prefer API-SPORTS Cricket if no SportMonks data
+  if (!normalized.length) {
+    const cricketFixturesUrl = (() => {
+      const u = new URL(CRICKET_APISPORTS_BASE + '/fixtures');
+      if (k === 'live') u.searchParams.set('live', 'all');
+      else if (k === 'upcoming') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('next', '50'); }
+      else if (k === 'results') { if (q.date) u.searchParams.set('date', q.date); else u.searchParams.set('last', '50'); }
+      return u.toString();
+    })();
+
+    const apisportsHeaders: Record<string,string> = { 'x-apisports-key': API_KEY, 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
+    try {
+      console.log(`Fetching cricket (API-SPORTS) from: ${cricketFixturesUrl}`);
+      const upstream = await doFetch(cricketFixturesUrl, apisportsHeaders);
+      const list: any[] = upstream?.response || upstream?.results || upstream?.data || [];
+      console.log(`cricket API-SPORTS list length:`, list.length);
+      if (list.length > 0) {
+        normalized = list.map((it) => normalizeItem(s, it));
+        console.log(`cricket API-SPORTS normalized:`, normalized.length, 'items');
+      }
+    } catch (e) {
+      console.log('API-SPORTS cricket fetch failed:', e);
+    }
+  }
+
+  const cricapiHeaders: Record<string,string> = { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
 
   // Fallback to CricAPI if API-SPORTS empty or failed
   if (!normalized.length) {
