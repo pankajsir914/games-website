@@ -69,6 +69,17 @@ export const LiveSportsIntegration = () => {
   const [sportsProviders, setSportsProviders] = useState([
     {
       id: 1,
+      name: 'EntitySport',
+      sport: 'Cricket',
+      status: 'connected',
+      events: 0,
+      lastSync: 'Never',
+      reliability: 99.9,
+      cost: 'Premium',
+      endpoint: 'https://restapi.entitysport.com/v2'
+    },
+    {
+      id: 2,
       name: 'SportMonks',
       sport: 'Cricket',
       status: 'connected',
@@ -79,7 +90,7 @@ export const LiveSportsIntegration = () => {
       endpoint: 'https://cricket.sportmonks.com/api/v2.0'
     },
     {
-      id: 2,
+      id: 3,
       name: 'CricAPI',
       sport: 'Cricket', 
       status: 'connected',
@@ -90,7 +101,7 @@ export const LiveSportsIntegration = () => {
       endpoint: 'https://api.cricapi.com/v1'
     },
     {
-      id: 3,
+      id: 4,
       name: 'API-SPORTS (Football)',
       sport: 'Football',
       status: 'connected',
@@ -101,7 +112,7 @@ export const LiveSportsIntegration = () => {
       endpoint: 'https://api-football-v1.p.rapidapi.com/v3'
     },
     {
-      id: 4,
+      id: 5,
       name: 'API-SPORTS (Hockey)',
       sport: 'Hockey',
       status: 'connected',

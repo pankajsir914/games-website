@@ -436,7 +436,7 @@ const key = `${s}:${k}:${q.date || 'any'}`;
 if (s !== 'cricket' && !API_KEY) {
   const err: any = new Error('Sports API key not configured'); err.status = 500; throw err;
 }
-if (s === 'cricket' && !SPORTMONKS_API_TOKEN && !API_KEY && !CRICAPI_KEY) {
+if (s === 'cricket' && !ENTITYSPORT_API_TOKEN && !SPORTMONKS_API_TOKEN && !API_KEY && !CRICAPI_KEY) {
   const err: any = new Error('No cricket provider keys configured'); err.status = 500; throw err;
 }
       
@@ -449,8 +449,45 @@ const headers = s === 'cricket'
 let normalized: any[] = [];
 
 if (s === 'cricket') {
-  // Try SportMonks (v2) first if configured
-  if (SPORTMONKS_API_TOKEN) {
+  // Try EntitySport first (priority provider)
+  if (ENTITYSPORT_API_TOKEN) {
+    try {
+      const statusMap: Record<Kind, string> = { live: '1', upcoming: '2', results: '3' };
+      const esUrl = new URL(`${ENTITYSPORT_BASE}/matches/`);
+      esUrl.searchParams.set('token', ENTITYSPORT_API_TOKEN);
+      esUrl.searchParams.set('status', statusMap[k]);
+      esUrl.searchParams.set('per_page', '50');
+      if (q.date) esUrl.searchParams.set('date', q.date);
+      const masked = esUrl.toString().replace(/token=[^&]+/, 'token=***');
+      console.log(`Fetching cricket (EntitySport) from: ${masked}`);
+      const upstream = await doFetch(esUrl.toString());
+      const list: any[] = upstream?.response?.items || upstream?.response || upstream?.data?.items || upstream?.data || upstream?.items || [];
+      console.log(`cricket EntitySport raw response:`, JSON.stringify(upstream).slice(0, 500));
+      console.log(`cricket EntitySport list length:`, list.length);
+      if (list.length > 0) {
+        const transformed = list.map((m: any) => ({
+          id: m.match_id || m.eid || m.id,
+          date: m.date_start_ist || m.date_start || m.timestamp_start || m.date || null,
+          status: m.status_str || m.status || m.live_status || 'N/A',
+          league: (m.competition && (m.competition.title || m.competition.name)) || (m.season && m.season.name) || m.tournament?.name || 'Cricket',
+          venue: (m.venue && (m.venue.name || m.venue.venue)) || null,
+          teamInfo: [
+            { name: m.teama?.name || m.team_a?.name, shortname: m.teama?.short_name || m.team_a?.short_name },
+            { name: m.teamb?.name || m.team_b?.name, shortname: m.teamb?.short_name || m.team_b?.short_name },
+          ],
+          t1s: m.teama_scores || m.team_a_scores,
+          t2s: m.teamb_scores || m.team_b_scores,
+        }));
+        normalized = transformed.map((it: any) => normalizeItem(s, it));
+        console.log(`cricket EntitySport normalized:`, normalized.length, 'items');
+      }
+    } catch (e) {
+      console.log('EntitySport cricket fetch failed:', e);
+    }
+  }
+
+  // Try SportMonks (v2) if no EntitySport data
+  if (!normalized.length && SPORTMONKS_API_TOKEN) {
     const sportMonksUrl = (() => {
       const u = new URL('https://cricket.sportmonks.com/api/v2.0/fixtures');
       u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
@@ -472,7 +509,7 @@ if (s === 'cricket') {
     }
   }
 
-  // Prefer API-SPORTS Cricket if no SportMonks data
+  // Prefer API-SPORTS Cricket if no data yet
   if (!normalized.length) {
     const cricketFixturesUrl = (() => {
       const u = new URL(CRICKET_APISPORTS_BASE + '/fixtures');
@@ -494,41 +531,6 @@ if (s === 'cricket') {
       }
     } catch (e) {
       console.log('API-SPORTS cricket fetch failed:', e);
-    }
-  }
-  // Try EntitySport if still empty
-  if (!normalized.length && ENTITYSPORT_API_TOKEN) {
-    try {
-      const statusMap: Record<Kind, string> = { live: '1', upcoming: '2', results: '3' };
-      const esUrl = new URL(`${ENTITYSPORT_BASE}/matches/`);
-      esUrl.searchParams.set('token', ENTITYSPORT_API_TOKEN);
-      esUrl.searchParams.set('status', statusMap[k]);
-      esUrl.searchParams.set('per_page', '50');
-      if (q.date) esUrl.searchParams.set('date', q.date);
-      const masked = esUrl.toString().replace(/token=[^&]+/, 'token=***');
-      console.log(`Fetching cricket (EntitySport) from: ${masked}`);
-      const upstream = await doFetch(esUrl.toString());
-      const list: any[] = upstream?.response?.items || upstream?.response || upstream?.data?.items || upstream?.data || upstream?.items || [];
-      console.log(`cricket EntitySport list length:`, list.length);
-      if (list.length > 0) {
-        const transformed = list.map((m: any) => ({
-          id: m.match_id || m.eid || m.id,
-          date: m.date_start_ist || m.date_start || m.timestamp_start || m.date || null,
-          status: m.status_str || m.status || m.live_status || 'N/A',
-          league: (m.competition && (m.competition.title || m.competition.name)) || (m.season && m.season.name) || m.tournament?.name || 'Cricket',
-          venue: (m.venue && (m.venue.name || m.venue.venue)) || null,
-          teamInfo: [
-            { name: m.teama?.name || m.team_a?.name, shortname: m.teama?.short_name || m.team_a?.short_name },
-            { name: m.teamb?.name || m.team_b?.name, shortname: m.teamb?.short_name || m.team_b?.short_name },
-          ],
-          t1s: m.teama_scores || m.team_a_scores,
-          t2s: m.teamb_scores || m.team_b_scores,
-        }));
-        normalized = transformed.map((it: any) => normalizeItem(s, it));
-        console.log(`cricket EntitySport normalized:`, normalized.length, 'items');
-      }
-    } catch (e) {
-      console.log('EntitySport cricket fetch failed:', e);
     }
   }
 
