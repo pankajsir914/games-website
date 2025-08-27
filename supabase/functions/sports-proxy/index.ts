@@ -19,12 +19,14 @@ const API_KEY = Deno.env.get('SPORTS_API_KEY') || '';
 const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY');
 const SPORTMONKS_API_TOKEN = Deno.env.get('SPORTMONKS_API_TOKEN') || '';
 const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY') || '';
+const ENTITYSPORT_API_TOKEN = Deno.env.get('ENTITYSPORT_API_TOKEN') || '';
 
 console.log('API Keys Status:', {
   SPORTS_API_KEY: API_KEY ? 'configured' : 'missing',
   CRICAPI_KEY: CRICAPI_KEY ? 'configured' : 'missing',
   SPORTMONKS_API_TOKEN: SPORTMONKS_API_TOKEN ? 'configured' : 'missing',
-  ODDS_API_KEY: ODDS_API_KEY ? 'configured' : 'missing'
+  ODDS_API_KEY: ODDS_API_KEY ? 'configured' : 'missing',
+  ENTITYSPORT_API_TOKEN: ENTITYSPORT_API_TOKEN ? 'configured' : 'missing',
 });
 
 // API Base URLs
@@ -37,6 +39,7 @@ const BASKETBALL_BASE = Deno.env.get('SPORTS_API_BASKETBALL_BASE') || 'https://v
 const TENNIS_BASE = Deno.env.get('SPORTS_API_TENNIS_BASE') || 'https://v1.tennis.api-sports.io';
 const BASEBALL_BASE = Deno.env.get('SPORTS_API_BASEBALL_BASE') || 'https://v1.baseball.api-sports.io';
 const CRICKET_APISPORTS_BASE = Deno.env.get('SPORTS_API_CRICKET_BASE') || 'https://v1.cricket.api-sports.io';
+const ENTITYSPORT_BASE = 'https://restapi.entitysport.com/v2';
 const DEFAULT_TTL = Number(Deno.env.get('SPORTS_CACHE_TTL') || '10'); // seconds
 
 const BASES: Record<Sport, string> = {
@@ -493,9 +496,43 @@ if (s === 'cricket') {
       console.log('API-SPORTS cricket fetch failed:', e);
     }
   }
+  // Try EntitySport if still empty
+  if (!normalized.length && ENTITYSPORT_API_TOKEN) {
+    try {
+      const statusMap: Record<Kind, string> = { live: '1', upcoming: '2', results: '3' };
+      const esUrl = new URL(`${ENTITYSPORT_BASE}/matches/`);
+      esUrl.searchParams.set('token', ENTITYSPORT_API_TOKEN);
+      esUrl.searchParams.set('status', statusMap[k]);
+      esUrl.searchParams.set('per_page', '50');
+      if (q.date) esUrl.searchParams.set('date', q.date);
+      const masked = esUrl.toString().replace(/token=[^&]+/, 'token=***');
+      console.log(`Fetching cricket (EntitySport) from: ${masked}`);
+      const upstream = await doFetch(esUrl.toString());
+      const list: any[] = upstream?.response?.items || upstream?.response || upstream?.data?.items || upstream?.data || upstream?.items || [];
+      console.log(`cricket EntitySport list length:`, list.length);
+      if (list.length > 0) {
+        const transformed = list.map((m: any) => ({
+          id: m.match_id || m.eid || m.id,
+          date: m.date_start_ist || m.date_start || m.timestamp_start || m.date || null,
+          status: m.status_str || m.status || m.live_status || 'N/A',
+          league: (m.competition && (m.competition.title || m.competition.name)) || (m.season && m.season.name) || m.tournament?.name || 'Cricket',
+          venue: (m.venue && (m.venue.name || m.venue.venue)) || null,
+          teamInfo: [
+            { name: m.teama?.name || m.team_a?.name, shortname: m.teama?.short_name || m.team_a?.short_name },
+            { name: m.teamb?.name || m.team_b?.name, shortname: m.teamb?.short_name || m.team_b?.short_name },
+          ],
+          t1s: m.teama_scores || m.team_a_scores,
+          t2s: m.teamb_scores || m.team_b_scores,
+        }));
+        normalized = transformed.map((it: any) => normalizeItem(s, it));
+        console.log(`cricket EntitySport normalized:`, normalized.length, 'items');
+      }
+    } catch (e) {
+      console.log('EntitySport cricket fetch failed:', e);
+    }
+  }
 
   const cricapiHeaders: Record<string,string> = { 'accept': 'application/json', 'user-agent': 'supabase-edge/1.0' };
-
   // Fallback to CricAPI if API-SPORTS empty or failed
   if (!normalized.length) {
     const cricapiUrlMasked = url.replace(/apikey=[^&]+/, 'apikey=***');
