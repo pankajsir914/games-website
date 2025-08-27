@@ -634,52 +634,9 @@ if (s === 'cricket') {
         return normalized;
       } catch (error) {
         console.error(`Error fetching ${s} data:`, error);
-        // Return mock data for any sport if API fails
-        console.log(`Returning mock ${s} data due to API error`);
-        
-        const getMockTeams = (sport: string) => {
-          const teams = {
-            cricket: [['India', 'IND'], ['Australia', 'AUS'], ['England', 'ENG'], ['South Africa', 'SA']],
-            football: [['Real Madrid', 'RM'], ['Barcelona', 'BAR'], ['Manchester United', 'MU'], ['Liverpool', 'LIV']],
-            basketball: [['Lakers', 'LAL'], ['Warriors', 'GSW'], ['Bulls', 'CHI'], ['Heat', 'MIA']],
-            tennis: [['Djokovic', 'DJO'], ['Nadal', 'NAD'], ['Federer', 'FED'], ['Murray', 'MUR']],
-            hockey: [['Rangers', 'NYR'], ['Bruins', 'BOS'], ['Kings', 'LAK'], ['Hawks', 'CHI']],
-            kabaddi: [['Patna Pirates', 'PAT'], ['Bengal Warriors', 'BEN'], ['Dabang Delhi', 'DEL'], ['Jaipur Pink Panthers', 'JAI']],
-            baseball: [['Yankees', 'NYY'], ['Red Sox', 'BOS'], ['Dodgers', 'LAD'], ['Giants', 'SF']],
-            'table-tennis': [['China', 'CHN'], ['Japan', 'JPN'], ['Germany', 'GER'], ['Sweden', 'SWE']],
-            boxing: [['Fighter A', 'FA'], ['Fighter B', 'FB'], ['Champion X', 'CX'], ['Challenger Y', 'CY']]
-          };
-          return teams[sport] || teams.football;
-        };
-        
-        const sportTeams = getMockTeams(s);
-        const mockData = [
-          {
-            id: '1',
-            date: new Date().toISOString(),
-            status: k === 'live' ? 'Live' : k === 'upcoming' ? 'Not Started' : 'Result',
-            series: `${s.charAt(0).toUpperCase() + s.slice(1)} Championship`,
-            venue: `${s.charAt(0).toUpperCase() + s.slice(1)} Arena`,
-            teamInfo: [
-              { name: sportTeams[0][0], shortname: sportTeams[0][1] },
-              { name: sportTeams[1][0], shortname: sportTeams[1][1] }
-            ],
-            score: k === 'results' ? [{ r: Math.floor(Math.random() * 300) + 100 }, { r: Math.floor(Math.random() * 300) + 100 }] : null
-          },
-          {
-            id: '2',
-            date: new Date(Date.now() + 86400000).toISOString(),
-            status: k === 'live' ? 'Live' : k === 'upcoming' ? 'Fixture' : 'Completed',
-            series: `${s.charAt(0).toUpperCase() + s.slice(1)} League`,
-            venue: `${s.charAt(0).toUpperCase() + s.slice(1)} Stadium`,
-            teamInfo: [
-              { name: sportTeams[2][0], shortname: sportTeams[2][1] },
-              { name: sportTeams[3][0], shortname: sportTeams[3][1] }
-            ],
-            score: k === 'results' ? [{ r: Math.floor(Math.random() * 300) + 100 }, { r: Math.floor(Math.random() * 300) + 100 }] : null
-          }
-        ];
-        return mockData.map((it) => normalizeItem(s, it));
+        // Return empty array instead of mock data when API fails
+        console.log(`Returning empty data for ${s} due to API error`);
+        return [];
       }
     });
 
