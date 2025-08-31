@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ArrowLeft,
   Activity, 
@@ -12,10 +13,14 @@ import {
   DollarSign,
   Zap,
   RefreshCw,
-  ShoppingCart
+  ShoppingCart,
+  TrendingUp,
+  Globe,
+  Info
 } from 'lucide-react';
-import { useSportsOdds } from '@/hooks/useSportsOdds';
+import { useSportsOdds, type BettingOdds } from '@/hooks/useSportsOdds';
 import { BetfairOddsCard } from '@/components/sports/BetfairOddsCard';
+import { BetfairLadderCard } from '@/components/sports/BetfairLadderCard';
 import { BettingInterface } from '@/components/sports/BettingInterface';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -79,7 +84,7 @@ const MatchBetting: React.FC = () => {
     });
   };
 
-  const handleBet = (selection: string, odds: number, type: 'back' | 'lay' = 'back') => {
+  const handleBet = (selection: string, odds: number, type: 'back' | 'lay' = 'back', size?: number) => {
     const betId = `${matchId}-${selection}-${type}-${Date.now()}`;
     const newBet: BetSlip = {
       id: betId,
@@ -89,8 +94,8 @@ const MatchBetting: React.FC = () => {
       selection,
       odds,
       bookmaker: 'Betfair Exchange',
-      stake: 10,
-      potentialWin: 10 * odds,
+      stake: size ? Math.min(size, 100) : 10,
+      potentialWin: (size ? Math.min(size, 100) : 10) * odds,
       isExchange: true,
       type
     };
@@ -100,7 +105,7 @@ const MatchBetting: React.FC = () => {
     
     toast({
       title: "Added to Bet Slip",
-      description: `${selection} @ ${odds}`,
+      description: `${selection} @ ${odds} ${type === 'lay' ? '(Lay)' : '(Back)'}`,
     });
   };
 
@@ -282,24 +287,30 @@ const MatchBetting: React.FC = () => {
         </Alert>
 
         {/* Odds Display */}
-        <div className="space-y-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading odds...</p>
-            </div>
-          ) : error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : !matchData ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <p className="text-muted-foreground">No odds available for this match</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="max-w-3xl mx-auto space-y-6">
+        {loading ? (
+          <div className="text-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading odds...</p>
+          </div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : !matchData ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-muted-foreground">No odds available for this match</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview">Quick Bet</TabsTrigger>
+              <TabsTrigger value="ladders">Full Market Depth</TabsTrigger>
+              <TabsTrigger value="details">Market Info</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
               <BetfairOddsCard
                 matchId={matchId || ''}
                 homeTeam={homeTeam || matchData.home_team || 'Home Team'}
@@ -312,49 +323,174 @@ const MatchBetting: React.FC = () => {
                 onBet={handleBet}
                 featured={true}
               />
+            </TabsContent>
 
-              {/* Betfair market details */}
-              {matchData?.betfair && (
+            <TabsContent value="ladders" className="space-y-4">
+              {matchData?.bookmakers?.[0]?.markets?.[0]?.outcomes?.map((outcome: any) => (
+                <BetfairLadderCard
+                  key={outcome.name}
+                  runnerName={outcome.name}
+                  backLadder={outcome.backLadder || []}
+                  layLadder={outcome.layLadder || []}
+                  lastPriceTraded={outcome.lastPriceTraded}
+                  totalMatched={outcome.totalMatched}
+                  tradedVolume={outcome.tradedVolume}
+                  onBet={handleBet}
+                />
+              ))}
+            </TabsContent>
+
+            <TabsContent value="details" className="space-y-4">
+              {/* Event Details */}
+              {matchData?.betfair?.event && (
                 <Card>
-                  <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Event Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Competition</p>
-                      <p className="font-medium">{matchData?.competition || matchData?.betfair?.competition?.name || '—'}</p>
+                      <p className="text-muted-foreground">Event Name</p>
+                      <p className="font-medium">{matchData.betfair.event.name || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Event ID</p>
+                      <p className="font-mono text-xs">{matchData.betfair.event.id || '—'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Venue</p>
-                      <p className="font-medium">{matchData?.betfair?.event?.venue || '—'}</p>
+                      <p className="font-medium">{matchData.betfair.event.venue || '—'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Country</p>
-                      <p className="font-medium">{matchData?.betfair?.event?.countryCode || '—'}</p>
+                      <p className="font-medium">{matchData.betfair.event.countryCode || '—'}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Market Status</p>
-                      <p className="font-medium capitalize">{matchData?.betfair?.marketBook?.status?.toLowerCase() || '—'}</p>
+                      <p className="text-muted-foreground">Timezone</p>
+                      <p className="font-medium">{matchData.betfair.event.timezone || '—'}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">In-Play</p>
-                      <p className="font-medium">{matchData?.betfair?.marketBook?.inplay ? 'Yes' : 'No'}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Total Matched</p>
-                      <p className="font-medium">{matchData?.betfair?.marketBook?.totalMatched?.toLocaleString() || '0'}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Total Available</p>
-                      <p className="font-medium">{matchData?.betfair?.marketBook?.totalAvailable?.toLocaleString() || '0'}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Bet Delay</p>
-                      <p className="font-medium">{matchData?.betfair?.marketBook?.betDelay ?? 0}s</p>
+                      <p className="text-muted-foreground">Open Date</p>
+                      <p className="font-medium">
+                        {matchData.betfair.event.openDate 
+                          ? new Date(matchData.betfair.event.openDate).toLocaleString()
+                          : '—'}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               )}
-            </div>
-          )}
-        </div>
+
+              {/* Market Details */}
+              {matchData?.betfair?.market && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Market Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Market Name</p>
+                      <p className="font-medium">{matchData.betfair.market.name || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Market ID</p>
+                      <p className="font-mono text-xs">{matchData.betfair.market.id || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Market Type</p>
+                      <p className="font-medium">{matchData.betfair.market.type || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Start Time</p>
+                      <p className="font-medium">
+                        {matchData.betfair.market.startTime 
+                          ? new Date(matchData.betfair.market.startTime).toLocaleString()
+                          : '—'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Market Book Details */}
+              {matchData?.betfair?.marketBook && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Activity className="h-4 w-4" />
+                      Live Market Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Status</p>
+                      <Badge variant={matchData.betfair.marketBook.status === 'OPEN' ? 'default' : 'secondary'}>
+                        {matchData.betfair.marketBook.status || '—'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">In-Play</p>
+                      <Badge variant={matchData.betfair.marketBook.inplay ? 'destructive' : 'outline'}>
+                        {matchData.betfair.marketBook.inplay ? 'Yes' : 'No'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Matched</p>
+                      <p className="font-bold text-lg">
+                        ${(matchData.betfair.marketBook.totalMatched / 1000).toFixed(1)}K
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Available</p>
+                      <p className="font-bold text-lg">
+                        ${(matchData.betfair.marketBook.totalAvailable / 1000).toFixed(1)}K
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Bet Delay</p>
+                      <p className="font-medium">{matchData.betfair.marketBook.betDelay || 0} seconds</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Last Match Time</p>
+                      <p className="font-medium">
+                        {matchData.betfair.marketBook.lastMatchTime 
+                          ? new Date(matchData.betfair.marketBook.lastMatchTime).toLocaleTimeString()
+                          : '—'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Competition Details */}
+              {matchData?.betfair?.competition && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      Competition
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Competition Name</p>
+                      <p className="font-medium">{matchData.betfair.competition.name || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Competition ID</p>
+                      <p className="font-mono text-xs">{matchData.betfair.competition.id || '—'}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </main>
 
       {/* Betting Interface */}
