@@ -4,6 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 export interface BettingOdds {
   matchId: string;
   sport: string;
+  home_team?: string;
+  away_team?: string;
+  exchange?: boolean;
+  liquidity?: number;
+  competition?: string;
+  event?: string;
   bookmakers: Array<{
     key: string;
     title: string;
@@ -12,8 +18,15 @@ export interface BettingOdds {
       last_update: string;
       outcomes: Array<{
         name: string;
-        price: number;
+        price?: number;
         point?: number;
+        // Betfair specific fields
+        backPrice?: number;
+        layPrice?: number;
+        backSize?: number;
+        laySize?: number;
+        totalMatched?: number;
+        lastPriceTraded?: number;
       }>;
     }>;
   }>;
@@ -51,6 +64,7 @@ export function useSportsOdds() {
       region?: string;
       markets?: string[];
       bookmakers?: string[];
+      provider?: 'odds-api' | 'betfair' | 'mock';
     }
   ): Promise<BettingOdds[]> => {
     setLoading(true);
@@ -64,6 +78,7 @@ export function useSportsOdds() {
           region: options?.region || 'us',
           markets: options?.markets || ['h2h', 'spreads', 'totals'],
           bookmakers: options?.bookmakers,
+          provider: options?.provider,
         }
       });
 
@@ -84,6 +99,12 @@ export function useSportsOdds() {
       return data.data.map((event: any) => ({
         matchId: event.id || matchId,
         sport,
+        home_team: event.home_team,
+        away_team: event.away_team,
+        exchange: event.exchange,
+        liquidity: event.liquidity,
+        competition: event.competition,
+        event: event.event,
         bookmakers: event.bookmakers || [],
         odds: event.odds,
         lastUpdate: event.lastUpdate || new Date().toISOString(),

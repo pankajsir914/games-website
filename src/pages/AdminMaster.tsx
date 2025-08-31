@@ -40,6 +40,7 @@ import { PromotionsNotifications } from '@/components/admin/master/PromotionsNot
 import { ContentManagement } from '@/components/admin/master/ContentManagement';
 import { TeamManagement } from '@/components/admin/master/TeamManagement';
 import { LiveSportsIntegration } from '@/components/admin/master/LiveSportsIntegration';
+import { BetfairTestingDashboard } from '@/components/admin/master/BetfairTestingDashboard';
 import { MobileRestriction } from '@/components/MobileRestriction';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 
@@ -299,7 +300,18 @@ const AdminMaster = () => {
           </TabsContent>
 
           <TabsContent value="sports" className="space-y-6">
-            <LiveSportsIntegration />
+            <Tabs defaultValue="integration" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="integration">Live Sports Integration</TabsTrigger>
+                <TabsTrigger value="betfair">Betfair Testing</TabsTrigger>
+              </TabsList>
+              <TabsContent value="integration">
+                <LiveSportsIntegration />
+              </TabsContent>
+              <TabsContent value="betfair">
+                <BetfairTestingDashboard />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>
