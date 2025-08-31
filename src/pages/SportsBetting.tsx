@@ -20,26 +20,12 @@ import {
   Users
 } from 'lucide-react';
 import { useSportsOdds } from '@/hooks/useSportsOdds';
-import { BetfairOddsCard } from '@/components/sports/BetfairOddsCard';
-import { BettingInterface } from '@/components/sports/BettingInterface';
+import { MatchListCard } from '@/components/sports/MatchListCard';
+
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const sportsList = ['football', 'cricket', 'tennis', 'basketball', 'horse-racing'];
-
-interface BetSlip {
-  id: string;
-  matchId: string;
-  homeTeam: string;
-  awayTeam: string;
-  selection: string;
-  odds: number;
-  bookmaker: string;
-  stake: number;
-  potentialWin: number;
-  isExchange?: boolean;
-  type: 'back' | 'lay';
-}
 
 const SportsBetting: React.FC = () => {
   const navigate = useNavigate();
@@ -48,8 +34,6 @@ const SportsBetting: React.FC = () => {
   
   const [selectedSport, setSelectedSport] = useState('football');
   const [oddsData, setOddsData] = useState<any[]>([]);
-  const [betSlips, setBetSlips] = useState<BetSlip[]>([]);
-  const [isBetSlipOpen, setIsBetSlipOpen] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -74,71 +58,9 @@ const SportsBetting: React.FC = () => {
   const handleRefresh = () => {
     loadOdds();
     toast({
-      title: "Odds Refreshed",
-      description: "Latest Betfair Exchange odds loaded",
+      title: "Matches Refreshed",
+      description: "Latest Betfair Exchange matches loaded",
     });
-  };
-
-  const handleBet = (matchId: string, match: any, selection: string, odds: number, type: 'back' | 'lay' = 'back') => {
-    const betId = `${matchId}-${selection}-${type}-${Date.now()}`;
-    const newBet: BetSlip = {
-      id: betId,
-      matchId,
-      homeTeam: match.home_team || 'Home',
-      awayTeam: match.away_team || 'Away',
-      selection,
-      odds,
-      bookmaker: 'Betfair Exchange',
-      stake: 10,
-      potentialWin: 10 * odds,
-      isExchange: true,
-      type
-    };
-    
-    setBetSlips([...betSlips, newBet]);
-    setIsBetSlipOpen(true);
-    
-    toast({
-      title: "Added to Bet Slip",
-      description: `${selection} @ ${odds}`,
-    });
-  };
-
-  const updateBetStake = (id: string, stake: number) => {
-    setBetSlips(betSlips.map(bet => 
-      bet.id === id 
-        ? { ...bet, stake, potentialWin: stake * bet.odds }
-        : bet
-    ));
-  };
-
-  const removeBet = (id: string) => {
-    setBetSlips(betSlips.filter(bet => bet.id !== id));
-  };
-
-  const placeBets = () => {
-    setBetSlips([]);
-    setIsBetSlipOpen(false);
-  };
-
-  // Extract Betfair odds from match data
-  const extractBetfairOdds = (match: any) => {
-    const betfairData = match.bookmakers?.[0];
-    const outcomes = betfairData?.markets?.[0]?.outcomes || [];
-    
-    return {
-      backPrices: {
-        home: outcomes[0]?.backPrice || 0,
-        away: outcomes[1]?.backPrice || 0,
-        draw: outcomes[2]?.backPrice || null
-      },
-      layPrices: {
-        home: outcomes[0]?.layPrice || 0,
-        away: outcomes[1]?.layPrice || 0,
-        draw: outcomes[2]?.layPrice || null
-      },
-      liquidity: match.liquidity || 0
-    };
   };
 
   return (
@@ -159,19 +81,6 @@ const SportsBetting: React.FC = () => {
                 Trade on live sports with back and lay betting
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsBetSlipOpen(!isBetSlipOpen)}
-              className="relative"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              {betSlips.length > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center">
-                  {betSlips.length}
-                </Badge>
-              )}
-            </Button>
           </div>
 
           {/* Controls */}
@@ -282,40 +191,23 @@ const SportsBetting: React.FC = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {oddsData.slice(0, 10).map((match, idx) => {
-                const betfairOdds = extractBetfairOdds(match);
-                return (
-                  <BetfairOddsCard
-                    key={match.id || idx}
-                    matchId={match.id || `match-${idx}`}
-                    homeTeam={match.home_team || 'Home Team'}
-                    awayTeam={match.away_team || 'Away Team'}
-                    sport={selectedSport}
-                    matchTime={match.commence_time || new Date().toISOString()}
-                    backPrices={betfairOdds.backPrices}
-                    layPrices={betfairOdds.layPrices}
-                    liquidity={betfairOdds.liquidity}
-                    onBet={(selection, odds, type) => 
-                      handleBet(match.id || `match-${idx}`, match, selection, odds, type)
-                    }
-                    featured={idx === 0}
-                  />
-                );
-              })}
+              {oddsData.slice(0, 10).map((match, idx) => (
+                <MatchListCard
+                  key={match.id || idx}
+                  matchId={match.id || `match-${idx}`}
+                  homeTeam={match.home_team || 'Home Team'}
+                  awayTeam={match.away_team || 'Away Team'}
+                  sport={selectedSport}
+                  matchTime={match.commence_time || new Date().toISOString()}
+                  liquidity={match.liquidity || 0}
+                  oddsCount={match.bookmakers?.length || 1}
+                  featured={idx === 0}
+                />
+              ))}
             </div>
           )}
         </div>
       </main>
-
-      {/* Betting Interface */}
-      <BettingInterface
-        isOpen={isBetSlipOpen}
-        onClose={() => setIsBetSlipOpen(false)}
-        betSlips={betSlips}
-        onUpdateStake={updateBetStake}
-        onRemoveBet={removeBet}
-        onPlaceBets={placeBets}
-      />
     </div>
   );
 };
