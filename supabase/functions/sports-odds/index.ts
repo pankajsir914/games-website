@@ -13,6 +13,7 @@ const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY') || '';
 const BETFAIR_APP_KEY = Deno.env.get('BETFAIR_APP_KEY') || '';
 const BETFAIR_USERNAME = Deno.env.get('BETFAIR_USERNAME') || '';
 const BETFAIR_PASSWORD = Deno.env.get('BETFAIR_PASSWORD') || '';
+const BETFAIR_SESSION_TOKEN = Deno.env.get('BETFAIR_SESSION_TOKEN') || '';
 
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 const BETFAIR_LOGIN_URL = 'https://identitysso.betfair.com/api/login';
@@ -72,42 +73,56 @@ const sportToBetfairKey: Record<string, string> = {
   'baseball': '7511',
 };
 
-// Betfair authentication
+// Betfair authentication with session token fallback
 async function betfairLogin(): Promise<string> {
+  // Use provided session token if available
+  if (BETFAIR_SESSION_TOKEN) {
+    console.log('Using provided Betfair session token...');
+    betfairSessionToken = BETFAIR_SESSION_TOKEN;
+    betfairSessionExpires = Date.now() + (3600000 * 4); // 4 hours
+    return betfairSessionToken;
+  }
+
+  // Use cached session if still valid
   if (betfairSessionToken && betfairSessionExpires > Date.now()) {
     return betfairSessionToken;
   }
 
-  console.log('Attempting Betfair login...');
+  // Fall back to login if username/password available
+  if (BETFAIR_USERNAME && BETFAIR_PASSWORD) {
+    console.log('Attempting Betfair login...');
 
-  const response = await fetch(BETFAIR_LOGIN_URL, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-Application': BETFAIR_APP_KEY,
-    },
-    body: new URLSearchParams({
-      username: BETFAIR_USERNAME,
-      password: BETFAIR_PASSWORD,
-    }),
-  });
+    const response = await fetch(BETFAIR_LOGIN_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Application': BETFAIR_APP_KEY,
+      },
+      body: new URLSearchParams({
+        username: BETFAIR_USERNAME,
+        password: BETFAIR_PASSWORD,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Betfair login failed: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`Betfair login failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.status !== 'SUCCESS') {
+      throw new Error(`Betfair login failed: ${data.error || 'Unknown error'}`);
+    }
+
+    betfairSessionToken = data.token;
+    betfairSessionExpires = Date.now() + (3600000 * 4); // 4 hours
+    
+    console.log('Betfair login successful');
+    return betfairSessionToken;
   }
 
-  const data = await response.json();
-  
-  if (data.status !== 'SUCCESS') {
-    throw new Error(`Betfair login failed: ${data.error || 'Unknown error'}`);
-  }
-
-  betfairSessionToken = data.token;
-  betfairSessionExpires = Date.now() + (3600000 * 4); // 4 hours
-  
-  console.log('Betfair login successful');
-  return betfairSessionToken;
+  throw new Error('No Betfair authentication credentials available');
 }
 
 // Fetch Betfair markets
@@ -352,7 +367,7 @@ Deno.serve(async (req) => {
       const odds = await cached(cacheKey, ttl, async () => {
         switch (provider) {
           case 'betfair':
-            if (BETFAIR_APP_KEY && BETFAIR_USERNAME && BETFAIR_PASSWORD) {
+            if (BETFAIR_APP_KEY && (BETFAIR_SESSION_TOKEN || (BETFAIR_USERNAME && BETFAIR_PASSWORD))) {
               console.log('Fetching from Betfair Exchange...');
               return await fetchBetfairOdds(body);
             } else {
