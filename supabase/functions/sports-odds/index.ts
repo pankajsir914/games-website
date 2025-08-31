@@ -137,17 +137,18 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string) {
       'X-Application': BETFAIR_APP_KEY,
       'X-Authentication': sessionToken,
     },
-    body: JSON.stringify({
+  body: JSON.stringify({
       filter: {
         eventTypeIds: [eventTypeId],
         marketStartTime: {
           from: new Date().toISOString(),
-          to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         },
-        marketTypeCodes: ['MATCH_ODDS', 'OVER_UNDER_25', 'ASIAN_HANDICAP'],
+        marketTypeCodes: ['MATCH_ODDS'],
       },
-      marketProjection: ['COMPETITION', 'EVENT', 'EVENT_TYPE', 'MARKET_START_TIME', 'RUNNER_DESCRIPTION'],
-      maxResults: 20,
+      marketProjection: ['COMPETITION', 'EVENT', 'MARKET_START_TIME', 'RUNNER_DESCRIPTION'],
+      sort: 'FIRST_TO_START',
+      maxResults: 12,
     }),
   });
 
@@ -171,7 +172,8 @@ async function fetchBetfairPrices(marketIds: string[], sessionToken: string): Pr
     body: JSON.stringify({
       marketIds: marketIds,
       priceProjection: {
-        priceData: ['EX_BEST_OFFERS', 'EX_TRADED', 'EX_ALL_OFFERS'],
+        priceData: ['EX_BEST_OFFERS', 'EX_TRADED'],
+        exBestOffersOverrides: { bestPricesDepth: 3 },
         virtualise: false,
         rolloverStakes: false,
       },
@@ -426,9 +428,24 @@ Deno.serve(async (req) => {
     } catch (error) {
       console.error('Error fetching odds:', error);
       
-      // Return mock data on error
+      // For Betfair requests, do NOT return mock data – return empty set with error
+      if (provider === 'betfair') {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            provider: 'betfair',
+            sport: body.sport,
+            count: 0,
+            data: [],
+            mock: false,
+            error: (error as Error).message,
+          }),
+          { headers: corsHeaders }
+        );
+      }
+
+      // Otherwise, return mock data on error
       const mockOdds = [generateMockOdds(body.sport, body.matchId)];
-      
       return new Response(
         JSON.stringify({
           success: true,
