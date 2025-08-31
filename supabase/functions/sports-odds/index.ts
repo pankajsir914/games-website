@@ -36,6 +36,8 @@ interface OddsRequest {
   markets?: string[];
   bookmakers?: string[];
   provider?: 'odds-api' | 'betfair' | 'mock';
+  page?: number;
+  pageSize?: number;
 }
 
 interface BetfairMarket {
@@ -125,8 +127,8 @@ async function betfairLogin(): Promise<string> {
   throw new Error('No Betfair authentication credentials available');
 }
 
-// Fetch Betfair markets
-async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTypeCodes?: string[]) {
+// Fetch Betfair markets with pagination
+async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTypeCodes?: string[], page = 1, pageSize = 20) {
   const eventTypeId = sportToBetfairKey[sport] || '1';
   
   const response = await fetch(`${BETFAIR_API_BASE}/listMarketCatalogue/`, {
@@ -142,13 +144,13 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTy
         eventTypeIds: [eventTypeId],
         marketStartTime: {
           from: new Date().toISOString(),
-          to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ahead
         },
         marketTypeCodes: (marketTypeCodes && marketTypeCodes.length > 0) ? marketTypeCodes : ['MATCH_ODDS'],
       },
       marketProjection: ['COMPETITION', 'EVENT', 'EVENT_TYPE', 'MARKET_START_TIME', 'RUNNER_DESCRIPTION', 'MARKET_DESCRIPTION'],
       sort: 'FIRST_TO_START',
-      maxResults: 12,
+      maxResults: 200, // Fetch more markets from API
     }),
   });
 
@@ -156,7 +158,22 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTy
     throw new Error(`Betfair API error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json();
+  const allMarkets = await response.json();
+  
+  // Apply pagination
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedMarkets = allMarkets.slice(startIndex, endIndex);
+  
+  console.log(`Fetched ${allMarkets.length} total markets, returning page ${page} with ${paginatedMarkets.length} markets`);
+  
+  return {
+    markets: paginatedMarkets,
+    totalCount: allMarkets.length,
+    page,
+    pageSize,
+    totalPages: Math.ceil(allMarkets.length / pageSize)
+  };
 }
 
 // Fetch Betfair market prices
@@ -275,10 +292,12 @@ function transformBetfairData(markets: any[], prices: any[], sport: string) {
   });
 }
 
-// Fetch from Betfair Exchange
+// Fetch from Betfair Exchange with pagination
 async function fetchBetfairOdds(req: OddsRequest) {
   try {
     const sessionToken = await betfairLogin();
+    const page = req.page || 1;
+    const pageSize = req.pageSize || 20;
 
     // Map requested markets to Betfair marketTypeCodes when possible
     const defaultCodes = ['MATCH_ODDS'];
@@ -291,16 +310,38 @@ async function fetchBetfairOdds(req: OddsRequest) {
       .map(m => mapToBetfair[m as keyof typeof mapToBetfair] || (m === m.toUpperCase() ? m : ''))
       .filter((m): m is string => !!m);
 
-    const markets = await fetchBetfairMarkets(req.sport, sessionToken, requestedCodes.length ? requestedCodes : defaultCodes);
+    const marketsResult = await fetchBetfairMarkets(
+      req.sport, 
+      sessionToken, 
+      requestedCodes.length ? requestedCodes : defaultCodes,
+      page,
+      pageSize
+    );
     
-    if (!markets || markets.length === 0) {
-      return [];
+    if (!marketsResult.markets || marketsResult.markets.length === 0) {
+      return {
+        data: [],
+        pagination: {
+          page,
+          pageSize,
+          totalCount: 0,
+          totalPages: 0
+        }
+      };
     }
     
-    const marketIds = markets.slice(0, 10).map((m: any) => m.marketId);
+    const marketIds = marketsResult.markets.map((m: any) => m.marketId);
     const prices = await fetchBetfairPrices(marketIds, sessionToken);
     
-    return transformBetfairData(markets.slice(0, 10), prices, req.sport);
+    return {
+      data: transformBetfairData(marketsResult.markets, prices, req.sport),
+      pagination: {
+        page: marketsResult.page,
+        pageSize: marketsResult.pageSize,
+        totalCount: marketsResult.totalCount,
+        totalPages: marketsResult.totalPages
+      }
+    };
   } catch (error) {
     console.error('Betfair API error:', error);
     throw error;
@@ -427,34 +468,70 @@ Deno.serve(async (req) => {
     }
     
     const provider = body.provider || 'mock';
-    const cacheKey = `${provider}:${body.sport}:${body.matchId || 'all'}:${body.region || 'us'}`;
+    const page = body.page || 1;
+    const pageSize = body.pageSize || 20;
+    const cacheKey = `${provider}:${body.sport}:${body.matchId || 'all'}:${body.region || 'us'}:page${page}`;
     const ttl = provider === 'betfair' ? 30000 : 60000; // 30s for Betfair, 1min for others
     
     try {
-      const odds = await cached(cacheKey, ttl, async () => {
+      const result = await cached(cacheKey, ttl, async () => {
         switch (provider) {
           case 'betfair':
             if (BETFAIR_APP_KEY && (BETFAIR_SESSION_TOKEN || (BETFAIR_USERNAME && BETFAIR_PASSWORD))) {
               console.log('Fetching from Betfair Exchange...');
-              return await fetchBetfairOdds(body);
+              const betfairResult = await fetchBetfairOdds(body);
+              return betfairResult;
             } else {
               console.log('Betfair not configured, returning mock data');
-              return [generateMockOdds(body.sport, body.matchId)];
+              return {
+                data: [generateMockOdds(body.sport, body.matchId)],
+                pagination: {
+                  page: 1,
+                  pageSize: 1,
+                  totalCount: 1,
+                  totalPages: 1
+                }
+              };
             }
             
           case 'odds-api':
             if (ODDS_API_KEY) {
               console.log('Fetching from The Odds API...');
-              return await fetchOddsAPI(body);
+              const apiData = await fetchOddsAPI(body);
+              return {
+                data: apiData,
+                pagination: {
+                  page: 1,
+                  pageSize: apiData.length,
+                  totalCount: apiData.length,
+                  totalPages: 1
+                }
+              };
             } else {
               console.log('The Odds API not configured, returning mock data');
-              return [generateMockOdds(body.sport, body.matchId)];
+              return {
+                data: [generateMockOdds(body.sport, body.matchId)],
+                pagination: {
+                  page: 1,
+                  pageSize: 1,
+                  totalCount: 1,
+                  totalPages: 1
+                }
+              };
             }
             
           case 'mock':
           default:
             console.log('Returning mock data...');
-            return [generateMockOdds(body.sport, body.matchId)];
+            return {
+              data: [generateMockOdds(body.sport, body.matchId)],
+              pagination: {
+                page: 1,
+                pageSize: 1,
+                totalCount: 1,
+                totalPages: 1
+              }
+            };
         }
       });
       
@@ -463,8 +540,7 @@ Deno.serve(async (req) => {
           success: true,
           provider,
           sport: body.sport,
-          count: odds.length,
-          data: odds,
+          ...result,
         }),
         { headers: corsHeaders }
       );

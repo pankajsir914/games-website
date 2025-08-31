@@ -51,16 +51,16 @@ export const BetfairTestingDashboard = () => {
   // Fetch odds from provider
   const fetchProviderOdds = async (providerType: 'betfair' | 'odds-api' | 'mock') => {
     try {
-      const odds = await fetchOdds(selectedSport, undefined, {
+      const response = await fetchOdds(selectedSport, undefined, {
         region: 'uk',
         markets: ['h2h', 'spreads', 'totals'],
         provider: providerType as any
       });
 
       if (providerType === 'betfair') {
-        setBetfairData(odds);
+        setBetfairData(response.data);
       } else {
-        setTraditionalData(odds);
+        setTraditionalData(response.data);
       }
 
       // Update API usage
@@ -72,10 +72,10 @@ export const BetfairTestingDashboard = () => {
 
       toast({
         title: "Odds Fetched",
-        description: `Retrieved ${odds.length} markets from ${providerType}`,
+        description: `Retrieved ${response.data.length} markets from ${providerType}`,
       });
 
-      return odds;
+      return response.data;
     } catch (err) {
       toast({
         title: "Error",

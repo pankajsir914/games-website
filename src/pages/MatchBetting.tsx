@@ -61,14 +61,14 @@ const MatchBetting: React.FC = () => {
 
   const loadMatchOdds = async () => {
     try {
-      const odds = await fetchOdds(sport || 'football', matchId, {
+      const response = await fetchOdds(sport || 'football', matchId, {
         provider: 'betfair',
         markets: ['h2h', 'spreads', 'totals'],
         region: 'uk'
       });
       
       // Find the specific match
-      const match = odds.find((m: any) => m.id === matchId) || odds[0];
+      const match = response.data.find((m: any) => m.id === matchId) || response.data[0];
       setMatchData(match);
       setLastRefresh(new Date());
     } catch (err) {

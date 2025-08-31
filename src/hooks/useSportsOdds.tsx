@@ -84,6 +84,16 @@ export interface BettingOdds {
   };
 }
 
+export interface OddsResponse {
+  data: BettingOdds[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
 export function useSportsOdds() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,8 +106,10 @@ export function useSportsOdds() {
       markets?: string[];
       bookmakers?: string[];
       provider?: 'odds-api' | 'betfair' | 'mock';
+      page?: number;
+      pageSize?: number;
     }
-  ): Promise<BettingOdds[]> => {
+  ): Promise<OddsResponse> => {
     setLoading(true);
     setError(null);
 
@@ -107,9 +119,11 @@ export function useSportsOdds() {
           sport,
           matchId,
           region: options?.region || 'us',
-          markets: options?.markets || ['h2h', 'spreads', 'totals'],
+          markets: options?.markets || ['h2h'],
           bookmakers: options?.bookmakers,
           provider: options?.provider,
+          page: options?.page || 1,
+          pageSize: options?.pageSize || 20,
         }
       });
 
@@ -121,13 +135,8 @@ export function useSportsOdds() {
         throw new Error('No odds data received');
       }
 
-      // If mock data, transform it to match our interface
-      if (data.mock && data.data[0]?.odds) {
-        return data.data;
-      }
-
-      // Transform real API data
-      return data.data.map((event: any) => ({
+      // Transform the data
+      const transformedData = data.data.map((event: any) => ({
         matchId: event.id || matchId,
         sport,
         home_team: event.home_team,
@@ -142,13 +151,31 @@ export function useSportsOdds() {
         mock: data.mock || false,
         betfair: event.betfair,
       }));
+
+      return {
+        data: transformedData,
+        pagination: data.pagination || {
+          page: 1,
+          pageSize: transformedData.length,
+          totalCount: transformedData.length,
+          totalPages: 1
+        }
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch odds';
       setError(message);
       console.error('Error fetching odds:', err);
       
-      // Return empty array on error
-      return [];
+      // Return empty response on error
+      return {
+        data: [],
+        pagination: {
+          page: 1,
+          pageSize: 0,
+          totalCount: 0,
+          totalPages: 0
+        }
+      };
     } finally {
       setLoading(false);
     }
