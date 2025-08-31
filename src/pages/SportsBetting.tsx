@@ -20,7 +20,7 @@ import {
   Users
 } from 'lucide-react';
 import { useSportsOdds } from '@/hooks/useSportsOdds';
-import { OddsComparisonCard } from '@/components/sports/OddsComparisonCard';
+import { BetfairOddsCard } from '@/components/sports/BetfairOddsCard';
 import { BettingInterface } from '@/components/sports/BettingInterface';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -47,22 +47,21 @@ const SportsBetting: React.FC = () => {
   const { fetchOdds, loading, error } = useSportsOdds();
   
   const [selectedSport, setSelectedSport] = useState('football');
-  const [provider, setProvider] = useState<'betfair' | 'odds-api' | 'mock'>('betfair');
   const [oddsData, setOddsData] = useState<any[]>([]);
   const [betSlips, setBetSlips] = useState<BetSlip[]>([]);
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
-    document.title = 'Sports Betting - Live Odds & Exchange';
+    document.title = 'Sports Betting - Betfair Exchange';
     loadOdds();
-  }, [selectedSport, provider]);
+  }, [selectedSport]);
 
   const loadOdds = async () => {
     try {
       const odds = await fetchOdds(selectedSport, undefined, {
-        provider,
-        markets: ['h2h', 'spreads', 'totals'],
+        provider: 'betfair',
+        markets: ['h2h'],
         region: 'uk'
       });
       setOddsData(odds);
@@ -76,12 +75,12 @@ const SportsBetting: React.FC = () => {
     loadOdds();
     toast({
       title: "Odds Refreshed",
-      description: `Latest ${provider === 'betfair' ? 'exchange' : 'bookmaker'} odds loaded`,
+      description: "Latest Betfair Exchange odds loaded",
     });
   };
 
-  const handleBet = (matchId: string, match: any, selection: string, odds: number, bookmaker: string, type: 'back' | 'lay' = 'back') => {
-    const betId = `${matchId}-${selection}-${bookmaker}-${Date.now()}`;
+  const handleBet = (matchId: string, match: any, selection: string, odds: number, type: 'back' | 'lay' = 'back') => {
+    const betId = `${matchId}-${selection}-${type}-${Date.now()}`;
     const newBet: BetSlip = {
       id: betId,
       matchId,
@@ -89,10 +88,10 @@ const SportsBetting: React.FC = () => {
       awayTeam: match.away_team || 'Away',
       selection,
       odds,
-      bookmaker,
+      bookmaker: 'Betfair Exchange',
       stake: 10,
       potentialWin: 10 * odds,
-      isExchange: provider === 'betfair',
+      isExchange: true,
       type
     };
     
@@ -122,49 +121,24 @@ const SportsBetting: React.FC = () => {
     setIsBetSlipOpen(false);
   };
 
-  // Transform odds data for display
-  const transformOddsForDisplay = (match: any) => {
-    const oddsArray = [];
+  // Extract Betfair odds from match data
+  const extractBetfairOdds = (match: any) => {
+    const betfairData = match.bookmakers?.[0];
+    const outcomes = betfairData?.markets?.[0]?.outcomes || [];
     
-    if (provider === 'betfair' && match.bookmakers?.[0]) {
-      const betfairData = match.bookmakers[0];
-      const outcomes = betfairData.markets?.[0]?.outcomes || [];
-      
-      oddsArray.push({
-        bookmaker: 'Betfair Exchange',
-        homeOdds: outcomes[0]?.backPrice || 0,
-        awayOdds: outcomes[1]?.backPrice || 0,
-        drawOdds: outcomes[2]?.backPrice || null,
-        backPrice: outcomes[0]?.backPrice || 0,
-        layPrice: outcomes[0]?.layPrice || 0,
-        liquidity: match.liquidity || 0,
-        isExchange: true
-      });
-    } else if (match.bookmakers) {
-      match.bookmakers.forEach((bm: any) => {
-        const h2hMarket = bm.markets?.find((m: any) => m.key === 'h2h');
-        if (h2hMarket) {
-          oddsArray.push({
-            bookmaker: bm.title,
-            homeOdds: h2hMarket.outcomes?.find((o: any) => o.name === match.home_team)?.price || 0,
-            awayOdds: h2hMarket.outcomes?.find((o: any) => o.name === match.away_team)?.price || 0,
-            drawOdds: h2hMarket.outcomes?.find((o: any) => o.name === 'Draw')?.price || null,
-            isExchange: false
-          });
-        }
-      });
-    }
-    
-    // Add mock data if needed
-    if (oddsArray.length === 0) {
-      oddsArray.push(
-        { bookmaker: 'Bet365', homeOdds: 2.10, awayOdds: 3.50, drawOdds: 3.20 },
-        { bookmaker: 'William Hill', homeOdds: 2.05, awayOdds: 3.60, drawOdds: 3.25 },
-        { bookmaker: 'Unibet', homeOdds: 2.15, awayOdds: 3.45, drawOdds: 3.15 }
-      );
-    }
-    
-    return oddsArray;
+    return {
+      backPrices: {
+        home: outcomes[0]?.backPrice || 0,
+        away: outcomes[1]?.backPrice || 0,
+        draw: outcomes[2]?.backPrice || null
+      },
+      layPrices: {
+        home: outcomes[0]?.layPrice || 0,
+        away: outcomes[1]?.layPrice || 0,
+        draw: outcomes[2]?.layPrice || null
+      },
+      liquidity: match.liquidity || 0
+    };
   };
 
   return (
@@ -179,10 +153,10 @@ const SportsBetting: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-gaming-primary to-gaming-accent bg-clip-text text-transparent">
-                Sports Betting Exchange
+                Betfair Exchange
               </h1>
               <p className="text-muted-foreground mt-1">
-                Live odds from Betfair Exchange and top bookmakers
+                Trade on live sports with back and lay betting
               </p>
             </div>
             <Button
@@ -215,22 +189,6 @@ const SportsBetting: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Select value={provider} onValueChange={(v: any) => setProvider(v)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="betfair">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-3 w-3" />
-                    Betfair Exchange
-                  </div>
-                </SelectItem>
-                <SelectItem value="odds-api">Traditional Bookmakers</SelectItem>
-                <SelectItem value="mock">Demo Mode</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Button onClick={handleRefresh} disabled={loading}>
               <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
               Refresh Odds
@@ -260,8 +218,8 @@ const SportsBetting: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Provider</p>
-                    <p className="text-lg font-bold capitalize">{provider}</p>
+                    <p className="text-sm text-muted-foreground">Exchange</p>
+                    <p className="text-lg font-bold">Betfair</p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-gaming-success opacity-50" />
                 </div>
@@ -295,14 +253,12 @@ const SportsBetting: React.FC = () => {
             </Card>
           </div>
 
-          {provider === 'betfair' && (
-            <Alert className="mb-6">
-              <Zap className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Betfair Exchange Active</strong> - Trade on back and lay prices with live market liquidity
-              </AlertDescription>
-            </Alert>
-          )}
+          <Alert className="mb-6">
+            <Zap className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Betfair Exchange</strong> - Trade on back and lay prices with live market liquidity
+            </AlertDescription>
+          </Alert>
         </div>
 
         {/* Odds Display */}
@@ -326,21 +282,26 @@ const SportsBetting: React.FC = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {oddsData.slice(0, 10).map((match, idx) => (
-                <OddsComparisonCard
-                  key={match.id || idx}
-                  matchId={match.id || `match-${idx}`}
-                  homeTeam={match.home_team || 'Home Team'}
-                  awayTeam={match.away_team || 'Away Team'}
-                  sport={selectedSport}
-                  matchTime={match.commence_time || new Date().toISOString()}
-                  odds={transformOddsForDisplay(match)}
-                  onBet={(selection, odds, bookmaker) => 
-                    handleBet(match.id || `match-${idx}`, match, selection, odds, bookmaker)
-                  }
-                  featured={idx === 0}
-                />
-              ))}
+              {oddsData.slice(0, 10).map((match, idx) => {
+                const betfairOdds = extractBetfairOdds(match);
+                return (
+                  <BetfairOddsCard
+                    key={match.id || idx}
+                    matchId={match.id || `match-${idx}`}
+                    homeTeam={match.home_team || 'Home Team'}
+                    awayTeam={match.away_team || 'Away Team'}
+                    sport={selectedSport}
+                    matchTime={match.commence_time || new Date().toISOString()}
+                    backPrices={betfairOdds.backPrices}
+                    layPrices={betfairOdds.layPrices}
+                    liquidity={betfairOdds.liquidity}
+                    onBet={(selection, odds, type) => 
+                      handleBet(match.id || `match-${idx}`, match, selection, odds, type)
+                    }
+                    featured={idx === 0}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
