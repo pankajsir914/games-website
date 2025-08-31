@@ -126,7 +126,7 @@ async function betfairLogin(): Promise<string> {
 }
 
 // Fetch Betfair markets
-async function fetchBetfairMarkets(sport: string, sessionToken: string) {
+async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTypeCodes?: string[]) {
   const eventTypeId = sportToBetfairKey[sport] || '1';
   
   const response = await fetch(`${BETFAIR_API_BASE}/listMarketCatalogue/`, {
@@ -137,16 +137,16 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string) {
       'X-Application': BETFAIR_APP_KEY,
       'X-Authentication': sessionToken,
     },
-  body: JSON.stringify({
+    body: JSON.stringify({
       filter: {
         eventTypeIds: [eventTypeId],
         marketStartTime: {
           from: new Date().toISOString(),
           to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         },
-        marketTypeCodes: ['MATCH_ODDS'],
+        marketTypeCodes: (marketTypeCodes && marketTypeCodes.length > 0) ? marketTypeCodes : ['MATCH_ODDS'],
       },
-      marketProjection: ['COMPETITION', 'EVENT', 'MARKET_START_TIME', 'RUNNER_DESCRIPTION'],
+      marketProjection: ['COMPETITION', 'EVENT', 'EVENT_TYPE', 'MARKET_START_TIME', 'RUNNER_DESCRIPTION', 'MARKET_DESCRIPTION'],
       sort: 'FIRST_TO_START',
       maxResults: 12,
     }),
@@ -224,22 +224,53 @@ function transformBetfairData(markets: any[], prices: any[], sport: string) {
         key: 'betfair',
         title: 'Betfair Exchange',
         markets: [{
-          key: market.marketName === 'Match Odds' ? 'h2h' : market.marketName.toLowerCase(),
+          key: market.marketName === 'Match Odds' ? 'h2h' : (market.marketName || 'market').toLowerCase().replace(/\s+/g, '_'),
           last_update: new Date().toISOString(),
-          outcomes: marketPrice?.runners?.map((runner: any, idx: number) => ({
+          outcomes: (marketPrice?.runners || []).map((runner: any, idx: number) => ({
             name: runner.runnerName || market.runners?.[idx]?.runnerName || `Runner ${idx + 1}`,
-            backPrice: runner.ex?.availableToBack?.[0]?.price || null,
-            layPrice: runner.ex?.availableToLay?.[0]?.price || null,
-            backSize: runner.ex?.availableToBack?.[0]?.size || 0,
-            laySize: runner.ex?.availableToLay?.[0]?.size || 0,
-            totalMatched: runner.totalMatched || 0,
-            lastPriceTraded: runner.lastPriceTraded || null,
-          })) || [],
+            backPrice: runner.ex?.availableToBack?.[0]?.price ?? null,
+            layPrice: runner.ex?.availableToLay?.[0]?.price ?? null,
+            backSize: runner.ex?.availableToBack?.[0]?.size ?? 0,
+            laySize: runner.ex?.availableToLay?.[0]?.size ?? 0,
+            totalMatched: runner.totalMatched ?? 0,
+            lastPriceTraded: runner.lastPriceTraded ?? null,
+            backLadder: runner.ex?.availableToBack || [],
+            layLadder: runner.ex?.availableToLay || [],
+            tradedVolume: runner.ex?.tradedVolume || [],
+          })),
         }],
       }],
       liquidity: totalLiquidity,
       competition: market.competition?.name || 'Unknown',
       event: market.event?.name || 'Unknown Event',
+      betfair: {
+        event: {
+          id: market.event?.id,
+          name: market.event?.name,
+          countryCode: market.event?.countryCode,
+          timezone: market.event?.timezone,
+          venue: market.event?.venue,
+          openDate: market.event?.openDate,
+        },
+        competition: {
+          id: market.competition?.id,
+          name: market.competition?.name,
+        },
+        market: {
+          id: market.marketId,
+          name: market.marketName,
+          type: market.description?.marketType,
+          startTime: market.marketStartTime,
+        },
+        marketBook: marketPrice ? {
+          status: marketPrice.status,
+          betDelay: marketPrice.betDelay,
+          inplay: marketPrice.inplay,
+          totalMatched: marketPrice.totalMatched,
+          totalAvailable: marketPrice.totalAvailable,
+          lastMatchTime: marketPrice.lastMatchTime,
+        } : null,
+      },
     };
   });
 }
@@ -248,7 +279,19 @@ function transformBetfairData(markets: any[], prices: any[], sport: string) {
 async function fetchBetfairOdds(req: OddsRequest) {
   try {
     const sessionToken = await betfairLogin();
-    const markets = await fetchBetfairMarkets(req.sport, sessionToken);
+
+    // Map requested markets to Betfair marketTypeCodes when possible
+    const defaultCodes = ['MATCH_ODDS'];
+    const mapToBetfair: Record<string, string> = {
+      h2h: 'MATCH_ODDS',
+      totals: 'OVER_UNDER_25',
+      spreads: 'ASIAN_HANDICAP',
+    };
+    const requestedCodes = (req.markets || [])
+      .map(m => mapToBetfair[m as keyof typeof mapToBetfair] || (m === m.toUpperCase() ? m : ''))
+      .filter((m): m is string => !!m);
+
+    const markets = await fetchBetfairMarkets(req.sport, sessionToken, requestedCodes.length ? requestedCodes : defaultCodes);
     
     if (!markets || markets.length === 0) {
       return [];

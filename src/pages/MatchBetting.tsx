@@ -299,7 +299,7 @@ const MatchBetting: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto space-y-6">
               <BetfairOddsCard
                 matchId={matchId || ''}
                 homeTeam={homeTeam || matchData.home_team || 'Home Team'}
@@ -312,6 +312,46 @@ const MatchBetting: React.FC = () => {
                 onBet={handleBet}
                 featured={true}
               />
+
+              {/* Betfair market details */}
+              {matchData?.betfair && (
+                <Card>
+                  <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Competition</p>
+                      <p className="font-medium">{matchData?.competition || matchData?.betfair?.competition?.name || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Venue</p>
+                      <p className="font-medium">{matchData?.betfair?.event?.venue || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Country</p>
+                      <p className="font-medium">{matchData?.betfair?.event?.countryCode || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Market Status</p>
+                      <p className="font-medium capitalize">{matchData?.betfair?.marketBook?.status?.toLowerCase() || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">In-Play</p>
+                      <p className="font-medium">{matchData?.betfair?.marketBook?.inplay ? 'Yes' : 'No'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Matched</p>
+                      <p className="font-medium">{matchData?.betfair?.marketBook?.totalMatched?.toLocaleString() || '0'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Available</p>
+                      <p className="font-medium">{matchData?.betfair?.marketBook?.totalAvailable?.toLocaleString() || '0'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Bet Delay</p>
+                      <p className="font-medium">{matchData?.betfair?.marketBook?.betDelay ?? 0}s</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>
