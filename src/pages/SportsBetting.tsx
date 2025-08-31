@@ -156,7 +156,9 @@ const SportsBetting: React.FC = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Liquidity</p>
                     <p className="text-2xl font-bold">
-                      ${(oddsData.reduce((sum, m) => sum + (m.liquidity || 0), 0) / 1000).toFixed(1)}K
+                      ${oddsData && oddsData.length > 0 
+                        ? (oddsData.reduce((sum, m) => sum + (m.liquidity || 0), 0) / 1000).toFixed(1) + 'K'
+                        : '0K'}
                     </p>
                   </div>
                   <DollarSign className="h-8 w-8 text-gaming-gold opacity-50" />
