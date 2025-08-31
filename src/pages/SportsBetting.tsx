@@ -19,9 +19,9 @@ import {
   Clock,
   Users
 } from 'lucide-react';
-import { useSportsOdds, type OddsResponse } from '@/hooks/useSportsOdds';
+import { useSportsOdds } from '@/hooks/useSportsOdds';
 import { MatchListCard } from '@/components/sports/MatchListCard';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -34,53 +34,29 @@ const SportsBetting: React.FC = () => {
   
   const [selectedSport, setSelectedSport] = useState('football');
   const [oddsData, setOddsData] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalMatches, setTotalMatches] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     document.title = 'Sports Betting - Betfair Exchange';
-    loadOdds(1);
+    loadOdds();
   }, [selectedSport]);
 
-  const loadOdds = async (page: number) => {
+  const loadOdds = async () => {
     try {
-      const response = await fetchOdds(selectedSport, undefined, {
+      const odds = await fetchOdds(selectedSport, undefined, {
         provider: 'betfair',
         markets: ['h2h'],
-        region: 'uk',
-        page,
-        pageSize: 20
+        region: 'uk'
       });
-      setOddsData(response.data);
-      setCurrentPage(response.pagination?.page || 1);
-      setTotalPages(response.pagination?.totalPages || 1);
-      setTotalMatches(response.pagination?.totalCount || 0);
+      setOddsData(odds);
       setLastRefresh(new Date());
-      
-      // Check if using mock data due to Cloudflare blocking
-      if (response.data && response.data.length > 0 && (response.data[0] as any).id?.startsWith('mock-')) {
-        toast({
-          title: "Demo Mode Active",
-          description: "Betfair API is blocked by Cloudflare. Showing realistic demo data instead.",
-          duration: 5000
-        });
-      }
     } catch (err) {
       console.error('Failed to load odds:', err);
-      setOddsData([]);
-    }
-  };
-
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      loadOdds(newPage);
     }
   };
 
   const handleRefresh = () => {
-    loadOdds(currentPage);
+    loadOdds();
     toast({
       title: "Matches Refreshed",
       description: "Latest Betfair Exchange matches loaded",
@@ -165,9 +141,7 @@ const SportsBetting: React.FC = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Liquidity</p>
                     <p className="text-2xl font-bold">
-                      ${oddsData && oddsData.length > 0 
-                        ? (oddsData.reduce((sum, m) => sum + (m.liquidity || 0), 0) / 1000).toFixed(1) + 'K'
-                        : '0K'}
+                      ${(oddsData.reduce((sum, m) => sum + (m.liquidity || 0), 0) / 1000).toFixed(1)}K
                     </p>
                   </div>
                   <DollarSign className="h-8 w-8 text-gaming-gold opacity-50" />
@@ -216,81 +190,21 @@ const SportsBetting: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {oddsData.map((match, idx) => (
-                  <MatchListCard
-                    key={match.id || idx}
-                    matchId={match.id || `match-${idx}`}
-                    homeTeam={match.home_team || 'Home Team'}
-                    awayTeam={match.away_team || 'Away Team'}
-                    sport={selectedSport}
-                    matchTime={match.commence_time || new Date().toISOString()}
-                    liquidity={match.liquidity || 0}
-                    oddsCount={match.bookmakers?.length || 1}
-                    featured={idx === 0}
-                  />
-                ))}
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-8 p-4 border rounded-lg">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * 20) + 1}-{Math.min(currentPage * 20, totalMatches)} of {totalMatches} matches
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1 || loading}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={pageNum === currentPage ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePageChange(pageNum)}
-                            disabled={loading}
-                            className="w-10"
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages || loading}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {oddsData.slice(0, 10).map((match, idx) => (
+                <MatchListCard
+                  key={match.id || idx}
+                  matchId={match.id || `match-${idx}`}
+                  homeTeam={match.home_team || 'Home Team'}
+                  awayTeam={match.away_team || 'Away Team'}
+                  sport={selectedSport}
+                  matchTime={match.commence_time || new Date().toISOString()}
+                  liquidity={match.liquidity || 0}
+                  oddsCount={match.bookmakers?.length || 1}
+                  featured={idx === 0}
+                />
+              ))}
+            </div>
           )}
         </div>
       </main>

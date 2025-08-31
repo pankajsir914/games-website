@@ -30,9 +30,9 @@ export const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
     if (showOdds && match.id && showBetting) {
       setLoadingOdds(true);
       fetchOdds(sport, match.id)
-        .then(response => {
-          if (response && response.data && response.data.length > 0) {
-            setOdds(response.data[0]);
+        .then(oddsData => {
+          if (oddsData && oddsData.length > 0) {
+            setOdds(oddsData[0]);
           }
         })
         .catch(err => console.error('Failed to fetch odds:', err))
