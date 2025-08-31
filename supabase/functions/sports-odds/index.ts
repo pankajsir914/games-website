@@ -131,6 +131,8 @@ async function betfairLogin(): Promise<string> {
 async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTypeCodes?: string[], page = 1, pageSize = 20) {
   const eventTypeId = sportToBetfairKey[sport] || '1';
   
+  console.log(`Fetching Betfair markets for sport: ${sport} (eventTypeId: ${eventTypeId}), marketTypeCodes:`, marketTypeCodes);
+  
   const response = await fetch(`${BETFAIR_API_BASE}/listMarketCatalogue/`, {
     method: 'POST',
     headers: {
@@ -155,17 +157,26 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTy
   });
 
   if (!response.ok) {
-    throw new Error(`Betfair API error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    console.error('Betfair markets API error:', response.status, response.statusText, errorText);
+    throw new Error(`Betfair markets API error: ${response.status} ${response.statusText}`);
   }
 
   const allMarkets = await response.json();
+  
+  console.log(`Received ${allMarkets.length} markets from Betfair`);
+  
+  // Log first market for debugging
+  if (allMarkets.length > 0) {
+    console.log('Sample market:', JSON.stringify(allMarkets[0], null, 2));
+  }
   
   // Apply pagination
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedMarkets = allMarkets.slice(startIndex, endIndex);
   
-  console.log(`Fetched ${allMarkets.length} total markets, returning page ${page} with ${paginatedMarkets.length} markets`);
+  console.log(`Returning page ${page} with ${paginatedMarkets.length} markets (total: ${allMarkets.length})`);
   
   return {
     markets: paginatedMarkets,
@@ -178,6 +189,12 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTy
 
 // Fetch Betfair market prices
 async function fetchBetfairPrices(marketIds: string[], sessionToken: string): Promise<BetfairMarket[]> {
+  // Don't make request if no marketIds
+  if (!marketIds || marketIds.length === 0) {
+    console.log('No marketIds provided, skipping price fetch');
+    return [];
+  }
+
   const response = await fetch(`${BETFAIR_API_BASE}/listMarketBook/`, {
     method: 'POST',
     headers: {
@@ -554,8 +571,13 @@ Deno.serve(async (req) => {
             success: true,
             provider: 'betfair',
             sport: body.sport,
-            count: 0,
             data: [],
+            pagination: {
+              page: page,
+              pageSize: pageSize,
+              totalCount: 0,
+              totalPages: 0
+            },
             mock: false,
             error: (error as Error).message,
           }),
