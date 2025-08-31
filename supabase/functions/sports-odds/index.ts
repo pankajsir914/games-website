@@ -159,6 +159,13 @@ async function fetchBetfairMarkets(sport: string, sessionToken: string, marketTy
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Betfair markets API error:', response.status, response.statusText, errorText);
+    
+    // Check if blocked by Cloudflare (403 with HTML response)
+    if (response.status === 403 && errorText.includes('Cloudflare')) {
+      console.log('Betfair API blocked by Cloudflare, this is common from cloud providers');
+      throw new Error('CLOUDFLARE_BLOCKED');
+    }
+    
     throw new Error(`Betfair markets API error: ${response.status} ${response.statusText}`);
   }
 
@@ -414,39 +421,174 @@ async function fetchOddsAPI(req: OddsRequest) {
   }));
 }
 
-// Generate mock odds for testing
-function generateMockOdds(sport: string, matchId?: string) {
-  const bookmakers = ['bet365', 'william_hill', 'betfair', 'unibet'];
-  
+// Generate realistic mock Betfair Exchange odds for testing
+function generateMockBetfairOdds(sport: string, page = 1, pageSize = 20) {
+  const sportEvents: Record<string, Array<{ home: string; away: string; competition: string; venue?: string }>> = {
+    football: [
+      { home: 'Manchester United', away: 'Liverpool', competition: 'Premier League', venue: 'Old Trafford' },
+      { home: 'Chelsea', away: 'Arsenal', competition: 'Premier League', venue: 'Stamford Bridge' },
+      { home: 'Real Madrid', away: 'Barcelona', competition: 'La Liga', venue: 'Santiago Bernabéu' },
+      { home: 'Bayern Munich', away: 'Borussia Dortmund', competition: 'Bundesliga', venue: 'Allianz Arena' },
+      { home: 'PSG', away: 'Marseille', competition: 'Ligue 1', venue: 'Parc des Princes' },
+      { home: 'Manchester City', away: 'Tottenham', competition: 'Premier League', venue: 'Etihad Stadium' },
+      { home: 'AC Milan', away: 'Inter Milan', competition: 'Serie A', venue: 'San Siro' },
+      { home: 'Atletico Madrid', away: 'Sevilla', competition: 'La Liga', venue: 'Wanda Metropolitano' },
+      { home: 'Newcastle United', away: 'Leeds United', competition: 'Premier League', venue: 'St James\' Park' },
+      { home: 'Leicester City', away: 'West Ham', competition: 'Premier League', venue: 'King Power Stadium' },
+    ],
+    cricket: [
+      { home: 'India', away: 'Australia', competition: 'Test Series', venue: 'Melbourne Cricket Ground' },
+      { home: 'England', away: 'Pakistan', competition: 'ODI Series', venue: 'Lord\'s' },
+      { home: 'South Africa', away: 'New Zealand', competition: 'T20 Series', venue: 'Cape Town' },
+      { home: 'West Indies', away: 'Sri Lanka', competition: 'Test Match', venue: 'Bridgetown' },
+    ],
+    tennis: [
+      { home: 'Novak Djokovic', away: 'Carlos Alcaraz', competition: 'ATP Finals', venue: 'Centre Court' },
+      { home: 'Rafael Nadal', away: 'Stefanos Tsitsipas', competition: 'French Open', venue: 'Court Philippe-Chatrier' },
+      { home: 'Iga Swiatek', away: 'Aryna Sabalenka', competition: 'WTA Finals', venue: 'Rod Laver Arena' },
+    ],
+  };
+
+  const events = sportEvents[sport] || sportEvents.football;
+  const totalEvents = Math.min(events.length * 3, 60); // Generate more by repeating with variations
+  const allMockEvents = [];
+
+  // Generate multiple variations of each event
+  for (let i = 0; i < totalEvents; i++) {
+    const baseEvent = events[i % events.length];
+    const dayOffset = Math.floor(i / events.length);
+    const startTime = new Date(Date.now() + (dayOffset * 24 + Math.random() * 72) * 60 * 60 * 1000);
+    
+    // Generate realistic back/lay prices
+    const homeWinProb = 0.3 + Math.random() * 0.4; // 30-70% win probability
+    const awayWinProb = 0.3 + Math.random() * 0.4;
+    const drawProb = sport === 'football' ? (1 - homeWinProb - awayWinProb) : 0;
+    
+    const homeBackPrice = +(1 / homeWinProb).toFixed(2);
+    const homeLayPrice = homeBackPrice + 0.02 + Math.random() * 0.08;
+    const awayBackPrice = +(1 / awayWinProb).toFixed(2);
+    const awayLayPrice = awayBackPrice + 0.02 + Math.random() * 0.08;
+    
+    const totalMatched = Math.floor(Math.random() * 5000000) + 100000; // £100k - £5M
+    
+    const mockEvent = {
+      id: `mock-${sport}-${i}-${Date.now()}`,
+      sport,
+      commence_time: startTime.toISOString(),
+      home_team: baseEvent.home,
+      away_team: baseEvent.away,
+      exchange: true,
+      competition: baseEvent.competition,
+      event: `${baseEvent.home} v ${baseEvent.away}`,
+      liquidity: totalMatched,
+      bookmakers: [{
+        key: 'betfair',
+        title: 'Betfair Exchange',
+        markets: [{
+          key: 'h2h',
+          last_update: new Date().toISOString(),
+          outcomes: [
+            {
+              name: baseEvent.home,
+              backPrice: homeBackPrice,
+              layPrice: homeLayPrice,
+              backSize: Math.floor(Math.random() * 10000) + 1000,
+              laySize: Math.floor(Math.random() * 10000) + 1000,
+              totalMatched: totalMatched * 0.4,
+              lastPriceTraded: homeBackPrice - 0.01,
+              backLadder: [
+                { price: homeBackPrice, size: Math.floor(Math.random() * 5000) + 500 },
+                { price: homeBackPrice + 0.02, size: Math.floor(Math.random() * 3000) + 300 },
+                { price: homeBackPrice + 0.04, size: Math.floor(Math.random() * 2000) + 200 },
+              ],
+              layLadder: [
+                { price: homeLayPrice, size: Math.floor(Math.random() * 5000) + 500 },
+                { price: homeLayPrice + 0.02, size: Math.floor(Math.random() * 3000) + 300 },
+                { price: homeLayPrice + 0.04, size: Math.floor(Math.random() * 2000) + 200 },
+              ],
+              tradedVolume: [],
+            },
+            {
+              name: baseEvent.away,
+              backPrice: awayBackPrice,
+              layPrice: awayLayPrice,
+              backSize: Math.floor(Math.random() * 10000) + 1000,
+              laySize: Math.floor(Math.random() * 10000) + 1000,
+              totalMatched: totalMatched * 0.4,
+              lastPriceTraded: awayBackPrice - 0.01,
+              backLadder: [
+                { price: awayBackPrice, size: Math.floor(Math.random() * 5000) + 500 },
+                { price: awayBackPrice + 0.02, size: Math.floor(Math.random() * 3000) + 300 },
+                { price: awayBackPrice + 0.04, size: Math.floor(Math.random() * 2000) + 200 },
+              ],
+              layLadder: [
+                { price: awayLayPrice, size: Math.floor(Math.random() * 5000) + 500 },
+                { price: awayLayPrice + 0.02, size: Math.floor(Math.random() * 3000) + 300 },
+                { price: awayLayPrice + 0.04, size: Math.floor(Math.random() * 2000) + 200 },
+              ],
+              tradedVolume: [],
+            },
+            ...(sport === 'football' ? [{
+              name: 'Draw',
+              backPrice: +(1 / drawProb).toFixed(2),
+              layPrice: +(1 / drawProb).toFixed(2) + 0.05,
+              backSize: Math.floor(Math.random() * 5000) + 500,
+              laySize: Math.floor(Math.random() * 5000) + 500,
+              totalMatched: totalMatched * 0.2,
+              lastPriceTraded: +(1 / drawProb).toFixed(2) - 0.02,
+              backLadder: [],
+              layLadder: [],
+              tradedVolume: [],
+            }] : []),
+          ],
+        }],
+      }],
+      betfair: {
+        event: {
+          id: `event-${i}`,
+          name: `${baseEvent.home} v ${baseEvent.away}`,
+          countryCode: 'GB',
+          timezone: 'Europe/London',
+          venue: baseEvent.venue,
+          openDate: startTime.toISOString(),
+        },
+        competition: {
+          id: `comp-${i % 5}`,
+          name: baseEvent.competition,
+        },
+        market: {
+          id: `market-${i}`,
+          name: 'Match Odds',
+          type: 'MATCH_ODDS',
+          startTime: startTime.toISOString(),
+        },
+        marketBook: {
+          status: 'OPEN',
+          betDelay: 0,
+          inplay: false,
+          totalMatched,
+          totalAvailable: totalMatched * 0.2,
+          lastMatchTime: new Date(Date.now() - Math.random() * 600000).toISOString(),
+        },
+      },
+    };
+    
+    allMockEvents.push(mockEvent);
+  }
+
+  // Apply pagination
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedEvents = allMockEvents.slice(startIndex, endIndex);
+
   return {
-    matchId: matchId || `mock-${Date.now()}`,
-    sport,
-    odds: {
-      h2h: bookmakers.map(bm => ({
-        bookmaker: bm,
-        home: (Math.random() * 2 + 1.5).toFixed(2),
-        away: (Math.random() * 2 + 1.5).toFixed(2),
-        draw: sport === 'football' ? (Math.random() * 1.5 + 2.5).toFixed(2) : null,
-      })),
-      spreads: bookmakers.map(bm => ({
-        bookmaker: bm,
-        home: {
-          points: (Math.random() * 10 - 5).toFixed(1),
-          odds: (Math.random() * 0.4 + 1.7).toFixed(2),
-        },
-        away: {
-          points: (Math.random() * 10 - 5).toFixed(1),
-          odds: (Math.random() * 0.4 + 1.7).toFixed(2),
-        },
-      })),
-      totals: bookmakers.map(bm => ({
-        bookmaker: bm,
-        points: (Math.random() * 100 + 150).toFixed(1),
-        over: (Math.random() * 0.4 + 1.7).toFixed(2),
-        under: (Math.random() * 0.4 + 1.7).toFixed(2),
-      })),
+    data: paginatedEvents,
+    pagination: {
+      page,
+      pageSize,
+      totalCount: allMockEvents.length,
+      totalPages: Math.ceil(allMockEvents.length / pageSize),
     },
-    lastUpdate: new Date().toISOString(),
   };
 }
 
@@ -496,19 +638,20 @@ Deno.serve(async (req) => {
           case 'betfair':
             if (BETFAIR_APP_KEY && (BETFAIR_SESSION_TOKEN || (BETFAIR_USERNAME && BETFAIR_PASSWORD))) {
               console.log('Fetching from Betfair Exchange...');
-              const betfairResult = await fetchBetfairOdds(body);
-              return betfairResult;
+              try {
+                const betfairResult = await fetchBetfairOdds(body);
+                return betfairResult;
+              } catch (betfairError: any) {
+                // If blocked by Cloudflare, automatically use mock data
+                if (betfairError.message === 'CLOUDFLARE_BLOCKED') {
+                  console.log('Betfair blocked by Cloudflare, using realistic mock data instead');
+                  return generateMockBetfairOdds(body.sport, page, pageSize);
+                }
+                throw betfairError; // Re-throw other errors
+              }
             } else {
               console.log('Betfair not configured, returning mock data');
-              return {
-                data: [generateMockOdds(body.sport, body.matchId)],
-                pagination: {
-                  page: 1,
-                  pageSize: 1,
-                  totalCount: 1,
-                  totalPages: 1
-                }
-              };
+              return generateMockBetfairOdds(body.sport, page, pageSize);
             }
             
           case 'odds-api':
@@ -540,15 +683,7 @@ Deno.serve(async (req) => {
           case 'mock':
           default:
             console.log('Returning mock data...');
-            return {
-              data: [generateMockOdds(body.sport, body.matchId)],
-              pagination: {
-                page: 1,
-                pageSize: 1,
-                totalCount: 1,
-                totalPages: 1
-              }
-            };
+            return generateMockBetfairOdds(body.sport, page, pageSize);
         }
       });
       

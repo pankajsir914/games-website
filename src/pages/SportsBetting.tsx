@@ -58,6 +58,15 @@ const SportsBetting: React.FC = () => {
       setTotalPages(response.pagination?.totalPages || 1);
       setTotalMatches(response.pagination?.totalCount || 0);
       setLastRefresh(new Date());
+      
+      // Check if using mock data due to Cloudflare blocking
+      if (response.data && response.data.length > 0 && (response.data[0] as any).id?.startsWith('mock-')) {
+        toast({
+          title: "Demo Mode Active",
+          description: "Betfair API is blocked by Cloudflare. Showing realistic demo data instead.",
+          duration: 5000
+        });
+      }
     } catch (err) {
       console.error('Failed to load odds:', err);
       setOddsData([]);
