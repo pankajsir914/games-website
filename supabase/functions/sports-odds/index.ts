@@ -171,30 +171,52 @@ async function fetchBetfairPrices(marketIds: string[], sessionToken: string): Pr
     body: JSON.stringify({
       marketIds: marketIds,
       priceProjection: {
-        priceData: ['EX_BEST_OFFERS', 'EX_TRADED'],
-        virtualise: true,
+        priceData: ['EX_BEST_OFFERS', 'EX_TRADED', 'EX_ALL_OFFERS'],
+        virtualise: false,
+        rolloverStakes: false,
       },
+      currencyCode: 'GBP',
+      locale: 'en',
     }),
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Betfair prices API error:', errorText);
     throw new Error(`Betfair prices API error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  console.log('Betfair prices response sample:', JSON.stringify(data[0], null, 2));
+  return data;
 }
 
 // Transform Betfair data to match our interface
-function transformBetfairData(markets: any[], prices: BetfairMarket[], sport: string) {
+function transformBetfairData(markets: any[], prices: any[], sport: string) {
+  console.log('Transforming Betfair data, markets count:', markets.length, 'prices count:', prices.length);
+  
   return markets.map((market: any) => {
-    const marketPrice = prices.find(p => p.marketId === market.marketId);
+    const marketPrice = prices.find((p: any) => p.marketId === market.marketId);
+    
+    // Calculate total liquidity from the market-level totalMatched
+    const marketLiquidity = marketPrice?.totalMatched || 0;
+    
+    // Also sum runner-level liquidity if available
+    const runnerLiquidity = marketPrice?.runners?.reduce((sum: number, r: any) => {
+      return sum + (r.totalMatched || 0);
+    }, 0) || 0;
+    
+    // Use the higher of the two values
+    const totalLiquidity = Math.max(marketLiquidity, runnerLiquidity);
+    
+    console.log(`Market ${market.marketId}: marketLiquidity=${marketLiquidity}, runnerLiquidity=${runnerLiquidity}`);
     
     return {
       id: market.marketId,
       sport,
       commence_time: market.marketStartTime,
-      home_team: market.runners?.[0]?.runnerName || 'Home',
-      away_team: market.runners?.[1]?.runnerName || 'Away',
+      home_team: market.runners?.[0]?.runnerName || market.event?.name?.split(' v ')?.[0] || 'Home',
+      away_team: market.runners?.[1]?.runnerName || market.event?.name?.split(' v ')?.[1] || 'Away',
       exchange: true,
       bookmakers: [{
         key: 'betfair',
@@ -202,18 +224,18 @@ function transformBetfairData(markets: any[], prices: BetfairMarket[], sport: st
         markets: [{
           key: market.marketName === 'Match Odds' ? 'h2h' : market.marketName.toLowerCase(),
           last_update: new Date().toISOString(),
-          outcomes: marketPrice?.runners?.map((runner: any) => ({
-            name: runner.runnerName,
-            backPrice: runner.availableToBack?.[0]?.price || null,
-            layPrice: runner.availableToLay?.[0]?.price || null,
-            backSize: runner.availableToBack?.[0]?.size || 0,
-            laySize: runner.availableToLay?.[0]?.size || 0,
+          outcomes: marketPrice?.runners?.map((runner: any, idx: number) => ({
+            name: runner.runnerName || market.runners?.[idx]?.runnerName || `Runner ${idx + 1}`,
+            backPrice: runner.ex?.availableToBack?.[0]?.price || null,
+            layPrice: runner.ex?.availableToLay?.[0]?.price || null,
+            backSize: runner.ex?.availableToBack?.[0]?.size || 0,
+            laySize: runner.ex?.availableToLay?.[0]?.size || 0,
             totalMatched: runner.totalMatched || 0,
             lastPriceTraded: runner.lastPriceTraded || null,
           })) || [],
         }],
       }],
-      liquidity: marketPrice?.runners?.reduce((sum: number, r: any) => sum + (r.totalMatched || 0), 0) || 0,
+      liquidity: totalLiquidity,
       competition: market.competition?.name || 'Unknown',
       event: market.event?.name || 'Unknown Event',
     };
