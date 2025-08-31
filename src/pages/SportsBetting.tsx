@@ -277,7 +277,7 @@ const SportsBetting: React.FC = () => {
               <CardContent className="text-center py-12">
                 <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">No markets available</p>
-                <p className="text-sm text-muted-foreground mt-2">Try selecting a different sport or provider</p>
+                <p className="text-sm text-muted-foreground mt-2">Try selecting a different sport</p>
               </CardContent>
             </Card>
           ) : (
