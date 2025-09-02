@@ -28,7 +28,8 @@ export const ChickenRoadGame: React.FC = () => {
 
   const [betAmount, setBetAmount] = useState(50);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'hardcore'>('medium');
-  const [chickenPosition, setChickenPosition] = useState<{ checkpoint: number; lane: number } | null>(null);
+  const [gameStatus, setGameStatus] = useState<'idle' | 'playing' | 'won' | 'lost'>('idle');
+  const [selectedLanes, setSelectedLanes] = useState<number[]>([]);
 
   const handlePlaceBet = () => {
     const difficultyMap = {
@@ -38,28 +39,57 @@ export const ChickenRoadGame: React.FC = () => {
       hardcore: 'hard' as const, // Map hardcore to hard for backend
     };
 
-    placeBet({ 
-      amount: betAmount, 
-      difficulty: difficultyMap[difficulty]
-    });
+    if (wallet?.current_balance && wallet.current_balance >= betAmount) {
+      placeBet({ 
+        amount: betAmount, 
+        difficulty: difficultyMap[difficulty]
+      });
+      setGameStatus('playing');
+      setSelectedLanes([]);
+    } else {
+      toast({
+        title: "Insufficient Balance",
+        description: "Please add funds to your wallet",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLaneClick = (checkpoint: number, lane: number) => {
-    if (!activeBet) return;
-
-    setChickenPosition({ checkpoint, lane });
-    revealTile({
-      betId: activeBet.id,
-      row: checkpoint,
-      column: lane,
-    });
+    if (activeBet && !isRevealingTile && gameStatus === 'playing') {
+      // Only allow clicking the next checkpoint
+      if (checkpoint === activeBet.current_row + 1) {
+        revealTile({
+          betId: activeBet.id,
+          row: checkpoint,
+          column: lane,
+        });
+        setSelectedLanes([...selectedLanes, lane]);
+      }
+    }
   };
 
   const handleCashOut = () => {
-    if (!activeBet) return;
-    cashOut(activeBet.id);
-    setChickenPosition(null);
+    if (activeBet && !isCashingOut && gameStatus === 'playing') {
+      cashOut(activeBet.id);
+      setGameStatus('won');
+    }
   };
+
+  // Update game status based on activeBet
+  React.useEffect(() => {
+    if (activeBet) {
+      if (activeBet.status === 'lost') {
+        setGameStatus('lost');
+      } else if (activeBet.status === 'won') {
+        setGameStatus('won');
+      } else if (activeBet.status === 'active') {
+        setGameStatus('playing');
+      }
+    } else {
+      setGameStatus('idle');
+    }
+  }, [activeBet]);
 
   const getPotentialPayout = () => {
     if (!activeBet) return 0;
@@ -157,8 +187,16 @@ export const ChickenRoadGame: React.FC = () => {
                 currentCheckpoint={activeBet?.current_row || 0}
                 tilesRevealed={activeBet?.tiles_revealed || []}
                 onLaneClick={handleLaneClick}
-                isDisabled={!activeBet || isLoading}
-                chickenPosition={chickenPosition}
+                isDisabled={!activeBet || isLoading || gameStatus !== 'playing'}
+                chickenPosition={
+                  activeBet && selectedLanes.length > 0
+                    ? { 
+                        checkpoint: activeBet.current_row, 
+                        lane: selectedLanes[selectedLanes.length - 1] 
+                      }
+                    : null
+                }
+                gameStatus={gameStatus}
               />
             </div>
 

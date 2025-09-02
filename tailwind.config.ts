@@ -190,6 +190,20 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(100%)" },
         },
+        "chicken-walk": {
+          "0%": { transform: "translateX(0) scale(1)" },
+          "25%": { transform: "translateX(10px) scale(1.05)" },
+          "50%": { transform: "translateX(20px) scale(1)" },
+          "75%": { transform: "translateX(10px) scale(1.05)" },
+          "100%": { transform: "translateX(0) scale(1)" }
+        },
+        "chicken-burn": {
+          "0%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
+          "25%": { transform: "scale(1.2) rotate(10deg)", opacity: "0.8" },
+          "50%": { transform: "scale(1.1) rotate(-10deg)", opacity: "0.6" },
+          "75%": { transform: "scale(0.9) rotate(5deg)", opacity: "0.4" },
+          "100%": { transform: "scale(0.8) rotate(0deg)", opacity: "0.2" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -204,6 +218,8 @@ export default {
         "fire-flicker": "fire-flicker 1.5s ease-in-out infinite",
         "multiplier-pop": "multiplier-pop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
         "chicken-run": "chicken-run 1s ease-in-out",
+        "chicken-walk": "chicken-walk 0.5s ease-in-out",
+        "chicken-burn": "chicken-burn 1s ease-in-out",
       },
     },
   },
