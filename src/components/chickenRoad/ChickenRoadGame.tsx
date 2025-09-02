@@ -168,7 +168,7 @@ export const ChickenRoadGame: React.FC = () => {
               onBetAmountChange={setBetAmount}
               difficulty={difficulty}
               onDifficultyChange={setDifficulty}
-              balance={wallet?.balance || 0}
+              balance={wallet?.current_balance || 0}
               onPlaceBet={handlePlaceBet}
               onCashOut={handleCashOut}
               isPlaying={!!activeBet && activeBet.status === 'active'}
