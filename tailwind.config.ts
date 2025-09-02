@@ -70,6 +70,14 @@ export default {
           green: "hsl(var(--ludo-green))",
           blue: "hsl(var(--ludo-blue))",
         },
+        chicken: {
+          road: "hsl(var(--chicken-road-bg))",
+          dark: "hsl(var(--chicken-road-dark))",
+          lane: "hsl(var(--chicken-road-lane))",
+          gold: "hsl(var(--chicken-road-gold))",
+          fire: "hsl(var(--chicken-road-fire))",
+          success: "hsl(var(--chicken-road-success))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -138,6 +146,50 @@ export default {
           "50%": { transform: "scale(1.5) rotate(180deg)", opacity: "0.8" },
           "100%": { transform: "scale(2) rotate(360deg)", opacity: "0" },
         },
+        "road-scroll": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+        "coin-spin": {
+          "0%": { transform: "rotateY(0deg)" },
+          "100%": { transform: "rotateY(360deg)" },
+        },
+        "fire-flicker": {
+          "0%, 100%": { 
+            transform: "scale(1) rotate(0deg)",
+            opacity: "1",
+          },
+          "25%": { 
+            transform: "scale(1.1) rotate(-5deg)",
+            opacity: "0.9",
+          },
+          "50%": { 
+            transform: "scale(0.95) rotate(5deg)",
+            opacity: "1",
+          },
+          "75%": { 
+            transform: "scale(1.05) rotate(-3deg)",
+            opacity: "0.95",
+          },
+        },
+        "multiplier-pop": {
+          "0%": { 
+            transform: "scale(0) translateY(0)",
+            opacity: "0",
+          },
+          "50%": { 
+            transform: "scale(1.2) translateY(-10px)",
+            opacity: "1",
+          },
+          "100%": { 
+            transform: "scale(1) translateY(0)",
+            opacity: "1",
+          },
+        },
+        "chicken-run": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -147,6 +199,11 @@ export default {
         "float": "float 3s ease-in-out infinite",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "celebration": "celebration 0.8s ease-out forwards",
+        "road-scroll": "road-scroll 20s linear infinite",
+        "coin-spin": "coin-spin 2s linear infinite",
+        "fire-flicker": "fire-flicker 1.5s ease-in-out infinite",
+        "multiplier-pop": "multiplier-pop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "chicken-run": "chicken-run 1s ease-in-out",
       },
     },
   },

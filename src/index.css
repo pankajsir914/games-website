@@ -46,6 +46,14 @@ All colors MUST be HSL.
     --gaming-danger: 0 84.2% 60.2%;
     --gaming-danger-foreground: 0 0% 98%;
     
+    /* Chicken Road specific colors */
+    --chicken-road-bg: 210 30% 15%;
+    --chicken-road-dark: 210 35% 10%;
+    --chicken-road-lane: 210 20% 25%;
+    --chicken-road-gold: 45 100% 51%;
+    --chicken-road-fire: 15 90% 55%;
+    --chicken-road-success: 120 60% 45%;
+    
     /* Ludo Player Colors */
     --ludo-red: 0 85% 60%;
     --ludo-yellow: 45 93% 58%;
