@@ -549,7 +549,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chicken_run_leaderboard_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chicken_run_rounds: {
         Row: {
@@ -3207,7 +3215,12 @@ export type Database = {
     Enums: {
       admin_role: "admin" | "moderator" | "master_admin"
       game_status: "waiting" | "active" | "completed" | "cancelled"
-      game_type: "ludo" | "aviator" | "casino" | "color_prediction"
+      game_type:
+        | "ludo"
+        | "aviator"
+        | "casino"
+        | "color_prediction"
+        | "chicken_run"
       transaction_type: "credit" | "debit"
     }
     CompositeTypes: {
@@ -3338,7 +3351,13 @@ export const Constants = {
     Enums: {
       admin_role: ["admin", "moderator", "master_admin"],
       game_status: ["waiting", "active", "completed", "cancelled"],
-      game_type: ["ludo", "aviator", "casino", "color_prediction"],
+      game_type: [
+        "ludo",
+        "aviator",
+        "casino",
+        "color_prediction",
+        "chicken_run",
+      ],
       transaction_type: ["credit", "debit"],
     },
   },
