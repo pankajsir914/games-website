@@ -39,6 +39,14 @@ export function DashboardContent() {
 
   const popularGames = [
     {
+      title: "🐓 Chicken Run India",
+      provider: "RRB Games",
+      image: "/placeholder.svg",
+      path: "/chicken-run",
+      gradient: "from-yellow-400 to-orange-500",
+      isNew: true
+    },
+    {
       title: "Teen Patti",
       provider: "RRB Games",
       image: "/lovable-uploads/teen3.jpg",
@@ -170,9 +178,14 @@ export function DashboardContent() {
             {popularGames.map((game, index) => (
               <Card 
                 key={index}
-                className="group cursor-pointer hover:shadow-lg transition-all duration-300 bg-card border-border"
+                className="group cursor-pointer hover:shadow-lg transition-all duration-300 bg-card border-border relative"
                 onClick={() => navigate(game.path)}
               >
+                {game.isNew && (
+                  <Badge className="absolute top-2 right-2 z-10 bg-red-500 text-white">
+                    NEW
+                  </Badge>
+                )}
                 <CardContent className="p-0">
                   <div className="relative overflow-hidden rounded-t-lg">
                     {game.image && game.image !== "/placeholder.svg" ? (
