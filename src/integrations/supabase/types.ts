@@ -462,6 +462,131 @@ export type Database = {
         }
         Relationships: []
       }
+      chicken_run_bets: {
+        Row: {
+          bet_amount: number
+          cashout_multiplier: number | null
+          created_at: string
+          current_row: number
+          difficulty: string
+          id: string
+          payout_amount: number | null
+          round_id: string
+          status: string
+          tiles_revealed: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          cashout_multiplier?: number | null
+          created_at?: string
+          current_row?: number
+          difficulty: string
+          id?: string
+          payout_amount?: number | null
+          round_id: string
+          status?: string
+          tiles_revealed?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          cashout_multiplier?: number | null
+          created_at?: string
+          current_row?: number
+          difficulty?: string
+          id?: string
+          payout_amount?: number | null
+          round_id?: string
+          status?: string
+          tiles_revealed?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chicken_run_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "chicken_run_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chicken_run_leaderboard: {
+        Row: {
+          created_at: string
+          highest_multiplier: number
+          id: string
+          total_games: number
+          total_lost: number
+          total_winnings: number
+          total_won: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          highest_multiplier?: number
+          id?: string
+          total_games?: number
+          total_lost?: number
+          total_winnings?: number
+          total_won?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          highest_multiplier?: number
+          id?: string
+          total_games?: number
+          total_lost?: number
+          total_winnings?: number
+          total_won?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chicken_run_rounds: {
+        Row: {
+          bet_end_time: string
+          bet_start_time: string
+          created_at: string
+          difficulty_level: string
+          id: string
+          round_number: number
+          status: string
+          trap_positions: Json
+          updated_at: string
+        }
+        Insert: {
+          bet_end_time?: string
+          bet_start_time?: string
+          created_at?: string
+          difficulty_level?: string
+          id?: string
+          round_number: number
+          status?: string
+          trap_positions?: Json
+          updated_at?: string
+        }
+        Update: {
+          bet_end_time?: string
+          bet_start_time?: string
+          created_at?: string
+          difficulty_level?: string
+          id?: string
+          round_number?: number
+          status?: string
+          trap_positions?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       color_prediction_bets: {
         Row: {
           bet_amount: number
@@ -2758,6 +2883,10 @@ export type Database = {
         Args: { p_bet_id: string; p_current_multiplier: number }
         Returns: Json
       }
+      cashout_chicken_run_bet: {
+        Args: { p_bet_id: string }
+        Returns: Json
+      }
       check_admin_ip_whitelist: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -2958,6 +3087,10 @@ export type Database = {
         }
         Returns: Json
       }
+      place_chicken_run_bet: {
+        Args: { p_bet_amount: number; p_difficulty: string }
+        Returns: Json
+      }
       place_color_prediction_bet: {
         Args: { p_bet_amount: number; p_color: string; p_round_id: string }
         Returns: Json
@@ -2997,6 +3130,10 @@ export type Database = {
       }
       process_withdrawal_request: {
         Args: { p_admin_notes?: string; p_request_id: string; p_status: string }
+        Returns: Json
+      }
+      reveal_chicken_run_tile: {
+        Args: { p_bet_id: string; p_column: number; p_row: number }
         Returns: Json
       }
       set_user_bet_limits: {
