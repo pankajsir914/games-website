@@ -217,7 +217,7 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
         if (rapidResponse?.success && rapidResponse?.data) {
           let matches = rapidResponse.data;
           
-          // Filter by enabled matches if betting is controlled
+          // Filter by enabled matches only if there are configured matches
           if (enabledMatchIds.length > 0) {
             matches = matches.filter((match: SportsMatch) => 
               enabledMatchIds.includes(match.id)
@@ -279,10 +279,14 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
                 } as SportsMatch;
               });
               
-              // Filter matches based on their status AND betting enabled
+              // Filter matches based on their status and optionally by betting enabled
               const filteredMatches = allMatches.filter((match: SportsMatch) => {
                 const matchCategory = categorizeMatchByStatus(match.status);
-                return matchCategory === kind && enabledMatchIds.includes(match.id);
+                // Only filter by enabledMatchIds if there are configured matches
+                const isEnabled = enabledMatchIds.length > 0 
+                  ? enabledMatchIds.includes(match.id) 
+                  : true;
+                return matchCategory === kind && isEnabled;
               });
               
               setData(filteredMatches);
@@ -308,8 +312,10 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
         
         if (cachedData && cachedData.length > 0) {
           const matches = cachedData.map(item => item.match_data as unknown as SportsMatch);
-          // Filter cached matches to only show betting enabled ones
-          const filteredMatches = matches.filter(match => enabledMatchIds.includes(match.id));
+          // Filter cached matches only if there are configured matches
+          const filteredMatches = enabledMatchIds.length > 0 
+            ? matches.filter(match => enabledMatchIds.includes(match.id))
+            : matches;
           setData(filteredMatches);
           setLastRefresh(new Date());
           setInitialLoading(false);
@@ -327,10 +333,14 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
       
       const matches = apiData?.items || [];
       
-      // Filter matches from other sports APIs based on status AND betting enabled
+      // Filter matches from other sports APIs based on status and optionally by betting enabled
       const filteredMatches = matches.filter((match: SportsMatch) => {
         const matchCategory = categorizeMatchByStatus(match.status);
-        return matchCategory === kind && enabledMatchIds.includes(match.id);
+        // Only filter by enabledMatchIds if there are configured matches
+        const isEnabled = enabledMatchIds.length > 0 
+          ? enabledMatchIds.includes(match.id) 
+          : true;
+        return matchCategory === kind && isEnabled;
       });
       
       // Set data without any fallback sample data
