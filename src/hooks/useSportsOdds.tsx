@@ -43,7 +43,6 @@ export interface BettingOdds {
     }>;
   };
   lastUpdate?: string;
-  mock?: boolean;
 }
 
 export function useSportsOdds() {
@@ -57,7 +56,7 @@ export function useSportsOdds() {
       region?: string;
       markets?: string[];
       bookmakers?: string[];
-      provider?: 'odds-api' | 'rapidapi' | 'mock';
+      provider?: 'odds-api' | 'rapidapi';
     }
   ): Promise<BettingOdds[]> => {
     setLoading(true);
@@ -104,11 +103,6 @@ export function useSportsOdds() {
         throw new Error('No odds data received');
       }
 
-      // If mock data, transform it to match our interface
-      if (data.mock && data.data[0]?.odds) {
-        return data.data;
-      }
-
       // Transform real API data
       return data.data.map((event: any) => ({
         matchId: event.id || matchId,
@@ -121,8 +115,7 @@ export function useSportsOdds() {
         event: event.event,
         bookmakers: event.bookmakers || [],
         odds: event.odds,
-        lastUpdate: event.lastUpdate || new Date().toISOString(),
-        mock: data.mock || false
+        lastUpdate: event.lastUpdate || new Date().toISOString()
       }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch odds';

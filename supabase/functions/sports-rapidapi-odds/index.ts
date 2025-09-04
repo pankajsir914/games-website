@@ -97,81 +97,6 @@ function transformOddsData(data: any, sport: string): any[] {
   });
 }
 
-// Generate mock odds for testing
-function generateMockOdds(sport: string, matchId?: string) {
-  const teams = {
-    football: [
-      { home: 'Manchester United', away: 'Liverpool' },
-      { home: 'Real Madrid', away: 'Barcelona' }
-    ],
-    cricket: [
-      { home: 'India', away: 'Australia' },
-      { home: 'England', away: 'Pakistan' }
-    ],
-    basketball: [
-      { home: 'Lakers', away: 'Warriors' },
-      { home: 'Celtics', away: 'Heat' }
-    ]
-  };
-
-  const selectedTeams = teams[sport as keyof typeof teams] || teams.football;
-  const team = selectedTeams[Math.floor(Math.random() * selectedTeams.length)];
-
-  return [{
-    matchId: matchId || `mock-${sport}-${Date.now()}`,
-    sport,
-    home_team: team.home,
-    away_team: team.away,
-    competition: `${sport.charAt(0).toUpperCase() + sport.slice(1)} League`,
-    event: `${team.home} vs ${team.away}`,
-    bookmakers: [
-      {
-        key: 'bet365',
-        title: 'Bet365',
-        markets: [
-          {
-            key: 'h2h',
-            last_update: new Date().toISOString(),
-            outcomes: [
-              { name: team.home, price: 2.5 },
-              { name: team.away, price: 3.0 },
-              { name: 'Draw', price: 3.2 }
-            ]
-          }
-        ]
-      },
-      {
-        key: 'william_hill',
-        title: 'William Hill',
-        markets: [
-          {
-            key: 'h2h',
-            last_update: new Date().toISOString(),
-            outcomes: [
-              { name: team.home, price: 2.45 },
-              { name: team.away, price: 3.1 },
-              { name: 'Draw', price: 3.25 }
-            ]
-          }
-        ]
-      }
-    ],
-    odds: {
-      h2h: [
-        { bookmaker: 'Bet365', home: '2.50', away: '3.00', draw: '3.20' },
-        { bookmaker: 'William Hill', home: '2.45', away: '3.10', draw: '3.25' }
-      ],
-      spreads: [
-        { bookmaker: 'Bet365', home: { points: '-1.5', odds: '1.90' }, away: { points: '+1.5', odds: '1.90' } }
-      ],
-      totals: [
-        { bookmaker: 'Bet365', points: '2.5', over: '1.85', under: '1.95' }
-      ]
-    },
-    lastUpdate: new Date().toISOString(),
-    mock: true
-  }];
-}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -184,13 +109,14 @@ serve(async (req) => {
     
     // Check if RapidAPI key is configured
     if (!RAPIDAPI_KEY) {
-      console.log('RapidAPI key not configured, returning mock data');
+      console.log('RapidAPI key not configured');
       return new Response(
         JSON.stringify({
-          success: true,
-          provider: 'mock',
+          success: false,
+          provider: 'rapidapi',
           sport,
-          data: generateMockOdds(sport, matchId)
+          data: [],
+          error: 'RapidAPI key not configured'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -252,20 +178,20 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error in sports-rapidapi-odds:', error);
     
-    // Return mock data on error
+    // Return error on failure
     const body = await req.json().catch(() => ({}));
     const sport = body.sport || 'football';
     const matchId = body.matchId;
     
     return new Response(
       JSON.stringify({
-        success: true,
-        provider: 'mock',
+        success: false,
+        provider: 'rapidapi',
         sport,
-        data: generateMockOdds(sport, matchId),
+        data: [],
         error: error.message
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

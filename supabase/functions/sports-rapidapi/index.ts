@@ -271,14 +271,15 @@ serve(async (req) => {
     // Check if RapidAPI key is configured
     if (!RAPIDAPI_KEY) {
       console.error('RapidAPI key not configured');
-      // Return mock data if no key
+      // Return empty data if no key
       return new Response(
         JSON.stringify({
-          success: true,
-          provider: 'mock',
+          success: false,
+          provider: 'rapidapi',
           sport,
           type,
-          data: generateMockData(sport, type),
+          data: [],
+          error: 'RapidAPI key not configured',
           cached: false
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -319,70 +320,22 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error in sports-rapidapi:', error);
     
-    // Return mock data on error
+    // Return error on failure
     const url = new URL(req.url);
     const sport = url.searchParams.get('sport') || 'football';
     const type = url.searchParams.get('type') || 'live';
     
     return new Response(
       JSON.stringify({
-        success: true,
-        provider: 'mock',
+        success: false,
+        provider: 'rapidapi',
         sport,
         type,
-        data: generateMockData(sport, type),
+        data: [],
         error: error.message,
         cached: false
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
-
-// Generate mock data for testing
-function generateMockData(sport: string, type: string) {
-  const mockTeams = {
-    football: [
-      { home: 'Manchester United', away: 'Liverpool FC' },
-      { home: 'Real Madrid', away: 'Barcelona' },
-      { home: 'Bayern Munich', away: 'Borussia Dortmund' }
-    ],
-    cricket: [
-      { home: 'India', away: 'Australia' },
-      { home: 'England', away: 'Pakistan' },
-      { home: 'South Africa', away: 'New Zealand' }
-    ],
-    basketball: [
-      { home: 'Lakers', away: 'Warriors' },
-      { home: 'Nets', away: 'Celtics' },
-      { home: 'Bulls', away: 'Heat' }
-    ],
-    tennis: [
-      { home: 'Djokovic', away: 'Nadal' },
-      { home: 'Federer', away: 'Murray' },
-      { home: 'Alcaraz', away: 'Medvedev' }
-    ],
-    hockey: [
-      { home: 'Rangers', away: 'Devils' },
-      { home: 'Maple Leafs', away: 'Canadiens' },
-      { home: 'Penguins', away: 'Capitals' }
-    ]
-  };
-
-  const teams = mockTeams[sport as keyof typeof mockTeams] || mockTeams.football;
-  
-  return teams.map((team, index) => ({
-    id: `mock-${sport}-${index}`,
-    sport,
-    date: new Date(Date.now() + index * 3600000).toISOString(),
-    league: `${sport.charAt(0).toUpperCase() + sport.slice(1)} League`,
-    venue: 'Stadium ' + (index + 1),
-    status: type === 'live' ? 'In Progress' : type === 'upcoming' ? 'Scheduled' : 'Finished',
-    teams: team,
-    scores: type === 'results' ? {
-      home: Math.floor(Math.random() * 5),
-      away: Math.floor(Math.random() * 5)
-    } : { home: null, away: null },
-    raw: {}
-  }));
-}

@@ -168,7 +168,7 @@ export const EnhancedMatchCard: React.FC<EnhancedMatchCardProps> = ({
               </div>
             ) : (
               <div className="text-center text-sm text-muted-foreground py-2">
-                {odds?.mock ? 'Sample odds' : 'Odds not available'}
+                Odds not available
               </div>
             )}
           </div>

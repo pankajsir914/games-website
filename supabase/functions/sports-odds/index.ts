@@ -34,8 +34,7 @@ interface OddsRequest {
   matchId?: string;
   region?: string;
   markets?: string[];
-  bookmakers?: string[];
-  provider?: 'odds-api' | 'betfair' | 'mock';
+  provider?: 'odds-api' | 'rapidapi';
 }
 
 interface BetfairMarket {
@@ -356,41 +355,6 @@ async function fetchOddsAPI(req: OddsRequest) {
   }));
 }
 
-// Generate mock odds for testing
-function generateMockOdds(sport: string, matchId?: string) {
-  const bookmakers = ['bet365', 'william_hill', 'betfair', 'unibet'];
-  
-  return {
-    matchId: matchId || `mock-${Date.now()}`,
-    sport,
-    odds: {
-      h2h: bookmakers.map(bm => ({
-        bookmaker: bm,
-        home: (Math.random() * 2 + 1.5).toFixed(2),
-        away: (Math.random() * 2 + 1.5).toFixed(2),
-        draw: sport === 'football' ? (Math.random() * 1.5 + 2.5).toFixed(2) : null,
-      })),
-      spreads: bookmakers.map(bm => ({
-        bookmaker: bm,
-        home: {
-          points: (Math.random() * 10 - 5).toFixed(1),
-          odds: (Math.random() * 0.4 + 1.7).toFixed(2),
-        },
-        away: {
-          points: (Math.random() * 10 - 5).toFixed(1),
-          odds: (Math.random() * 0.4 + 1.7).toFixed(2),
-        },
-      })),
-      totals: bookmakers.map(bm => ({
-        bookmaker: bm,
-        points: (Math.random() * 100 + 150).toFixed(1),
-        over: (Math.random() * 0.4 + 1.7).toFixed(2),
-        under: (Math.random() * 0.4 + 1.7).toFixed(2),
-      })),
-    },
-    lastUpdate: new Date().toISOString(),
-  };
-}
 
 // Cache helper
 async function cached<T>(key: string, ttlMs: number, fetcher: () => Promise<T>): Promise<T> {
@@ -426,35 +390,25 @@ Deno.serve(async (req) => {
       );
     }
     
-    const provider = body.provider || 'mock';
+    const provider = body.provider || 'odds-api';
     const cacheKey = `${provider}:${body.sport}:${body.matchId || 'all'}:${body.region || 'us'}`;
     const ttl = provider === 'betfair' ? 30000 : 60000; // 30s for Betfair, 1min for others
     
     try {
       const odds = await cached(cacheKey, ttl, async () => {
         switch (provider) {
-          case 'betfair':
-            if (BETFAIR_APP_KEY && (BETFAIR_SESSION_TOKEN || (BETFAIR_USERNAME && BETFAIR_PASSWORD))) {
-              console.log('Fetching from Betfair Exchange...');
-              return await fetchBetfairOdds(body);
-            } else {
-              console.log('Betfair not configured, returning mock data');
-              return [generateMockOdds(body.sport, body.matchId)];
-            }
-            
           case 'odds-api':
             if (ODDS_API_KEY) {
               console.log('Fetching from The Odds API...');
               return await fetchOddsAPI(body);
             } else {
-              console.log('The Odds API not configured, returning mock data');
-              return [generateMockOdds(body.sport, body.matchId)];
+              console.log('The Odds API not configured');
+              return [];
             }
             
-          case 'mock':
           default:
-            console.log('Returning mock data...');
-            return [generateMockOdds(body.sport, body.matchId)];
+            console.log('No valid provider specified');
+            return [];
         }
       });
       
@@ -471,35 +425,18 @@ Deno.serve(async (req) => {
     } catch (error) {
       console.error('Error fetching odds:', error);
       
-      // For Betfair requests, do NOT return mock data – return empty set with error
-      if (provider === 'betfair') {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            provider: 'betfair',
-            sport: body.sport,
-            count: 0,
-            data: [],
-            mock: false,
-            error: (error as Error).message,
-          }),
-          { headers: corsHeaders }
-        );
-      }
-
-      // Otherwise, return mock data on error
-      const mockOdds = [generateMockOdds(body.sport, body.matchId)];
+      
+      // Return error on API failure  
       return new Response(
         JSON.stringify({
-          success: true,
-          provider: 'mock',
+          success: false,
+          provider: provider,
           sport: body.sport,
-          count: mockOdds.length,
-          data: mockOdds,
-          mock: true,
+          count: 0,
+          data: [],
           error: (error as Error).message,
         }),
-        { headers: corsHeaders }
+        { headers: corsHeaders, status: 500 }
       );
     }
   } catch (error) {
