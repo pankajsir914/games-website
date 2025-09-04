@@ -87,7 +87,70 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
 
       const enabledMatchIds = enabledMatches?.map(m => m.match_id) || [];
 
-      // Try RapidAPI first
+      // Try Diamond provider (Sky Exchange via RapidAPI)
+      try {
+        const { data: sidsResp } = await supabase.functions.invoke('sports-diamond-proxy', {
+          body: { path: 'sports/allSportid' }
+        });
+
+        let sid: string | null = null;
+        const sidList = sidsResp?.data;
+        if (Array.isArray(sidList)) {
+          const found = sidList.find((it: any) => {
+            const name = (it.name || it.sport || it.title || '').toString().toLowerCase();
+            return name.includes(sport.toLowerCase());
+          });
+          sid = found?.sid?.toString?.() || found?.id?.toString?.() || null;
+        }
+        // Fallback SIDs if not found
+        if (!sid) {
+          const fallback: Record<string, string> = { cricket: '4', football: '1', tennis: '2', basketball: '3', hockey: '5' };
+          sid = fallback[sport];
+        }
+
+        if (sid) {
+          const { data: diamondResp } = await supabase.functions.invoke('sports-diamond-proxy', {
+            body: { path: 'sports/esid', sid }
+          });
+          const items = diamondResp?.data;
+          const arr = Array.isArray(items) ? items : (items?.events || items?.data || []);
+
+          if (Array.isArray(arr) && arr.length > 0) {
+            const matches: SportsMatch[] = arr.map((ev: any) => {
+              const id = ev.id || ev.EID || ev.eid || ev.eventId || ev.mktid || `${sport}-${ev.sid || ''}-${ev.name || ''}`;
+              const title = ev.name || ev.en || ev.event || ev.match || '';
+              const parts = (typeof title === 'string' ? title : '').split(/ v | vs | VS | Vs /i);
+              const home = ev.home || ev.team1 || ev.runner1 || parts[0] || 'Home';
+              const away = ev.away || ev.team2 || ev.runner2 || parts[1] || 'Away';
+              const date = ev.startTime || ev.openDate || ev.time || ev.start || new Date().toISOString();
+              const league = ev.seriesName || ev.league || ev.tournament || ev.cn || 'Match';
+              const status = ev.inplay ? 'live' : (kind === 'results' ? 'finished' : 'scheduled');
+              return {
+                id: String(id),
+                sport: sport as any,
+                date,
+                league,
+                venue: ev.venue || '',
+                status,
+                teams: { home, away },
+                scores: { home: null, away: null },
+                raw: ev,
+              } as SportsMatch;
+            });
+
+            const filtered = enabledMatchIds.length > 0 ? matches.filter(m => enabledMatchIds.includes(m.id)) : matches;
+            setData(filtered);
+            setLastRefresh(new Date());
+            setInitialLoading(false);
+            setRefreshing(false);
+            return;
+          }
+        }
+      } catch (diamondError) {
+        console.log('Diamond provider not available or returned no data');
+      }
+
+      // Try RapidAPI next
       try {
         const { data: rapidResponse, error: rapidError } = await supabase.functions.invoke('sports-rapidapi', {
           body: JSON.stringify({ sport, type: kind })
