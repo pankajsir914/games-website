@@ -116,7 +116,7 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
           const arr = Array.isArray(items) ? items : (items?.events || items?.data || []);
 
           if (Array.isArray(arr) && arr.length > 0) {
-            const matches: SportsMatch[] = arr.map((ev: any) => {
+            const matches: SportsMatch[] = await Promise.all(arr.map(async (ev: any) => {
               // Use eventId as primary ID field from Diamond API
               const id = ev.eventId || ev.EID || ev.eid || ev.id || ev.mktid || `${sport}-${ev.sid || ''}-${ev.name || ''}`;
               const title = ev.name || ev.en || ev.event || ev.match || '';
@@ -125,7 +125,34 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
               const away = ev.away || ev.team2 || ev.runner2 || parts[1] || 'Away';
               const date = ev.openDate || ev.startTime || ev.time || ev.start || new Date().toISOString();
               const league = ev.cn || ev.seriesName || ev.league || ev.tournament || 'Match';
-              const status = ev.inplay ? 'live' : (kind === 'results' ? 'finished' : 'scheduled');
+              
+              // Determine status based on various fields
+              let status = 'scheduled';
+              if (ev.inplay === true || ev.inPlay === '1' || ev.status === 'LIVE') {
+                status = 'live';
+              } else if (ev.completed || ev.status === 'COMPLETED' || ev.status === 'FINISHED') {
+                status = 'finished';
+              } else if (kind === 'results') {
+                status = 'finished';
+              }
+              
+              // Try to get live scores if match is live
+              let scores = { home: null as number | null, away: null as number | null };
+              if (status === 'live' && ev.eventId) {
+                try {
+                  const { data: scoreData } = await supabase.functions.invoke('sports-diamond-proxy', {
+                    body: { path: 'sports-score', params: { matchId: String(ev.eventId) } }
+                  });
+                  if (scoreData?.data) {
+                    const score = scoreData.data;
+                    scores.home = score.homeScore || score.team1Score || null;
+                    scores.away = score.awayScore || score.team2Score || null;
+                  }
+                } catch (scoreErr) {
+                  console.log('Could not fetch live scores:', scoreErr);
+                }
+              }
+              
               return {
                 id: String(id),
                 sport: sport as any,
@@ -134,10 +161,10 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
                 venue: ev.venue || '',
                 status,
                 teams: { home, away },
-                scores: { home: null, away: null },
+                scores,
                 raw: ev,
               } as SportsMatch;
-            });
+            }));
 
             const filtered = enabledMatchIds.length > 0 ? matches.filter(m => enabledMatchIds.includes(m.id)) : matches;
             setData(filtered);
