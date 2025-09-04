@@ -117,13 +117,14 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
 
           if (Array.isArray(arr) && arr.length > 0) {
             const matches: SportsMatch[] = arr.map((ev: any) => {
-              const id = ev.id || ev.EID || ev.eid || ev.eventId || ev.mktid || `${sport}-${ev.sid || ''}-${ev.name || ''}`;
+              // Use eventId as primary ID field from Diamond API
+              const id = ev.eventId || ev.EID || ev.eid || ev.id || ev.mktid || `${sport}-${ev.sid || ''}-${ev.name || ''}`;
               const title = ev.name || ev.en || ev.event || ev.match || '';
               const parts = (typeof title === 'string' ? title : '').split(/ v | vs | VS | Vs /i);
               const home = ev.home || ev.team1 || ev.runner1 || parts[0] || 'Home';
               const away = ev.away || ev.team2 || ev.runner2 || parts[1] || 'Away';
-              const date = ev.startTime || ev.openDate || ev.time || ev.start || new Date().toISOString();
-              const league = ev.seriesName || ev.league || ev.tournament || ev.cn || 'Match';
+              const date = ev.openDate || ev.startTime || ev.time || ev.start || new Date().toISOString();
+              const league = ev.cn || ev.seriesName || ev.league || ev.tournament || 'Match';
               const status = ev.inplay ? 'live' : (kind === 'results' ? 'finished' : 'scheduled');
               return {
                 id: String(id),
