@@ -22,5 +22,11 @@ verify_jwt = true
 [functions.sports-proxy]
 verify_jwt = false
 
+[functions.sports-rapidapi]
+verify_jwt = false
+
+[functions.sports-rapidapi-odds]
+verify_jwt = false
+
 [functions.ludo-game-manager]
 verify_jwt = true

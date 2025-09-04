@@ -87,64 +87,92 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
 
       const enabledMatchIds = enabledMatches?.map(m => m.match_id) || [];
 
-      // For cricket, use direct CricAPI integration and filter by status
-      if (sport === 'cricket') {
-        const response = await fetch(
-          `https://api.cricapi.com/v1/currentMatches?apikey=a4cd2ec0-4175-4263-868a-22ef5cbd9316&offset=0`
-        );
-        
-        if (!response.ok) {
-          throw new Error(`Cricket API error: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.status === 'success' && result.data) {
-          const allMatches = result.data.map((match: any) => {
-            const homeTeam = match.teamInfo?.[0]?.name || match.teams?.[0] || 'Team A';
-            const awayTeam = match.teamInfo?.[1]?.name || match.teams?.[1] || 'Team B';
-            
-            const homeScore = match.score?.[0];
-            const awayScore = match.score?.[1];
-            
-            return {
-              id: match.id,
-              sport: 'cricket',
-              date: match.dateTimeGMT || match.date,
-              league: match.name || 'Cricket Match',
-              venue: match.venue,
-              status: match.status,
-              teams: {
-                home: homeTeam,
-                away: awayTeam
-              },
-              scores: {
-                home: homeScore?.r || null,
-                away: awayScore?.r || null
-              },
-              overs: homeScore && awayScore ? {
-                home: homeScore.o?.toString() || '0',
-                away: awayScore.o?.toString() || '0'
-              } : undefined,
-              wickets: homeScore && awayScore ? {
-                home: homeScore.w || 0,
-                away: awayScore.w || 0
-              } : undefined,
-              raw: match
-            } as SportsMatch;
-          });
+      // Try RapidAPI first
+      try {
+        const response = await supabase.functions.invoke('sports-rapidapi', {
+          body: { sport, type: kind }
+        });
+
+        if (response.data?.success && response.data?.data) {
+          let matches = response.data.data;
           
-          // Filter matches based on their status AND betting enabled
-          const filteredMatches = allMatches.filter((match: SportsMatch) => {
-            const matchCategory = categorizeMatchByStatus(match.status);
-            return matchCategory === kind && enabledMatchIds.includes(match.id);
-          });
+          // Filter by enabled matches if betting is controlled
+          if (enabledMatchIds.length > 0) {
+            matches = matches.filter((match: SportsMatch) => 
+              enabledMatchIds.includes(match.id)
+            );
+          }
           
-          setData(filteredMatches);
+          setData(matches);
           setLastRefresh(new Date());
           setInitialLoading(false);
           setRefreshing(false);
           return;
+        }
+      } catch (rapidApiError) {
+        console.log('RapidAPI not available, falling back to legacy API');
+      }
+
+      // Fallback to legacy cricket API for cricket
+      if (sport === 'cricket') {
+        try {
+          const response = await fetch(
+            `https://api.cricapi.com/v1/currentMatches?apikey=a4cd2ec0-4175-4263-868a-22ef5cbd9316&offset=0`
+          );
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.status === 'success' && result.data) {
+              const allMatches = result.data.map((match: any) => {
+                const homeTeam = match.teamInfo?.[0]?.name || match.teams?.[0] || 'Team A';
+                const awayTeam = match.teamInfo?.[1]?.name || match.teams?.[1] || 'Team B';
+                
+                const homeScore = match.score?.[0];
+                const awayScore = match.score?.[1];
+                
+                return {
+                  id: match.id,
+                  sport: 'cricket',
+                  date: match.dateTimeGMT || match.date,
+                  league: match.name || 'Cricket Match',
+                  venue: match.venue,
+                  status: match.status,
+                  teams: {
+                    home: homeTeam,
+                    away: awayTeam
+                  },
+                  scores: {
+                    home: homeScore?.r || null,
+                    away: awayScore?.r || null
+                  },
+                  overs: homeScore && awayScore ? {
+                    home: homeScore.o?.toString() || '0',
+                    away: awayScore.o?.toString() || '0'
+                  } : undefined,
+                  wickets: homeScore && awayScore ? {
+                    home: homeScore.w || 0,
+                    away: awayScore.w || 0
+                  } : undefined,
+                  raw: match
+                } as SportsMatch;
+              });
+              
+              // Filter matches based on their status AND betting enabled
+              const filteredMatches = allMatches.filter((match: SportsMatch) => {
+                const matchCategory = categorizeMatchByStatus(match.status);
+                return matchCategory === kind && enabledMatchIds.includes(match.id);
+              });
+              
+              setData(filteredMatches);
+              setLastRefresh(new Date());
+              setInitialLoading(false);
+              setRefreshing(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.log('Cricket API fallback also failed');
         }
       }
       

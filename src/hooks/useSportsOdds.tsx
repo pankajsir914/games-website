@@ -95,13 +95,34 @@ export function useSportsOdds() {
       region?: string;
       markets?: string[];
       bookmakers?: string[];
-      provider?: 'odds-api' | 'betfair' | 'mock';
+      provider?: 'odds-api' | 'betfair' | 'rapidapi' | 'mock';
     }
   ): Promise<BettingOdds[]> => {
     setLoading(true);
     setError(null);
 
     try {
+      // Try RapidAPI first if provider is rapidapi or not specified
+      if (!options?.provider || options?.provider === 'rapidapi') {
+        try {
+          const { data: rapidData, error: rapidError } = await supabase.functions.invoke('sports-rapidapi-odds', {
+            body: {
+              sport,
+              matchId,
+              region: options?.region || 'us',
+              markets: options?.markets || ['h2h', 'spreads', 'totals']
+            }
+          });
+
+          if (!rapidError && rapidData?.success && rapidData?.data) {
+            return rapidData.data as BettingOdds[];
+          }
+        } catch (rapidApiError) {
+          console.log('RapidAPI odds not available, falling back to other providers');
+        }
+      }
+
+      // Fallback to existing sports-odds function
       const { data, error: fetchError } = await supabase.functions.invoke('sports-odds', {
         body: {
           sport,
@@ -109,7 +130,7 @@ export function useSportsOdds() {
           region: options?.region || 'us',
           markets: options?.markets || ['h2h', 'spreads', 'totals'],
           bookmakers: options?.bookmakers,
-          provider: options?.provider,
+          provider: options?.provider === 'rapidapi' ? 'betfair' : (options?.provider || 'betfair'),
         }
       });
 
