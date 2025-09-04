@@ -89,33 +89,48 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
 
       // Try Diamond provider (Sky Exchange via RapidAPI)
       try {
-        const { data: sidsResp } = await supabase.functions.invoke('sports-diamond-proxy', {
+        console.log('Attempting to fetch from Diamond Sports API...');
+        console.log('Sport:', sport, 'Kind:', kind);
+        
+        const { data: sidsResp, error: sidsError } = await supabase.functions.invoke('sports-diamond-proxy', {
           body: { path: 'sports/allSportid' }
         });
+
+        console.log('SIDs Response:', sidsResp);
+        console.log('SIDs Error:', sidsError);
 
         let sid: string | null = null;
         const sidList = sidsResp?.data;
         if (Array.isArray(sidList)) {
+          console.log('SID List received:', sidList);
           const found = sidList.find((it: any) => {
             const name = (it.name || it.sport || it.title || '').toString().toLowerCase();
             return name.includes(sport.toLowerCase());
           });
           sid = found?.sid?.toString?.() || found?.id?.toString?.() || null;
+          console.log('Found SID for', sport, ':', sid);
         }
         // Fallback SIDs if not found
         if (!sid) {
           const fallback: Record<string, string> = { cricket: '4', football: '1', tennis: '2', basketball: '3', hockey: '5' };
           sid = fallback[sport];
+          console.log('Using fallback SID for', sport, ':', sid);
         }
 
         if (sid) {
-          const { data: diamondResp } = await supabase.functions.invoke('sports-diamond-proxy', {
+          console.log('Fetching events for SID:', sid);
+          const { data: diamondResp, error: diamondError } = await supabase.functions.invoke('sports-diamond-proxy', {
             body: { path: 'sports/esid', sid }
           });
+          
+          console.log('Diamond Events Response:', diamondResp);
+          console.log('Diamond Events Error:', diamondError);
+          
           const items = diamondResp?.data;
           const arr = Array.isArray(items) ? items : (items?.events || items?.data || []);
 
           if (Array.isArray(arr) && arr.length > 0) {
+            console.log('Processing', arr.length, 'matches from Diamond API');
             const matches: SportsMatch[] = await Promise.all(arr.map(async (ev: any) => {
               // Use eventId as primary ID field from Diamond API
               const id = ev.eventId || ev.EID || ev.eid || ev.id || ev.mktid || `${sport}-${ev.sid || ''}-${ev.name || ''}`;
@@ -136,22 +151,8 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
                 status = 'finished';
               }
               
-              // Try to get live scores if match is live
+              // Try to get live scores if match is live - disabled for now to avoid too many calls
               let scores = { home: null as number | null, away: null as number | null };
-              if (status === 'live' && ev.eventId) {
-                try {
-                  const { data: scoreData } = await supabase.functions.invoke('sports-diamond-proxy', {
-                    body: { path: 'sports-score', params: { matchId: String(ev.eventId) } }
-                  });
-                  if (scoreData?.data) {
-                    const score = scoreData.data;
-                    scores.home = score.homeScore || score.team1Score || null;
-                    scores.away = score.awayScore || score.team2Score || null;
-                  }
-                } catch (scoreErr) {
-                  console.log('Could not fetch live scores:', scoreErr);
-                }
-              }
               
               return {
                 id: String(id),
@@ -167,14 +168,18 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
             }));
 
             const filtered = enabledMatchIds.length > 0 ? matches.filter(m => enabledMatchIds.includes(m.id)) : matches;
+            console.log('Filtered matches:', filtered.length, 'out of', matches.length);
             setData(filtered);
             setLastRefresh(new Date());
             setInitialLoading(false);
             setRefreshing(false);
             return;
+          } else {
+            console.log('No matches found in Diamond API response');
           }
         }
       } catch (diamondError) {
+        console.error('Diamond provider error:', diamondError);
         console.log('Diamond provider not available or returned no data');
       }
 
