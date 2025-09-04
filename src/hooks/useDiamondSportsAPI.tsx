@@ -55,45 +55,45 @@ export function useDiamondSportsAPI() {
     }
   }, []);
 
-  // Endpoint wrapper functions
+  // Endpoint wrapper functions with correct paths
   const getAllSportsId = useCallback(() => 
     callAPI('sports/allSportid'), [callAPI]);
 
   const getAllMatch = useCallback((sid?: string) => 
     callAPI('sports/esid', { sid }), [callAPI]);
 
-  const getOdds = useCallback((params: Record<string, string>) => 
-    callAPI('odds', { params }), [callAPI]);
+  const getOdds = useCallback((eventId: string) => 
+    callAPI('sports/odds', { params: { eventId } }), [callAPI]);
 
   const diamondToBetfairId = useCallback((matchId: string) => 
-    callAPI('diamond-to-betfair', { params: { matchId } }), [callAPI]);
+    callAPI('sports/diamondToBetfairId', { params: { matchId } }), [callAPI]);
 
   const matchNameToBetfair = useCallback((matchName: string) => 
-    callAPI('match-name-to-betfair', { params: { matchName } }), [callAPI]);
+    callAPI('sports/matchNameToBetfair', { params: { matchName } }), [callAPI]);
 
-  const getLiveTv = useCallback((matchId: string) => 
-    callAPI('live-tv', { params: { matchId } }), [callAPI]);
+  const getLiveTv = useCallback((eventId: string) => 
+    callAPI('sports/livetv', { params: { eventId } }), [callAPI]);
 
-  const getSportsScore = useCallback((matchId: string) => 
-    callAPI('sports-score', { params: { matchId } }), [callAPI]);
+  const getSportsScore = useCallback((eventId: string) => 
+    callAPI('sports/sportsScore', { params: { eventId } }), [callAPI]);
 
-  const getAllGameDetails = useCallback((matchId: string) => 
-    callAPI('game-details', { params: { matchId } }), [callAPI]);
+  const getAllGameDetails = useCallback((eventId: string) => 
+    callAPI('sports/allGameDetails', { params: { eventId } }), [callAPI]);
 
-  const getMatchResult = useCallback((betfairId: string) => 
-    callAPI('match-result', { params: { betfairId } }), [callAPI]);
+  const getMatchResult = useCallback((eventId: string) => 
+    callAPI('sports/matchResult', { params: { eventId } }), [callAPI]);
 
-  const postMarketResult = useCallback((marketId: string, result: any) => 
-    callAPI('market-result', { 
+  const postMarketResult = useCallback((marketId: string, selectionId: string, result: string) => 
+    callAPI('sports/postMarketResult', { 
       method: 'POST', 
-      payload: { marketId, result } 
+      params: { marketId, selectionId, result }
     }), [callAPI]);
 
   const getPostedMarketResult = useCallback((marketId: string) => 
-    callAPI('posted-market-result', { params: { marketId } }), [callAPI]);
+    callAPI('sports/postedMarketResult', { params: { marketId } }), [callAPI]);
 
-  const getDiamondIframeTV = useCallback((matchId: string) => 
-    callAPI('diamond-iframe-tv', { params: { matchId } }), [callAPI]);
+  const getDiamondIframeTV = useCallback((eventId: string) => 
+    callAPI('sports/diamondIframeTV', { params: { eventId } }), [callAPI]);
 
   return {
     loading,

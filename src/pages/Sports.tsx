@@ -13,6 +13,8 @@ import { FootballMatchCard } from '@/components/sports/FootballMatchCard';
 import { CricketMatchCard } from '@/components/sports/CricketMatchCard';
 import { EnhancedMatchCard } from '@/components/sports/EnhancedMatchCard';
 import { MatchCardSkeleton } from '@/components/sports/MatchCardSkeleton';
+import { DiamondSportsCard } from '@/components/sports/DiamondSportsCard';
+import { toast } from 'sonner';
 
 
 // Import sports background images
@@ -139,8 +141,19 @@ const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketba
                   key={`${match.id ?? 'x'}-${idx}`} 
                   className="flex-none w-96 transition-all duration-500 ease-in-out"
                 >
-                  {/* Use EnhancedMatchCard for football and basketball with hybrid data */}
-                  {(sport === 'football' || sport === 'basketball') ? (
+                  {/* Use DiamondSportsCard for matches from Diamond API */}
+                  {match.provider === 'diamond' ? (
+                    <DiamondSportsCard
+                      match={match}
+                      sport={sport}
+                      showOdds={title !== 'Results'}
+                      showLiveTV={title === 'Live Matches'}
+                      onBetClick={(match, odds) => {
+                        toast.success('Bet placement coming soon!');
+                        console.log('Bet placed:', { match, odds });
+                      }}
+                    />
+                  ) : (sport === 'football' || sport === 'basketball') ? (
                     <EnhancedMatchCard
                       match={match}
                       sport={sport}

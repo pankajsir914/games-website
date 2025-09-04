@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY') || 'c6d4b3472dmsh7e309839b7b34c8p12004djsnafe1fd91fff7';
+// Use the API key directly for Diamond Sports API
+const RAPIDAPI_KEY = 'c6d4b3472dmsh7e309839b7b34c8p12004djsnafe1fd91fff7';
 const DIAMOND_HOST = 'diamond-sports-api-d247-sky-exchange-betfair.p.rapidapi.com';
 
 // Simple in-memory cache

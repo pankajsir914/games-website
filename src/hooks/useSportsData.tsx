@@ -14,6 +14,16 @@ export interface SportsMatch {
   wickets?: { home: number; away: number };
   commentary?: string[];
   raw?: any;
+  // Diamond Sports API fields
+  provider?: 'diamond' | 'rapidapi' | 'cricapi' | 'mock';
+  diamondId?: string;
+  betfairId?: string;
+  marketCount?: number;
+  inPlay?: boolean;
+  home_team?: string;
+  away_team?: string;
+  start_time?: string;
+  score?: { home: number | null; away: number | null };
 }
 
 export interface SportsSettings {
@@ -169,6 +179,16 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
                 teams: { home, away },
                 scores,
                 raw: ev,
+                // Add Diamond-specific fields
+                provider: 'diamond',
+                diamondId: ev.eventId || ev.id,
+                betfairId: ev.betfairId,
+                marketCount: ev.mktCount || ev.marketCount || 0,
+                inPlay: ev.inplay === true || ev.inPlay === '1',
+                home_team: home,
+                away_team: away,
+                start_time: date,
+                score: scores
               } as SportsMatch;
             }));
 
