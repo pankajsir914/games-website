@@ -28,5 +28,8 @@ verify_jwt = false
 [functions.sports-rapidapi-odds]
 verify_jwt = false
 
+[functions.sports-diamond-proxy]
+verify_jwt = false
+
 [functions.ludo-game-manager]
 verify_jwt = true
