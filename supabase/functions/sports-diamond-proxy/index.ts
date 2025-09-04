@@ -22,9 +22,12 @@ serve(async (req) => {
     let path = 'sports/esid';
     let sid: string | null = null;
     let qs: Record<string, string> = {};
+    let method = 'GET';
+    let payload: any = null;
 
     const url = new URL(req.url);
     if (req.method === 'GET') {
+      method = 'GET';
       path = url.searchParams.get('path') || path;
       sid = url.searchParams.get('sid');
       // collect any extra query params
@@ -39,6 +42,8 @@ serve(async (req) => {
           path = body.path || path;
           sid = body.sid ?? null;
           qs = typeof body.params === 'object' && body.params ? body.params : {};
+          method = (body.method || 'GET').toString().toUpperCase();
+          payload = body.payload ?? null;
         } catch (_) {
           // ignore
         }
@@ -67,18 +72,22 @@ serve(async (req) => {
     const cacheKey = targetUrl;
     const now = Date.now();
     const hit = cache.get(cacheKey);
-    if (hit && now - hit.ts < TTL_MS) {
+    if (method === 'GET' && hit && now - hit.ts < TTL_MS) {
       return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: true, data: hit.data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const headers: Record<string, string> = {
+      'X-RapidAPI-Key': RAPIDAPI_KEY,
+      'X-RapidAPI-Host': DIAMOND_HOST,
+    };
+    if (method !== 'GET') headers['Content-Type'] = 'application/json';
+
     const res = await fetch(targetUrl, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': DIAMOND_HOST,
-      },
+      method,
+      headers,
+      body: method === 'POST' && payload ? JSON.stringify(payload) : undefined,
     });
 
     const text = await res.text();
@@ -93,7 +102,7 @@ serve(async (req) => {
       throw new Error(`Diamond API error ${res.status}: ${res.statusText}`);
     }
 
-    cache.set(cacheKey, { data: json, ts: now });
+    if (method === 'GET') cache.set(cacheKey, { data: json, ts: now });
 
     return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: false, data: json }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
