@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY') || '';
+const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY') || 'c6d4b3472dmsh7e309839b7b34c8p12004djsnafe1fd91fff7';
 const DIAMOND_HOST = 'diamond-sports-api-d247-sky-exchange-betfair.p.rapidapi.com';
 
 // Simple in-memory cache
@@ -57,9 +57,13 @@ serve(async (req) => {
       });
     }
 
+    // Fix path formatting - remove leading slash if present
+    if (path.startsWith('/')) path = path.substring(1);
+    
     // Require sid for the esid endpoint
-    if (path.endsWith('/esid') && (!sid || sid.length === 0)) {
-      return new Response(JSON.stringify({ success: false, error: 'sid is required for /sports/esid', data: [] }), {
+    if (path === 'sports/esid' && (!sid || sid.length === 0)) {
+      console.log('Missing SID for sports/esid endpoint');
+      return new Response(JSON.stringify({ success: false, error: 'sid is required for sports/esid', data: [] }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -68,6 +72,14 @@ serve(async (req) => {
     const params = new URLSearchParams(qs);
     if (sid) params.set('sid', String(sid));
     const targetUrl = `https://${DIAMOND_HOST}/${path}${params.toString() ? `?${params.toString()}` : ''}`;
+    
+    console.log('Request details:', {
+      path,
+      sid,
+      params: Object.fromEntries(params),
+      targetUrl,
+      method
+    });
 
     const cacheKey = targetUrl;
     const now = Date.now();
@@ -84,12 +96,14 @@ serve(async (req) => {
     };
     if (method !== 'GET') headers['Content-Type'] = 'application/json';
 
+    console.log('Making request to Diamond API:', targetUrl);
     const res = await fetch(targetUrl, {
       method,
       headers,
       body: method === 'POST' && payload ? JSON.stringify(payload) : undefined,
     });
 
+    console.log('Diamond API response status:', res.status, res.statusText);
     const text = await res.text();
     let json: any;
     try {

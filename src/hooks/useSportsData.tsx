@@ -67,7 +67,12 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const fetchData = useCallback(async (forceRefresh = false, isBackground = false) => {
-    if (!sport || !kind) return;
+    if (!sport || !kind) {
+      console.log('No sport or kind provided:', { sport, kind });
+      return;
+    }
+    
+    console.log(`Fetching ${kind} ${sport} matches...`);
     
     // Only show loading for initial load, not background refreshes
     if (!isBackground && !data) {
