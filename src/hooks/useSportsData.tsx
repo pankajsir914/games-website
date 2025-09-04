@@ -89,12 +89,12 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
 
       // Try RapidAPI first
       try {
-        const response = await supabase.functions.invoke('sports-rapidapi', {
-          body: { sport, type: kind }
+        const { data: rapidResponse, error: rapidError } = await supabase.functions.invoke('sports-rapidapi', {
+          body: JSON.stringify({ sport, type: kind })
         });
 
-        if (response.data?.success && response.data?.data) {
-          let matches = response.data.data;
+        if (rapidResponse?.success && rapidResponse?.data) {
+          let matches = rapidResponse.data;
           
           // Filter by enabled matches if betting is controlled
           if (enabledMatchIds.length > 0) {

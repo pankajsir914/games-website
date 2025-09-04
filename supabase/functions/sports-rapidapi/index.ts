@@ -250,9 +250,23 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const sport = url.searchParams.get('sport') || 'football';
-    const type = url.searchParams.get('type') || 'live';
+    const bodyText = await req.text();
+    let sport = 'football';
+    let type = 'live';
+    
+    // Try to parse the body
+    if (bodyText) {
+      try {
+        const body = JSON.parse(bodyText);
+        sport = body.sport || 'football';
+        type = body.type || 'live';
+      } catch (e) {
+        // If parsing fails, try URL params
+        const url = new URL(req.url);
+        sport = url.searchParams.get('sport') || 'football';
+        type = url.searchParams.get('type') || 'live';
+      }
+    }
 
     // Check if RapidAPI key is configured
     if (!RAPIDAPI_KEY) {
