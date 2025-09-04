@@ -17,7 +17,6 @@ export interface SportsMatch {
   // Diamond Sports API fields
   provider?: 'diamond' | 'rapidapi' | 'cricapi' | 'mock';
   diamondId?: string;
-  betfairId?: string;
   marketCount?: number;
   inPlay?: boolean;
   home_team?: string;
@@ -182,7 +181,6 @@ export function useSportsData(sport: string, kind: 'live' | 'upcoming' | 'result
                 // Add Diamond-specific fields
                 provider: 'diamond',
                 diamondId: ev.eventId || ev.id,
-                betfairId: ev.betfairId,
                 marketCount: ev.mktCount || ev.marketCount || 0,
                 inPlay: ev.inplay === true || ev.inPlay === '1',
                 home_team: home,

@@ -24,8 +24,6 @@ import TeenPatti from "./pages/TeenPatti";
 import ChickenRun from "./pages/ChickenRun";
 import Wallet from "./pages/Wallet";
 import Sports from "./pages/Sports";
-import SportsBetting from "./pages/SportsBetting";
-import MatchBetting from "./pages/MatchBetting";
 import SportsMatches from "./pages/SportsMatches";
 import SportsBet from "./pages/SportsBet";
 import MatchDetails from "./pages/MatchDetails";
@@ -60,9 +58,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/games" element={<Games />} />
-              <Route path="/sports" element={<SportsBetting />} />
-              <Route path="/sports/match/:matchId" element={<MatchBetting />} />
-              <Route path="/sports/classic" element={<Sports />} />
+              <Route path="/sports" element={<Sports />} />
               <Route path="/sports/:sport/:type" element={<SportsMatches />} />
               <Route path="/sports/bet/:sport/:matchId" element={<SportsBet />} />
               <Route path="/match-details/:sport/:matchId" element={<MatchDetails />} />

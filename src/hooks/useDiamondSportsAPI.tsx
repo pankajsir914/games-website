@@ -65,11 +65,6 @@ export function useDiamondSportsAPI() {
   const getOdds = useCallback((eventId: string) => 
     callAPI('sports/odds', { params: { eventId } }), [callAPI]);
 
-  const diamondToBetfairId = useCallback((matchId: string) => 
-    callAPI('sports/diamondToBetfairId', { params: { matchId } }), [callAPI]);
-
-  const matchNameToBetfair = useCallback((matchName: string) => 
-    callAPI('sports/matchNameToBetfair', { params: { matchName } }), [callAPI]);
 
   const getLiveTv = useCallback((eventId: string) => 
     callAPI('sports/livetv', { params: { eventId } }), [callAPI]);
@@ -95,6 +90,9 @@ export function useDiamondSportsAPI() {
   const getDiamondIframeTV = useCallback((eventId: string) => 
     callAPI('sports/diamondIframeTV', { params: { eventId } }), [callAPI]);
 
+  const getMatchOdds = useCallback((matchId: string) => 
+    callAPI('sports/matchOdds', { params: { matchId } }), [callAPI]);
+
   return {
     loading,
     error,
@@ -104,14 +102,13 @@ export function useDiamondSportsAPI() {
     getAllSportsId,
     getAllMatch,
     getOdds,
-    diamondToBetfairId,
-    matchNameToBetfair,
     getLiveTv,
     getSportsScore,
     getAllGameDetails,
     getMatchResult,
     postMarketResult,
     getPostedMarketResult,
-    getDiamondIframeTV
+    getDiamondIframeTV,
+    getMatchOdds
   };
 }

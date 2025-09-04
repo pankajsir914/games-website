@@ -20,16 +20,6 @@ export interface BettingOdds {
         name: string;
         price?: number;
         point?: number;
-        // Betfair specific fields
-        backPrice?: number | null;
-        layPrice?: number | null;
-        backSize?: number;
-        laySize?: number;
-        totalMatched?: number;
-        lastPriceTraded?: number | null;
-        backLadder?: Array<{ price: number; size: number }>;
-        layLadder?: Array<{ price: number; size: number }>;
-        tradedVolume?: Array<{ price: number; size: number }>;
       }>;
     }>;
   }>;
@@ -54,34 +44,6 @@ export interface BettingOdds {
   };
   lastUpdate?: string;
   mock?: boolean;
-  betfair?: {
-    event?: {
-      id?: string;
-      name?: string;
-      countryCode?: string;
-      timezone?: string;
-      venue?: string;
-      openDate?: string;
-    };
-    competition?: {
-      id?: string;
-      name?: string;
-    };
-    market?: {
-      id?: string;
-      name?: string;
-      type?: string;
-      startTime?: string;
-    };
-    marketBook?: {
-      status?: string;
-      betDelay?: number;
-      inplay?: boolean;
-      totalMatched?: number;
-      totalAvailable?: number;
-      lastMatchTime?: string;
-    } | null;
-  };
 }
 
 export function useSportsOdds() {
@@ -95,7 +57,7 @@ export function useSportsOdds() {
       region?: string;
       markets?: string[];
       bookmakers?: string[];
-      provider?: 'odds-api' | 'betfair' | 'rapidapi' | 'mock';
+      provider?: 'odds-api' | 'rapidapi' | 'mock';
     }
   ): Promise<BettingOdds[]> => {
     setLoading(true);
@@ -130,7 +92,7 @@ export function useSportsOdds() {
           region: options?.region || 'us',
           markets: options?.markets || ['h2h', 'spreads', 'totals'],
           bookmakers: options?.bookmakers,
-          provider: options?.provider === 'rapidapi' ? 'betfair' : (options?.provider || 'betfair'),
+          provider: options?.provider || 'odds-api',
         }
       });
 
@@ -160,8 +122,7 @@ export function useSportsOdds() {
         bookmakers: event.bookmakers || [],
         odds: event.odds,
         lastUpdate: event.lastUpdate || new Date().toISOString(),
-        mock: data.mock || false,
-        betfair: event.betfair,
+        mock: data.mock || false
       }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch odds';

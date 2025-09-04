@@ -38,15 +38,15 @@ export const DiamondSportsCard: React.FC<DiamondSportsCardProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (match.diamondId || match.betfairId) {
+    if (match.diamondId) {
       fetchEnhancedData();
     }
-  }, [match.diamondId, match.betfairId]);
+  }, [match.diamondId]);
 
   const fetchEnhancedData = async () => {
     setLoading(true);
     try {
-      const eventId = match.diamondId || match.betfairId;
+      const eventId = match.diamondId;
       
       // Fetch odds
       if (showOdds && eventId) {
@@ -229,22 +229,15 @@ export const DiamondSportsCard: React.FC<DiamondSportsCardProps> = ({
       </CardContent>
 
       <CardFooter className="pt-3">
-        <div className="flex justify-between items-center w-full">
-          {match.betfairId && (
-            <p className="text-xs text-muted-foreground">
-              Betfair ID: {match.betfairId}
-            </p>
-          )}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => onBetClick?.(match, odds)}
-            className="ml-auto"
-          >
-            <DollarSign className="w-3 h-3 mr-1" />
-            Place Bet
-          </Button>
-        </div>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => onBetClick?.(match, odds)}
+          className="ml-auto"
+        >
+          <DollarSign className="w-3 h-3 mr-1" />
+          Place Bet
+        </Button>
       </CardFooter>
     </Card>
   );
