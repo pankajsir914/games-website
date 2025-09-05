@@ -9,9 +9,10 @@ const corsHeaders = {
 const RAPIDAPI_KEY = 'c6d4b3472dmsh7e309839b7b34c8p12004djsnafe1fd91fff7';
 const DIAMOND_HOST = 'diamond-sports-api-d247-sky-exchange-betfair.p.rapidapi.com';
 
-// Simple in-memory cache
+// Simple in-memory cache with longer TTL
 const cache = new Map<string, { data: any; ts: number }>();
-const TTL_MS = 30_000; // 30s
+const TTL_MS = 5 * 60 * 1000; // 5 minutes for general data
+const LIVE_TTL_MS = 60 * 1000; // 1 minute for live matches
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -85,7 +86,12 @@ serve(async (req) => {
     const cacheKey = targetUrl;
     const now = Date.now();
     const hit = cache.get(cacheKey);
-    if (method === 'GET' && hit && now - hit.ts < TTL_MS) {
+    
+    // Use shorter TTL for live endpoints
+    const isLiveEndpoint = targetUrl.includes('live') || params.get('kind') === 'live';
+    const effectiveTTL = isLiveEndpoint ? LIVE_TTL_MS : TTL_MS;
+    
+    if (method === 'GET' && hit && now - hit.ts < effectiveTTL) {
       return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: true, data: hit.data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

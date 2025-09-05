@@ -5,9 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Info } from 'lucide-react';
+import { Loader2, RefreshCw, Info, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSportsData, useAutoRefresh, type SportsMatch } from '@/hooks/useSportsData';
+import { useSportsDataContext } from '@/contexts/SportsDataContext';
 import { MatchCard } from '@/components/sports/MatchCard';
 import { FootballMatchCard } from '@/components/sports/FootballMatchCard';
 import { CricketMatchCard } from '@/components/sports/CricketMatchCard';
@@ -61,148 +61,142 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
 
 const SportPane: React.FC<{ sport: 'cricket' | 'football' | 'hockey' | 'basketball' | 'tennis' | 'kabaddi' | 'baseball' | 'table-tennis' | 'boxing' }>= ({ sport }) => {
   const navigate = useNavigate();
+  const { getMatchData, refreshMatchData, lastUpdated } = useSportsDataContext();
   
-  const { 
-    data: liveData, 
-    loading: liveLoading, 
-    refreshing: liveRefreshing, 
-    error: liveError, 
-    refresh: refreshLive, 
-    backgroundRefresh: backgroundRefreshLive 
-  } = useSportsData(sport, 'live');
-  
-  const { 
-    data: upcomingData, 
-    loading: upcomingLoading, 
-    refreshing: upcomingRefreshing, 
-    error: upcomingError, 
-    refresh: refreshUpcoming, 
-    backgroundRefresh: backgroundRefreshUpcoming 
-  } = useSportsData(sport, 'upcoming');
-  
-  const { 
-    data: resultsData, 
-    loading: resultsLoading, 
-    refreshing: resultsRefreshing, 
-    error: resultsError, 
-    refresh: refreshResults, 
-    backgroundRefresh: backgroundRefreshResults 
-  } = useSportsData(sport, 'results');
-
-  // Disabled auto-refresh to avoid constant updates
-  // useAutoRefresh(backgroundRefreshLive, 30, true);
-  // useAutoRefresh(backgroundRefreshUpcoming, 60, true);
-  // useAutoRefresh(backgroundRefreshResults, 120, true);
+  const liveQuery = getMatchData(sport, 'live');
+  const upcomingQuery = getMatchData(sport, 'upcoming');
+  const resultsQuery = getMatchData(sport, 'results');
 
   const sportBackground = getSportBackground(sport);
 
-  const renderMatches = (data: SportsMatch[] | null, loading: boolean, error: string | null, title: string, refreshFn?: () => void) => (
-    <Section 
-      title={title}
-      right={refreshFn && (
-        <Button variant="ghost" size="sm" onClick={refreshFn}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      )}
-    >
-      {loading && (
-        <div className="space-y-4">
-          <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-              {[1, 2, 3].map((idx) => (
-                <div key={`skeleton-${idx}`} className="flex-none w-96">
-                  <MatchCardSkeleton isLandscape={true} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      {error && <div className="text-destructive">{error}</div>}
-      {!loading && !error && (!data || data.length === 0) && <div className="text-muted-foreground">No matches.</div>}
-      {!loading && data && data.length > 0 && (
-        <div className="space-y-4">
-          <div className="relative">
-            {/* Subtle refreshing indicator */}
-            {(title === 'Live Matches' && liveRefreshing) || 
-             (title === 'Upcoming Matches' && upcomingRefreshing) || 
-             (title === 'Results' && resultsRefreshing) ? (
-              <div className="absolute top-0 right-0 z-10">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded px-2 py-1">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                  Updating...
-                </div>
+  const renderMatches = (
+    query: any, 
+    title: string, 
+    kind: 'live' | 'upcoming' | 'results'
+  ) => {
+    const lastUpdate = lastUpdated[`${sport}_${kind}`];
+    
+    return (
+      <Section 
+        title={title}
+        right={
+          <div className="flex items-center gap-2">
+            {lastUpdate && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {new Date(lastUpdate).toLocaleTimeString()}
               </div>
-            ) : null}
-            
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-              {data.slice(0, 3).map((match, idx) => (
-                <div 
-                  key={`${match.id ?? 'x'}-${idx}`} 
-                  className="flex-none w-96 transition-all duration-500 ease-in-out"
-                >
-                  {/* Use DiamondSportsCard for matches from Diamond API */}
-                  {match.provider === 'diamond' ? (
-                    <DiamondSportsCard
-                      match={match}
-                      sport={sport}
-                      showOdds={title !== 'Results'}
-                      showLiveTV={title === 'Live Matches'}
-                      onBetClick={(match, odds) => {
-                        toast.success('Bet placement coming soon!');
-                        console.log('Bet placed:', { match, odds });
-                      }}
-                    />
-                  ) : (sport === 'football' || sport === 'basketball') ? (
-                    <EnhancedMatchCard
-                      match={match}
-                      sport={sport}
-                      showBetting={title !== 'Results'}
-                      showOdds={title !== 'Results'}
-                    />
-                  ) : sport === 'cricket' ? (
-                    <CricketMatchCard
-                      match={match}
-                    />
-                  ) : (
-                    <MatchCard
-                      match={match}
-                      sportBackground={sportBackground}
-                      showBetting={title !== 'Results'}
-                      isLandscape={true}
-                    />
-                  )}
-                </div>
-              ))}
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => refreshMatchData(sport, kind)}
+              disabled={query.isFetching}
+            >
+              <RefreshCw className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        }
+      >
+        {query.isLoading && (
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                {[1, 2, 3].map((idx) => (
+                  <div key={`skeleton-${idx}`} className="flex-none w-96">
+                    <MatchCardSkeleton isLandscape={true} />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          {data.length > 3 && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => navigate(`/sports/${sport}/${title.toLowerCase().replace(' ', '-')}`)}
-                className="bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 border-primary/20"
-              >
-                See More ({data.length - 3} more matches)
-              </Button>
+        )}
+        {query.error && <div className="text-destructive">Error loading matches. Please try again.</div>}
+        {!query.isLoading && !query.error && (!query.data || query.data.length === 0) && (
+          <div className="text-muted-foreground">No matches available.</div>
+        )}
+        {!query.isLoading && query.data && query.data.length > 0 && (
+          <div className="space-y-4">
+            <div className="relative">
+              {/* Subtle fetching indicator */}
+              {query.isFetching && !query.isLoading && (
+                <div className="absolute top-0 right-0 z-10">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded px-2 py-1">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                    Updating...
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                {query.data.slice(0, 3).map((match: any, idx: number) => (
+                  <div 
+                    key={`${match.id ?? 'x'}-${idx}`} 
+                    className="flex-none w-96 transition-all duration-500 ease-in-out"
+                  >
+                    {/* Use DiamondSportsCard for matches from Diamond API */}
+                    {match.provider === 'diamond' ? (
+                      <DiamondSportsCard
+                        match={match}
+                        sport={sport}
+                        showOdds={title !== 'Results'}
+                        showLiveTV={title === 'Live Matches'}
+                        onBetClick={(match, odds) => {
+                          toast.success('Bet placement coming soon!');
+                          console.log('Bet placed:', { match, odds });
+                        }}
+                      />
+                    ) : (sport === 'football' || sport === 'basketball') ? (
+                      <EnhancedMatchCard
+                        match={match}
+                        sport={sport}
+                        showBetting={title !== 'Results'}
+                        showOdds={title !== 'Results'}
+                      />
+                    ) : sport === 'cricket' ? (
+                      <CricketMatchCard
+                        match={match}
+                      />
+                    ) : (
+                      <MatchCard
+                        match={match}
+                        sportBackground={sportBackground}
+                        showBetting={title !== 'Results'}
+                        isLandscape={true}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
-      )}
-    </Section>
-  );
+            {query.data.length > 3 && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => navigate(`/sports/${sport}/${title.toLowerCase().replace(' ', '-')}`)}
+                  className="bg-gradient-to-r from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 border-primary/20"
+                >
+                  See More ({query.data.length - 3} more matches)
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Section>
+    );
+  };
 
   return (
     <div className="space-y-8">
       <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-        {renderMatches(liveData, liveLoading, liveError, "Live Matches", refreshLive)}
+        {renderMatches(liveQuery, "Live Matches", 'live')}
       </div>
       <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-        {renderMatches(upcomingData, upcomingLoading, upcomingError, "Upcoming Matches", refreshUpcoming)}
+        {renderMatches(upcomingQuery, "Upcoming Matches", 'upcoming')}
       </div>
       <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-        {renderMatches(resultsData, resultsLoading, resultsError, "Results", refreshResults)}
+        {renderMatches(resultsQuery, "Results", 'results')}
       </div>
     </div>
   );
@@ -219,9 +213,17 @@ const Sports: React.FC = () => {
         <Navigation />
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Sports Dashboard</h1>
-          <p className="text-muted-foreground">Live matches, upcoming fixtures, and results with mock betting.</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Sports Dashboard</h1>
+            <p className="text-muted-foreground">Live matches, upcoming fixtures, and results with intelligent caching.</p>
+          </div>
+          <div className="text-xs text-muted-foreground bg-card border rounded-lg px-3 py-2">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Cached data active</span>
+            </div>
+          </div>
         </div>
 
         <Tabs defaultValue="cricket" className="w-full">

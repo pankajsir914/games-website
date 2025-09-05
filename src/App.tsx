@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PasswordChangeWrapper } from "@/components/auth/PasswordChangeWrapper";
+import { SportsDataProvider } from "@/contexts/SportsDataContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Games from "./pages/Games";
@@ -50,11 +51,12 @@ const App = () => (
     <AuthProvider>
       <PasswordChangeWrapper>
         <MasterAdminAuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
+          <SportsDataProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/games" element={<Games />} />
@@ -168,6 +170,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+      </SportsDataProvider>
       </MasterAdminAuthProvider>
     </PasswordChangeWrapper>
     </AuthProvider>
