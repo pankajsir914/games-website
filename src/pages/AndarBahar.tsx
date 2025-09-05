@@ -6,7 +6,7 @@ import { useGameManagement } from '@/hooks/useGameManagement';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
 import { GameBoard } from '@/components/andarBahar/GameBoard';
-import { BettingInterface } from '@/components/andarBahar/BettingInterface';
+import { ChipBettingInterface } from '@/components/andarBahar/ChipBettingInterface';
 import { GameHistory } from '@/components/andarBahar/GameHistory';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Card, CardContent } from '@/components/ui/card';
@@ -103,7 +103,7 @@ const AndarBahar = () => {
           <div className="space-y-6">
             <WalletCard />
             
-            <BettingInterface
+            <ChipBettingInterface
               currentRound={currentRound}
               userBet={userBet}
               timeRemaining={timeRemaining}
