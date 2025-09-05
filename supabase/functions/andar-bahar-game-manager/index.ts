@@ -246,20 +246,20 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
     const forcedWinner = settings.forced_winner; // 'andar' or 'bahar'
 
     if (cheatMode && forcedWinner) {
-      // In cheat mode, we control the outcome
+      // In cheat mode, we control the outcome - First card to BAHAR
       while (!winningSide && deckIndex < deck.length) {
         const card = deck[deckIndex++];
-        const isAndarTurn = (andarCards.length + baharCards.length) % 2 === 0;
+        const isBaharTurn = (andarCards.length + baharCards.length) % 2 === 0;
         
         if (card.rank === jokerCard.rank) {
           // This is a matching card
-          if (forcedWinner === 'andar' && isAndarTurn) {
-            andarCards.push(card);
-            winningSide = 'andar';
-            winningCard = card;
-          } else if (forcedWinner === 'bahar' && !isAndarTurn) {
+          if (forcedWinner === 'bahar' && isBaharTurn) {
             baharCards.push(card);
             winningSide = 'bahar';
+            winningCard = card;
+          } else if (forcedWinner === 'andar' && !isBaharTurn) {
+            andarCards.push(card);
+            winningSide = 'andar';
             winningCard = card;
           } else {
             // Skip this card and place a non-matching card instead
@@ -269,19 +269,19 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
             } while (nonMatchingCard && nonMatchingCard.rank === jokerCard.rank && deckIndex < deck.length);
             
             if (nonMatchingCard) {
-              if (isAndarTurn) {
-                andarCards.push(nonMatchingCard);
-              } else {
+              if (isBaharTurn) {
                 baharCards.push(nonMatchingCard);
+              } else {
+                andarCards.push(nonMatchingCard);
               }
             }
           }
         } else {
           // Non-matching card, place normally
-          if (isAndarTurn) {
-            andarCards.push(card);
-          } else {
+          if (isBaharTurn) {
             baharCards.push(card);
+          } else {
+            andarCards.push(card);
           }
         }
         
@@ -310,21 +310,22 @@ async function dealCards(supabaseClient: any, roundId: string, jokerCard: Card, 
         winningCard = matchingCard;
       }
     } else {
-      // Normal gameplay
+      // Normal gameplay - First card goes to BAHAR as per real rules
       while (!winningSide && deckIndex < deck.length) {
         const card = deck[deckIndex++];
-        const isAndarTurn = (andarCards.length + baharCards.length) % 2 === 0;
+        // First card (index 0) goes to Bahar, then alternates: Bahar -> Andar -> Bahar -> Andar
+        const isBaharTurn = (andarCards.length + baharCards.length) % 2 === 0;
         
-        if (isAndarTurn) {
-          andarCards.push(card);
-          if (card.rank === jokerCard.rank) {
-            winningSide = 'andar';
-            winningCard = card;
-          }
-        } else {
+        if (isBaharTurn) {
           baharCards.push(card);
           if (card.rank === jokerCard.rank) {
             winningSide = 'bahar';
+            winningCard = card;
+          }
+        } else {
+          andarCards.push(card);
+          if (card.rank === jokerCard.rank) {
+            winningSide = 'andar';
             winningCard = card;
           }
         }

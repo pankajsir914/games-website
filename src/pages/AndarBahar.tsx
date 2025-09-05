@@ -8,6 +8,7 @@ import { WalletCard } from '@/components/wallet/WalletCard';
 import { GameBoard } from '@/components/andarBahar/GameBoard';
 import { ChipBettingInterface } from '@/components/andarBahar/ChipBettingInterface';
 import { GameHistory } from '@/components/andarBahar/GameHistory';
+import { GameStatistics } from '@/components/andarBahar/GameStatistics';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
