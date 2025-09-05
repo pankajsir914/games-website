@@ -1,0 +1,94 @@
+import { useRef, useCallback } from 'react';
+
+export const useGameSounds = () => {
+  const audioContext = useRef<AudioContext | null>(null);
+
+  const initAudio = () => {
+    if (!audioContext.current) {
+      audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return audioContext.current;
+  };
+
+  const playSound = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.3) => {
+    const ctx = initAudio();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
+  }, []);
+
+  const playCardFlip = useCallback(() => {
+    playSound(800, 0.1, 'square', 0.2);
+    setTimeout(() => playSound(1200, 0.1, 'square', 0.2), 50);
+  }, [playSound]);
+
+  const playChipPlace = useCallback(() => {
+    playSound(600, 0.05, 'sine', 0.3);
+    playSound(900, 0.05, 'sine', 0.2);
+  }, [playSound]);
+
+  const playWin = useCallback(() => {
+    const notes = [523, 659, 784, 1047]; // C, E, G, C (octave up)
+    notes.forEach((note, i) => {
+      setTimeout(() => playSound(note, 0.3, 'sine', 0.3), i * 100);
+    });
+  }, [playSound]);
+
+  const playLose = useCallback(() => {
+    playSound(200, 0.3, 'sawtooth', 0.2);
+    setTimeout(() => playSound(150, 0.3, 'sawtooth', 0.2), 150);
+  }, [playSound]);
+
+  const playClick = useCallback(() => {
+    playSound(1000, 0.05, 'sine', 0.2);
+  }, [playSound]);
+
+  const playDiceRoll = useCallback(() => {
+    for (let i = 0; i < 10; i++) {
+      setTimeout(() => {
+        const freq = 200 + Math.random() * 400;
+        playSound(freq, 0.05, 'square', 0.1);
+      }, i * 30);
+    }
+  }, [playSound]);
+
+  const playSpinWheel = useCallback(() => {
+    for (let i = 0; i < 20; i++) {
+      setTimeout(() => {
+        playSound(400 + i * 20, 0.05, 'sine', 0.2 - i * 0.008);
+      }, i * 50);
+    }
+  }, [playSound]);
+
+  const playCountdown = useCallback(() => {
+    playSound(800, 0.1, 'square', 0.3);
+  }, [playSound]);
+
+  const playNotification = useCallback(() => {
+    playSound(880, 0.1, 'sine', 0.3);
+    setTimeout(() => playSound(1100, 0.15, 'sine', 0.3), 100);
+  }, [playSound]);
+
+  return {
+    playCardFlip,
+    playChipPlace,
+    playWin,
+    playLose,
+    playClick,
+    playDiceRoll,
+    playSpinWheel,
+    playCountdown,
+    playNotification
+  };
+};
