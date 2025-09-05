@@ -78,6 +78,15 @@ const Games = () => {
       gradient: 'from-yellow-400 to-yellow-600',
       prize: '₹10L+ Prize',
       trending: true
+    },
+    {
+      title: 'Chicken Run',
+      description: 'Bet & cross the road avoiding fire traps',
+      icon: '🐔',
+      path: '/chicken-run',
+      gradient: 'from-orange-500 to-red-600',
+      prize: '₹30K Daily',
+      trending: true
     }
   ];
 
