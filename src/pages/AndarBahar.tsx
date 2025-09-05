@@ -91,7 +91,7 @@ const AndarBahar = () => {
                 </CardContent>
               </Card>
             ) : (
-              <GameBoard currentRound={currentRound} />
+              <GameBoard currentRound={currentRound} timeRemaining={timeRemaining} />
             )}
 
             <GameHistory 

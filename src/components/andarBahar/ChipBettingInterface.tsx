@@ -97,7 +97,7 @@ export const ChipBettingInterface = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="text-white">Place Your Bet</span>
-          <CircularTimer timeRemaining={timeRemaining} size="sm" />
+          <CircularTimer timeRemaining={timeRemaining} size="sm" enableSound={false} />
         </CardTitle>
       </CardHeader>
       

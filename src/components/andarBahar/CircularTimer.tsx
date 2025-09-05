@@ -6,15 +6,18 @@ interface CircularTimerProps {
   timeRemaining: number;
   maxTime?: number;
   size?: 'sm' | 'md' | 'lg';
+  enableSound?: boolean;
 }
 
 export const CircularTimer = ({ 
   timeRemaining, 
   maxTime = 30,
-  size = 'md'
+  size = 'md',
+  enableSound = false
 }: CircularTimerProps) => {
   const { playCountdown, playNotification } = useGameSounds();
   const [hasPlayedWarning, setHasPlayedWarning] = useState(false);
+  const [lastCountdownTime, setLastCountdownTime] = useState<number | null>(null);
   
   const percentage = (timeRemaining / maxTime) * 100;
   const circumference = 2 * Math.PI * 40;
@@ -45,17 +48,26 @@ export const CircularTimer = ({
   };
 
   useEffect(() => {
-    if (timeRemaining <= 5 && timeRemaining > 0) {
+    if (!enableSound) return;
+    
+    // Only play countdown sound once per second
+    if (timeRemaining <= 5 && timeRemaining > 0 && timeRemaining !== lastCountdownTime) {
       playCountdown();
+      setLastCountdownTime(timeRemaining);
     }
+    
+    // Play notification when time is up
     if (timeRemaining === 0 && !hasPlayedWarning) {
       playNotification();
       setHasPlayedWarning(true);
     }
-    if (timeRemaining > 0) {
+    
+    // Reset warning flag when timer restarts
+    if (timeRemaining > 5) {
       setHasPlayedWarning(false);
+      setLastCountdownTime(null);
     }
-  }, [timeRemaining, playCountdown, playNotification, hasPlayedWarning]);
+  }, [timeRemaining, enableSound, playCountdown, playNotification, hasPlayedWarning, lastCountdownTime]);
 
   return (
     <div className="relative">
