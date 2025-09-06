@@ -42,14 +42,20 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
   useEffect(() => {
     if (gameStatus === 'playing') {
       setChickenState('walking');
+      // Reset chicken position when starting new game
+      if (currentCheckpoint === 0) {
+        setChickenPosition({ checkpoint: 0, lane: 3 });
+      }
     } else if (gameStatus === 'won') {
       setChickenState('victory');
     } else if (gameStatus === 'lost') {
       setChickenState('burning');
     } else {
       setChickenState('idle');
+      // Reset chicken position when idle
+      setChickenPosition({ checkpoint: 0, lane: 3 });
     }
-  }, [gameStatus]);
+  }, [gameStatus, currentCheckpoint]);
 
   const getTileState = (checkpoint: number, lane: number) => {
     const tile = tilesRevealed.find(t => t.row === checkpoint && t.column === lane);

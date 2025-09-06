@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const ChickenRoadGame: React.FC = () => {
+  const queryClient = useQueryClient();
   const { wallet } = useWallet();
   const {
     activeBet,
@@ -32,6 +34,7 @@ export const ChickenRoadGame: React.FC = () => {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'hardcore'>('medium');
   const [gameStatus, setGameStatus] = useState<'idle' | 'playing' | 'won' | 'lost'>('idle');
   const [selectedLanes, setSelectedLanes] = useState<number[]>([]);
+  const [resetCountdown, setResetCountdown] = useState<number | null>(null);
 
   const handlePlaceBet = () => {
     const difficultyMap = {
@@ -83,15 +86,40 @@ export const ChickenRoadGame: React.FC = () => {
     if (activeBet) {
       if (activeBet.status === 'lost') {
         setGameStatus('lost');
+        setSelectedLanes([]);
+        // Start countdown for auto-reset
+        setResetCountdown(5);
       } else if (activeBet.status === 'won') {
         setGameStatus('won');
+        setSelectedLanes([]);
+        // Start countdown for auto-reset
+        setResetCountdown(5);
       } else if (activeBet.status === 'active') {
         setGameStatus('playing');
+        setResetCountdown(null);
       }
     } else {
       setGameStatus('idle');
+      setSelectedLanes([]);
+      setResetCountdown(null);
     }
   }, [activeBet]);
+
+  // Auto-reset countdown
+  React.useEffect(() => {
+    if (resetCountdown !== null && resetCountdown > 0) {
+      const timer = setTimeout(() => {
+        setResetCountdown(resetCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (resetCountdown === 0) {
+      // Reset game
+      setGameStatus('idle');
+      setSelectedLanes([]);
+      setResetCountdown(null);
+      queryClient.invalidateQueries({ queryKey: ['chicken-run-active-bet'] });
+    }
+  }, [resetCountdown]);
 
   const getPotentialPayout = () => {
     if (!activeBet) return 0;
@@ -193,6 +221,31 @@ export const ChickenRoadGame: React.FC = () => {
                 gameStatus={gameStatus}
                 difficulty={difficulty}
               />
+
+              {/* Reset Countdown */}
+              {resetCountdown !== null && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <div className="bg-background/90 backdrop-blur-lg rounded-2xl p-8 border-2 border-chicken-gold/50">
+                    <h3 className="text-2xl font-bold text-center mb-2">
+                      New Game Starting In...
+                    </h3>
+                    <motion.div
+                      className="text-6xl font-bold text-chicken-gold text-center"
+                      key={resetCountdown}
+                      initial={{ scale: 1.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {resetCountdown}
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Control Panel */}
