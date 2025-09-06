@@ -12,12 +12,13 @@ import { RouletteGameControl } from '@/components/admin/game-controls/RouletteGa
 import { PokerGameControl } from '@/components/admin/game-controls/PokerGameControl';
 import { JackpotGameControl } from '@/components/admin/game-controls/JackpotGameControl';
 import { TeenPattiGameControl } from '@/components/admin/game-controls/TeenPattiGameControl';
+import { ChickenRoadGameControl } from '@/components/admin/game-controls/ChickenRoadGameControl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, BarChart3, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type GameType = 'teen_patti' | 'ludo' | 'aviator' | 'color_prediction' | 'casino' | 'rummy' | 'andar_bahar' | 'roulette' | 'poker' | 'jackpot';
+type GameType = 'teen_patti' | 'ludo' | 'aviator' | 'color_prediction' | 'casino' | 'rummy' | 'andar_bahar' | 'roulette' | 'poker' | 'jackpot' | 'chicken_road';
 
 const AdminGameDashboard = () => {
   const { gameType } = useParams<{ gameType: GameType }>();
@@ -73,6 +74,11 @@ const AdminGameDashboard = () => {
       title: 'Jackpot Game Control',
       description: 'Control winners, ticket draws, and jackpot outcomes',
       icon: '🏆'
+    },
+    chicken_road: {
+      title: 'Chicken Road Control',
+      description: 'Manage fire traps, multipliers, and chicken survival outcomes',
+      icon: '🐔'
     }
   };
 
@@ -98,6 +104,8 @@ const AdminGameDashboard = () => {
         return <PokerGameControl />;
       case 'jackpot':
         return <JackpotGameControl />;
+      case 'chicken_road':
+        return <ChickenRoadGameControl />;
       default:
         return (
           <Card>

@@ -106,6 +106,17 @@ const games = [
     minBet: 10,
     maxBet: 1000,
     commission: 15
+  },
+  {
+    id: 10,
+    name: 'Chicken Road',
+    type: 'chicken_road',
+    status: 'active',
+    players: 320,
+    revenue: 28940,
+    minBet: 5,
+    maxBet: 10000,
+    commission: 5
   }
 ];
 
