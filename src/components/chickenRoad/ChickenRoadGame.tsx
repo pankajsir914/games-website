@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { RoadPath } from './RoadPath';
+import { EnhancedRoadPath } from './EnhancedRoadPath';
 import { ControlPanel } from './ControlPanel';
 import { MultiplierDisplay } from './MultiplierDisplay';
 import { useChickenRun } from '@/hooks/useChickenRun';
 import { useWallet } from '@/hooks/useWallet';
+import { useChickenRunSounds } from '@/hooks/useChickenRunSounds';
 import { toast } from '@/hooks/use-toast';
-import { HelpCircle, Settings, Trophy, TrendingUp } from 'lucide-react';
+import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 export const ChickenRoadGame: React.FC = () => {
   const { wallet } = useWallet();
@@ -182,21 +184,14 @@ export const ChickenRoadGame: React.FC = () => {
                 isVisible={!!activeBet && activeBet.status === 'active'}
               />
 
-              {/* Road Path */}
-              <RoadPath
+              {/* Enhanced Road Path */}
+              <EnhancedRoadPath
                 currentCheckpoint={activeBet?.current_row || 0}
                 tilesRevealed={activeBet?.tiles_revealed || []}
                 onLaneClick={handleLaneClick}
                 isDisabled={!activeBet || isLoading || gameStatus !== 'playing'}
-                chickenPosition={
-                  activeBet && selectedLanes.length > 0
-                    ? { 
-                        checkpoint: activeBet.current_row, 
-                        lane: selectedLanes[selectedLanes.length - 1] 
-                      }
-                    : null
-                }
                 gameStatus={gameStatus}
+                difficulty={difficulty}
               />
             </div>
 
