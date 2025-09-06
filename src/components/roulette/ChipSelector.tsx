@@ -31,13 +31,13 @@ const ChipSelector: React.FC<ChipSelectorProps> = ({
   disabled = false
 }) => {
   const chips = [
-    { value: 1, color: 'from-gray-400 to-gray-600', shadow: 'shadow-gray-500/50' },
-    { value: 5, color: 'from-red-500 to-red-700', shadow: 'shadow-red-500/50' },
-    { value: 10, color: 'from-yellow-500 to-yellow-700', shadow: 'shadow-yellow-500/50' },
-    { value: 25, color: 'from-green-500 to-green-700', shadow: 'shadow-green-500/50' },
-    { value: 100, color: 'from-blue-500 to-blue-700', shadow: 'shadow-blue-500/50' },
-    { value: 500, color: 'from-orange-500 to-orange-700', shadow: 'shadow-orange-500/50' },
-    { value: 1000, color: 'from-purple-500 to-purple-700', shadow: 'shadow-purple-500/50' }
+    { value: 1, color: 'from-gray-400 to-gray-600', bgColor: '#9CA3AF', shadow: 'shadow-gray-500/50' },
+    { value: 5, color: 'from-red-500 to-red-700', bgColor: '#EF4444', shadow: 'shadow-red-500/50' },
+    { value: 10, color: 'from-yellow-500 to-yellow-700', bgColor: '#F59E0B', shadow: 'shadow-yellow-500/50' },
+    { value: 25, color: 'from-green-500 to-green-700', bgColor: '#10B981', shadow: 'shadow-green-500/50' },
+    { value: 100, color: 'from-blue-500 to-blue-700', bgColor: '#3B82F6', shadow: 'shadow-blue-500/50' },
+    { value: 500, color: 'from-orange-500 to-orange-700', bgColor: '#F97316', shadow: 'shadow-orange-500/50' },
+    { value: 1000, color: 'from-purple-500 to-purple-700', bgColor: '#A855F7', shadow: 'shadow-purple-500/50' }
   ];
 
   return (
@@ -58,8 +58,7 @@ const ChipSelector: React.FC<ChipSelectorProps> = ({
                 disabled && "opacity-50 cursor-not-allowed"
               )}
               style={{
-                background: `linear-gradient(135deg, ${chip.color.split(' ')[0].replace('from-', '#')} 0%, ${chip.color.split(' ')[2].replace('to-', '#')} 100%)`,
-                boxShadow: selectedChip === chip.value ? `0 0 20px ${chip.color.split('-')[1]}` : '0 4px 15px rgba(0,0,0,0.5)'
+                boxShadow: selectedChip === chip.value ? `0 0 20px ${chip.bgColor}` : '0 4px 15px rgba(0,0,0,0.5)'
               }}
             >
               <div className={cn(
