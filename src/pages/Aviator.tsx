@@ -8,7 +8,7 @@ import LiveChat from '@/components/aviator/LiveChat';
 import DualBettingControls from '@/components/aviator/DualBettingControls';
 import GameStats from '@/components/aviator/GameStats';
 import { useAviator } from '@/hooks/useAviator';
-import { useAviatorSocket } from '@/hooks/useAviatorSocket';
+import { useAviatorRealtime } from '@/hooks/useAviatorRealtime';
 import { useGameManagement } from '@/hooks/useGameManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -41,19 +41,17 @@ const Aviator = () => {
     recentRounds,
     currentMultiplier,
     setCurrentMultiplier,
-    balance
+    balance,
+    placeBet,
+    cashOut
   } = useAviator();
 
   const {
-    isConnected,
     messages,
     liveBets,
-    currentRound: socketCurrentRound,
     connectedUsers,
-    sendMessage,
-    placeBet: socketPlaceBet,
-    cashOut: socketCashOut
-  } = useAviatorSocket();
+    sendMessage
+  } = useAviatorRealtime();
   
   const gameIsPaused = isGamePaused('aviator');
   
@@ -73,10 +71,7 @@ const Aviator = () => {
 
   const [bettingCountdown, setBettingCountdown] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const gameStartTimeRef = useRef<number | null>(null);
-
-  // Use socket data if available, fallback to original data
-  const activeRound = socketCurrentRound || currentRound;
+  const animationFrameRef = useRef<number | null>(null);
 
   // Update balance from wallet
   useEffect(() => {
@@ -93,43 +88,40 @@ const Aviator = () => {
 
   // Handle current round changes
   useEffect(() => {
-    if (!activeRound) return;
+    if (!currentRound) return;
 
     const now = Date.now();
-    const betEndTime = new Date(activeRound.bet_end_time).getTime();
+    const betEndTime = new Date(currentRound.bet_end_time).getTime();
     const timeLeft = Math.max(0, Math.floor((betEndTime - now) / 1000));
 
-    if (activeRound.status === 'betting') {
+    if (currentRound.status === 'betting') {
       setGameData(prev => ({
         ...prev,
         gameState: 'betting',
         multiplier: 1.0,
-        crashPoint: activeRound.crash_multiplier,
+        crashPoint: currentRound.crash_multiplier,
         isPlaying: false
       }));
       setBettingCountdown(timeLeft);
-    } else if (activeRound.status === 'flying') {
+    } else if (currentRound.status === 'flying') {
       setGameData(prev => ({
         ...prev,
         gameState: 'flying',
-        crashPoint: activeRound.crash_multiplier,
-        isPlaying: !!userBet
+        crashPoint: currentRound.crash_multiplier,
+        isPlaying: !!userBet && userBet.status === 'active'
       }));
       setBettingCountdown(0);
-      gameStartTimeRef.current = now;
       startFlyingAnimation();
-    } else if (activeRound.status === 'crashed') {
+    } else if (currentRound.status === 'crashed') {
       setGameData(prev => ({
         ...prev,
         gameState: 'crashed',
-        multiplier: activeRound.crash_multiplier,
+        multiplier: currentRound.crash_multiplier,
         isPlaying: false
       }));
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      stopAnimation();
     }
-  }, [activeRound, userBet]);
+  }, [currentRound, userBet]);
 
   // Handle user bet changes
   useEffect(() => {
@@ -152,7 +144,7 @@ const Aviator = () => {
 
   // Betting countdown
   useEffect(() => {
-    if (bettingCountdown > 0 && activeRound?.status === 'betting') {
+    if (bettingCountdown > 0 && currentRound?.status === 'betting') {
       const timer = setInterval(() => {
         setBettingCountdown(prev => {
           if (prev <= 1) {
@@ -165,55 +157,58 @@ const Aviator = () => {
 
       return () => clearInterval(timer);
     }
-  }, [bettingCountdown, activeRound?.status]);
+  }, [bettingCountdown, currentRound?.status]);
+
+  const stopAnimation = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
 
   const startFlyingAnimation = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
-    intervalRef.current = setInterval(() => {
+    stopAnimation();
+    
+    const startTime = Date.now();
+    const crashAt = gameData.crashPoint;
+    
+    const animate = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const newMultiplier = 1 + (elapsed * 0.1);
+      
+      setCurrentMultiplier(newMultiplier);
       setGameData(prev => {
-        const newMultiplier = prev.multiplier + 0.01;
-        setCurrentMultiplier(newMultiplier);
-
         // Check if crashed
-        if (newMultiplier >= prev.crashPoint) {
-          clearInterval(intervalRef.current!);
+        if (newMultiplier >= crashAt) {
+          stopAnimation();
           
-          // Trigger crash processing
-          if (activeRound?.id) {
-            supabase.functions.invoke('aviator-game-manager', {
-              body: { 
-                action: 'crash_round', 
-                round_id: activeRound.id 
-              }
-            });
-          }
-
           if (prev.hasBet && prev.isPlaying) {
             toast({
               title: "Crashed!",
-              description: `The plane crashed at ${prev.crashPoint.toFixed(2)}x. You lost ₹${prev.currentBet}`,
+              description: `The plane crashed at ${crashAt.toFixed(2)}x`,
               variant: "destructive"
             });
           }
-
+          
           return {
             ...prev,
-            multiplier: prev.crashPoint,
+            multiplier: crashAt,
             isPlaying: false,
             gameState: 'crashed'
           };
         }
-
+        
         // Check auto cash out
         if (prev.autoCashOut && newMultiplier >= prev.autoCashOut && prev.isPlaying && userBet) {
-          clearInterval(intervalRef.current!);
+          cashOut({
+            betId: userBet.id,
+            currentMultiplier: newMultiplier
+          });
           
-          // Trigger auto cash out via socket
-          if (isConnected) {
-            socketCashOut(userBet.id, newMultiplier);
-          }
-
           return {
             ...prev,
             multiplier: newMultiplier,
@@ -221,20 +216,20 @@ const Aviator = () => {
             gameState: 'cashed_out'
           };
         }
-
+        
         return { ...prev, multiplier: newMultiplier };
       });
-    }, 100);
-  }, [activeRound?.id, userBet, socketCashOut, isConnected]);
-
-  const handleSendMessage = (message: string) => {
-    if (isConnected) {
-      sendMessage(message);
-    }
-  };
+      
+      if (newMultiplier < crashAt) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [gameData.crashPoint, userBet, cashOut, setCurrentMultiplier, stopAnimation]);
 
   const handlePlaceBet = useCallback((betIndex: number, amount: number, autoCashout?: number) => {
-    if (!activeRound || !user) {
+    if (!currentRound || !user) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to place bets",
@@ -243,7 +238,7 @@ const Aviator = () => {
       return;
     }
 
-    if (activeRound.status !== 'betting') {
+    if (currentRound.status !== 'betting') {
       toast({
         title: "Betting Closed",
         description: "You can only bet before the plane takes off!",
@@ -252,7 +247,7 @@ const Aviator = () => {
       return;
     }
 
-    if (amount > gameData.balance) {
+    if (amount > balance) {
       toast({
         title: "Insufficient Balance",
         description: "Your bet amount exceeds your balance.",
@@ -270,18 +265,23 @@ const Aviator = () => {
       return;
     }
 
-    if (isConnected) {
-      socketPlaceBet(activeRound.id, amount, autoCashout);
-    }
-  }, [activeRound, user, gameData.balance, userBet, socketPlaceBet, isConnected]);
+    placeBet({
+      roundId: currentRound.id,
+      betAmount: amount,
+      autoCashoutMultiplier: autoCashout
+    });
+  }, [currentRound, user, balance, userBet, placeBet]);
 
   const handleCashOut = useCallback(() => {
-    if (!userBet || gameData.gameState !== 'flying' || !gameData.isPlaying || !isConnected) return;
+    if (!userBet || gameData.gameState !== 'flying' || !gameData.isPlaying) return;
 
-    socketCashOut(userBet.id, gameData.multiplier);
-  }, [userBet, gameData.gameState, gameData.isPlaying, gameData.multiplier, socketCashOut, isConnected]);
+    cashOut({
+      betId: userBet.id,
+      currentMultiplier: gameData.multiplier
+    });
+  }, [userBet, gameData.gameState, gameData.isPlaying, gameData.multiplier, cashOut]);
 
-  // Auto-manage rounds
+  // Auto-manage rounds periodically
   useEffect(() => {
     const manageRounds = async () => {
       try {
@@ -298,65 +298,55 @@ const Aviator = () => {
       }
     };
 
-    // Run immediately and then every 5 seconds
+    // Initial call
     manageRounds();
-    const interval = setInterval(manageRounds, 5000);
+    
+    // Call every 3 seconds
+    const interval = setInterval(manageRounds, 3000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Cleanup intervals on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      stopAnimation();
     };
-  }, []);
+  }, [stopAnimation]);
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gaming-dark">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            <span className="bg-gradient-primary bg-clip-text text-transparent">Aviator</span>
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Please sign in to play Aviator game
-          </p>
+        <div className="container mx-auto p-4 pt-20">
+          <Alert className="bg-gaming-gray/50 border-gaming-accent">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Please sign in to play Aviator
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-gaming-dark">
       <Navigation />
       
-      <div className="container-fluid px-2 py-4">
-        {/* Game Paused Alert */}
+      <div className="container mx-auto p-4 pt-20">
         {gameIsPaused && (
-          <Alert variant="destructive" className="mb-4 border-red-500 bg-red-50 dark:bg-red-950">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
-              Aviator game is currently paused for maintenance. Please check back later.
+          <Alert className="mb-4 bg-yellow-500/10 border-yellow-500/50">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <AlertDescription className="text-yellow-500">
+              Game is currently paused by admin
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Connection Status Alert */}
-        {!isConnected && (
-          <Alert variant="destructive" className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-yellow-700 dark:text-yellow-300 font-medium">
-              Connection lost. Attempting to reconnect...
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {/* Main Game Layout */}
-        <div className="grid grid-cols-12 gap-2 h-[calc(100vh-120px)]">
-          {/* Left Sidebar - Live Bets & Stats */}
-          <div className="col-span-12 lg:col-span-2 order-2 lg:order-1 space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Left Panel - Live Bets & Stats */}
+          <div className="lg:col-span-2 space-y-4">
             <LiveBetsPanel 
               liveBets={liveBets}
               totalPlayers={connectedUsers}
@@ -375,51 +365,50 @@ const Aviator = () => {
                 bestStreak: 0
               }}
               liveStats={{
-                last24hVolume: 150000,
-                last24hPlayers: 342,
-                currentRoundNumber: recentRounds?.[0]?.round_number || 1
+                last24hVolume: 0,
+                last24hPlayers: connectedUsers,
+                currentRoundNumber: currentRound?.round_number || 0
               }}
             />
           </div>
 
           {/* Center - Game Interface */}
-          <div className="col-span-12 lg:col-span-8 order-1 lg:order-2">
-            <div className="h-full flex flex-col gap-2">
-              {/* Game Display */}
-              <div className="flex-1">
-                <EnhancedGameInterface 
-                  gameData={gameData}
-                  bettingCountdown={bettingCountdown}
-                  onCashOut={handleCashOut}
-                />
-              </div>
-
-              {/* Betting Controls */}
-              <div className="h-auto">
-                <DualBettingControls
-                  gameData={gameData}
-                  setGameData={setGameData}
-                  onPlaceBet={handlePlaceBet}
-                  bettingCountdown={bettingCountdown}
-                  isPlacingBet={false}
-                  disabled={gameIsPaused || !isConnected}
-                />
-              </div>
-            </div>
+          <div className="lg:col-span-8 space-y-4">
+            <EnhancedGameInterface
+              gameData={gameData}
+              bettingCountdown={bettingCountdown}
+              onCashOut={handleCashOut}
+            />
+            
+            <DualBettingControls
+              onPlaceBet={handlePlaceBet}
+              gameState={gameData.gameState}
+              balance={gameData.balance}
+              activeBets={userBet ? [userBet] : []}
+            />
+            
+            <BettingHistory />
           </div>
 
-          {/* Right Sidebar - Live Chat */}
-          <div className="col-span-12 lg:col-span-2 order-3">
-            <LiveChat 
+          {/* Right Panel - Live Chat */}
+          <div className="lg:col-span-2">
+            <LiveChat
               messages={messages}
-              onSendMessage={handleSendMessage}
+              onSendMessage={sendMessage}
+              currentUser={user?.email || 'Anonymous'}
+              isConnected={true}
             />
           </div>
         </div>
 
-        {/* Mobile Stats Panel */}
-        <div className="lg:hidden mt-4">
-          <GameStats gameData={gameData} />
+        {/* Bottom Stats Bar */}
+        <div className="mt-6">
+          <GameStats
+            totalPlayers={connectedUsers}
+            totalBets={liveBets.length}
+            biggestWin={0}
+            lastMultipliers={gameData.crashHistory}
+          />
         </div>
       </div>
     </div>
