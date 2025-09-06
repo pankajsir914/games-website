@@ -1,7 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoulette } from '@/hooks/useRoulette';
+import { useRouletteLive } from '@/hooks/useRouletteLive';
 import { useRouletteSounds } from '@/hooks/useRouletteSounds';
 import { useGameManagement } from '@/hooks/useGameManagement';
 import { useWallet } from '@/hooks/useWallet';
@@ -16,6 +17,8 @@ import RouletteStatistics from '@/components/roulette/RouletteStatistics';
 import { GameTimer } from '@/components/roulette/GameTimer';
 import { RouletteHistory } from '@/components/roulette/RouletteHistory';
 import { RouletteLeaderboard } from '@/components/roulette/RouletteLeaderboard';
+import RouletteLiveBetsPanel from '@/components/roulette/RouletteLiveBetsPanel';
+import RoulettePlayerPresence from '@/components/roulette/RoulettePlayerPresence';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +28,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, Trophy, Clock, DollarSign, Volume2, VolumeX, Sparkles, Grid3X3 } from 'lucide-react';
+import { AlertTriangle, Trophy, Clock, DollarSign, Activity, Users, Sparkles, Grid3X3 } from 'lucide-react';
 import { BetType, PlacedBet } from '@/types/roulette';
 import { toast } from '@/hooks/use-toast';
 
@@ -51,7 +54,22 @@ const Roulette = () => {
     isSpinningWheel,
   } = useRoulette();
   
+  const {
+    liveBets,
+    totalPlayers,
+    totalBetAmount,
+    onlineCount,
+    recentPlayers,
+    startAutoManagement,
+    isAutoManaging
+  } = useRouletteLive();
+  
   const gameIsPaused = isGamePaused('roulette');
+  
+  // Start auto-management when component mounts
+  useEffect(() => {
+    startAutoManagement();
+  }, []);
 
   if (!user) {
     return (
@@ -243,7 +261,21 @@ const Roulette = () => {
           </div>
 
           {/* Right Panel */}
-          <div className="xl:col-span-1">
+          <div className="xl:col-span-1 space-y-6">
+            {/* Live Bets Panel */}
+            <RouletteLiveBetsPanel 
+              liveBets={liveBets}
+              totalPlayers={totalPlayers}
+              totalBetAmount={totalBetAmount}
+            />
+            
+            {/* Player Presence */}
+            <RoulettePlayerPresence
+              onlineCount={onlineCount}
+              recentPlayers={recentPlayers}
+            />
+            
+            {/* History and Leaderboard */}
             <Tabs defaultValue="history" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="history">History</TabsTrigger>
