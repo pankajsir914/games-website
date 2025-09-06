@@ -7,6 +7,7 @@ import { useGameManagement } from '@/hooks/useGameManagement';
 import { useWallet } from '@/hooks/useWallet';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
+import RouletteWheel3D from '@/components/roulette/RouletteWheel3D';
 import { RouletteWheel } from '@/components/roulette/RouletteWheel';
 import { BettingGrid } from '@/components/roulette/BettingGrid';
 import RouletteBettingTable from '@/components/roulette/RouletteBettingTable';
@@ -22,7 +23,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Trophy, Clock, DollarSign, Volume2, VolumeX } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { AlertTriangle, Trophy, Clock, DollarSign, Volume2, VolumeX, Sparkles, Grid3X3 } from 'lucide-react';
 import { BetType, PlacedBet } from '@/types/roulette';
 import { toast } from '@/hooks/use-toast';
 
@@ -31,6 +34,9 @@ const Roulette = () => {
   const { isGamePaused } = useGameManagement();
   const { wallet } = useWallet();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [use3DWheel, setUse3DWheel] = useState(true);
+  const [useProfessionalTable, setUseProfessionalTable] = useState(true);
+  const [selectedChipValue, setSelectedChipValue] = useState(10);
   const [isSpinning, setIsSpinning] = useState(false);
   const {
     currentRound,
@@ -140,6 +146,29 @@ const Roulette = () => {
 
           {/* Main Game Area */}
           <div className="xl:col-span-2 space-y-6">
+            {/* View Toggle */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="3d-mode"
+                      checked={use3DWheel}
+                      onCheckedChange={setUse3DWheel}
+                    />
+                    <Label htmlFor="3d-mode" className="cursor-pointer flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Enhanced 3D View
+                    </Label>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Grid3X3 className="w-3 h-3" />
+                  European Roulette
+                </Badge>
+              </div>
+            </Card>
+            
             {/* Roulette Wheel */}
             <Card>
               <CardContent className="p-8">
@@ -147,6 +176,12 @@ const Roulette = () => {
                   <div className="flex justify-center">
                     <Skeleton className="w-80 h-80 rounded-full" />
                   </div>
+                ) : use3DWheel ? (
+                  <RouletteWheel3D
+                    isSpinning={isWheelSpinning}
+                    winningNumber={currentRound?.winning_number}
+                    onSpinComplete={() => setIsSpinning(false)}
+                  />
                 ) : (
                   <RouletteWheel
                     isSpinning={isWheelSpinning}
@@ -227,19 +262,74 @@ const Roulette = () => {
           </div>
         </div>
 
-        {/* Betting Interface */}
-        <div className="mt-8">
+        {/* Enhanced Betting Interface */}
+        <div className="mt-8 space-y-6">
+          {/* Chip Selector */}
           <Card>
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-bold mb-6 text-center">Betting Table</h2>
-              <BettingGrid
-                onPlaceBet={placeBet}
-                userBets={userBets}
+            <CardContent className="p-4">
+              <ChipSelector
+                selectedChip={selectedChipValue}
+                onSelectChip={setSelectedChipValue}
+                totalBet={userBets.reduce((sum, bet) => sum + bet.bet_amount, 0)}
+                onClearBets={() => {}}
+                onUndoLast={() => {}}
+                onRepeatBet={() => {}}
+                onDoubleBet={() => {}}
+                canUndo={false}
+                canRepeat={false}
                 disabled={!isBettingOpen || gameIsPaused}
-                isPlacingBet={isPlacingBet}
               />
             </CardContent>
           </Card>
+
+          {/* Betting Table Toggle */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Betting Table</h2>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="pro-table"
+                  checked={useProfessionalTable}
+                  onCheckedChange={setUseProfessionalTable}
+                />
+                <Label htmlFor="pro-table" className="cursor-pointer">
+                  Professional Layout
+                </Label>
+              </div>
+            </div>
+          </Card>
+
+          {/* Betting Table */}
+          <Card>
+            <CardContent className="p-6">
+              {useProfessionalTable ? (
+                <RouletteBettingTable
+                  onPlaceBet={(betType, betValue) => placeBet(betType, betValue, selectedChipValue)}
+                  placedBets={userBets.map(bet => ({ 
+                    betType: bet.bet_type as BetType, 
+                    value: bet.bet_value, 
+                    amount: bet.bet_amount,
+                    type: bet.bet_type,
+                    payout: '0'
+                  }))}
+                  selectedChip={selectedChipValue}
+                  disabled={!isBettingOpen || gameIsPaused}
+                />
+              ) : (
+                <BettingGrid
+                  onPlaceBet={placeBet}
+                  userBets={userBets}
+                  disabled={!isBettingOpen || gameIsPaused}
+                  isPlacingBet={isPlacingBet}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Statistics */}
+          <RouletteStatistics 
+            roundHistory={roundHistory}
+          />
         </div>
       </div>
     </div>

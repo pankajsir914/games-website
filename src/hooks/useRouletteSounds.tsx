@@ -129,7 +129,28 @@ export const useRouletteSounds = () => {
     }
   }, []);
 
+  const playSound = useCallback((soundType: 'spin' | 'ballDrop' | 'chipPlace' | 'win' | 'click') => {
+    switch (soundType) {
+      case 'spin':
+        playBallRolling();
+        break;
+      case 'ballDrop':
+        playBallDrop();
+        break;
+      case 'chipPlace':
+        playChipPlace();
+        break;
+      case 'win':
+        playWin();
+        break;
+      case 'click':
+        playChipPlace(); // Reuse chip sound for clicks
+        break;
+    }
+  }, [playBallRolling, playBallDrop, playChipPlace, playWin]);
+
   return {
+    playSound,
     playBallRolling,
     playBallDrop,
     playChipPlace,
