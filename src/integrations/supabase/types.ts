@@ -2071,6 +2071,27 @@ export type Database = {
           },
         ]
       }
+      roulette_presence: {
+        Row: {
+          id: string
+          is_active: boolean | null
+          last_seen: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean | null
+          last_seen?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_active?: boolean | null
+          last_seen?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       roulette_rounds: {
         Row: {
           bet_end_time: string
@@ -2859,6 +2880,31 @@ export type Database = {
         }
         Relationships: []
       }
+      roulette_live_bets: {
+        Row: {
+          bet_amount: number | null
+          bet_type: string | null
+          bet_value: string | null
+          created_at: string | null
+          id: string | null
+          payout_amount: number | null
+          round_id: string | null
+          round_number: number | null
+          round_status: string | null
+          status: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roulette_bets_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "roulette_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_create_admin_user: {
@@ -2881,6 +2927,10 @@ export type Database = {
       }
       allocate_admin_credits: {
         Args: { p_admin_id: string; p_amount: number; p_notes?: string }
+        Returns: Json
+      }
+      auto_manage_roulette_rounds: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       buy_jackpot_tickets: {
@@ -3183,6 +3233,10 @@ export type Database = {
       update_platform_settings: {
         Args: { p_settings: Json }
         Returns: Json
+      }
+      update_roulette_presence: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_user_status: {
         Args: { p_action: string; p_reason?: string; p_user_id: string }
