@@ -41,7 +41,7 @@ const Roulette = () => {
   const [use3DWheel, setUse3DWheel] = useState(true);
   const [useProfessionalTable, setUseProfessionalTable] = useState(true);
   const [selectedChipValue, setSelectedChipValue] = useState(10);
-  const [isSpinning, setIsSpinning] = useState(false);
+  const [isLocalSpinning, setIsLocalSpinning] = useState(false);
   const {
     currentRound,
     userBets,
@@ -101,10 +101,20 @@ const Roulette = () => {
 
   const handleSpin = () => {
     if (canSpin && currentRound) {
-      setIsSpinning(true);
+      setIsLocalSpinning(true);
       spinWheel(currentRound.id);
     }
   };
+  
+  // Properly manage the spinning state - only use round status for actual wheel spinning
+  const isSpinning = currentRound?.status === 'spinning' || isLocalSpinning;
+  
+  // Reset local spinning state when round completes
+  useEffect(() => {
+    if (currentRound?.status === 'completed' || currentRound?.status === 'betting') {
+      setIsLocalSpinning(false);
+    }
+  }, [currentRound?.status]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -197,15 +207,15 @@ const Roulette = () => {
                   </div>
                 ) : use3DWheel ? (
                   <PremiumRouletteWheel3D
-                    isSpinning={isWheelSpinning}
+                    isSpinning={isSpinning}
                     winningNumber={currentRound?.winning_number}
-                    onSpinComplete={() => setIsSpinning(false)}
+                    onSpinComplete={() => setIsLocalSpinning(false)}
                   />
                 ) : (
                   <RouletteWheel
-                    isSpinning={isWheelSpinning}
+                    isSpinning={isSpinning}
                     winningNumber={currentRound?.winning_number}
-                    onSpinComplete={() => setIsSpinning(false)}
+                    onSpinComplete={() => setIsLocalSpinning(false)}
                   />
                 )}
               </CardContent>

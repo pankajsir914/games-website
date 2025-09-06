@@ -14,12 +14,14 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const prevIsSpinningRef = useRef(false);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [ballAngle, setBallAngle] = useState(0);
   const [ballRadius, setBallRadius] = useState(175); // Start on outer track
   const [ballHeight, setBallHeight] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showBall, setShowBall] = useState(true); // Always show ball
+  const [hasSpun, setHasSpun] = useState(false);
   const { playBallRolling, playBallDrop, playWin } = useRouletteSounds();
 
   const numbers = [
@@ -223,9 +225,12 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
     };
   }, [wheelRotation, ballAngle, ballRadius, ballHeight, showBall]);
 
+  // Handle spin animation - only trigger on isSpinning transition from false to true
   useEffect(() => {
-    if (isSpinning && winningNumber !== undefined) {
+    // Only start spin when isSpinning changes from false to true and we have a winning number
+    if (isSpinning && !prevIsSpinningRef.current && winningNumber !== undefined && !hasSpun) {
       setIsAnimating(true);
+      setHasSpun(true);
       playBallRolling();
       
       const numberIndex = numbers.indexOf(winningNumber);
@@ -277,7 +282,18 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
       
       animateSpinning();
     }
-  }, [isSpinning, winningNumber, onSpinComplete, playBallRolling, playBallDrop, playWin]);
+    
+    // Reset hasSpun when spin completes
+    if (!isSpinning && prevIsSpinningRef.current) {
+      setHasSpun(false);
+      setWheelRotation(0);
+      setBallAngle(0);
+      setBallRadius(175);
+      setBallHeight(0);
+    }
+    
+    prevIsSpinningRef.current = isSpinning;
+  }, [isSpinning, winningNumber, hasSpun, onSpinComplete, playBallRolling, playBallDrop, playWin]);
 
   const adjustColorBrightness = (color: string, amount: number): string => {
     const usePound = color[0] === '#';
