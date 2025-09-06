@@ -80,6 +80,49 @@ export const useGameSounds = () => {
     setTimeout(() => playSound(1100, 0.15, 'sine', 0.3), 100);
   }, [playSound]);
 
+  // Aviator-specific sounds
+  const playJetEngine = useCallback(() => {
+    const ctx = initAudio();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(100, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 2);
+    
+    gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2);
+    
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 2);
+  }, []);
+
+  const stopJetEngine = useCallback(() => {
+    // In real implementation, we'd store and stop the oscillator
+    // For now, sounds auto-stop after duration
+  }, []);
+
+  const playCrash = useCallback(() => {
+    playSound(150, 0.5, 'sawtooth', 0.5);
+    setTimeout(() => playSound(80, 0.3, 'square', 0.4), 100);
+    setTimeout(() => playSound(50, 0.2, 'triangle', 0.3), 200);
+  }, [playSound]);
+
+  const playCashOut = useCallback(() => {
+    playSound(800, 0.1, 'sine', 0.3);
+    setTimeout(() => playSound(1000, 0.1, 'sine', 0.3), 50);
+    setTimeout(() => playSound(1200, 0.2, 'sine', 0.4), 100);
+  }, [playSound]);
+
+  const playTakeoff = useCallback(() => {
+    playSound(200, 0.3, 'sine', 0.2);
+    setTimeout(() => playSound(400, 0.2, 'sine', 0.3), 100);
+    setTimeout(() => playSound(600, 0.1, 'sine', 0.2), 200);
+  }, [playSound]);
+
   return {
     playCardFlip,
     playChipPlace,
@@ -89,6 +132,11 @@ export const useGameSounds = () => {
     playDiceRoll,
     playSpinWheel,
     playCountdown,
-    playNotification
+    playNotification,
+    playJetEngine,
+    stopJetEngine,
+    playCrash,
+    playCashOut,
+    playTakeoff
   };
 };

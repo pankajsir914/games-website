@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
-import GameInterface from '@/components/aviator/GameInterface';
+import EnhancedGameInterface from '@/components/aviator/EnhancedGameInterface';
+import LiveBetsPanel from '@/components/aviator/LiveBetsPanel';
+import StatisticsPanel from '@/components/aviator/StatisticsPanel';
 import BettingHistory from '@/components/aviator/BettingHistory';
 import LiveChat from '@/components/aviator/LiveChat';
 import DualBettingControls from '@/components/aviator/DualBettingControls';
@@ -353,11 +355,30 @@ const Aviator = () => {
         
         {/* Main Game Layout */}
         <div className="grid grid-cols-12 gap-2 h-[calc(100vh-120px)]">
-          {/* Left Sidebar - Betting History */}
-          <div className="col-span-12 lg:col-span-2 order-2 lg:order-1">
-            <BettingHistory 
-              bets={liveBets.filter(bet => bet.status !== 'active').slice(0, 20)}
-              currentRoundBets={liveBets.filter(bet => bet.status === 'active')}
+          {/* Left Sidebar - Live Bets & Stats */}
+          <div className="col-span-12 lg:col-span-2 order-2 lg:order-1 space-y-2">
+            <LiveBetsPanel 
+              liveBets={liveBets}
+              totalPlayers={connectedUsers}
+              totalBetsAmount={liveBets.filter(b => b.status === 'active').reduce((sum, b) => sum + b.betAmount, 0)}
+            />
+            <StatisticsPanel
+              recentRounds={recentRounds?.map(r => ({ multiplier: r.crash_multiplier, id: r.id })) || []}
+              userStats={{
+                totalBets: 0,
+                totalWins: 0,
+                totalLosses: 0,
+                biggestWin: 0,
+                biggestMultiplier: 0,
+                averageCashout: 0,
+                currentStreak: 0,
+                bestStreak: 0
+              }}
+              liveStats={{
+                last24hVolume: 150000,
+                last24hPlayers: 342,
+                currentRoundNumber: recentRounds?.[0]?.round_number || 1
+              }}
             />
           </div>
 
@@ -366,7 +387,7 @@ const Aviator = () => {
             <div className="h-full flex flex-col gap-2">
               {/* Game Display */}
               <div className="flex-1">
-                <GameInterface 
+                <EnhancedGameInterface 
                   gameData={gameData}
                   bettingCountdown={bettingCountdown}
                   onCashOut={handleCashOut}
