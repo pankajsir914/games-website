@@ -224,10 +224,22 @@ export const useRoulette = () => {
       return;
     }
 
+    if (currentRound.status !== 'betting') {
+      toast({
+        title: "Cannot place bet",
+        description: "Betting is not open for this round",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert undefined to empty string for the RPC call
+    const formattedBetValue = betValue === undefined ? '' : betValue;
+
     placeBet.mutate({
       roundId: currentRound.id,
       betType,
-      betValue,
+      betValue: formattedBetValue,
       amount,
     });
   };
