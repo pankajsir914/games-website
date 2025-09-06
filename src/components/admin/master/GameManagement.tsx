@@ -6,9 +6,13 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMasterAdminGames } from '@/hooks/useMasterAdminGames';
 import { GameAssetUploader } from './GameAssetUploader';
 import { GameConfigEditor } from './GameConfigEditor';
+import { GameContentManager } from './GameContentManager';
+import { GameScheduler } from './GameScheduler';
+import { GameAnalyticsDashboard } from './GameAnalyticsDashboard';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +33,8 @@ import {
   RefreshCw,
   AlertTriangle,
   Image,
-  Sliders
+  Sliders,
+  FileText
 } from 'lucide-react';
 
 export const GameManagement = () => {
@@ -418,6 +423,73 @@ export const GameManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Game Management Dialog */}
+      {selectedGame && (
+        <Dialog open={!!selectedGame} onOpenChange={() => setSelectedGame(null)}>
+          <DialogContent className="max-w-6xl h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{selectedGame.name} Complete Management</DialogTitle>
+            </DialogHeader>
+            <Tabs value={dialogTab} onValueChange={(value) => setDialogTab(value as any)} className="flex-1 overflow-hidden flex flex-col">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="assets">
+                  <Image className="h-4 w-4 mr-2" />
+                  Assets
+                </TabsTrigger>
+                <TabsTrigger value="config">
+                  <Sliders className="h-4 w-4 mr-2" />
+                  Config
+                </TabsTrigger>
+                <TabsTrigger value="content">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Content
+                </TabsTrigger>
+                <TabsTrigger value="schedule">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Schedule
+                </TabsTrigger>
+                <TabsTrigger value="analytics">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Analytics
+                </TabsTrigger>
+              </TabsList>
+              <div className="flex-1 overflow-y-auto mt-4">
+                <TabsContent value="assets" className="h-full">
+                  <GameAssetUploader 
+                    gameType={selectedGame.type} 
+                    gameName={selectedGame.name}
+                  />
+                </TabsContent>
+                <TabsContent value="config" className="h-full">
+                  <GameConfigEditor 
+                    gameType={selectedGame.type} 
+                    gameName={selectedGame.name}
+                  />
+                </TabsContent>
+                <TabsContent value="content" className="h-full">
+                  <GameContentManager 
+                    gameType={selectedGame.type} 
+                    gameName={selectedGame.name}
+                  />
+                </TabsContent>
+                <TabsContent value="schedule" className="h-full">
+                  <GameScheduler 
+                    gameType={selectedGame.type} 
+                    gameName={selectedGame.name}
+                  />
+                </TabsContent>
+                <TabsContent value="analytics" className="h-full">
+                  <GameAnalyticsDashboard 
+                    gameType={selectedGame.type} 
+                    gameName={selectedGame.name}
+                  />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
