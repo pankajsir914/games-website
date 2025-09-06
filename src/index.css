@@ -70,6 +70,12 @@ All colors MUST be HSL.
     --gradient-ludo-green: linear-gradient(135deg, hsl(120 60% 50%), hsl(110 50% 40%));
     --gradient-ludo-blue: linear-gradient(135deg, hsl(217 91% 60%), hsl(207 81% 50%));
     
+    /* Sports Gradients */
+    --gradient-sports-cricket: linear-gradient(135deg, hsl(120 60% 45%), hsl(100 50% 35%));
+    --gradient-sports-football: linear-gradient(135deg, hsl(217 91% 60%), hsl(197 71% 50%));
+    --gradient-sports-basketball: linear-gradient(135deg, hsl(25 95% 55%), hsl(15 85% 45%));
+    --gradient-sports-tennis: linear-gradient(135deg, hsl(280 85% 60%), hsl(260 75% 50%));
+    
     /* Shadows */
     --shadow-gaming: 0 10px 30px -10px hsl(47 96% 53% / 0.3);
     --shadow-card: 0 8px 24px -6px hsl(240 10% 3.9% / 0.4);
