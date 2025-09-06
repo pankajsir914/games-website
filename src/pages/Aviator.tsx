@@ -381,13 +381,15 @@ const Aviator = () => {
             />
             
             <DualBettingControls
+              gameData={gameData}
+              setGameData={setGameData}
               onPlaceBet={handlePlaceBet}
-              gameState={gameData.gameState}
-              balance={gameData.balance}
-              activeBets={userBet ? [userBet] : []}
+              bettingCountdown={bettingCountdown}
+              isPlacingBet={false}
+              disabled={gameData.gameState !== 'betting'}
             />
             
-            <BettingHistory />
+            <BettingHistory bets={[]} />
           </div>
 
           {/* Right Panel - Live Chat */}
@@ -395,8 +397,6 @@ const Aviator = () => {
             <LiveChat
               messages={messages}
               onSendMessage={sendMessage}
-              currentUser={user?.email || 'Anonymous'}
-              isConnected={true}
             />
           </div>
         </div>
@@ -404,10 +404,7 @@ const Aviator = () => {
         {/* Bottom Stats Bar */}
         <div className="mt-6">
           <GameStats
-            totalPlayers={connectedUsers}
-            totalBets={liveBets.length}
-            biggestWin={0}
-            lastMultipliers={gameData.crashHistory}
+            gameData={gameData}
           />
         </div>
       </div>

@@ -2,12 +2,15 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoulette } from '@/hooks/useRoulette';
+import { useRouletteSounds } from '@/hooks/useRouletteSounds';
 import { useGameManagement } from '@/hooks/useGameManagement';
 import { useWallet } from '@/hooks/useWallet';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
-import { RouletteWheel } from '@/components/roulette/RouletteWheel';
-import { BettingGrid } from '@/components/roulette/BettingGrid';
+import RouletteWheel3D from '@/components/game/RouletteWheel3D';
+import RouletteBettingTable from '@/components/roulette/RouletteBettingTable';
+import ChipSelector from '@/components/roulette/ChipSelector';
+import RouletteStatistics from '@/components/roulette/RouletteStatistics';
 import { GameTimer } from '@/components/roulette/GameTimer';
 import { RouletteHistory } from '@/components/roulette/RouletteHistory';
 import { RouletteLeaderboard } from '@/components/roulette/RouletteLeaderboard';
@@ -18,7 +21,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Trophy, Clock, DollarSign } from 'lucide-react';
+import { AlertTriangle, Trophy, Clock, DollarSign, Volume2, VolumeX } from 'lucide-react';
+import { BetType, PlacedBet } from '@/types/roulette';
+import { toast } from '@/hooks/use-toast';
 
 const Roulette = () => {
   const { user } = useAuth();
