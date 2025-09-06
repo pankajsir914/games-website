@@ -16,9 +16,10 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
   const animationRef = useRef<number | null>(null);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [ballAngle, setBallAngle] = useState(0);
-  const [ballRadius, setBallRadius] = useState(140);
+  const [ballRadius, setBallRadius] = useState(175); // Start on outer track
   const [ballHeight, setBallHeight] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showBall, setShowBall] = useState(true); // Always show ball
   const { playBallRolling, playBallDrop, playWin } = useRouletteSounds();
 
   const numbers = [
@@ -177,38 +178,53 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
       
-      // Ball shadow
+      // Ball shadow on track
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-      ctx.shadowBlur = 4 + height / 10;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 8 + height / 5;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
       
-      // Ball body
-      const ballGradient = ctx.createRadialGradient(x - 2, y - 2, 0, x, y, 8);
+      // Ball body - increased size
+      const ballSize = 15 - height / 30; // Increased from 8 to 15
+      const ballGradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, ballSize);
       ballGradient.addColorStop(0, '#FFFFFF');
-      ballGradient.addColorStop(0.3, '#F3F4F6');
-      ballGradient.addColorStop(0.7, '#D1D5DB');
-      ballGradient.addColorStop(1, '#9CA3AF');
+      ballGradient.addColorStop(0.2, '#F9FAFB');
+      ballGradient.addColorStop(0.4, '#E5E7EB');
+      ballGradient.addColorStop(0.7, '#9CA3AF');
+      ballGradient.addColorStop(1, '#6B7280');
       
       ctx.beginPath();
-      ctx.arc(x, y, 8 - height / 20, 0, Math.PI * 2);
+      ctx.arc(x, y, ballSize, 0, Math.PI * 2);
       ctx.fillStyle = ballGradient;
       ctx.fill();
       
+      // Chrome rim effect
+      ctx.beginPath();
+      ctx.arc(x, y, ballSize, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
       // Ball highlight
       ctx.beginPath();
-      ctx.arc(x - 2, y - 2, 3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.arc(x - 4, y - 4, 5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.fill();
+      
+      // Add subtle reflection
+      ctx.beginPath();
+      ctx.ellipse(x + 2, y + 2, 3, 2, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fill();
+      
       ctx.restore();
     };
 
     const animate = () => {
       drawWheel(wheelRotation);
-      if (isAnimating) {
-        drawBall(ballAngle, ballRadius, ballHeight);
-      }
+      // Always draw the ball, not just when animating
+      drawBall(ballAngle, ballRadius, ballHeight);
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -219,7 +235,7 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [wheelRotation, ballAngle, ballRadius, ballHeight, isAnimating]);
+  }, [wheelRotation, ballAngle, ballRadius, ballHeight, showBall]);
 
   useEffect(() => {
     if (isSpinning && winningNumber !== undefined) {
@@ -249,7 +265,7 @@ const PremiumRouletteWheel3D: React.FC<PremiumRouletteWheel3DProps> = ({
         
         // Ball spirals inward
         setBallAngle(-targetWheelRotation * 0.8 * ballEaseOut);
-        setBallRadius(140 - (40 * ballEaseOut));
+        setBallRadius(175 - (75 * ballEaseOut)); // Updated to match new initial position
         
         // Ball drops at the end
         if (progress > 0.7) {
