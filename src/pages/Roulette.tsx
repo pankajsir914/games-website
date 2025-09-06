@@ -9,6 +9,7 @@ import { useWallet } from '@/hooks/useWallet';
 import Navigation from '@/components/Navigation';
 import { WalletCard } from '@/components/wallet/WalletCard';
 import RouletteWheel3D from '@/components/roulette/RouletteWheel3D';
+import PremiumRouletteWheel3D from '@/components/roulette/PremiumRouletteWheel3D';
 import { RouletteWheel } from '@/components/roulette/RouletteWheel';
 import { BettingGrid } from '@/components/roulette/BettingGrid';
 import RouletteBettingTable from '@/components/roulette/RouletteBettingTable';
@@ -195,7 +196,7 @@ const Roulette = () => {
                     <Skeleton className="w-80 h-80 rounded-full" />
                   </div>
                 ) : use3DWheel ? (
-                  <RouletteWheel3D
+                  <PremiumRouletteWheel3D
                     isSpinning={isWheelSpinning}
                     winningNumber={currentRound?.winning_number}
                     onSpinComplete={() => setIsSpinning(false)}
