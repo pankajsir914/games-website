@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TeenPattiGame } from '@/components/teenPatti/TeenPattiGame';
+import { TeenPattiGameplay } from '@/components/teenPatti/TeenPattiGameplay';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
 import Navigation from '@/components/Navigation';
@@ -32,7 +32,7 @@ export default function TeenPatti() {
   return (
     <div className="min-h-screen">
       <Navigation />
-      <TeenPattiGame />
+      <TeenPattiGameplay />
     </div>
   );
 }
