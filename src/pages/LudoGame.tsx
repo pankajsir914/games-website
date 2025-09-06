@@ -130,20 +130,31 @@ export default function LudoGame() {
         diceValue: lastDiceRoll || 1,
         canRoll: true,
         isRolling: isRolling,
-        consecutiveSixes: gameState?.consecutiveSixes || 0,
-        winner: currentMatch?.winner ? (currentMatch.winner === 'P1' ? 'red' : 'yellow') : null,
+        consecutiveSixes: 0,
+        winner: null as ActivePlayer | null,
         lastRoll: lastDiceRoll,
         selectedToken: null
       };
     }
 
+    // Convert player IDs to ActivePlayer colors
+    const getPlayerColor = (player: string): ActivePlayer => {
+      if (player === 'red' || player === 'yellow') return player as ActivePlayer;
+      return player === 'P1' ? 'red' : 'yellow';
+    };
+
+    const currentPlayer = getPlayerColor(gameState.currentPlayer);
+    const winner = currentMatch?.winner 
+      ? getPlayerColor(currentMatch.winner) 
+      : null;
+
     return {
-      currentPlayer: gameState.currentPlayer === 'P1' ? 'red' : 'yellow',
+      currentPlayer,
       diceValue: lastDiceRoll || 1,
       canRoll: gameState.gamePhase === 'rolling',
       isRolling: isRolling,
       consecutiveSixes: gameState.consecutiveSixes || 0,
-      winner: currentMatch?.winner ? (currentMatch.winner === 'P1' ? 'red' : 'yellow') : null,
+      winner,
       lastRoll: lastDiceRoll,
       selectedToken: null
     };
