@@ -58,6 +58,9 @@ serve(async (req) => {
       case 'join_room':
         return await joinRoom(supabaseClient, roomId, playerId);
       
+      case 'start_game_with_bots':
+        return await startGameWithBots(supabaseClient, roomId, moveData?.botDifficulty);
+      
       case 'roll_dice':
         return await rollDice(supabaseClient, roomId, playerId);
       
@@ -434,7 +437,7 @@ async function getRoomState(supabaseClient: any, roomId: string) {
 
 // Helper functions
 function initializeTokens(maxPlayers: number): Record<string, TokenState[]> {
-  const colors = ['red', 'blue', 'yellow', 'green'];
+  const colors = maxPlayers === 2 ? ['red', 'yellow'] : ['red', 'blue', 'yellow', 'green'];
   const tokens: Record<string, TokenState[]> = {};
 
   for (let i = 0; i < maxPlayers; i++) {
@@ -450,6 +453,69 @@ function initializeTokens(maxPlayers: number): Record<string, TokenState[]> {
   }
 
   return tokens;
+}
+
+async function startGameWithBots(supabaseClient: any, roomId: string, botDifficulty: string = 'normal') {
+  // Get room details
+  const { data: room } = await supabaseClient
+    .from('ludo_rooms')
+    .select('*')
+    .eq('id', roomId)
+    .single();
+
+  if (!room) {
+    throw new Error('Room not found');
+  }
+
+  // Add bot players to fill the room
+  const botsNeeded = room.max_players - room.current_players;
+  const colors = room.max_players === 2 ? ['red', 'yellow'] : ['red', 'blue', 'yellow', 'green'];
+  
+  // Get existing player colors
+  const { data: existingSessions } = await supabaseClient
+    .from('ludo_player_sessions')
+    .select('player_color')
+    .eq('room_id', roomId);
+
+  const usedColors = existingSessions?.map(s => s.player_color) || [];
+  const availableColors = colors.filter(c => !usedColors.includes(c));
+
+  // Add bot players
+  for (let i = 0; i < botsNeeded; i++) {
+    const botColor = availableColors[i];
+    const botId = `bot_${roomId}_${i + 1}`;
+    
+    await supabaseClient
+      .from('ludo_player_sessions')
+      .insert({
+        room_id: roomId,
+        player_id: botId,
+        player_position: room.current_players + i + 1,
+        player_color: botColor,
+        is_bot: true,
+        bot_difficulty: botDifficulty,
+        is_online: true
+      });
+  }
+
+  // Update room status to active
+  await supabaseClient
+    .from('ludo_rooms')
+    .update({
+      status: 'active',
+      current_players: room.max_players,
+      started_at: new Date().toISOString()
+    })
+    .eq('id', roomId);
+
+  return new Response(
+    JSON.stringify({ 
+      success: true, 
+      status: 'active',
+      message: `Game started with ${botsNeeded} bot players`
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 
 function updateMovableTokens(tokens: Record<string, TokenState[]>, playerColor: string, diceValue: number): Record<string, TokenState[]> {

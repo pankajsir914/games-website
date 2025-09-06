@@ -26,11 +26,18 @@ export interface PlayerData {
 }
 
 export interface GameState {
-  players: Record<string, PlayerData>;
+  players?: Record<string, PlayerData>;
   currentPlayer: string;
   gamePhase: 'rolling' | 'moving' | 'completed';
   lastDiceRoll?: number;
   consecutiveSixes: number;
+  tokens?: Record<string, TokenData[]>;
+  diceValue?: number | null;
+  isRolling?: boolean;
+  winner?: string | null;
+  canRoll?: boolean;
+  selectedToken?: string | null;
+  lastRoll?: number | null;
 }
 
 export interface LegalMove {
@@ -78,25 +85,41 @@ export const useLudoGame = () => {
       const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
         body: {
           action: 'create_room',
-          moveData: { maxPlayers, entryFee }
+          moveData: { maxPlayers, entryFee, botDifficulty }
         }
       });
 
       if (error) throw error;
       if (!data?.room_id) throw new Error('Failed to create room');
 
+      // Auto-start the game with bot players
+      const { data: startData, error: startError } = await supabase.functions.invoke('ludo-game-manager', {
+        body: {
+          action: 'start_game_with_bots',
+          roomId: data.room_id,
+          botDifficulty
+        }
+      });
+
+      if (startError) {
+        console.error('Failed to start game with bots:', startError);
+      }
+
       setCurrentMatch({
         id: data.room_id,
         mode,
         entryFee,
-        status: 'created',
+        status: startData?.status || 'in_progress',
         botDifficulty,
         createdAt: new Date().toISOString(),
       });
 
+      // Immediately fetch the game state
+      await getMatchState(data.room_id);
+
       toast({
-        title: 'Room joined',
-        description: `${mode} game starting with ₹${entryFee} entry`,
+        title: 'Game Started!',
+        description: `${mode} game started with ${mode === '2p' ? '1 bot' : '3 bots'}`,
       });
 
       return { success: true, matchId: data.room_id };

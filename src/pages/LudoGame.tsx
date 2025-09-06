@@ -8,12 +8,12 @@ import GameSetupModal from '@/components/ludo/GameSetupModal';
 import WinnerCelebration from '@/components/ludo/WinnerCelebration';
 import { useLudoSounds } from '@/hooks/useLudoSounds';
 import { useAuth } from '@/hooks/useAuth';
-import { useLudoGame } from '@/hooks/useLudoGame';
+import { useLudoGame, GameState } from '@/hooks/useLudoGame';
 import { useWallet } from '@/hooks/useWallet';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Coins } from 'lucide-react';
-import { GameState, Token, ActivePlayer } from '@/types/ludo';
+import { Token, ActivePlayer, Player, TokenPosition } from '@/types/ludo';
 
 export default function LudoGame() {
   const navigate = useNavigate();
@@ -78,36 +78,39 @@ export default function LudoGame() {
 
   // Convert game state to tokens for display
   const getTokensFromGameState = (): Record<ActivePlayer, Token[]> => {
-    if (!gameState) {
+    if (!gameState?.tokens) {
+      // Initialize default tokens for 2-player mode
       return {
-        red: [
-          { id: 'red-1', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-          { id: 'red-2', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-          { id: 'red-3', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-          { id: 'red-4', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false }
-        ],
-        yellow: [
-          { id: 'yellow-1', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-          { id: 'yellow-2', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-          { id: 'yellow-3', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-          { id: 'yellow-4', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false }
-        ]
+        red: Array.from({ length: 4 }, (_, i) => ({
+          id: `red-${i + 1}`,
+          player: 'red' as Player,
+          position: 'base' as TokenPosition,
+          boardPosition: null,
+          isHome: false,
+          canMove: false
+        })),
+        yellow: Array.from({ length: 4 }, (_, i) => ({
+          id: `yellow-${i + 1}`,
+          player: 'yellow' as Player,
+          position: 'base' as TokenPosition,
+          boardPosition: null,
+          isHome: false,
+          canMove: false
+        }))
       };
     }
 
-    // Convert game state to tokens format
+    // Convert backend format to UI format - only red and yellow for 2-player mode
     const tokens: Record<ActivePlayer, Token[]> = {
       red: [],
       yellow: []
     };
 
-    // Map game state players to tokens
-    Object.entries(gameState.players || {}).forEach(([player, data]) => {
-      const playerColor = player === 'P1' ? 'red' : 'yellow';
-      if (data?.tokens) {
-        tokens[playerColor] = data.tokens.map((token, index) => ({
-          id: `${playerColor}-${index + 1}`,
-          player: playerColor as 'red' | 'yellow',
+    Object.entries(gameState.tokens).forEach(([color, colorTokens]) => {
+      if ((color === 'red' || color === 'yellow') && Array.isArray(colorTokens)) {
+        tokens[color as ActivePlayer] = colorTokens.map((token: any) => ({
+          id: token.id,
+          player: color as Player,
           position: token.isInHome ? 'home' : token.position === 0 ? 'base' : 'board',
           boardPosition: token.position === 0 ? null : token.position,
           canMove: token.canMove || false,
@@ -120,7 +123,7 @@ export default function LudoGame() {
   };
 
   // Get current game state info
-  const getCurrentGameState = (): GameState => {
+  const getCurrentGameState = () => {
     if (!gameState) {
       return {
         currentPlayer: 'red' as ActivePlayer,

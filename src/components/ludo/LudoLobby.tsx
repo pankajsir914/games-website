@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Clock, Trophy, Coins } from 'lucide-react';
+import { Users, Clock, Trophy, Coins, Loader2 } from 'lucide-react';
 import { useLudoBackend } from '@/hooks/useLudoBackend';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LudoLobbyProps {
   user: any;
@@ -21,18 +22,53 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [gameHistory, setGameHistory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'join' | 'history'>('join');
+  const [roomsLoading, setRoomsLoading] = useState(false);
 
-  // Mock available games with bot players appearing as real players
-  const mockAvailableGames = [
-    { id: '1', entryFee: 10, players: ['Rahul K.', 'Priya S.'], maxPlayers: 4, waitingPlayers: 2 },
-    { id: '2', entryFee: 25, players: ['Amit P.'], maxPlayers: 2, waitingPlayers: 1 },
-    { id: '3', entryFee: 50, players: ['Neha M.', 'Ravi T.', 'Sneha B.'], maxPlayers: 4, waitingPlayers: 1 },
-    { id: '4', entryFee: 5, players: ['Vikash R.'], maxPlayers: 4, waitingPlayers: 3 },
-    { id: '5', entryFee: 100, players: ['Anjali S.', 'Rohit K.'], maxPlayers: 4, waitingPlayers: 2 },
-  ];
+  const fetchAvailableRooms = async () => {
+    setRoomsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('ludo_rooms')
+        .select('*')
+        .eq('status', 'waiting')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-  const handleJoinGame = async (gameId: string) => {
-    await onJoinGame(gameId);
+      if (error) throw error;
+      
+      setAvailableRooms(data || []);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      toast({
+        title: "Failed to load rooms",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setRoomsLoading(false);
+    }
+  };
+
+  const handleJoinGame = async (roomId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
+        body: {
+          action: 'join_room',
+          roomId,
+          playerId: user?.id
+        }
+      });
+
+      if (error) throw error;
+      
+      await onJoinGame(roomId);
+    } catch (error: any) {
+      toast({
+        title: "Failed to join room",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    }
   };
 
   const loadGameHistory = async () => {
@@ -45,7 +81,25 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
   };
 
   useEffect(() => {
-    if (activeTab === 'history') {
+    if (activeTab === 'join') {
+      fetchAvailableRooms();
+      
+      // Set up real-time subscription for room updates
+      const channel = supabase
+        .channel('ludo-rooms-updates')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'ludo_rooms' },
+          (payload) => {
+            fetchAvailableRooms();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } else if (activeTab === 'history') {
       loadGameHistory();
     }
   }, [activeTab]);
@@ -102,56 +156,62 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {mockAvailableGames.length === 0 ? (
+            {roomsLoading ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading available rooms...</p>
+              </div>
+            ) : availableRooms.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No games available right now</p>
-                <p className="text-sm">Check back in a few minutes!</p>
+                <p className="text-sm">Create a new game or check back in a few minutes!</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {mockAvailableGames.map((game) => (
-                  <Card key={game.id} className="bg-card border-border hover:bg-card/80 transition-colors">
+                {availableRooms.map((room) => (
+                  <Card key={room.id} className="bg-card border-border hover:bg-card/80 transition-colors">
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="flex items-center gap-2 text-sm font-medium">
                               <Coins className="w-4 h-4 text-yellow-500" />
-                              ₹{game.entryFee} Entry
+                              ₹{room.entry_fee} Entry
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                               <Users className="w-4 h-4" />
-                              {game.maxPlayers - game.waitingPlayers}/{game.maxPlayers} Players
+                              {room.current_players}/{room.max_players} Players
                             </div>
                           </div>
                           <Badge variant="secondary" className="text-xs">
-                            {game.waitingPlayers} waiting
+                            {room.max_players - room.current_players} slots
                           </Badge>
                         </div>
 
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Current Players:</p>
+                          <p className="text-xs text-muted-foreground">Room Details:</p>
                           <div className="flex flex-wrap gap-1">
-                            {game.players.map((player, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {player}
-                              </Badge>
-                            ))}
+                            <Badge variant="outline" className="text-xs">
+                              {room.max_players === 2 ? '2 Player' : '4 Player'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Room #{room.id.slice(-6)}
+                            </Badge>
                           </div>
                         </div>
 
                         <div className="pt-2">
                           <div className="text-xs text-muted-foreground mb-2">
-                            Win Pot: ₹{(game.entryFee * game.maxPlayers * 0.9).toFixed(0)}
+                            Win Pot: ₹{(room.entry_fee * room.max_players * 0.9).toFixed(0)}
                           </div>
                           <Button 
-                            onClick={() => handleJoinGame(game.id)}
-                            disabled={loading}
+                            onClick={() => handleJoinGame(room.id)}
+                            disabled={loading || room.current_players >= room.max_players}
                             className="w-full"
                             size="sm"
                           >
-                            {loading ? 'Joining...' : `Join Game (₹${game.entryFee})`}
+                            {loading ? 'Joining...' : room.current_players >= room.max_players ? 'Room Full' : `Join Room (₹${room.entry_fee})`}
                           </Button>
                         </div>
                       </div>
