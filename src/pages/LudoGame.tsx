@@ -22,10 +22,13 @@ export default function LudoGame() {
   const { 
     currentMatch, 
     gameState, 
+    legalMoves,
+    lastDiceRoll,
     createMatch, 
     rollDice, 
     makeMove, 
     getMatchHistory,
+    getMatchState,
     loading: gameLoading 
   } = useLudoGame();
   
@@ -34,34 +37,8 @@ export default function LudoGame() {
   const [showWinner, setShowWinner] = useState(false);
   const [playerCount, setPlayerCount] = useState<2 | 4>(2);
   const [entryFee, setEntryFee] = useState(100);
+  const [isRolling, setIsRolling] = useState(false);
   const { isMuted, toggleMute, playDiceRoll, playTokenMove, playWin } = useLudoSounds();
-  // Mock game state for the demo board
-  const [mockGameState, setMockGameState] = useState<GameState>({
-    currentPlayer: 'red' as ActivePlayer,
-    diceValue: 1,
-    canRoll: true,
-    isRolling: false,
-    consecutiveSixes: 0,
-    winner: null,
-    lastRoll: null,
-    selectedToken: null
-  });
-
-  // Mock tokens for the demo board
-  const [mockTokens, setMockTokens] = useState<Record<ActivePlayer, Token[]>>({
-    red: [
-      { id: 'red-1', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-      { id: 'red-2', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-      { id: 'red-3', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-      { id: 'red-4', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false }
-    ],
-    yellow: [
-      { id: 'yellow-1', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-      { id: 'yellow-2', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-      { id: 'yellow-3', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-      { id: 'yellow-4', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false }
-    ]
-  });
 
   // Handle opening setup modal
   const handleJoinGame = async (gameId: string) => {
@@ -79,123 +56,110 @@ export default function LudoGame() {
   };
 
   // Handle starting game from setup
-  const handleStartGame = (players: 2 | 4, fee: number) => {
+  const handleStartGame = async (players: 2 | 4, fee: number) => {
     setPlayerCount(players);
     setEntryFee(fee);
-    setGameMode('game');
-    setShowSetup(false);
-  };
-
-  // Enhanced game functions with sound
-  const handleMockRollDice = () => {
-    playDiceRoll();
-    setMockGameState(prev => ({
-      ...prev,
-      isRolling: true,
-      canRoll: false
-    }));
-
-    setTimeout(() => {
-      const newDiceValue = Math.floor(Math.random() * 6) + 1;
-      setMockGameState(prev => ({
-        ...prev,
-        diceValue: newDiceValue,
-        isRolling: false,
-        canRoll: false,
-        lastRoll: newDiceValue,
-        consecutiveSixes: newDiceValue === 6 ? prev.consecutiveSixes + 1 : 0
-      }));
-
-      if (newDiceValue === 6) {
-        setMockTokens(prev => ({
-          ...prev,
-          [mockGameState.currentPlayer]: prev[mockGameState.currentPlayer].map(token => ({
-            ...token,
-            canMove: true
-          }))
-        }));
-      }
-    }, 1000);
-  };
-
-  const handleMockResetGame = () => {
-    setMockGameState({
-      currentPlayer: 'red' as ActivePlayer,
-      diceValue: 1,
-      canRoll: true,
-      isRolling: false,
-      consecutiveSixes: 0,
-      winner: null,
-      lastRoll: null,
-      selectedToken: null
-    });
     
-    setMockTokens({
-      red: [
-        { id: 'red-1', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-        { id: 'red-2', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-        { id: 'red-3', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
-        { id: 'red-4', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false }
-      ],
-      yellow: [
-        { id: 'yellow-1', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-        { id: 'yellow-2', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-        { id: 'yellow-3', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
-        { id: 'yellow-4', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false }
-      ]
-    });
+    try {
+      const mode = players === 2 ? '2p' : '4p';
+      const result = await createMatch(mode as '2p' | '4p', fee, 'normal');
+      if (result?.success) {
+        setGameMode('game');
+        setShowSetup(false);
+        // Start polling for game state updates
+        if (result.matchId) {
+          await getMatchState(result.matchId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to start game:', error);
+    }
   };
 
-  const handleTokenClick = (tokenId: string) => {
-    const token = Object.values(mockTokens).flat().find(t => t.id === tokenId);
-    if (token && token.canMove) {
-      // Mock token movement logic
-      setMockTokens(prev => {
-        const updated = { ...prev };
-        const playerTokens = updated[token.player as ActivePlayer];
-        const tokenIndex = playerTokens.findIndex(t => t.id === tokenId);
-        
-        if (tokenIndex !== -1) {
-          const newToken = { ...playerTokens[tokenIndex] };
-          
-          if (newToken.position === 'base' && mockGameState.diceValue === 6) {
-            // Move token from base to starting position
-            newToken.position = 'board';
-            newToken.boardPosition = 1;
-          } else if (newToken.position === 'board' && newToken.boardPosition !== null) {
-            // Move token forward
-            const newPosition = newToken.boardPosition + mockGameState.diceValue;
-            if (newPosition >= 57) {
-              newToken.position = 'home';
-              newToken.isHome = true;
-              newToken.boardPosition = null;
-            } else {
-              newToken.boardPosition = newPosition;
-            }
-          }
-          
-          newToken.canMove = false;
-          updated[token.player as ActivePlayer][tokenIndex] = newToken;
-        }
-        
-        return updated;
-      });
+  // Convert game state to tokens for display
+  const getTokensFromGameState = (): Record<ActivePlayer, Token[]> => {
+    if (!gameState) {
+      return {
+        red: [
+          { id: 'red-1', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+          { id: 'red-2', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+          { id: 'red-3', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false },
+          { id: 'red-4', player: 'red', position: 'base', boardPosition: null, canMove: false, isHome: false }
+        ],
+        yellow: [
+          { id: 'yellow-1', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+          { id: 'yellow-2', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+          { id: 'yellow-3', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false },
+          { id: 'yellow-4', player: 'yellow', position: 'base', boardPosition: null, canMove: false, isHome: false }
+        ]
+      };
+    }
 
-      // Switch turns (unless it was a 6)
-      if (mockGameState.diceValue !== 6) {
-        setMockGameState(prev => ({
-          ...prev,
-          currentPlayer: prev.currentPlayer === 'red' ? 'yellow' : 'red',
-          canRoll: true,
-          consecutiveSixes: 0
-        }));
-      } else {
-        setMockGameState(prev => ({
-          ...prev,
-          canRoll: true
+    // Convert game state to tokens format
+    const tokens: Record<ActivePlayer, Token[]> = {
+      red: [],
+      yellow: []
+    };
+
+    // Map game state players to tokens
+    Object.entries(gameState.players || {}).forEach(([player, data]) => {
+      const playerColor = player === 'P1' ? 'red' : 'yellow';
+      if (data?.tokens) {
+        tokens[playerColor] = data.tokens.map((token, index) => ({
+          id: `${playerColor}-${index + 1}`,
+          player: playerColor as 'red' | 'yellow',
+          position: token.isInHome ? 'home' : token.position === 0 ? 'base' : 'board',
+          boardPosition: token.position === 0 ? null : token.position,
+          canMove: token.canMove || false,
+          isHome: token.isInHome || false
         }));
       }
+    });
+
+    return tokens;
+  };
+
+  // Get current game state info
+  const getCurrentGameState = (): GameState => {
+    if (!gameState) {
+      return {
+        currentPlayer: 'red' as ActivePlayer,
+        diceValue: lastDiceRoll || 1,
+        canRoll: true,
+        isRolling: isRolling,
+        consecutiveSixes: gameState?.consecutiveSixes || 0,
+        winner: currentMatch?.winner ? (currentMatch.winner === 'P1' ? 'red' : 'yellow') : null,
+        lastRoll: lastDiceRoll,
+        selectedToken: null
+      };
     }
+
+    return {
+      currentPlayer: gameState.currentPlayer === 'P1' ? 'red' : 'yellow',
+      diceValue: lastDiceRoll || 1,
+      canRoll: gameState.gamePhase === 'rolling',
+      isRolling: isRolling,
+      consecutiveSixes: gameState.consecutiveSixes || 0,
+      winner: currentMatch?.winner ? (currentMatch.winner === 'P1' ? 'red' : 'yellow') : null,
+      lastRoll: lastDiceRoll,
+      selectedToken: null
+    };
+  };
+
+  const handleTokenClick = async (tokenId: string) => {
+    if (!currentMatch || !legalMoves) return;
+    
+    // Check if this token can move
+    const canMove = legalMoves.some(move => move.tokenId === tokenId);
+    if (canMove) {
+      playTokenMove();
+      await handleTokenMove(tokenId);
+    }
+  };
+
+  const handleResetGame = () => {
+    setGameMode('lobby');
+    setShowWinner(false);
   };
 
   // Handle going back to lobby
@@ -208,20 +172,18 @@ export default function LudoGame() {
     if (!currentMatch) return;
     
     try {
-      const idempotencyKey = `roll_${Date.now()}_${Math.random()}`;
-      await rollDice(currentMatch.id, idempotencyKey);
+      await rollDice(currentMatch.id);
     } catch (error) {
       console.error('Failed to roll dice:', error);
     }
   };
 
   // Handle token move
-  const handleTokenMove = async (moveId: string, stateHash: string) => {
+  const handleTokenMove = async (tokenId: string) => {
     if (!currentMatch) return;
     
     try {
-      const idempotencyKey = `move_${Date.now()}_${Math.random()}`;
-      await makeMove(currentMatch.id, moveId, stateHash, idempotencyKey);
+      await makeMove(currentMatch.id, tokenId);
     } catch (error) {
       console.error('Failed to make move:', error);
     }
@@ -305,20 +267,20 @@ export default function LudoGame() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-3">
                 <PremiumLudoBoard
-                  tokens={mockTokens}
+                  tokens={getTokensFromGameState()}
                   onTokenClick={handleTokenClick}
-                  currentPlayer={mockGameState.currentPlayer}
-                  diceValue={mockGameState.diceValue}
-                  isRolling={mockGameState.isRolling}
-                  onDiceClick={handleMockRollDice}
-                  canRoll={mockGameState.canRoll}
+                  currentPlayer={getCurrentGameState().currentPlayer}
+                  diceValue={getCurrentGameState().diceValue}
+                  isRolling={isRolling}
+                  onDiceClick={handleRollDice}
+                  canRoll={getCurrentGameState().canRoll}
                 />
               </div>
               
               <div className="lg:col-span-1">
                 <GameControlPanel
-                  gameState={mockGameState}
-                  onResetGame={handleMockResetGame}
+                  gameState={getCurrentGameState()}
+                  onResetGame={handleResetGame}
                   isMuted={isMuted}
                   onToggleMute={toggleMute}
                   playerCount={playerCount}
@@ -337,9 +299,9 @@ export default function LudoGame() {
           />
 
           <WinnerCelebration
-            winner={mockGameState.winner}
+            winner={getCurrentGameState().winner}
             winAmount={entryFee * 2}
-            onPlayAgain={handleMockResetGame}
+            onPlayAgain={handleResetGame}
             onBackToLobby={handleBackToLobby}
             isOpen={showWinner}
           />

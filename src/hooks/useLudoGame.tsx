@@ -114,27 +114,27 @@ export const useLudoGame = () => {
 
   const getMatchState = useCallback(async (matchId: string) => {
     try {
-      const response = await fetch(`/api/ludo/state/${matchId}`, {
-        headers: getAuthHeaders(),
+      const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
+        body: {
+          action: 'get_room_state',
+          roomId: matchId
+        }
       });
 
-      const data = await response.json();
+      if (error) throw error;
+      if (!data?.room) throw new Error('Failed to get room state');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get match state');
-      }
-
-      setGameState(data.board);
-      setLastDiceRoll(data.diceHistory[data.diceHistory.length - 1] || null);
+      setGameState(data.room.game_state);
+      setLastDiceRoll(data.room.game_state?.lastDiceRoll || null);
       
       // Set current match info
       setCurrentMatch(prev => ({
         ...prev!,
-        status: data.status,
-        winner: data.winner,
+        status: data.room.status,
+        winner: data.room.winner_id,
       }));
 
-      return data;
+      return data.room;
     } catch (error: any) {
       toast({
         title: "Failed to get match state",
@@ -145,27 +145,29 @@ export const useLudoGame = () => {
     }
   }, []);
 
-  const rollDice = useCallback(async (matchId: string, idempotencyKey: string) => {
+  const rollDice = useCallback(async (matchId: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/ludo/roll', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ matchId, idempotencyKey }),
+      const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
+        body: {
+          action: 'roll_dice',
+          roomId: matchId
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to roll dice');
-      }
+      if (error) throw error;
+      if (!data?.dice) throw new Error('Failed to roll dice');
 
       setLastDiceRoll(data.dice);
-      setLegalMoves(data.legalMoves);
+      setGameState(data.gameState);
+      
+      if (data.movableTokens) {
+        setLegalMoves(data.movableTokens);
+      }
 
       toast({
         title: `Rolled ${data.dice}!`,
-        description: data.legalMoves.length > 0 ? 'Choose a token to move' : 'No legal moves available',
+        description: data.movableTokens?.length > 0 ? 'Choose a token to move' : 'No legal moves available',
       });
 
       return data;
@@ -183,28 +185,25 @@ export const useLudoGame = () => {
 
   const makeMove = useCallback(async (
     matchId: string, 
-    moveId: string, 
-    stateHash: string, 
-    idempotencyKey: string
+    tokenId: string
   ) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/ludo/move', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ matchId, moveId, stateHash, idempotencyKey }),
+      const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
+        body: {
+          action: 'move_token',
+          roomId: matchId,
+          tokenId
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to make move');
-      }
+      if (error) throw error;
+      if (!data?.success) throw new Error('Failed to make move');
 
       setGameState(data.gameState);
       setLegalMoves([]);
       
-      if (data.hasWon) {
+      if (data.winner) {
         toast({
           title: "🎉 Congratulations!",
           description: "You won the match!",
@@ -213,9 +212,9 @@ export const useLudoGame = () => {
         setCurrentMatch(prev => ({
           ...prev!,
           status: 'completed',
-          winner: 'P1',
+          winner: data.winner,
         }));
-      } else if (data.moveResult.isCapture) {
+      } else if (data.captured) {
         toast({
           title: "Token Captured!",
           description: "You sent an opponent token back to base!",
@@ -237,17 +236,34 @@ export const useLudoGame = () => {
 
   const getMatchHistory = useCallback(async (limit: number = 20): Promise<MatchHistory[]> => {
     try {
-      const response = await fetch(`/api/ludo/history?limit=${limit}`, {
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get match history');
+      const userResponse = await supabase.auth.getUser();
+      const userId = userResponse.data.user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
       }
 
-      return data;
+      const { data, error } = await supabase
+        .from('ludo_rooms')
+        .select('*')
+        .eq('created_by', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      return (data || []).map(room => ({
+        id: room.id,
+        mode: room.max_players === 2 ? '2p' : '4p',
+        entryFee: room.entry_fee,
+        status: room.status,
+        winner: room.winner_id,
+        netTokens: room.winner_id === userId 
+          ? room.winner_amount 
+          : -room.entry_fee,
+        createdAt: room.created_at,
+        completedAt: room.completed_at
+      }));
     } catch (error: any) {
       toast({
         title: "Failed to get match history",
