@@ -684,6 +684,138 @@ export type Database = {
         }
         Relationships: []
       }
+      game_assets: {
+        Row: {
+          asset_name: string
+          asset_type: string
+          asset_url: string
+          created_at: string | null
+          dimensions: Json | null
+          file_size: number | null
+          game_type: string
+          id: string
+          is_active: boolean | null
+          mime_type: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          asset_name: string
+          asset_type: string
+          asset_url: string
+          created_at?: string | null
+          dimensions?: Json | null
+          file_size?: number | null
+          game_type: string
+          id?: string
+          is_active?: boolean | null
+          mime_type?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          asset_name?: string
+          asset_type?: string
+          asset_url?: string
+          created_at?: string | null
+          dimensions?: Json | null
+          file_size?: number | null
+          game_type?: string
+          id?: string
+          is_active?: boolean | null
+          mime_type?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      game_content: {
+        Row: {
+          content: Json
+          content_type: string
+          created_at: string | null
+          game_type: string
+          id: string
+          is_active: boolean | null
+          language: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          content: Json
+          content_type: string
+          created_at?: string | null
+          game_type: string
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          content_type?: string
+          created_at?: string | null
+          game_type?: string
+          id?: string
+          is_active?: boolean | null
+          language?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      game_schedules: {
+        Row: {
+          action_config: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_time: string | null
+          game_type: string
+          id: string
+          is_active: boolean | null
+          is_recurring: boolean | null
+          recurrence_pattern: Json | null
+          schedule_type: string
+          start_time: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          game_type: string
+          id?: string
+          is_active?: boolean | null
+          is_recurring?: boolean | null
+          recurrence_pattern?: Json | null
+          schedule_type: string
+          start_time: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          game_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_recurring?: boolean | null
+          recurrence_pattern?: Json | null
+          schedule_type?: string
+          start_time?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       game_sessions: {
         Row: {
           completed_at: string | null

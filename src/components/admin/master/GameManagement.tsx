@@ -7,6 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMasterAdminGames } from '@/hooks/useMasterAdminGames';
+import { GameAssetUploader } from './GameAssetUploader';
+import { GameConfigEditor } from './GameConfigEditor';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   Gamepad2, 
   Settings, 
@@ -19,11 +27,15 @@ import {
   DollarSign,
   BarChart3,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Image,
+  Sliders
 } from 'lucide-react';
 
 export const GameManagement = () => {
   const { games: gamesData, isLoading, error, refetch, updateGameSettings, toggleGameStatus, isUpdating } = useMasterAdminGames();
+  const [selectedGame, setSelectedGame] = useState<{ type: string; name: string } | null>(null);
+  const [dialogTab, setDialogTab] = useState<'assets' | 'config'>('assets');
   const [globalSettings, setGlobalSettings] = useState({
     houseEdge: 5,
     maxBet: 50000,
@@ -225,9 +237,31 @@ export const GameManagement = () => {
                         variant="outline"
                         className="text-xs"
                         disabled={isUpdating}
+                        onClick={() => {
+                          setSelectedGame({
+                            type: game.game_type,
+                            name: formatGameName(game.game_type)
+                          });
+                          setDialogTab('config');
+                        }}
                       >
                         <Settings className="h-3 w-3 mr-1" />
                         Config
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => {
+                          setSelectedGame({
+                            type: game.game_type,
+                            name: formatGameName(game.game_type)
+                          });
+                          setDialogTab('assets');
+                        }}
+                      >
+                        <Image className="h-3 w-3 mr-1" />
+                        Assets
                       </Button>
                     </div>
                   </div>
