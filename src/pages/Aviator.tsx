@@ -360,7 +360,7 @@ const Aviator = () => {
             <LiveBetsPanel 
               liveBets={liveBets}
               totalPlayers={connectedUsers}
-              totalBetsAmount={liveBets.filter(b => b.status === 'active').reduce((sum, b) => sum + b.betAmount, 0)}
+              totalBetsAmount={liveBets.filter(b => b.status === 'active').reduce((sum, b) => sum + b.bet_amount, 0)}
             />
             <StatisticsPanel
               recentRounds={recentRounds?.map(r => ({ multiplier: r.crash_multiplier, id: r.id })) || []}

@@ -75,10 +75,10 @@ const LiveBetsPanel = ({ liveBets, totalPlayers, totalBetsAmount }: LiveBetsPane
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      ₹{bet.betAmount}
-                      {bet.cashoutMultiplier && (
+                      ₹{bet.bet_amount}
+                      {bet.cashout_multiplier && (
                         <span className="text-gaming-success ml-1">
-                          @{bet.cashoutMultiplier}x
+                          @{bet.cashout_multiplier}x
                         </span>
                       )}
                     </div>
@@ -89,14 +89,14 @@ const LiveBetsPanel = ({ liveBets, totalPlayers, totalBetsAmount }: LiveBetsPane
                       FLYING
                     </div>
                   )}
-                  {bet.status === 'cashed_out' && bet.cashoutMultiplier && (
+                  {bet.status === 'cashed_out' && bet.cashout_multiplier && (
                     <div className="text-xs text-gaming-success font-bold">
-                      +₹{(bet.betAmount * (bet.cashoutMultiplier - 1)).toFixed(0)}
+                      +₹{(bet.bet_amount * (bet.cashout_multiplier - 1)).toFixed(0)}
                     </div>
                   )}
                   {bet.status === 'crashed' && (
                     <div className="text-xs text-gaming-danger font-bold">
-                      -₹{bet.betAmount}
+                      -₹{bet.bet_amount}
                     </div>
                   )}
                 </div>
