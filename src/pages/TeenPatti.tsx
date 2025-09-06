@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { TeenPattiGameplay } from '@/components/teenPatti/TeenPattiGameplay';
+import { TeenPattiLive } from '@/components/teenPatti/TeenPattiLive';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
 import Navigation from '@/components/Navigation';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Activity, Gamepad2 } from 'lucide-react';
 
 export default function TeenPatti() {
   const { user } = useAuth();
   const [showAuth, setShowAuth] = useState(!user);
+  const [gameMode, setGameMode] = useState<'live' | 'classic'>('live');
 
   if (!user) {
     return (
@@ -32,7 +37,35 @@ export default function TeenPatti() {
   return (
     <div className="min-h-screen">
       <Navigation />
-      <TeenPattiGameplay />
+      
+      {/* Game Mode Selector */}
+      <div className="max-w-7xl mx-auto p-4 mb-4">
+        <Card className="p-4 bg-card/80 backdrop-blur-sm border-border/50">
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant={gameMode === 'live' ? 'default' : 'outline'}
+              onClick={() => setGameMode('live')}
+              className="flex items-center gap-2"
+              size="lg"
+            >
+              <Activity className="w-5 h-5" />
+              Live Teen Patti
+            </Button>
+            <Button
+              variant={gameMode === 'classic' ? 'default' : 'outline'}
+              onClick={() => setGameMode('classic')}
+              className="flex items-center gap-2"
+              size="lg"
+            >
+              <Gamepad2 className="w-5 h-5" />
+              Classic Teen Patti
+            </Button>
+          </div>
+        </Card>
+      </div>
+      
+      {/* Game Component */}
+      {gameMode === 'live' ? <TeenPattiLive /> : <TeenPattiGameplay />}
     </div>
   );
 }
