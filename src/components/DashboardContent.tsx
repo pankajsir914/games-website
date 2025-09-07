@@ -187,9 +187,9 @@ export function DashboardContent() {
                   </Badge>
                 )}
                 <CardContent className="p-0">
-                  <div className="relative overflow-hidden rounded-t-lg">
+                  <div className="relative overflow-hidden rounded-lg">
                     {game.image && game.image !== "/placeholder.svg" ? (
-                      <div className="relative h-32">
+                      <div className="relative h-40">
                         <img 
                           src={game.image} 
                           alt={game.title}
@@ -197,7 +197,7 @@ export function DashboardContent() {
                         />
                       </div>
                     ) : (
-                      <div className={`h-32 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
+                      <div className={`h-40 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
                         <div className="text-white font-bold text-lg text-center px-2">
                           {game.title}
                         </div>
@@ -206,14 +206,6 @@ export function DashboardContent() {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                       <Play className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-sm text-foreground mb-1 truncate">
-                      {game.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {game.provider}
-                    </p>
                   </div>
                 </CardContent>
               </Card>
