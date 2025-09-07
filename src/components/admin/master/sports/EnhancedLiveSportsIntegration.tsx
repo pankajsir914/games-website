@@ -315,6 +315,9 @@ export const EnhancedLiveSportsIntegration = () => {
         <TabsContent value="explorer">
           <APIExplorer 
             onTest={sportsData.testEndpoint}
+            onStore={sportsData.storeAPIResponse}
+            onGetStored={sportsData.getStoredResponses}
+            onDeleteStored={sportsData.deleteStoredResponse}
             logs={apiLogs}
           />
         </TabsContent>

@@ -195,16 +195,6 @@ export function useDiamondAdminAPI() {
       const responseTime = Date.now() - startTime;
       const statusCode = error ? 500 : 200;
 
-      // Log the test
-      await supabase.rpc('log_diamond_api_test', {
-        p_endpoint: endpoint,
-        p_method: method,
-        p_params: params,
-        p_response: response,
-        p_status_code: statusCode,
-        p_response_time_ms: responseTime
-      });
-
       if (error) throw error;
 
       toast({
@@ -212,29 +202,139 @@ export function useDiamondAdminAPI() {
         description: `${method} ${endpoint} responded in ${responseTime}ms`
       });
 
-      return response;
+      // Return response with metadata for storing
+      return {
+        response,
+        metadata: {
+          endpoint,
+          method,
+          params,
+          response_time_ms: responseTime,
+          status_code: statusCode
+        }
+      };
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       
-      // Log failed test
-      await supabase.rpc('log_diamond_api_test', {
-        p_endpoint: endpoint,
-        p_method: method,
-        p_params: params,
-        p_response: { error: error.message },
-        p_status_code: 500,
-        p_response_time_ms: responseTime
-      });
-
       toast({
         title: "Endpoint Test Failed",
         description: error.message || "Failed to test endpoint",
         variant: "destructive"
       });
       
-      return null;
+      throw error;
     } finally {
       setLoading(false);
+    }
+  }, [toast]);
+
+  // Store API response to database
+  const storeAPIResponse = useCallback(async (
+    endpoint: string,
+    method: string,
+    params: any,
+    response: any,
+    responseTime: number,
+    notes?: string,
+    tags?: string[]
+  ) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('diamond_api_logs')
+        .insert({
+          endpoint,
+          method,
+          params,
+          response,
+          status_code: response?.success ? 200 : 400,
+          response_time_ms: responseTime,
+          tested_by: user?.user?.id,
+          notes,
+          tags
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast({
+        title: "Response Stored",
+        description: "API response saved to database successfully"
+      });
+      
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Storage Failed",
+        description: error.message || "Failed to store API response",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  }, [toast]);
+
+  // Get stored API responses with filters
+  const getStoredResponses = useCallback(async (filters?: {
+    endpoint?: string;
+    method?: string;
+    limit?: number;
+    search?: string;
+  }) => {
+    try {
+      let query = supabase
+        .from('diamond_api_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (filters?.endpoint) {
+        query = query.eq('endpoint', filters.endpoint);
+      }
+      if (filters?.method) {
+        query = query.eq('method', filters.method);
+      }
+      if (filters?.search) {
+        query = query.ilike('endpoint', `%${filters.search}%`);
+      }
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      } else {
+        query = query.limit(50);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('Failed to get stored responses:', error);
+      return [];
+    }
+  }, []);
+
+  // Delete stored API response
+  const deleteStoredResponse = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('diamond_api_logs')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Response Deleted",
+        description: "Stored API response removed successfully"
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete stored response",
+        variant: "destructive"
+      });
+      return false;
     }
   }, [toast]);
 
@@ -267,6 +367,9 @@ export function useDiamondAdminAPI() {
     getMatchResults,
     // API Testing
     testEndpoint,
-    getAPILogs
+    getAPILogs,
+    storeAPIResponse,
+    getStoredResponses,
+    deleteStoredResponse
   };
 }

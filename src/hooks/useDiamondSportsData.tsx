@@ -241,6 +241,9 @@ export function useDiamondSportsData() {
     // API Testing
     testEndpoint: adminAPI.testEndpoint,
     getAPILogs: adminAPI.getAPILogs,
+    storeAPIResponse: adminAPI.storeAPIResponse,
+    getStoredResponses: adminAPI.getStoredResponses,
+    deleteStoredResponse: adminAPI.deleteStoredResponse,
     
     // Match Results
     postMatchResult: adminAPI.postMatchResult,
