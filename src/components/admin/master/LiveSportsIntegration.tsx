@@ -7,957 +7,754 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, RefreshCw, Plus, Trash2, Edit, AlertCircle, Ban, CheckCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { 
-  Trophy, 
-  PlayCircle, 
-  PauseCircle, 
-  Settings, 
-  Wifi,
-  WifiOff,
-  Calendar,
-  Clock,
-  Users,
-  Target,
-  TrendingUp,
-  Globe,
-  DollarSign,
-  ToggleLeft,
-  ToggleRight
+  Loader2, RefreshCw, Plus, Trash2, Settings, AlertCircle, 
+  CheckCircle, Globe, Clock, Activity, Database, Terminal,
+  Play, Send, Copy, X, ChevronRight, Zap, Shield, Wifi
 } from 'lucide-react';
-
-interface MatchBettingSettings {
-  matchId: string;
-  sportType: string;
-  bettingEnabled: boolean;
-  minBet: number;
-  maxBet: number;
-  commissionRate: number;
-}
+import { useToast } from '@/hooks/use-toast';
+import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
+import { useDiamondAdminAPI } from '@/hooks/useDiamondAdminAPI';
+import { supabase } from '@/integrations/supabase/client';
 
 export const LiveSportsIntegration = () => {
   const { toast } = useToast();
+  const diamondAPI = useDiamondSportsAPI();
+  const adminAPI = useDiamondAdminAPI();
+  
+  const [activeTab, setActiveTab] = useState('sids');
+  const [selectedSport, setSelectedSport] = useState('cricket');
+  const [selectedSID, setSelectedSID] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('live-data');
-  const [liveData, setLiveData] = useState<any>(null);
-  const [upcomingData, setUpcomingData] = useState<any>(null);
-  const [resultsData, setResultsData] = useState<any>(null);
-  const [selectedSport, setSelectedSport] = useState('cricket');
-  const [matchSettings, setMatchSettings] = useState<Record<string, MatchBettingSettings>>({});
-  const [isManageMatchOpen, setIsManageMatchOpen] = useState(false);
+  
+  // Data states
+  const [sidConfigs, setSidConfigs] = useState<any[]>([]);
+  const [sportsData, setSportsData] = useState<any>(null);
+  const [matchesData, setMatchesData] = useState<any[]>([]);
+  const [oddsData, setOddsData] = useState<any>(null);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
-  const [bettingConfig, setBettingConfig] = useState({
-    bettingEnabled: false,
-    minBet: 10,
-    maxBet: 10000,
-    commissionRate: 0.05
+  const [apiLogs, setApiLogs] = useState<any[]>([]);
+  
+  // Dialog states
+  const [isSIDDialogOpen, setIsSIDDialogOpen] = useState(false);
+  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false);
+  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
+  const [isEndpointDialogOpen, setIsEndpointDialogOpen] = useState(false);
+  
+  // Form states
+  const [sidForm, setSidForm] = useState({
+    sport_type: 'cricket',
+    sid: '',
+    is_active: true,
+    auto_sync: false,
+    sync_interval: 60
   });
-  const [providerSettings, setProviderSettings] = useState({
-    name: '',
-    sport: '',
-    endpoint: '',
-    apiKey: '',
-    autoSync: false
+  
+  const [endpointForm, setEndpointForm] = useState({
+    path: 'sports/allSportid',
+    method: 'GET',
+    params: ''
   });
-  const [isAddProviderDialogOpen, setIsAddProviderDialogOpen] = useState(false);
+  
+  const [resultForm, setResultForm] = useState({
+    market_id: '',
+    selection_id: '',
+    result: 'win'
+  });
 
-  const [sportsProviders, setSportsProviders] = useState([
-    {
-      id: 1,
-      name: 'EntitySport',
-      sport: 'Cricket',
-      status: 'connected',
-      events: 0,
-      lastSync: 'Never',
-      reliability: 99.9,
-      cost: 'Premium',
-      endpoint: 'https://restapi.entitysport.com/v2'
-    },
-    {
-      id: 2,
-      name: 'SportMonks',
-      sport: 'Cricket',
-      status: 'connected',
-      events: 0,
-      lastSync: 'Never',
-      reliability: 99.8,
-      cost: 'Premium',
-      endpoint: 'https://cricket.sportmonks.com/api/v2.0'
-    },
-    {
-      id: 3,
-      name: 'CricAPI',
-      sport: 'Cricket', 
-      status: 'connected',
-      events: 0,
-      lastSync: 'Never',
-      reliability: 98.8,
-      cost: 'Free Tier',
-      endpoint: 'https://api.cricapi.com/v1'
-    },
-    {
-      id: 4,
-      name: 'API-SPORTS (Football)',
-      sport: 'Football',
-      status: 'connected',
-      events: 0,
-      lastSync: 'Never',
-      reliability: 99.5,
-      cost: 'Free Tier',
-      endpoint: 'https://api-football-v1.p.rapidapi.com/v3'
-    },
-    {
-      id: 5,
-      name: 'API-SPORTS (Hockey)',
-      sport: 'Hockey',
-      status: 'connected',
-      events: 0,
-      lastSync: 'Never',
-      reliability: 99.2,
-      cost: 'Free Tier',
-      endpoint: 'https://api-hockey-v1.p.rapidapi.com/v1'
-    }
-  ]);
+  // Load initial data
+  useEffect(() => {
+    loadSIDConfigs();
+    loadAPILogs();
+  }, []);
 
-  // Fetch live sports data
-  const fetchSportsData = async (sport: string, type: 'live' | 'upcoming' | 'results') => {
+  // Load SID configurations
+  const loadSIDConfigs = async () => {
+    const configs = await adminAPI.getSIDConfigs();
+    setSidConfigs(configs);
+  };
+
+  // Load API logs
+  const loadAPILogs = async () => {
+    const logs = await adminAPI.getAPILogs(20);
+    setApiLogs(logs);
+  };
+
+  // Fetch all sports IDs
+  const fetchAllSportsIDs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sports-proxy', {
-        body: { sport, kind: type }
-      });
-
-      if (error) throw error;
-
-      switch (type) {
-        case 'live':
-          setLiveData(data);
-          break;
-        case 'upcoming':
-          setUpcomingData(data);
-          break;
-        case 'results':
-          setResultsData(data);
-          break;
+      const response = await diamondAPI.getAllSportsId();
+      if (response?.success) {
+        setSportsData(response.data);
+        toast({
+          title: "Sports IDs Fetched",
+          description: `Found ${response.data?.length || 0} sports`
+        });
       }
-
-      // Update provider last sync
-      setSportsProviders(prev => prev.map(provider => 
-        provider.sport.toLowerCase() === sport.toLowerCase() 
-          ? { ...provider, lastSync: 'Just now', events: data?.items?.length || 0 }
-          : provider
-      ));
-      
-      // Load match settings from database
-      await loadMatchSettings(sport);
-
-      toast({
-        title: "Data Updated",
-        description: `${sport} ${type} data fetched successfully`,
-      });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || `Failed to fetch ${sport} ${type} data`,
+        description: "Failed to fetch sports IDs",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-  
-  // Load match betting settings from database
-  const loadMatchSettings = async (sport: string) => {
-    try {
-      const { data, error } = await supabase.rpc('get_match_betting_settings', { p_sport_type: sport });
-      
-      if (error) throw error;
-      
-      // Check if data is an object with matches property
-      const matchData = data as any;
-      if (matchData?.matches && Array.isArray(matchData.matches)) {
-        const settings: Record<string, MatchBettingSettings> = {};
-        matchData.matches.forEach((match: any) => {
-          settings[match.match_id] = {
-            matchId: match.match_id,
-            sportType: match.sport_type,
-            bettingEnabled: match.betting_enabled,
-            minBet: match.min_bet_amount,
-            maxBet: match.max_bet_amount,
-            commissionRate: match.commission_rate
-          };
-        });
-        setMatchSettings(settings);
-      }
-    } catch (error: any) {
-      console.error('Failed to load match settings:', error);
-    }
-  };
-  
-  // Toggle match betting
-  const toggleMatchBetting = async (match: any) => {
-    const matchId = match.id || match.match_id;
-    const currentSettings = matchSettings[matchId];
-    const newEnabled = !currentSettings?.bettingEnabled;
-    
-    try {
-      const { data, error } = await supabase.rpc('toggle_match_betting', {
-        p_match_id: matchId,
-        p_sport_type: selectedSport,
-        p_enabled: newEnabled,
-        p_match_data: match
-      });
-      
-      if (error) throw error;
-      
-      // Update local state
-      setMatchSettings(prev => ({
-        ...prev,
-        [matchId]: {
-          matchId,
-          sportType: selectedSport,
-          bettingEnabled: newEnabled,
-          minBet: bettingConfig.minBet,
-          maxBet: bettingConfig.maxBet,
-          commissionRate: bettingConfig.commissionRate
-        }
-      }));
-      
-      toast({
-        title: "Betting Status Updated",
-        description: `Betting ${newEnabled ? 'enabled' : 'disabled'} for ${match.teams?.home} vs ${match.teams?.away}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update match betting status",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Open match management dialog
-  const openManageMatch = (match: any) => {
-    const matchId = match.id || match.match_id;
-    const currentSettings = matchSettings[matchId];
-    
-    setSelectedMatch(match);
-    setBettingConfig({
-      bettingEnabled: currentSettings?.bettingEnabled || false,
-      minBet: currentSettings?.minBet || 10,
-      maxBet: currentSettings?.maxBet || 10000,
-      commissionRate: currentSettings?.commissionRate || 0.05
-    });
-    setIsManageMatchOpen(true);
-  };
-  
-  // Save match settings
-  const saveMatchSettings = async () => {
-    if (!selectedMatch) return;
-    
-    const matchId = selectedMatch.id || selectedMatch.match_id;
-    
-    try {
-      const { data, error } = await supabase.rpc('toggle_match_betting', {
-        p_match_id: matchId,
-        p_sport_type: selectedSport,
-        p_enabled: bettingConfig.bettingEnabled,
-        p_match_data: {
-          ...selectedMatch,
-          min_bet_amount: bettingConfig.minBet,
-          max_bet_amount: bettingConfig.maxBet,
-          commission_rate: bettingConfig.commissionRate
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Update local state
-      setMatchSettings(prev => ({
-        ...prev,
-        [matchId]: {
-          matchId,
-          sportType: selectedSport,
-          ...bettingConfig
-        }
-      }));
-      
-      setIsManageMatchOpen(false);
-      
-      toast({
-        title: "Settings Saved",
-        description: `Match settings updated successfully`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save match settings",
-        variant: "destructive"
-      });
-    }
-  };
 
-  // Refresh all data
-  const refreshAllData = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([
-        fetchSportsData(selectedSport, 'live'),
-        fetchSportsData(selectedSport, 'upcoming'), 
-        fetchSportsData(selectedSport, 'results')
-      ]);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Add new provider
-  const addProvider = async () => {
-    if (!providerSettings.name || !providerSettings.sport) {
+  // Fetch matches for selected SID
+  const fetchMatches = async () => {
+    if (!selectedSID) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please select a SID first",
         variant: "destructive"
       });
       return;
     }
 
-    const newProvider = {
-      id: Date.now(),
-      name: providerSettings.name,
-      sport: providerSettings.sport,
-      status: 'connected',
-      events: 0,
-      lastSync: 'Never',
-      reliability: 99.0,
-      cost: 'Custom',
-      endpoint: providerSettings.endpoint
-    };
-
-    setSportsProviders(prev => [...prev, newProvider]);
-    setProviderSettings({ name: '', sport: '', endpoint: '', apiKey: '', autoSync: false });
-    setIsAddProviderDialogOpen(false);
-
-    toast({
-      title: "Provider Added",
-      description: `${providerSettings.name} has been added successfully`,
-    });
-  };
-
-  // Remove provider
-  const removeProvider = (id: number) => {
-    setSportsProviders(prev => prev.filter(p => p.id !== id));
-    toast({
-      title: "Provider Removed",
-      description: "Sports data provider has been removed",
-    });
-  };
-
-  // Auto-fetch data on sport change
-  useEffect(() => {
-    if (selectedSport) {
-      fetchSportsData(selectedSport, 'live');
-      fetchSportsData(selectedSport, 'upcoming');
-      fetchSportsData(selectedSport, 'results');
+    setLoading(true);
+    try {
+      const response = await diamondAPI.getAllMatch(selectedSID);
+      if (response?.success) {
+        setMatchesData(response.data || []);
+        toast({
+          title: "Matches Fetched",
+          description: `Found ${response.data?.length || 0} matches for SID ${selectedSID}`
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch matches",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  }, [selectedSport]);
+  };
+
+  // Fetch odds for match
+  const fetchMatchOdds = async (eventId: string) => {
+    setLoading(true);
+    try {
+      const response = await diamondAPI.getOdds(eventId);
+      if (response?.success) {
+        setOddsData(response.data);
+        toast({
+          title: "Odds Fetched",
+          description: `Fetched odds for event ${eventId}`
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch odds",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save SID configuration
+  const saveSIDConfig = async () => {
+    const result = await adminAPI.manageSID(sidForm);
+    if (result) {
+      await loadSIDConfigs();
+      setIsSIDDialogOpen(false);
+      setSidForm({
+        sport_type: 'cricket',
+        sid: '',
+        is_active: true,
+        auto_sync: false,
+        sync_interval: 60
+      });
+    }
+  };
+
+  // Delete SID configuration
+  const deleteSIDConfig = async (id: string) => {
+    const success = await adminAPI.deleteSID(id);
+    if (success) {
+      await loadSIDConfigs();
+    }
+  };
+
+  // Toggle match betting
+  const toggleMatchBetting = async (match: any) => {
+    try {
+      const { data, error } = await supabase.rpc('toggle_match_betting', {
+        p_match_id: match.eventId || match.id,
+        p_sport_type: selectedSport,
+        p_enabled: !match.bettingEnabled,
+        p_match_data: {
+          ...match,
+          diamond_event_id: match.eventId,
+          diamond_data: match
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Betting Status Updated",
+        description: `Betting ${!match.bettingEnabled ? 'enabled' : 'disabled'} for match`
+      });
+
+      // Refresh matches
+      await fetchMatches();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update betting status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Post match result
+  const postMatchResult = async () => {
+    if (!selectedMatch) return;
+
+    const result = await adminAPI.postMatchResult({
+      match_id: selectedMatch.eventId,
+      event_id: selectedMatch.eventId,
+      market_id: resultForm.market_id,
+      selection_id: resultForm.selection_id,
+      sport_type: selectedSport,
+      result_status: resultForm.result as any,
+      result_data: { match: selectedMatch }
+    });
+
+    if (result) {
+      setIsResultDialogOpen(false);
+      setResultForm({
+        market_id: '',
+        selection_id: '',
+        result: 'win'
+      });
+    }
+  };
+
+  // Test API endpoint
+  const testEndpoint = async () => {
+    let params = {};
+    try {
+      if (endpointForm.params) {
+        params = JSON.parse(endpointForm.params);
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Invalid JSON parameters",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const response = await adminAPI.testEndpoint(
+      endpointForm.path,
+      endpointForm.method,
+      params
+    );
+
+    if (response) {
+      await loadAPILogs();
+    }
+  };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'connected': return <Badge className="bg-gaming-success text-gaming-success-foreground">Connected</Badge>;
-      case 'disconnected': return <Badge className="bg-gaming-danger text-gaming-danger-foreground">Disconnected</Badge>;
-      case 'maintenance': return <Badge className="bg-orange-500 text-white">Maintenance</Badge>;
-      case 'live': return <Badge className="bg-gaming-success text-gaming-success-foreground">Live</Badge>;
-      case 'upcoming': return <Badge className="bg-primary text-primary-foreground">Upcoming</Badge>;
-      case 'ended': return <Badge className="bg-muted text-muted-foreground">Ended</Badge>;
-      default: return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'connected': return <Wifi className="h-4 w-4 text-gaming-success" />;
-      case 'disconnected': return <WifiOff className="h-4 w-4 text-gaming-danger" />;
-      case 'maintenance': return <Settings className="h-4 w-4 text-orange-500" />;
-      default: return <Globe className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  // Render match item
-  const renderMatchItem = (match: any, index: number) => {
-    const matchId = match.id || match.match_id;
-    const settings = matchSettings[matchId];
-    const isBettingEnabled = settings?.bettingEnabled || false;
+    const statusMap: Record<string, { variant: any; icon: any; label: string }> = {
+      'L': { variant: 'default', icon: Activity, label: 'Live' },
+      '1': { variant: 'outline', icon: Clock, label: 'Upcoming' },
+      '3': { variant: 'secondary', icon: CheckCircle, label: 'Completed' }
+    };
+    
+    const config = statusMap[status] || { variant: 'secondary', icon: Globe, label: status };
+    const Icon = config.icon;
     
     return (
-      <div key={`${matchId || index}`} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gaming-gold/10 rounded-lg flex items-center justify-center">
-            <Trophy className="h-5 w-5 text-gaming-gold" />
-          </div>
-          
-          <div>
-            <h4 className="font-semibold">{match.teams?.home || 'Team A'} vs {match.teams?.away || 'Team B'}</h4>
-            <p className="text-sm text-muted-foreground">{match.league || 'League'}</p>
-            <div className="flex items-center gap-4 mt-1">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {match.date ? new Date(match.date).toLocaleString() : 'TBD'}
-                </span>
-              </div>
-              {match.venue && (
-                <span className="text-xs text-muted-foreground">• {match.venue}</span>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-sm font-semibold">
-              {match.scores?.home ?? '-'} - {match.scores?.away ?? '-'}
-            </div>
-            <div className="text-xs text-muted-foreground">Score</div>
-          </div>
-          
-          {getStatusBadge(match.status)}
-          
-          {/* Betting Status Badge */}
-          <div className="flex items-center gap-2">
-            {isBettingEnabled ? (
-              <Badge className="bg-gaming-success/20 text-gaming-success">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Betting ON
-              </Badge>
-            ) : (
-              <Badge className="bg-gaming-danger/20 text-gaming-danger">
-                <Ban className="h-3 w-3 mr-1" />
-                Betting OFF
-              </Badge>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant={isBettingEnabled ? "destructive" : "default"}
-              onClick={() => toggleMatchBetting(match)}
-              className="min-w-[100px]"
-            >
-              {isBettingEnabled ? (
-                <>
-                  <ToggleLeft className="h-3 w-3 mr-1" />
-                  Disable
-                </>
-              ) : (
-                <>
-                  <ToggleRight className="h-3 w-3 mr-1" />
-                  Enable
-                </>
-              )}
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => openManageMatch(match)}
-            >
-              <Settings className="h-3 w-3 mr-1" />
-              Settings
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
     );
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Live Sports Integration</h2>
-          <p className="text-muted-foreground">Manage sports data providers and live events</p>
+          <h2 className="text-2xl font-bold text-foreground">Diamond Sports Integration</h2>
+          <p className="text-muted-foreground">Manage Diamond Sports API integration and match betting</p>
         </div>
         <div className="flex gap-3">
-          <Button 
-            onClick={refreshAllData} 
-            disabled={refreshing}
-            variant="outline"
-          >
-            {refreshing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Refresh Data
+          <Badge variant="outline" className="px-4 py-2">
+            <Wifi className="h-4 w-4 mr-2 text-gaming-success" />
+            Diamond API Connected
+          </Badge>
+          <Button onClick={loadAPILogs} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
           </Button>
-          <Dialog open={isAddProviderDialogOpen} onOpenChange={setIsAddProviderDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gaming-gold text-gaming-gold-foreground hover:bg-gaming-gold/90">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Provider
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Sports Data Provider</DialogTitle>
-                <DialogDescription>
-                  Connect a new sports data provider to the platform
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="provider-name">Provider Name</Label>
-                  <Input 
-                    id="provider-name" 
-                    placeholder="Enter provider name" 
-                    value={providerSettings.name}
-                    onChange={(e) => setProviderSettings(prev => ({ ...prev, name: e.target.value }))}
-                  />
+        </div>
+      </div>
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid grid-cols-5 w-full">
+          <TabsTrigger value="sids">Sports & SIDs</TabsTrigger>
+          <TabsTrigger value="matches">Matches</TabsTrigger>
+          <TabsTrigger value="odds">Odds & Markets</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="endpoint">Endpoint Explorer</TabsTrigger>
+        </TabsList>
+
+        {/* Sports & SIDs Tab */}
+        <TabsContent value="sids" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Sports & SID Management</CardTitle>
+                  <CardDescription>Configure sports and their SIDs for Diamond API</CardDescription>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="sport-type">Sport Type</Label>
-                  <Select value={providerSettings.sport} onValueChange={(value) => setProviderSettings(prev => ({ ...prev, sport: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sport" />
+                <div className="flex gap-2">
+                  <Button onClick={fetchAllSportsIDs} variant="outline">
+                    <Globe className="h-4 w-4 mr-2" />
+                    Fetch All Sports
+                  </Button>
+                  <Button onClick={() => setIsSIDDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add SID
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Sports Data Display */}
+              {sportsData && (
+                <Alert className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Available Sports: {JSON.stringify(sportsData).slice(0, 200)}...
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* SID Configurations List */}
+              <div className="space-y-3">
+                {sidConfigs.map((config) => (
+                  <div key={config.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border">
+                    <div className="flex items-center gap-4">
+                      <Badge variant={config.is_active ? 'default' : 'secondary'}>
+                        {config.sport_type}
+                      </Badge>
+                      <div>
+                        <p className="font-medium">SID: {config.sid || 'Default'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {config.auto_sync ? `Auto-sync every ${config.sync_interval}s` : 'Manual sync'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {config.is_active && (
+                        <Badge variant="outline" className="text-gaming-success">
+                          <Activity className="h-3 w-3 mr-1" />
+                          Active
+                        </Badge>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedSID(config.sid);
+                          setSelectedSport(config.sport_type);
+                          toast({
+                            title: "SID Selected",
+                            description: `Selected ${config.sport_type} - ${config.sid}`
+                          });
+                        }}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => deleteSIDConfig(config.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Matches Tab */}
+        <TabsContent value="matches" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Match Management</CardTitle>
+                  <CardDescription>View and manage matches from Diamond API</CardDescription>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Select value={selectedSID} onValueChange={setSelectedSID}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select SID" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cricket">Cricket</SelectItem>
-                      <SelectItem value="football">Football</SelectItem>
-                      <SelectItem value="basketball">Basketball</SelectItem>
-                      <SelectItem value="tennis">Tennis</SelectItem>
-                      <SelectItem value="hockey">Hockey</SelectItem>
+                      {sidConfigs.map((config) => (
+                        <SelectItem key={config.id} value={config.sid || 'default'}>
+                          {config.sport_type} - {config.sid || 'Default'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={fetchMatches} disabled={!selectedSID || loading}>
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Fetch Matches
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-3">
+                  {matchesData.map((match, index) => (
+                    <div key={match.eventId || index} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <p className="font-semibold">{match.eventName || 'Match'}</p>
+                          {getStatusBadge(match.eventStatus || match.status)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Event ID: {match.eventId} | Start: {match.eventDate}
+                        </p>
+                        {match.marketCount && (
+                          <Badge variant="outline" className="mt-2">
+                            {match.marketCount} Markets
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant={match.bettingEnabled ? 'destructive' : 'default'}
+                          onClick={() => toggleMatchBetting(match)}
+                        >
+                          {match.bettingEnabled ? 'Disable' : 'Enable'} Betting
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedMatch(match);
+                            fetchMatchOdds(match.eventId);
+                            setIsMatchDialogOpen(true);
+                          }}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Odds & Markets Tab */}
+        <TabsContent value="odds" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Odds & Markets</CardTitle>
+              <CardDescription>View and manage betting odds and markets</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {selectedMatch && oddsData ? (
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Match: {selectedMatch.eventName} | Markets: {oddsData?.markets?.length || 0}
+                    </AlertDescription>
+                  </Alert>
+                  <ScrollArea className="h-[400px]">
+                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
+                      {JSON.stringify(oddsData, null, 2)}
+                    </pre>
+                  </ScrollArea>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Select a match to view odds and markets
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Results Tab */}
+        <TabsContent value="results" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Match Results Management</CardTitle>
+                  <CardDescription>Post and manage match results</CardDescription>
+                </div>
+                <Button 
+                  onClick={() => setIsResultDialogOpen(true)}
+                  disabled={!selectedMatch}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Post Result
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {selectedMatch ? (
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Selected Match: {selectedMatch.eventName} (ID: {selectedMatch.eventId})
+                    </AlertDescription>
+                  </Alert>
+                  <div className="text-sm text-muted-foreground">
+                    Use the "Post Result" button to update match results in the system.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Select a match from the Matches tab to post results
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Endpoint Explorer Tab */}
+        <TabsContent value="endpoint" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>API Endpoint Explorer</CardTitle>
+              <CardDescription>Test Diamond Sports API endpoints directly</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Method</Label>
+                  <Select
+                    value={endpointForm.method}
+                    onValueChange={(value) => setEndpointForm({ ...endpointForm, method: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GET">GET</SelectItem>
+                      <SelectItem value="POST">POST</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="api-endpoint">API Endpoint</Label>
-                  <Input 
-                    id="api-endpoint" 
-                    placeholder="https://api.provider.com" 
-                    value={providerSettings.endpoint}
-                    onChange={(e) => setProviderSettings(prev => ({ ...prev, endpoint: e.target.value }))}
+                <div className="col-span-2">
+                  <Label>Endpoint Path</Label>
+                  <Input
+                    value={endpointForm.path}
+                    onChange={(e) => setEndpointForm({ ...endpointForm, path: e.target.value })}
+                    placeholder="sports/allSportid"
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="api-key">API Key</Label>
-                  <Input 
-                    id="api-key" 
-                    type="password" 
-                    placeholder="Enter API key" 
-                    value={providerSettings.apiKey}
-                    onChange={(e) => setProviderSettings(prev => ({ ...prev, apiKey: e.target.value }))}
-                  />
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="auto-sync" 
-                    checked={providerSettings.autoSync}
-                    onCheckedChange={(checked) => setProviderSettings(prev => ({ ...prev, autoSync: checked }))}
-                  />
-                  <Label htmlFor="auto-sync">Enable auto-sync</Label>
-                </div>
-                
-                <Button 
-                  onClick={addProvider}
-                  className="w-full bg-gaming-success text-gaming-success-foreground hover:bg-gaming-success/90"
-                >
-                  <Wifi className="h-4 w-4 mr-2" />
-                  Connect Provider
-                </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Provider Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-card border-gaming-success/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Providers</CardTitle>
-            <Wifi className="h-4 w-4 text-gaming-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gaming-success">
-              {sportsProviders.filter(p => p.status === 'connected').length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {sportsProviders.filter(p => p.status === 'connected').length} connected, {sportsProviders.filter(p => p.status !== 'connected').length} inactive
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-card border-primary/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Live Events</CardTitle>
-            <PlayCircle className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {liveData?.items?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Current sport</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-card border-gaming-gold/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-            <Calendar className="h-4 w-4 text-gaming-gold" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gaming-gold">
-              {upcomingData?.items?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Scheduled matches</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-card border-purple-500/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Results</CardTitle>
-            <Target className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-500">
-              {resultsData?.items?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Recent results</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sport Selection */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            Sports Data Management
-          </CardTitle>
-          <CardDescription>Select sport and view live data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 mb-6">
-            <Label htmlFor="sport-select">Select Sport:</Label>
-            <Select value={selectedSport} onValueChange={setSelectedSport}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cricket">Cricket</SelectItem>
-                <SelectItem value="football">Football</SelectItem>
-                <SelectItem value="hockey">Hockey</SelectItem>
-                <SelectItem value="basketball">Basketball</SelectItem>
-                <SelectItem value="tennis">Tennis</SelectItem>
-              </SelectContent>
-            </Select>
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="live-data">Live Events</TabsTrigger>
-              <TabsTrigger value="upcoming-data">Upcoming</TabsTrigger>
-              <TabsTrigger value="results-data">Results</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="live-data" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Live Events</h3>
-                <Badge variant="outline">{liveData?.items?.length || 0} events</Badge>
-              </div>
-              {liveData?.items?.length > 0 ? (
-                <div className="space-y-3">
-                  {liveData.items.map((match: any, index: number) => renderMatchItem(match, index))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No live events found for {selectedSport}. Data will refresh automatically.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-
-            <TabsContent value="upcoming-data" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Upcoming Events</h3>
-                <Badge variant="outline">{upcomingData?.items?.length || 0} events</Badge>
-              </div>
-              {upcomingData?.items?.length > 0 ? (
-                <div className="space-y-3">
-                  {upcomingData.items.map((match: any, index: number) => renderMatchItem(match, index))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No upcoming events found for {selectedSport}.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-
-            <TabsContent value="results-data" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Recent Results</h3>
-                <Badge variant="outline">{resultsData?.items?.length || 0} results</Badge>
-              </div>
-              {resultsData?.items?.length > 0 ? (
-                <div className="space-y-3">
-                  {resultsData.items.map((match: any, index: number) => renderMatchItem(match, index))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    No recent results found for {selectedSport}.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Sports Providers */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
-            Sports Data Providers
-          </CardTitle>
-          <CardDescription>Manage API connections and data sources</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {sportsProviders.map((provider) => (
-              <div key={provider.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    {getStatusIcon(provider.status)}
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold">{provider.name}</h4>
-                    <p className="text-sm text-muted-foreground">{provider.sport} • {provider.cost}</p>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {provider.events} events • Last sync: {provider.lastSync}
-                      </span>
-                      <span className="text-xs text-gaming-success">
-                        {provider.reliability}% uptime
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-sm font-semibold">{provider.events}</div>
-                    <div className="text-xs text-muted-foreground">Live Events</div>
-                  </div>
-                  
-                  {getStatusBadge(provider.status)}
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => fetchSportsData(provider.sport.toLowerCase(), 'live')}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      Sync
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-gaming-danger"
-                      onClick={() => removeProvider(provider.id)}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Analytics */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Sports Analytics
-          </CardTitle>
-          <CardDescription>Performance metrics and insights</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Cricket</span>
-              <div className="text-right">
-                <div className="text-sm font-semibold text-gaming-gold">
-                  {sportsProviders.find(p => p.sport === 'Cricket')?.events || 0} events
-                </div>
-                <div className="text-xs text-muted-foreground">Active</div>
-              </div>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Football</span>
-              <div className="text-right">
-                <div className="text-sm font-semibold text-primary">
-                  {sportsProviders.find(p => p.sport === 'Football')?.events || 0} events
-                </div>
-                <div className="text-xs text-muted-foreground">Active</div>
-              </div>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Hockey</span>
-              <div className="text-right">
-                <div className="text-sm font-semibold text-gaming-success">
-                  {sportsProviders.find(p => p.sport === 'Hockey')?.events || 0} events
-                </div>
-                <div className="text-xs text-muted-foreground">Active</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="pt-4 border-t">
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Total Active Events</span>
-              <span className="text-lg font-bold text-gaming-gold">
-                {sportsProviders.reduce((sum, p) => sum + p.events, 0)}
-              </span>
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-xs text-muted-foreground">Across all sports</span>
-              <span className="text-xs text-gaming-success">Live tracking</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Match Settings Dialog */}
-      <Dialog open={isManageMatchOpen} onOpenChange={setIsManageMatchOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Match Betting Settings</DialogTitle>
-            <DialogDescription>
-              Configure betting parameters for {selectedMatch?.teams?.home} vs {selectedMatch?.teams?.away}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Match Info */}
-            <div className="p-4 bg-background/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-semibold">{selectedMatch?.teams?.home} vs {selectedMatch?.teams?.away}</h4>
-                  <p className="text-sm text-muted-foreground">{selectedMatch?.league}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedMatch?.date ? new Date(selectedMatch.date).toLocaleString() : 'TBD'}
-                  </p>
-                </div>
-                {getStatusBadge(selectedMatch?.status)}
-              </div>
-            </div>
-            
-            {/* Betting Configuration */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="betting-enabled">Enable Betting</Label>
-                  <p className="text-xs text-muted-foreground">Allow users to place bets on this match</p>
-                </div>
-                <Switch 
-                  id="betting-enabled"
-                  checked={bettingConfig.bettingEnabled}
-                  onCheckedChange={(checked) => setBettingConfig(prev => ({ ...prev, bettingEnabled: checked }))}
+              
+              <div>
+                <Label>Parameters (JSON)</Label>
+                <Textarea
+                  value={endpointForm.params}
+                  onChange={(e) => setEndpointForm({ ...endpointForm, params: e.target.value })}
+                  placeholder='{"eventId": "123"}'
+                  className="font-mono text-sm"
                 />
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="min-bet">Minimum Bet Amount (₹)</Label>
-                  <Input 
-                    id="min-bet"
-                    type="number"
-                    value={bettingConfig.minBet}
-                    onChange={(e) => setBettingConfig(prev => ({ ...prev, minBet: Number(e.target.value) }))}
-                    disabled={!bettingConfig.bettingEnabled}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="max-bet">Maximum Bet Amount (₹)</Label>
-                  <Input 
-                    id="max-bet"
-                    type="number"
-                    value={bettingConfig.maxBet}
-                    onChange={(e) => setBettingConfig(prev => ({ ...prev, maxBet: Number(e.target.value) }))}
-                    disabled={!bettingConfig.bettingEnabled}
-                  />
-                </div>
+
+              <div className="flex justify-end">
+                <Button onClick={testEndpoint} disabled={loading}>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Test Endpoint
+                </Button>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="commission">Commission Rate (%)</Label>
-                <div className="flex items-center gap-2">
-                  <Input 
-                    id="commission"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={bettingConfig.commissionRate * 100}
-                    onChange={(e) => setBettingConfig(prev => ({ ...prev, commissionRate: Number(e.target.value) / 100 }))}
-                    disabled={!bettingConfig.bettingEnabled}
-                    className="flex-1"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Platform commission on winning bets</p>
+
+              {/* API Logs */}
+              <div>
+                <h4 className="font-medium mb-3">Recent API Tests</h4>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2">
+                    {apiLogs.map((log) => (
+                      <div key={log.id} className="p-3 bg-background/50 rounded-lg border text-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant={log.status_code === 200 ? 'default' : 'destructive'}>
+                            {log.method} {log.status_code}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {log.response_time_ms}ms
+                          </span>
+                        </div>
+                        <p className="font-mono text-xs truncate">{log.endpoint}</p>
+                        {log.params && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Params: {JSON.stringify(log.params).slice(0, 50)}...
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
-              
-              {/* Betting Status Summary */}
-              {bettingConfig.bettingEnabled && (
-                <Alert className="bg-gaming-success/10 border-gaming-success/20">
-                  <CheckCircle className="h-4 w-4 text-gaming-success" />
-                  <AlertDescription>
-                    Betting is enabled with ₹{bettingConfig.minBet} - ₹{bettingConfig.maxBet} limits and {(bettingConfig.commissionRate * 100).toFixed(2)}% commission
-                  </AlertDescription>
-                </Alert>
-              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* SID Configuration Dialog */}
+      <Dialog open={isSIDDialogOpen} onOpenChange={setIsSIDDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configure Sports SID</DialogTitle>
+            <DialogDescription>Add or update SID configuration for a sport</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Sport Type</Label>
+              <Select
+                value={sidForm.sport_type}
+                onValueChange={(value) => setSidForm({ ...sidForm, sport_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cricket">Cricket</SelectItem>
+                  <SelectItem value="football">Football</SelectItem>
+                  <SelectItem value="tennis">Tennis</SelectItem>
+                  <SelectItem value="basketball">Basketball</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <div>
+              <Label>SID</Label>
+              <Input
+                value={sidForm.sid}
+                onChange={(e) => setSidForm({ ...sidForm, sid: e.target.value })}
+                placeholder="Enter SID (leave empty for default)"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Active</Label>
+              <Switch
+                checked={sidForm.is_active}
+                onCheckedChange={(checked) => setSidForm({ ...sidForm, is_active: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Auto Sync</Label>
+              <Switch
+                checked={sidForm.auto_sync}
+                onCheckedChange={(checked) => setSidForm({ ...sidForm, auto_sync: checked })}
+              />
+            </div>
+            {sidForm.auto_sync && (
+              <div>
+                <Label>Sync Interval (seconds)</Label>
+                <Input
+                  type="number"
+                  value={sidForm.sync_interval}
+                  onChange={(e) => setSidForm({ ...sidForm, sync_interval: parseInt(e.target.value) })}
+                />
+              </div>
+            )}
           </div>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsManageMatchOpen(false)}>
+            <Button variant="outline" onClick={() => setIsSIDDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={saveMatchSettings}
-              className="bg-gaming-success text-gaming-success-foreground hover:bg-gaming-success/90"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Save Settings
+            <Button onClick={saveSIDConfig}>
+              Save Configuration
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Result Posting Dialog */}
+      <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Post Match Result</DialogTitle>
+            <DialogDescription>Update the result for the selected match</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Market ID</Label>
+              <Input
+                value={resultForm.market_id}
+                onChange={(e) => setResultForm({ ...resultForm, market_id: e.target.value })}
+                placeholder="Enter market ID"
+              />
+            </div>
+            <div>
+              <Label>Selection ID</Label>
+              <Input
+                value={resultForm.selection_id}
+                onChange={(e) => setResultForm({ ...resultForm, selection_id: e.target.value })}
+                placeholder="Enter selection ID"
+              />
+            </div>
+            <div>
+              <Label>Result</Label>
+              <Select
+                value={resultForm.result}
+                onValueChange={(value) => setResultForm({ ...resultForm, result: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="win">Win</SelectItem>
+                  <SelectItem value="loss">Loss</SelectItem>
+                  <SelectItem value="void">Void</SelectItem>
+                  <SelectItem value="refund">Refund</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResultDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={postMatchResult}>
+              Post Result
             </Button>
           </DialogFooter>
         </DialogContent>

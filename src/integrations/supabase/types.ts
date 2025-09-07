@@ -684,6 +684,126 @@ export type Database = {
         }
         Relationships: []
       }
+      diamond_api_logs: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          method: string | null
+          params: Json | null
+          response: Json | null
+          response_time_ms: number | null
+          status_code: number | null
+          tested_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          method?: string | null
+          params?: Json | null
+          response?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tested_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          method?: string | null
+          params?: Json | null
+          response?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tested_by?: string | null
+        }
+        Relationships: []
+      }
+      diamond_match_results: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          market_id: string | null
+          match_id: string
+          posted_at: string | null
+          posted_by: string | null
+          result_data: Json | null
+          result_status: string | null
+          selection_id: string | null
+          sport_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          market_id?: string | null
+          match_id: string
+          posted_at?: string | null
+          posted_by?: string | null
+          result_data?: Json | null
+          result_status?: string | null
+          selection_id?: string | null
+          sport_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          market_id?: string | null
+          match_id?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          result_data?: Json | null
+          result_status?: string | null
+          selection_id?: string | null
+          sport_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      diamond_sports_config: {
+        Row: {
+          auto_sync: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          sid: string | null
+          sport_type: string
+          sync_interval: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_sync?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          sid?: string | null
+          sport_type: string
+          sync_interval?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_sync?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          sid?: string | null
+          sport_type?: string
+          sync_interval?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       game_assets: {
         Row: {
           asset_name: string
@@ -2424,6 +2544,9 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           custom_odds: Json | null
+          diamond_data: Json | null
+          diamond_event_id: string | null
+          diamond_market_id: string | null
           disabled_reason: string | null
           id: string
           is_featured: boolean | null
@@ -2431,6 +2554,7 @@ export type Database = {
           match_id: string
           max_bet_amount: number | null
           min_bet_amount: number | null
+          odds_data: Json | null
           sport_type: string
           updated_at: string | null
         }
@@ -2440,6 +2564,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           custom_odds?: Json | null
+          diamond_data?: Json | null
+          diamond_event_id?: string | null
+          diamond_market_id?: string | null
           disabled_reason?: string | null
           id?: string
           is_featured?: boolean | null
@@ -2447,6 +2574,7 @@ export type Database = {
           match_id: string
           max_bet_amount?: number | null
           min_bet_amount?: number | null
+          odds_data?: Json | null
           sport_type: string
           updated_at?: string | null
         }
@@ -2456,6 +2584,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           custom_odds?: Json | null
+          diamond_data?: Json | null
+          diamond_event_id?: string | null
+          diamond_market_id?: string | null
           disabled_reason?: string | null
           id?: string
           is_featured?: boolean | null
@@ -2463,6 +2594,7 @@ export type Database = {
           match_id?: string
           max_bet_amount?: number | null
           min_bet_amount?: number | null
+          odds_data?: Json | null
           sport_type?: string
           updated_at?: string | null
         }
@@ -3265,6 +3397,27 @@ export type Database = {
         }
         Returns: string
       }
+      log_diamond_api_test: {
+        Args: {
+          p_endpoint: string
+          p_method?: string
+          p_params?: Json
+          p_response?: Json
+          p_response_time_ms?: number
+          p_status_code?: number
+        }
+        Returns: string
+      }
+      manage_diamond_sports_sid: {
+        Args: {
+          p_auto_sync?: boolean
+          p_is_active?: boolean
+          p_sid?: string
+          p_sport_type: string
+          p_sync_interval?: number
+        }
+        Returns: Json
+      }
       place_andar_bahar_bet: {
         Args: { p_bet_amount: number; p_bet_side: string; p_round_id: string }
         Returns: Json
@@ -3291,6 +3444,18 @@ export type Database = {
           p_bet_type: string
           p_bet_value: string
           p_round_id: string
+        }
+        Returns: Json
+      }
+      post_diamond_match_result: {
+        Args: {
+          p_event_id?: string
+          p_market_id: string
+          p_match_id: string
+          p_result: string
+          p_result_data?: Json
+          p_selection_id: string
+          p_sport_type: string
         }
         Returns: Json
       }
