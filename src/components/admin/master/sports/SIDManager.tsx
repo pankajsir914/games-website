@@ -115,7 +115,7 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
             Add New SID Configuration
             <Button onClick={onFetchSports} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Fetch Available SIDs
+              Sync from Diamond API
             </Button>
           </CardTitle>
         </CardHeader>

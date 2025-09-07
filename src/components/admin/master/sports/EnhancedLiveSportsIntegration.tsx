@@ -72,16 +72,52 @@ export const EnhancedLiveSportsIntegration = () => {
     try {
       const response = await diamondAPI.getAllSportsId();
       if (response?.data) {
+        // Auto-save fetched SIDs to database
+        let savedCount = 0;
+        for (const sport of response.data) {
+          if (sport.sid && sport.sportName) {
+            // Map sport names to our standard types
+            const sportType = sport.sportName.toLowerCase()
+              .replace(' ', '-')
+              .replace('soccer', 'football')
+              .replace('ice hockey', 'hockey');
+            
+            // Check if this SID already exists
+            const existing = sportsData.sidConfigs?.find(
+              (c: any) => c.sid === sport.sid
+            );
+            
+            if (!existing) {
+              await sportsData.saveSIDConfig({
+                sport_type: sportType,
+                sid: sport.sid,
+                label: sport.sportName,
+                is_active: true,
+                is_default: false,
+                auto_sync: false,
+                sync_interval: 60
+              });
+              savedCount++;
+            }
+          }
+        }
+        
+        // Reload configs after saving
+        await sportsData.loadSIDConfigs();
+        
         toast({
-          title: "Sports IDs Fetched",
-          description: `Found ${response.data.length} available sports. You can now add them as SID configurations.`
+          title: "Sports Synced Successfully",
+          description: savedCount > 0 
+            ? `Added ${savedCount} new sport configurations from Diamond API`
+            : "All sports are already configured"
         });
+        
         return response.data;
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to fetch sports IDs",
+        description: "Failed to sync sports from Diamond API",
         variant: "destructive"
       });
     } finally {

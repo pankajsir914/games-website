@@ -220,7 +220,11 @@ export const SportsDataProvider: React.FC<{ children: ReactNode }> = ({ children
     return useQuery({
       queryKey: ['sports', sport, kind],
       queryFn: () => fetchMatchData(sport, kind),
-      ...cacheConfig,
+      // Configure cache time based on data kind - no auto-refresh
+      staleTime: kind === 'live' ? 1 * 60 * 1000 : 5 * 60 * 1000, // 1 min for live, 5 min for others
+      gcTime: kind === 'live' ? 2 * 60 * 1000 : 10 * 60 * 1000,
+      refetchInterval: false, // Disable auto-refresh to prevent rate limiting
+      refetchOnWindowFocus: false,
       retry: 2,
       retryDelay: 1000,
     });
