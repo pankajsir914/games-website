@@ -41,7 +41,7 @@ export function DashboardContent() {
     {
       title: "🐓 Chicken Run India",
       provider: "RRB Games",
-      image: "/lovable-uploads/chickenroad.jpeg",
+      image: "/lovable-uploads/chickenposter.png",
       path: "/chicken-run",
       gradient: "from-yellow-400 to-orange-500",
       isNew: true
