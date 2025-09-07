@@ -13,7 +13,9 @@ interface SIDConfig {
   id?: string;
   sport_type: string;
   sid: string;
+  label?: string;
   is_active: boolean;
+  is_default?: boolean;
   auto_sync: boolean;
   sync_interval: number;
   last_sync?: string;
@@ -45,7 +47,9 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
   const [newConfig, setNewConfig] = useState<SIDConfig>({
     sport_type: '',
     sid: '',
+    label: '',
     is_active: true,
+    is_default: false,
     auto_sync: false,
     sync_interval: 60
   });
@@ -67,7 +71,9 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
       setNewConfig({
         sport_type: '',
         sid: '',
+        label: '',
         is_active: true,
+        is_default: false,
         auto_sync: false,
         sync_interval: 60
       });
@@ -107,7 +113,7 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <Label>Sport Type</Label>
               <Select value={newConfig.sport_type} onValueChange={(value) => setNewConfig({...newConfig, sport_type: value})}>
@@ -135,6 +141,14 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
                 onChange={(e) => setNewConfig({...newConfig, sid: e.target.value})}
               />
             </div>
+            <div>
+              <Label>Label (optional)</Label>
+              <Input 
+                placeholder="e.g., Default Cricket"
+                value={newConfig.label || ''}
+                onChange={(e) => setNewConfig({ ...newConfig, label: e.target.value })}
+              />
+            </div>
 
             <div>
               <Label>Sync Interval (seconds)</Label>
@@ -146,13 +160,20 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
               />
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-4">
               <div className="flex items-center space-x-2">
                 <Switch 
                   checked={newConfig.auto_sync}
                   onCheckedChange={(checked) => setNewConfig({...newConfig, auto_sync: checked})}
                 />
                 <Label>Auto Sync</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={!!newConfig.is_default}
+                  onCheckedChange={(checked) => setNewConfig({ ...newConfig, is_default: checked })}
+                />
+                <Label>Default</Label>
               </div>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
@@ -186,8 +207,16 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
                     <div className="flex items-center gap-4">
                       <span className="text-2xl">{sport?.icon || '🏆'}</span>
                       <div>
-                        <div className="font-medium">{sport?.label || config.sport_type}</div>
-                        <div className="text-sm text-muted-foreground">SID: {config.sid}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          {sport?.label || config.sport_type}
+                          {config.is_default && (
+                            <Badge variant="secondary">Default</Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          SID: {config.sid}
+                          {config.label ? ` • ${config.label}` : ''}
+                        </div>
                       </div>
                       {config.is_active ? (
                         <Badge variant="secondary" className="bg-green-100/10 text-green-600">

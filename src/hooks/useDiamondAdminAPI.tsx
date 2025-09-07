@@ -6,10 +6,15 @@ export interface DiamondSIDConfig {
   id?: string;
   sport_type: string;
   sid: string | null;
+  label?: string | null;
   is_active: boolean;
+  is_default?: boolean;
   auto_sync: boolean;
   sync_interval: number;
   last_sync_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
 }
 
 export interface DiamondMatchResult {
@@ -40,19 +45,12 @@ export function useDiamondAdminAPI() {
   // Get all configured SIDs
   const getSIDConfigs = useCallback(async (sportType?: string) => {
     try {
-      let query = supabase
-        .from('diamond_sports_config')
-        .select('*')
-        .order('sport_type', { ascending: true });
-
-      if (sportType) {
-        query = query.eq('sport_type', sportType);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await (supabase as any).rpc('get_diamond_sids', {
+        p_sport_type: sportType ?? null,
+      });
       if (error) throw error;
-      
-      return data as DiamondSIDConfig[];
+      const rows = ((data as any)?.sids as any[]) || [];
+      return rows as DiamondSIDConfig[];
     } catch (error: any) {
       console.error('Failed to fetch SID configs:', error);
       return [];
@@ -63,10 +61,13 @@ export function useDiamondAdminAPI() {
   const manageSID = useCallback(async (config: DiamondSIDConfig) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('manage_diamond_sports_sid', {
+      const { data, error } = await (supabase as any).rpc('manage_diamond_sports_sid', {
+        p_id: config.id ?? null,
         p_sport_type: config.sport_type,
         p_sid: config.sid,
+        p_label: config.label ?? null,
         p_is_active: config.is_active,
+        p_is_default: config.is_default ?? false,
         p_auto_sync: config.auto_sync,
         p_sync_interval: config.sync_interval
       });
@@ -95,10 +96,7 @@ export function useDiamondAdminAPI() {
   const deleteSID = useCallback(async (id: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('diamond_sports_config')
-        .delete()
-        .eq('id', id);
+      const { error } = await (supabase as any).rpc('delete_diamond_sports_sid', { p_id: id });
 
       if (error) throw error;
 
