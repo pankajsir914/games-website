@@ -49,7 +49,7 @@ export function DashboardContent() {
     {
       title: "Teen Patti",
       provider: "RRB Games",
-      image: "/lovable-uploads/teen3.jpg",
+      image: "/lovable-uploads/teenpattiposter.jpeg",
       path: "/teen-patti",
       gradient: "from-yellow-600 to-orange-700"
     },
@@ -91,7 +91,7 @@ export function DashboardContent() {
     {
       title: "Poker",
       provider: "RRB Games", 
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/pokerposter.jpeg",
       path: "/poker",
       gradient: "from-blue-600 to-indigo-700"
     },
