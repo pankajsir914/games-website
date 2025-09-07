@@ -98,14 +98,14 @@ export function DashboardContent() {
     {
       title: "Ludo Multiplayer",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/ludoposter.png",
       path: "/ludo-game",
       gradient: "from-cyan-500 to-blue-600"
     },
     {
       title: "Rummy",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/rummyposter.png",
       path: "/rummy",
       gradient: "from-green-600 to-teal-600"
     },
