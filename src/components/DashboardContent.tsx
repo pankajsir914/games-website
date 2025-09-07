@@ -70,7 +70,7 @@ export function DashboardContent() {
     {
       title: "Color Prediction",
       provider: "RRB Games",
-      image: "/lovable-uploads/cmatch20.jpg",
+      image: "/lovable-uploads/colorgameposter.jpeg",
       path: "/color-prediction",
       gradient: "from-green-500 to-emerald-600"
     },
@@ -112,7 +112,7 @@ export function DashboardContent() {
     {
       title: "Sports Betting",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/cricketposter.jpeg",
       path: "/sports",
       gradient: "from-orange-500 to-red-600"
     }
