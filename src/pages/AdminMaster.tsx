@@ -300,7 +300,7 @@ const AdminMaster = () => {
           </TabsContent>
 
           <TabsContent value="sports" className="space-y-6">
-            <LiveSportsIntegration />
+            <EnhancedLiveSportsIntegration />
           </TabsContent>
         </Tabs>
       </div>
