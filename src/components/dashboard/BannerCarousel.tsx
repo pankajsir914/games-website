@@ -127,16 +127,18 @@ export const BannerCarousel = () => {
 
   return (
     <Card className="relative w-full overflow-hidden bg-gradient-card border-primary/20">
-      <div className="relative w-full h-48 md:h-64">
-        <img
-          src={currentBanner.image_url}
-          alt={currentBanner.title}
-          className="w-full h-full object-cover cursor-pointer transition-transform hover:scale-105"
-          onClick={() => handleBannerClick(currentBanner)}
-        />
+      <div className="relative w-full">
+        <div className="relative w-full aspect-[16/9] md:aspect-[21/9]">
+          <img
+            src={currentBanner.image_url}
+            alt={currentBanner.title}
+            className="w-full h-full object-contain bg-background cursor-pointer transition-transform hover:scale-105"
+            onClick={() => handleBannerClick(currentBanner)}
+          />
+        </div>
         
         {/* Overlay content */}
-        <div className="absolute inset-0 bg-black/30 flex flex-col justify-end p-6">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-6">
           <div className="text-white">
             <h3 className="text-xl md:text-2xl font-bold mb-2">
               {currentBanner.title}
