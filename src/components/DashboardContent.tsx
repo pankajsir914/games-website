@@ -63,7 +63,7 @@ export function DashboardContent() {
     {
       title: "Aviator",
       provider: "Spribe",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/aviatorposter.png",
       path: "/aviator",
       gradient: "from-red-600 to-red-800"
     },
