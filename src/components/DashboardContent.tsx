@@ -77,14 +77,14 @@ export function DashboardContent() {
     {
       title: "Jackpot",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/jackpotposter.png",
       path: "/jackpot",
       gradient: "from-purple-600 to-pink-600"
     },
     {
       title: "Roulette",
       provider: "RRB Games",
-      image: "/placeholder.svg",
+      image: "/lovable-uploads/rouletteposter.png",
       path: "/roulette",
       gradient: "from-red-500 to-rose-600"
     },
