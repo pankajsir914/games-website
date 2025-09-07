@@ -8,6 +8,7 @@ interface AnimatedGameCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
+  poster?: string;
   path: string;
   gradient: string;
   players?: number;
@@ -19,6 +20,7 @@ const AnimatedGameCard: React.FC<AnimatedGameCardProps> = ({
   title,
   description,
   icon,
+  poster,
   path,
   gradient,
   players = Math.floor(Math.random() * 500) + 100,
@@ -86,42 +88,66 @@ const AnimatedGameCard: React.FC<AnimatedGameCardProps> = ({
           </div>
         )}
 
-        <CardHeader className="relative text-center pb-2">
-          {/* 3D Icon Container */}
-          <div className="relative mx-auto mb-4">
-            <div className={`
-              w-20 h-20 mx-auto rounded-2xl
-              bg-gradient-to-br ${gradient}
-              flex items-center justify-center
-              transform transition-all duration-500
-              ${isHovered ? 'rotate-12 scale-110' : ''}
-              shadow-lg
-            `}>
-              <div className="text-3xl transform transition-transform duration-500 group-hover:scale-125">
-                {icon}
-              </div>
-            </div>
-            
-            {/* Icon glow */}
-            {isHovered && (
+        <CardHeader className="relative p-0">
+          {/* Poster Image */}
+          {poster ? (
+            <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+              <img 
+                src={poster} 
+                alt={title}
+                className={`
+                  w-full h-full object-cover
+                  transform transition-all duration-500
+                  ${isHovered ? 'scale-110' : 'scale-100'}
+                `}
+              />
+              {/* Gradient overlay */}
               <div className={`
-                absolute inset-0 rounded-2xl
-                bg-gradient-to-br ${gradient}
-                blur-2xl opacity-50
-                animate-pulse
+                absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent
+                opacity-70
               `} />
-            )}
-          </div>
+            </div>
+          ) : (
+            <>
+              {/* Fallback Icon Container */}
+              <div className="relative mx-auto mb-4 pt-6">
+                <div className={`
+                  w-20 h-20 mx-auto rounded-2xl
+                  bg-gradient-to-br ${gradient}
+                  flex items-center justify-center
+                  transform transition-all duration-500
+                  ${isHovered ? 'rotate-12 scale-110' : ''}
+                  shadow-lg
+                `}>
+                  <div className="text-3xl transform transition-transform duration-500 group-hover:scale-125">
+                    {icon}
+                  </div>
+                </div>
+                
+                {/* Icon glow */}
+                {isHovered && (
+                  <div className={`
+                    absolute inset-0 rounded-2xl
+                    bg-gradient-to-br ${gradient}
+                    blur-2xl opacity-50
+                    animate-pulse
+                  `} />
+                )}
+              </div>
 
-          <CardTitle className="text-xl font-bold text-white relative">
-            <span className={isHovered ? 'neon-text' : ''}>{title}</span>
-          </CardTitle>
+              <CardTitle className="text-xl font-bold text-white relative text-center pb-2">
+                <span className={isHovered ? 'neon-text' : ''}>{title}</span>
+              </CardTitle>
+            </>
+          )}
         </CardHeader>
 
-        <CardContent className="relative text-center space-y-4">
-          <p className="text-muted-foreground text-sm">
-            {description}
-          </p>
+        <CardContent className="relative text-center space-y-4 pt-4">
+          {!poster && (
+            <p className="text-muted-foreground text-sm">
+              {description}
+            </p>
+          )}
 
           {/* Stats */}
           <div className="flex justify-around text-xs">

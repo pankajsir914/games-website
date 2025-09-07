@@ -10,6 +10,7 @@ const Games = () => {
       title: 'Teen Patti',
       description: 'Classic Indian poker with 3 cards',
       icon: '🃏',
+      poster: '/lovable-uploads/teenpattiposter.jpeg',
       path: '/teen-patti',
       gradient: 'from-yellow-600 to-orange-700',
       prize: '₹50K Pool',
@@ -19,6 +20,7 @@ const Games = () => {
       title: 'Ludo',
       description: 'Classic board game with real money betting',
       icon: '🎲',
+      poster: '/lovable-uploads/ludoposter.png',
       path: '/ludo',
       gradient: 'from-green-500 to-emerald-600',
       prize: '₹25K Prize'
@@ -27,6 +29,7 @@ const Games = () => {
       title: 'Aviator',
       description: 'High-flying multiplier crash game',
       icon: '✈️',
+      poster: '/lovable-uploads/aviatorposter.png',
       path: '/aviator',
       gradient: 'from-blue-500 to-cyan-600',
       trending: true
@@ -35,6 +38,7 @@ const Games = () => {
       title: 'Color Prediction',
       description: 'Predict the next color and win big',
       icon: '🎨',
+      poster: '/lovable-uploads/colorgameposter.jpeg',
       path: '/color-prediction',
       gradient: 'from-purple-500 to-pink-600'
     },
@@ -42,6 +46,7 @@ const Games = () => {
       title: 'Andar Bahar',
       description: 'Traditional Indian card game',
       icon: '♠️',
+      poster: '/lovable-uploads/andarbaharposter.png',
       path: '/andar-bahar',
       gradient: 'from-red-500 to-orange-600',
       prize: '₹10K Bonus'
@@ -50,6 +55,7 @@ const Games = () => {
       title: 'Roulette',
       description: 'Classic casino wheel game with multiple betting options',
       icon: '🎰',
+      poster: '/lovable-uploads/rouletteposter.png',
       path: '/roulette',
       gradient: 'from-purple-600 to-indigo-700',
       trending: true
@@ -58,6 +64,7 @@ const Games = () => {
       title: 'Rummy',
       description: 'Skill-based card game tournaments',
       icon: '🎯',
+      poster: '/lovable-uploads/rummyposter.png',
       path: '/rummy',
       gradient: 'from-yellow-500 to-amber-600',
       prize: '₹1L Tournament'
@@ -66,6 +73,7 @@ const Games = () => {
       title: 'Poker',
       description: 'Texas Hold\'em poker tables',
       icon: '♥️',
+      poster: '/lovable-uploads/pokerposter.jpeg',
       path: '/poker',
       gradient: 'from-gray-700 to-gray-900',
       prize: '₹75K Tables'
@@ -74,6 +82,7 @@ const Games = () => {
       title: 'Jackpot',
       description: 'Progressive jackpot lottery game',
       icon: '💰',
+      poster: '/lovable-uploads/jackpotposter.png',
       path: '/jackpot',
       gradient: 'from-yellow-400 to-yellow-600',
       prize: '₹10L+ Prize',
@@ -83,6 +92,7 @@ const Games = () => {
       title: 'Chicken Run',
       description: 'Bet & cross the road avoiding fire traps',
       icon: '🐔',
+      poster: '/lovable-uploads/chickenposter.png',
       path: '/chicken-run',
       gradient: 'from-orange-500 to-red-600',
       prize: '₹30K Daily',
@@ -152,6 +162,7 @@ const Games = () => {
               title={game.title}
               description={game.description}
               icon={game.icon}
+              poster={game.poster}
               path={game.path}
               gradient={game.gradient}
               prize={game.prize}
