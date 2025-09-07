@@ -3299,7 +3299,7 @@ export type Database = {
         Returns: Json
       }
       delete_diamond_sports_sid: {
-        Args: { p_id: string }
+        Args: { p_id: string } | { p_sport_type: string }
         Returns: Json
       }
       get_admin_credit_balance: {
