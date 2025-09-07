@@ -38,7 +38,21 @@ export const EnhancedLiveSportsIntegration = () => {
 
   // Load SID configurations on mount
   useEffect(() => {
-    sportsData.loadSIDConfigs();
+    const loadInitialData = async () => {
+      const configs = await sportsData.loadSIDConfigs();
+      // If we have configs and a default is set, fetch matches for it
+      const defaultConfig = configs?.find((c: any) => c.is_default && c.is_active);
+      if (defaultConfig) {
+        await sportsData.fetchMatches({
+          sport_type: defaultConfig.sport_type,
+          sid: defaultConfig.sid,
+          label: defaultConfig.label,
+          is_default: defaultConfig.is_default
+        });
+      }
+    };
+    
+    loadInitialData();
   }, []);
 
   // Load API logs when explorer tab is active

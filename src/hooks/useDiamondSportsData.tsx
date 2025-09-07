@@ -51,24 +51,42 @@ export function useDiamondSportsData() {
     if (!targetSport?.sid) {
       if (!silent) {
         toast({
-          title: "No SID Selected",
-          description: "Please select a sport configuration to fetch matches",
+          title: "No SID Configured",
+          description: "Please configure a SID for this sport in the SIDs tab",
           variant: "destructive"
         });
       }
+      setMatches([]);
       return [];
     }
     
     if (!silent) setLoading(true);
     
     try {
+      console.log('Fetching matches for', targetSport.sport_type, 'with SID:', targetSport.sid);
       const response = await diamondAPI.getAllMatch(targetSport.sid);
       
-      if (response?.data) {
-        const matchData = Array.isArray(response.data) ? response.data : [response.data];
+      if (response?.success && response?.data) {
+        // Handle different data structures from the API
+        let matchData = response.data;
+        
+        // If data is nested in a 'data' property
+        if (matchData.data && Array.isArray(matchData.data)) {
+          matchData = matchData.data;
+        }
+        // If data has 'matches' property
+        else if (matchData.matches && Array.isArray(matchData.matches)) {
+          matchData = matchData.matches;
+        }
+        // Ensure we have an array
+        else if (!Array.isArray(matchData)) {
+          matchData = Object.values(matchData).filter(item => 
+            typeof item === 'object' && item !== null
+          );
+        }
         
         // Enrich matches with sport type
-        const enrichedMatches = matchData.map(match => ({
+        const enrichedMatches = matchData.map((match: any) => ({
           ...match,
           sport_type: targetSport.sport_type,
           sid: targetSport.sid
@@ -77,24 +95,45 @@ export function useDiamondSportsData() {
         setMatches(enrichedMatches);
         
         if (!silent) {
-          toast({
-            title: "Matches Loaded",
-            description: `Found ${enrichedMatches.length} ${targetSport.sport_type} matches`
-          });
+          if (enrichedMatches.length > 0) {
+            toast({
+              title: "Matches Loaded",
+              description: `Found ${enrichedMatches.length} ${targetSport.sport_type} matches`
+            });
+          } else {
+            toast({
+              title: "No Matches",
+              description: `No matches available for ${targetSport.sport_type}`,
+              variant: "default"
+            });
+          }
         }
         
         return enrichedMatches;
+      } else {
+        const errorMsg = response?.error || 'No data received from API';
+        console.error('API error:', errorMsg);
+        
+        if (!silent) {
+          toast({
+            title: "Failed to load matches",
+            description: errorMsg,
+            variant: "destructive"
+          });
+        }
+        setMatches([]);
+        return [];
       }
-      
-      return [];
     } catch (error: any) {
+      console.error('Error fetching matches:', error);
       if (!silent) {
         toast({
-          title: "Failed to fetch matches",
-          description: error.message || "Could not load match data",
+          title: "Connection Error",
+          description: error.message || "Could not connect to sports API",
           variant: "destructive"
         });
       }
+      setMatches([]);
       return [];
     } finally {
       setLoading(false);

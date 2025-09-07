@@ -772,6 +772,8 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean | null
+          is_default: boolean | null
+          label: string | null
           last_sync_at: string | null
           sid: string | null
           sport_type: string
@@ -784,6 +786,8 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
+          label?: string | null
           last_sync_at?: string | null
           sid?: string | null
           sport_type: string
@@ -796,6 +800,8 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
+          label?: string | null
           last_sync_at?: string | null
           sid?: string | null
           sport_type?: string
@@ -3292,6 +3298,10 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_diamond_sports_sid: {
+        Args: { p_id: string }
+        Returns: Json
+      }
       get_admin_credit_balance: {
         Args: { _admin_id?: string }
         Returns: number
@@ -3302,6 +3312,10 @@ export type Database = {
       }
       get_current_jackpot_round: {
         Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_diamond_sids: {
+        Args: { p_sport_type?: string }
         Returns: Json
       }
       get_financial_management_data: {
@@ -3409,13 +3423,23 @@ export type Database = {
         Returns: string
       }
       manage_diamond_sports_sid: {
-        Args: {
-          p_auto_sync?: boolean
-          p_is_active?: boolean
-          p_sid?: string
-          p_sport_type: string
-          p_sync_interval?: number
-        }
+        Args:
+          | {
+              p_auto_sync?: boolean
+              p_is_active?: boolean
+              p_is_default?: boolean
+              p_label?: string
+              p_sid?: string
+              p_sport_type: string
+              p_sync_interval?: number
+            }
+          | {
+              p_auto_sync?: boolean
+              p_is_active?: boolean
+              p_sid?: string
+              p_sport_type: string
+              p_sync_interval?: number
+            }
         Returns: Json
       }
       place_andar_bahar_bet: {
