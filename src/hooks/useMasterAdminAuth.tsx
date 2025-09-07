@@ -28,6 +28,18 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
 
   // Initialize auth listener first, then fetch session (deadlock-safe per guidelines)
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    // Set a timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('Authentication check timed out');
+        setLoading(false);
+        setUser(null);
+        setSession(null);
+      }
+    }, 10000); // 10 second timeout
+    
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       // Defer any RPC calls to avoid deadlocks
@@ -35,6 +47,8 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
         setTimeout(() => verifyAndLoadMasterAdmin(newSession.user), 0);
       } else {
         setUser(null);
+        setLoading(false);  // Clear loading state when no session
+        clearTimeout(timeoutId);
       }
     });
 
@@ -45,10 +59,20 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
         setTimeout(() => verifyAndLoadMasterAdmin(data.session!.user!), 0);
       } else {
         setLoading(false);
+        clearTimeout(timeoutId);
       }
+    }).catch((error) => {
+      console.error('Failed to get session:', error);
+      setLoading(false);
+      setUser(null);
+      setSession(null);
+      clearTimeout(timeoutId);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const verifyAndLoadMasterAdmin = async (supabaseUser: User) => {
@@ -57,7 +81,9 @@ export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNod
       const { data: roleText, error } = await supabase.rpc('get_user_highest_role', { _user_id: supabaseUser.id });
       if (error) {
         console.error('Role verification failed:', error);
-        throw error;
+        setLoading(false);  // Make sure to clear loading state on error
+        setUser(null);
+        return;
       }
 
       if (roleText !== 'master_admin') {
