@@ -98,6 +98,13 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
       is_active: !config.is_active
     });
   };
+  
+  const handleSetDefault = async (config: SIDConfig) => {
+    await onSave({
+      ...config,
+      is_default: true
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -238,6 +245,24 @@ export const SIDManager = ({ configs, loading, onSave, onDelete, onFetchSports }
                     </div>
                     
                     <div className="flex items-center gap-2">
+                      {config.is_default && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled
+                        >
+                          Default
+                        </Button>
+                      )}
+                      {!config.is_default && config.is_active && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSetDefault(config)}
+                        >
+                          Set Default
+                        </Button>
+                      )}
                       <Switch 
                         checked={config.is_active}
                         onCheckedChange={() => handleToggle(config)}

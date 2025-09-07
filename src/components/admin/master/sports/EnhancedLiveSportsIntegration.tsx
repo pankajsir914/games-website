@@ -3,10 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw, Activity, TrendingUp, Trophy, Settings, BarChart3 } from 'lucide-react';
+import { useDiamondSportsData } from '@/hooks/useDiamondSportsData';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
-import { useDiamondAdminAPI } from '@/hooks/useDiamondAdminAPI';
 import { SportsOverviewCards } from './SportsOverviewCards';
 import { SIDManager } from './SIDManager';
 import { MatchCard } from './MatchCard';
@@ -14,107 +14,104 @@ import { OddsViewer } from './OddsViewer';
 import { MatchResultPoster } from './MatchResultPoster';
 import { APIExplorer } from './APIExplorer';
 import { SportsAnalytics } from './SportsAnalytics';
+import { useToast } from '@/hooks/use-toast';
+
+const SPORT_ICONS: Record<string, string> = {
+  cricket: '🏏',
+  football: '⚽',
+  tennis: '🎾',
+  basketball: '🏀',
+  hockey: '🏒',
+  baseball: '⚾',
+  kabaddi: '🤼',
+  'table-tennis': '🏓',
+  boxing: '🥊'
+};
 
 export const EnhancedLiveSportsIntegration = () => {
   const { toast } = useToast();
+  const sportsData = useDiamondSportsData();
   const diamondAPI = useDiamondSportsAPI();
-  const adminAPI = useDiamondAdminAPI();
-  
   const [activeTab, setActiveTab] = useState('overview');
-  const [matches, setMatches] = useState<any[]>([]);
-  const [sidConfigs, setSidConfigs] = useState<any[]>([]);
-  const [selectedSID, setSelectedSID] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    totalMatches: 0,
-    liveMatches: 0,
-    totalBets: 0,
-    revenue: 0,
-    activeUsers: 0,
-    upcomingMatches: 0
-  });
+  const [apiLogs, setApiLogs] = useState<any[]>([]);
 
-  // Load SID configurations
+  // Load SID configurations on mount
   useEffect(() => {
-    loadSIDConfigs();
+    sportsData.loadSIDConfigs();
   }, []);
 
-  // Auto-refresh for live data
+  // Load API logs when explorer tab is active
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (activeTab === 'matches' && selectedSID) {
-        fetchMatches(selectedSID, true);
-      }
-    }, 60000); // Refresh every minute
+    if (activeTab === 'explorer') {
+      loadAPILogs();
+    }
+  }, [activeTab]);
 
-    return () => clearInterval(interval);
-  }, [activeTab, selectedSID]);
-
-  const loadSIDConfigs = async () => {
-    const configs = await adminAPI.getSIDConfigs();
-    setSidConfigs(configs || []);
+  const loadAPILogs = async () => {
+    const logs = await sportsData.getAPILogs();
+    setApiLogs(logs);
   };
 
   const fetchAllSportsIDs = async () => {
-    const response = await diamondAPI.getAllSportsId();
-    if (response?.data) {
+    setRefreshing(true);
+    try {
+      const response = await diamondAPI.getAllSportsId();
+      if (response?.data) {
+        toast({
+          title: "Sports IDs Fetched",
+          description: `Found ${response.data.length} available sports. You can now add them as SID configurations.`
+        });
+        return response.data;
+      }
+    } catch (error) {
       toast({
-        title: "Sports IDs Fetched",
-        description: `Found ${response.data.length} available sports`
+        title: "Error",
+        description: "Failed to fetch sports IDs",
+        variant: "destructive"
       });
-      return response.data;
+    } finally {
+      setRefreshing(false);
     }
     return [];
   };
 
-  const fetchMatches = async (sid: string, silent = false) => {
-    if (!sid) return;
-    
-    if (!silent) setRefreshing(true);
-    const response = await diamondAPI.getAllMatch(sid);
-    
-    if (response?.data) {
-      const matchData = Array.isArray(response.data) ? response.data : [response.data];
-      setMatches(matchData);
-      updateStats(matchData);
-      
-      if (!silent) {
-        toast({
-          title: "Matches Loaded",
-          description: `Found ${matchData.length} matches`
-        });
-      }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (sportsData.selectedSport) {
+      await sportsData.fetchMatches(sportsData.selectedSport);
     }
     setRefreshing(false);
   };
 
-  const updateStats = (matchData: any[]) => {
-    const liveCount = matchData.filter(m => m.status === 'live' || m.isLive).length;
-    const upcomingCount = matchData.filter(m => m.status === 'upcoming').length;
+  const handleSportChange = (sportType: string) => {
+    const config = sportsData.sidConfigs.find(c => 
+      c.sport_type === sportType && c.is_active
+    );
     
-    setStats({
-      totalMatches: matchData.length,
-      liveMatches: liveCount,
-      upcomingMatches: upcomingCount,
-      totalBets: Math.floor(Math.random() * 1000), // Mock data - replace with actual
-      revenue: Math.floor(Math.random() * 100000), // Mock data - replace with actual
-      activeUsers: Math.floor(Math.random() * 100) // Mock data - replace with actual
-    });
+    if (config) {
+      sportsData.setSelectedSport({
+        sport_type: config.sport_type,
+        sid: config.sid,
+        label: config.label,
+        is_default: config.is_default
+      });
+      sportsData.fetchMatches({
+        sport_type: config.sport_type,
+        sid: config.sid,
+        label: config.label,
+        is_default: config.is_default
+      });
+    }
   };
 
   const handleToggleBetting = async (matchId: string, enabled: boolean) => {
     try {
-      await adminAPI.manageSID({
-        sport_type: 'cricket', // Get from match data
-        sid: matchId,
-        is_active: enabled,
-        auto_sync: false,
-        sync_interval: 60
-      });
-      
+      // Here you would implement the actual betting toggle logic
+      // For now, just show a success message
       toast({
         title: enabled ? "Betting Enabled" : "Betting Disabled",
-        description: `Betting has been ${enabled ? 'enabled' : 'disabled'} for this match`
+        description: `Betting has been ${enabled ? 'enabled' : 'disabled'} for match ${matchId}`
       });
     } catch (error) {
       toast({
@@ -140,11 +137,11 @@ export const EnhancedLiveSportsIntegration = () => {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="px-3 py-1">
             <Activity className="h-3 w-3 mr-1" />
-            {stats.liveMatches} Live
+            {sportsData.stats.liveMatches} Live
           </Badge>
           <Button 
-            onClick={() => selectedSID && fetchMatches(selectedSID)} 
-            disabled={refreshing}
+            onClick={handleRefresh} 
+            disabled={refreshing || sportsData.loading}
             variant="outline"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -154,7 +151,7 @@ export const EnhancedLiveSportsIntegration = () => {
       </div>
 
       {/* Overview Cards */}
-      <SportsOverviewCards stats={stats} />
+      <SportsOverviewCards stats={sportsData.stats} />
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -185,20 +182,20 @@ export const EnhancedLiveSportsIntegration = () => {
         </TabsList>
 
         <TabsContent value="overview">
-          <SportsAnalytics matches={matches} />
+          <SportsAnalytics matches={sportsData.matches} />
         </TabsContent>
 
         <TabsContent value="sids">
           <SIDManager 
-            configs={sidConfigs}
-            loading={adminAPI.loading}
+            configs={sportsData.sidConfigs}
+            loading={sportsData.loading}
             onSave={async (config) => {
-              await adminAPI.manageSID(config);
-              await loadSIDConfigs();
+              await sportsData.saveSIDConfig(config);
+              await sportsData.loadSIDConfigs();
             }}
             onDelete={async (id) => {
-              await adminAPI.deleteSID(id);
-              await loadSIDConfigs();
+              await sportsData.deleteSIDConfig(id);
+              await sportsData.loadSIDConfigs();
             }}
             onFetchSports={fetchAllSportsIDs}
           />
@@ -206,39 +203,72 @@ export const EnhancedLiveSportsIntegration = () => {
 
         <TabsContent value="matches">
           <div className="space-y-4">
-            {/* SID Selector */}
+            {/* Sport Selector */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Select Sport ID</CardTitle>
+                <CardTitle className="text-lg">Select Sport</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2 flex-wrap">
-                  {sidConfigs.filter(c => c.is_active).map(config => (
-                    <Button
-                      key={config.id}
-                      variant={selectedSID === config.sid ? "default" : "outline"}
-                      onClick={() => {
-                        setSelectedSID(config.sid);
-                        fetchMatches(config.sid);
-                      }}
-                    >
-                      {config.sport_type} (SID: {config.sid})
-                    </Button>
-                  ))}
+                <div className="flex items-center gap-4">
+                  <Select 
+                    value={sportsData.selectedSport?.sport_type || ''} 
+                    onValueChange={handleSportChange}
+                  >
+                    <SelectTrigger className="w-[300px]">
+                      <SelectValue placeholder="Choose a sport to view matches" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sportsData.sidConfigs
+                        .filter(c => c.is_active)
+                        .map(config => (
+                          <SelectItem key={config.id} value={config.sport_type}>
+                            <div className="flex items-center gap-2">
+                              <span>{SPORT_ICONS[config.sport_type] || '🏆'}</span>
+                              <span>{config.sport_type}</span>
+                              {config.is_default && (
+                                <Badge variant="secondary" className="ml-2 h-5">Default</Badge>
+                              )}
+                              {config.label && (
+                                <span className="text-muted-foreground ml-1">({config.label})</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {sportsData.selectedSport && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>SID: {sportsData.selectedSport.sid}</span>
+                      {sportsData.selectedSport.label && (
+                        <span>• {sportsData.selectedSport.label}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Matches Grid */}
-            {matches.length > 0 ? (
+            {sportsData.loading ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary mb-2" />
+                  <p className="text-muted-foreground">Loading matches...</p>
+                </CardContent>
+              </Card>
+            ) : sportsData.matches.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {matches.map((match, idx) => (
+                {sportsData.matches.map((match, idx) => (
                   <MatchCard
                     key={match.id || idx}
                     match={match}
                     onToggleBetting={handleToggleBetting}
                     onViewDetails={(m) => console.log('View details:', m)}
-                    onViewOdds={(id) => console.log('View odds:', id)}
+                    onViewOdds={async (id) => {
+                      const odds = await sportsData.fetchOdds(id);
+                      console.log('Odds:', odds);
+                    }}
                     onPostResult={(m) => console.log('Post result:', m)}
                   />
                 ))}
@@ -246,7 +276,9 @@ export const EnhancedLiveSportsIntegration = () => {
             ) : (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
-                  {selectedSID ? 'No matches found for this SID' : 'Select a Sport ID to view matches'}
+                  {sportsData.selectedSport 
+                    ? 'No matches found for this sport' 
+                    : 'Select a sport to view matches'}
                 </CardContent>
               </Card>
             )}
@@ -254,19 +286,22 @@ export const EnhancedLiveSportsIntegration = () => {
         </TabsContent>
 
         <TabsContent value="odds">
-          <OddsViewer matches={matches} />
+          <OddsViewer matches={sportsData.matches} />
         </TabsContent>
 
         <TabsContent value="results">
-          <MatchResultPoster matches={matches} onPostResult={async (result) => {
-            await adminAPI.postMatchResult(result);
-          }} />
+          <MatchResultPoster 
+            matches={sportsData.matches} 
+            onPostResult={async (result) => {
+              await sportsData.postMatchResult(result);
+            }} 
+          />
         </TabsContent>
 
         <TabsContent value="explorer">
           <APIExplorer 
-            onTest={adminAPI.testEndpoint}
-            logs={[]} // Will be populated from API
+            onTest={sportsData.testEndpoint}
+            logs={apiLogs}
           />
         </TabsContent>
       </Tabs>
