@@ -129,9 +129,13 @@ export const SportsDashboard: React.FC<SportsDashboardProps> = ({ defaultSport =
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {sports.filter(sport => availableSports.includes(sport)).map((sport) => (
+              {availableSports.length > 0 ? availableSports.map((sport) => (
                 <SelectItem key={sport} value={sport}>
-                  {sport}
+                  {sport.charAt(0).toUpperCase() + sport.slice(1)}
+                </SelectItem>
+              )) : sports.map((sport) => (
+                <SelectItem key={sport} value={sport}>
+                  {sport.charAt(0).toUpperCase() + sport.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -139,12 +143,21 @@ export const SportsDashboard: React.FC<SportsDashboardProps> = ({ defaultSport =
         ) : (
           <ScrollArea className="w-full mb-6">
             <div className="flex gap-3 pb-2">
-              {sports.filter(sport => availableSports.includes(sport)).map((sport) => (
+              {availableSports.length > 0 ? availableSports.map((sport) => (
+                <Button
+                  key={sport}
+                  variant={selectedSport === sport ? 'default' : 'outline'}
+                  onClick={() => setSelectedSport(sport as Sport)}
+                  className="flex-shrink-0 capitalize"
+                >
+                  {sport}
+                </Button>
+              )) : sports.map((sport) => (
                 <Button
                   key={sport}
                   variant={selectedSport === sport ? 'default' : 'outline'}
                   onClick={() => setSelectedSport(sport)}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 capitalize"
                 >
                   {sport}
                 </Button>

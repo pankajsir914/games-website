@@ -14,6 +14,10 @@ const cache = new Map<string, { data: any; ts: number }>();
 const TTL_MS = 5 * 60 * 1000; // 5 minutes for general data
 const LIVE_TTL_MS = 60 * 1000; // 1 minute for live matches
 
+// Rate limiting
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -96,6 +100,14 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Rate limiting - wait if making requests too fast
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+      const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    lastRequestTime = Date.now();
 
     const headers: Record<string, string> = {
       'X-RapidAPI-Key': RAPIDAPI_KEY,
