@@ -30,7 +30,7 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Search Bar */}
       {onSearchChange && (
         <div className="relative">
@@ -39,15 +39,15 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
             placeholder="Search teams, leagues, or matches..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 bg-card border-primary/20 focus:border-primary"
+            className="pl-10 bg-card border-primary/20 focus:border-primary h-9 text-sm"
           />
         </div>
       )}
 
       {/* Filters and View Toggle */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between">
+      <div className="flex items-center gap-2">
         {/* Filter Buttons */}
-        <div className="flex gap-2 flex-1 overflow-x-auto pb-2 sm:pb-0">
+        <div className="flex gap-1 flex-1 overflow-x-auto">
           {filters.map((f) => (
             <Button
               key={f.value}
@@ -55,15 +55,14 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
               size="sm"
               onClick={() => onFilterChange(f.value as any)}
               className={cn(
-                "transition-all flex-shrink-0",
+                "transition-all flex-shrink-0 h-8 px-2 sm:px-3",
                 filter === f.value 
                   ? "bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20" 
                   : "hover:border-primary/50"
               )}
             >
-              <f.icon className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{f.label}</span>
-              <span className="sm:hidden text-xs">{f.label.slice(0, 3)}</span>
+              <f.icon className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+              <span className="text-xs sm:text-sm">{f.label}</span>
             </Button>
           ))}
         </div>
@@ -73,21 +72,21 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
           type="single" 
           value={viewMode} 
           onValueChange={(value) => value && onViewModeChange(value as any)}
-          className="justify-center sm:justify-end"
+          className="flex-shrink-0"
         >
           <ToggleGroupItem 
             value="grid" 
             aria-label="Grid view" 
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground h-8 w-8"
           >
-            <Grid className="h-4 w-4" />
+            <Grid className="h-3 w-3" />
           </ToggleGroupItem>
           <ToggleGroupItem 
             value="list" 
             aria-label="List view" 
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground h-8 w-8"
           >
-            <List className="h-4 w-4" />
+            <List className="h-3 w-3" />
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
