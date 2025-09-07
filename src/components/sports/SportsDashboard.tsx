@@ -79,26 +79,6 @@ export const SportsDashboard: React.FC<SportsDashboardProps> = ({ defaultSport =
         <LiveMatchTicker matches={liveQuery.data || []} />
       )}
 
-      {/* Stats Bar */}
-      <div className="px-4 py-6 border-b bg-card/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap gap-4 justify-center">
-            {stats.map((stat) => (
-              <Card key={stat.label} className="flex-1 min-w-[140px] p-4 bg-gradient-to-br from-card to-card/80 border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-lg bg-background/50", stat.color)}>
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
