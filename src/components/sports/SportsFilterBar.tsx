@@ -30,7 +30,7 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
   ];
 
   return (
-    <div className="mb-6 space-y-4">
+    <div className="space-y-3">
       {/* Search Bar */}
       {onSearchChange && (
         <div className="relative">
@@ -45,9 +45,9 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
       )}
 
       {/* Filters and View Toggle */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+      <div className="flex flex-col sm:flex-row gap-3 justify-between">
         {/* Filter Buttons */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-1 overflow-x-auto pb-2 sm:pb-0">
           {filters.map((f) => (
             <Button
               key={f.value}
@@ -55,24 +55,38 @@ export const SportsFilterBar: React.FC<SportsFilterBarProps> = ({
               size="sm"
               onClick={() => onFilterChange(f.value as any)}
               className={cn(
-                "transition-all",
+                "transition-all flex-shrink-0",
                 filter === f.value 
                   ? "bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20" 
                   : "hover:border-primary/50"
               )}
             >
-              <f.icon className="h-4 w-4 mr-2" />
-              {f.label}
+              <f.icon className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{f.label}</span>
+              <span className="sm:hidden text-xs">{f.label.slice(0, 3)}</span>
             </Button>
           ))}
         </div>
 
         {/* View Mode Toggle */}
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && onViewModeChange(value as any)}>
-          <ToggleGroupItem value="grid" aria-label="Grid view" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+        <ToggleGroup 
+          type="single" 
+          value={viewMode} 
+          onValueChange={(value) => value && onViewModeChange(value as any)}
+          className="justify-center sm:justify-end"
+        >
+          <ToggleGroupItem 
+            value="grid" 
+            aria-label="Grid view" 
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
             <Grid className="h-4 w-4" />
           </ToggleGroupItem>
-          <ToggleGroupItem value="list" aria-label="List view" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+          <ToggleGroupItem 
+            value="list" 
+            aria-label="List view" 
+            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
             <List className="h-4 w-4" />
           </ToggleGroupItem>
         </ToggleGroup>

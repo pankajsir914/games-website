@@ -83,19 +83,21 @@ export const SportsDashboard: React.FC<SportsDashboardProps> = ({ defaultSport =
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Filter Bar with Refresh Button */}
-        <div className="flex items-center justify-between mb-4">
-          <SportsFilterBar
-            filter={filter}
-            onFilterChange={setFilter}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <div className="flex-1">
+            <SportsFilterBar
+              filter={filter}
+              onFilterChange={setFilter}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
           <Button
             onClick={handleRefresh}
             disabled={refreshing}
             variant="outline"
             size="sm"
-            className="ml-4"
+            className="w-full sm:w-auto"
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
             Refresh
