@@ -39,7 +39,7 @@ import { AnalyticsDashboard } from '@/components/admin/master/AnalyticsDashboard
 import { PromotionsNotifications } from '@/components/admin/master/PromotionsNotifications';
 import { ContentManagement } from '@/components/admin/master/ContentManagement';
 import { TeamManagement } from '@/components/admin/master/TeamManagement';
-import { LiveSportsIntegration } from '@/components/admin/master/LiveSportsIntegration';
+import { EnhancedLiveSportsIntegration } from '@/components/admin/master/sports/EnhancedLiveSportsIntegration';
 
 import { MobileRestriction } from '@/components/MobileRestriction';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
