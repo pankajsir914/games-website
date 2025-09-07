@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,33 +20,41 @@ interface SportsMatch {
   cricApiId?: string;
 }
 
+interface DiamondSID {
+  sport_type: string;
+  sid: string;
+  is_active: boolean;
+  is_default: boolean;
+}
+
 interface SportsDataContextType {
   getMatchData: (sport: string, kind: 'live' | 'upcoming' | 'results') => UseQueryResult<SportsMatch[], Error>;
   refreshMatchData: (sport: string, kind: 'live' | 'upcoming' | 'results') => Promise<void>;
   lastUpdated: { [key: string]: Date | null };
+  availableSports: string[];
 }
 
 const SportsDataContext = createContext<SportsDataContextType | null>(null);
 
-// Cache configuration based on match type
+// Cache configuration based on match type - NO AUTO REFRESH
 const getCacheConfig = (kind: 'live' | 'upcoming' | 'results') => {
   switch (kind) {
     case 'live':
       return {
-        staleTime: 2 * 60 * 1000, // 2 minutes
-        gcTime: 5 * 60 * 1000, // 5 minutes
-        refetchInterval: 2 * 60 * 1000, // Auto-refresh every 2 minutes for live matches
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes
+        refetchInterval: false as const, // No auto-refresh
       };
     case 'upcoming':
       return {
-        staleTime: 15 * 60 * 1000, // 15 minutes
-        gcTime: 30 * 60 * 1000, // 30 minutes
+        staleTime: 30 * 60 * 1000, // 30 minutes
+        gcTime: 60 * 60 * 1000, // 60 minutes
         refetchInterval: false as const,
       };
     case 'results':
       return {
-        staleTime: 30 * 60 * 1000, // 30 minutes
-        gcTime: 60 * 60 * 1000, // 60 minutes
+        staleTime: 60 * 60 * 1000, // 60 minutes
+        gcTime: 120 * 60 * 1000, // 120 minutes
         refetchInterval: false as const,
       };
   }
@@ -92,7 +100,32 @@ const getFromLocalStorage = (sport: string, kind: string, maxAge: number): Sport
 
 export const SportsDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
-  const [lastUpdated, setLastUpdated] = React.useState<{ [key: string]: Date | null }>({});
+  const [lastUpdated, setLastUpdated] = useState<{ [key: string]: Date | null }>({});
+  const [availableSports, setAvailableSports] = useState<string[]>([]);
+  const [sidConfigs, setSidConfigs] = useState<DiamondSID[]>([]);
+
+  // Load SID configurations on mount
+  useEffect(() => {
+    const loadSIDConfigs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('diamond_sports_config')
+          .select('*')
+          .eq('is_active', true);
+        
+        if (!error && data) {
+          setSidConfigs(data);
+          const sports = [...new Set(data.map(config => config.sport_type))];
+          setAvailableSports(sports);
+          console.log('Loaded SID configs for sports:', sports);
+        }
+      } catch (error) {
+        console.error('Failed to load SID configs:', error);
+      }
+    };
+    
+    loadSIDConfigs();
+  }, []);
 
   const fetchMatchData = async (sport: string, kind: 'live' | 'upcoming' | 'results'): Promise<SportsMatch[]> => {
     const cacheConfig = getCacheConfig(kind);
@@ -104,24 +137,60 @@ export const SportsDataProvider: React.FC<{ children: ReactNode }> = ({ children
       return cachedData;
     }
 
+    // Find SID configuration for this sport
+    const sidConfig = sidConfigs.find(config => 
+      config.sport_type.toLowerCase() === sport.toLowerCase() && config.is_active
+    );
+
+    if (!sidConfig) {
+      console.warn(`No active SID configuration found for ${sport}`);
+      // Return empty array instead of throwing error
+      return [];
+    }
+
     // Fetch from API
-    console.log(`Fetching fresh data for ${sport} ${kind}`);
+    console.log(`Fetching fresh data for ${sport} ${kind} with SID: ${sidConfig.sid}`);
     const endpoint = kind === 'results' ? 'past' : kind;
     
     try {
-      // Try Diamond API first
+      // Use Diamond API with SID
       const { data: diamondData, error: diamondError } = await supabase.functions.invoke('sports-diamond-proxy', {
-        body: { path: 'sports/esid', sport, kind: endpoint }
+        body: { 
+          path: 'sports/esid',
+          sid: sidConfig.sid,
+          sport: sport,
+          kind: endpoint 
+        }
       });
 
-      if (!diamondError && diamondData?.data?.length > 0) {
-        const matches = diamondData.data as SportsMatch[];
-        saveToLocalStorage(sport, kind, matches);
-        setLastUpdated(prev => ({ ...prev, [`${sport}_${kind}`]: new Date() }));
-        return matches;
+      if (!diamondError && diamondData?.data) {
+        // Transform Diamond API response to match our format
+        const matches = Array.isArray(diamondData.data) ? diamondData.data : 
+          diamondData.data.events || diamondData.data.matches || [];
+        
+        const transformedMatches = matches.map((match: any) => ({
+          id: match.eventId || match.id || Math.random().toString(),
+          sport: sport,
+          status: match.status || 'scheduled',
+          date: match.startTime || match.date || new Date().toISOString(),
+          homeTeam: match.home?.name || match.homeTeam || 'Team A',
+          awayTeam: match.away?.name || match.awayTeam || 'Team B',
+          homeScore: match.home?.score || match.homeScore || 0,
+          awayScore: match.away?.score || match.awayScore || 0,
+          venue: match.venue || '',
+          league: match.seriesName || match.league || '',
+          provider: 'diamond',
+          diamondId: match.eventId || match.id
+        }));
+
+        if (transformedMatches.length > 0) {
+          saveToLocalStorage(sport, kind, transformedMatches);
+          setLastUpdated(prev => ({ ...prev, [`${sport}_${kind}`]: new Date() }));
+          return transformedMatches;
+        }
       }
 
-      // Fallback to other APIs
+      // Fallback to other APIs if Diamond API fails
       const { data, error } = await supabase.functions.invoke('sports-proxy', {
         body: { sport, kind: endpoint }
       });
@@ -140,7 +209,8 @@ export const SportsDataProvider: React.FC<{ children: ReactNode }> = ({ children
         toast.warning('Using cached data - API temporarily unavailable');
         return staleData;
       }
-      throw error;
+      // Return empty array instead of throwing
+      return [];
     }
   };
 
@@ -171,6 +241,7 @@ export const SportsDataProvider: React.FC<{ children: ReactNode }> = ({ children
     getMatchData,
     refreshMatchData,
     lastUpdated,
+    availableSports,
   };
 
   return (

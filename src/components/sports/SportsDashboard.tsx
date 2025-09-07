@@ -30,7 +30,7 @@ export const SportsDashboard: React.FC<SportsDashboardProps> = ({ defaultSport =
   const [selectedSport, setSelectedSport] = useState<Sport>(defaultSport);
   const [filter, setFilter] = useState<'all' | 'live' | 'today' | 'upcoming'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const { getMatchData, refreshMatchData } = useSportsDataContext();
+  const { getMatchData, refreshMatchData, availableSports } = useSportsDataContext();
 
   // Fetch data for selected sport
   const liveQuery = getMatchData(selectedSport, 'live');
@@ -130,7 +130,10 @@ export const SportsDashboard: React.FC<SportsDashboardProps> = ({ defaultSport =
           </ScrollArea>
         ) : (
           <div className="grid grid-cols-3 md:grid-cols-5 gap-4 mb-6">
-            {sports.map((sport) => (
+            {sports.filter(sport => 
+              availableSports.length === 0 || 
+              availableSports.some(s => s.toLowerCase() === sport.toLowerCase())
+            ).map((sport) => (
               <SportCard
                 key={sport}
                 sport={sport}
