@@ -53,16 +53,16 @@ export const SimpleSportsDashboard: React.FC = () => {
     <Card
       onClick={() => selectSport(sport)}
       className={cn(
-        "p-4 cursor-pointer transition-all hover:shadow-md",
-        "flex flex-col items-center justify-center min-w-[100px] h-[100px]",
+        "p-3 cursor-pointer transition-all hover:shadow-md",
+        "flex flex-col items-center justify-center min-w-[80px] h-[80px] sm:min-w-[100px] sm:h-[100px]",
         selectedSport?.id === sport.id ? 
           "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2" : 
           "border-border hover:border-primary/50"
       )}
     >
-      <span className="text-2xl mb-2">{sport.icon}</span>
+      <span className="text-xl sm:text-2xl mb-1 sm:mb-2">{sport.icon}</span>
       <span className={cn(
-        "text-sm font-medium text-center",
+        "text-xs sm:text-sm font-medium text-center line-clamp-2",
         selectedSport?.id === sport.id ? "text-primary" : "text-foreground"
       )}>
         {sport.label}
@@ -89,34 +89,40 @@ export const SimpleSportsDashboard: React.FC = () => {
       {/* Sports Selection with Categories */}
       <Card className="p-6">
         <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
-            <TabsTrigger value="popular" className="text-xs">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              Popular
-            </TabsTrigger>
-            <TabsTrigger value="ball" className="text-xs">
-              <Globe className="h-3 w-3 mr-1" />
-              Ball Sports
-            </TabsTrigger>
-            <TabsTrigger value="racing" className="text-xs">
-              <Zap className="h-3 w-3 mr-1" />
-              Racing
-            </TabsTrigger>
-            <TabsTrigger value="combat" className="text-xs">
-              Combat
-            </TabsTrigger>
-            <TabsTrigger value="esports" className="text-xs">
-              <Gamepad2 className="h-3 w-3 mr-1" />
-              E-Sports
-            </TabsTrigger>
-            <TabsTrigger value="all" className="text-xs">
-              All Sports
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-max">
+              <TabsTrigger value="popular" className="text-xs px-2 sm:px-3">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Popular</span>
+                <span className="sm:hidden">Pop</span>
+              </TabsTrigger>
+              <TabsTrigger value="ball" className="text-xs px-2 sm:px-3">
+                <Globe className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Ball Sports</span>
+                <span className="sm:hidden">Ball</span>
+              </TabsTrigger>
+              <TabsTrigger value="racing" className="text-xs px-2 sm:px-3">
+                <Zap className="h-3 w-3 mr-1" />
+                Racing
+              </TabsTrigger>
+              <TabsTrigger value="combat" className="text-xs px-2 sm:px-3">
+                Combat
+              </TabsTrigger>
+              <TabsTrigger value="esports" className="text-xs px-2 sm:px-3">
+                <Gamepad2 className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">E-Sports</span>
+                <span className="sm:hidden">E-S</span>
+              </TabsTrigger>
+              <TabsTrigger value="all" className="text-xs px-2 sm:px-3">
+                All
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           <TabsContent value="popular" className="mt-4">
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-2">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 sm:gap-3 pb-2">
                 {popularSports.map((sport) => (
                   <SportButton key={sport.id} sport={sport} />
                 ))}
@@ -126,8 +132,8 @@ export const SimpleSportsDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="ball" className="mt-4">
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-2">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 sm:gap-3 pb-2">
                 {ballSports.map((sport) => (
                   <SportButton key={sport.id} sport={sport} />
                 ))}
@@ -137,8 +143,8 @@ export const SimpleSportsDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="racing" className="mt-4">
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-2">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 sm:gap-3 pb-2">
                 {racingSports.map((sport) => (
                   <SportButton key={sport.id} sport={sport} />
                 ))}
@@ -148,8 +154,8 @@ export const SimpleSportsDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="combat" className="mt-4">
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-2">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 sm:gap-3 pb-2">
                 {combatSports.map((sport) => (
                   <SportButton key={sport.id} sport={sport} />
                 ))}
@@ -159,8 +165,8 @@ export const SimpleSportsDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="esports" className="mt-4">
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-2">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 sm:gap-3 pb-2">
                 {eSports.map((sport) => (
                   <SportButton key={sport.id} sport={sport} />
                 ))}
@@ -170,7 +176,7 @@ export const SimpleSportsDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="all" className="mt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
               {sports.map((sport) => (
                 <SportButton key={sport.id} sport={sport} />
               ))}
