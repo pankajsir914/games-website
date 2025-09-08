@@ -176,11 +176,14 @@ export const SimpleSportsDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="all" className="mt-4">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
-              {sports.map((sport) => (
-                <SportButton key={sport.id} sport={sport} />
-              ))}
-            </div>
+            <ScrollArea className="h-[300px] sm:h-[400px] w-full rounded-md border">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 p-2">
+                {sports.map((sport) => (
+                  <SportButton key={sport.id} sport={sport} />
+                ))}
+              </div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </Card>
