@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { PaymentRequestsTable } from '@/components/admin/PaymentRequestsTable';
+import { AdminPaymentMethods } from '@/components/admin/AdminPaymentMethods';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMasterAdminFinance } from '@/hooks/useMasterAdminFinance';
-import { CreditCard, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { CreditCard, TrendingUp, Clock, CheckCircle, Settings, Receipt } from 'lucide-react';
 
 const AdminPayments = () => {
   const { financeData } = useMasterAdminFinance();
@@ -52,74 +54,93 @@ const AdminPayments = () => {
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Payment Management</h1>
-          <p className="text-muted-foreground">Review and approve payment requests</p>
+          <p className="text-muted-foreground">Manage payment methods and review payment requests</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+        <Tabs defaultValue="requests" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              Payment Requests
+            </TabsTrigger>
+            <TabsTrigger value="methods" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Payment Methods
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="requests" className="space-y-8">
+            {/* Stats */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {stats.map((stat) => (
+                <Card key={stat.title}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground">{stat.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Filters</CardTitle>
+                <CardDescription>Filter payment requests by status and search criteria</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="text-sm font-medium">Search</label>
+                    <Input
+                      placeholder="Search by user or request ID..."
+                      value={filters.search}
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Date Range</label>
+                    <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All time</SelectItem>
+                        <SelectItem value="today">Today</SelectItem>
+                        <SelectItem value="week">This week</SelectItem>
+                        <SelectItem value="month">This month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>Filter payment requests by status and search criteria</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium">Search</label>
-                <Input
-                  placeholder="Search by user or request ID..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Status</label>
-                <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Date Range</label>
-                <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All time</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="week">This week</SelectItem>
-                    <SelectItem value="month">This month</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <PaymentRequestsTable filters={filters} />
+          </TabsContent>
 
-        <PaymentRequestsTable filters={filters} />
+          <TabsContent value="methods">
+            <AdminPaymentMethods />
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );
