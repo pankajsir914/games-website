@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Trophy, Clock, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2 } from 'lucide-react';
 import { useSimpleSportsData } from '@/hooks/useSimpleSportsData';
 import { cn } from '@/lib/utils';
 
@@ -17,8 +19,56 @@ export const SimpleSportsDashboard: React.FC = () => {
     refresh
   } = useSimpleSportsData();
 
+  const [activeCategory, setActiveCategory] = useState('popular');
+
+  // Categorize sports
+  const popularSports = sports.filter(s => 
+    ['cricket', 'football', 'tennis', 'basketball', 'kabaddi'].includes(s.sport_type)
+  );
+  
+  const ballSports = sports.filter(s => 
+    ['cricket', 'football', 'tennis', 'basketball', 'volleyball', 'badminton', 'baseball', 'golf', 'rugby-league', 'rugby-union', 'soccer', 'futsal', 'beach-volleyball', 'handball', 'basketball-3x3'].includes(s.sport_type)
+  );
+  
+  const racingSports = sports.filter(s => 
+    ['horse-racing', 'greyhound-racing', 'motor-sports', 'formula1', 'motogp', 'motorbikes', 'cycling'].includes(s.sport_type)
+  );
+  
+  const combatSports = sports.filter(s => 
+    ['boxing', 'mma', 'wrestling', 'sumo'].includes(s.sport_type)
+  );
+  
+  const eSports = sports.filter(s => 
+    ['esoccer', 'e-games', 'esports', 'virtual-sports'].includes(s.sport_type)
+  );
+  
+  const otherSports = sports.filter(s => 
+    !ballSports.includes(s) && !racingSports.includes(s) && !combatSports.includes(s) && !eSports.includes(s)
+  );
+
   const liveMatches = matches.filter(m => m.isLive);
   const upcomingMatches = matches.filter(m => !m.isLive);
+
+  const SportButton = ({ sport }: { sport: any }) => (
+    <Card
+      onClick={() => selectSport(sport)}
+      className={cn(
+        "p-4 cursor-pointer transition-all hover:shadow-md",
+        "flex flex-col items-center justify-center min-w-[100px] h-[100px]",
+        selectedSport?.id === sport.id ? 
+          "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2" : 
+          "border-border hover:border-primary/50"
+      )}
+    >
+      <span className="text-2xl mb-2">{sport.icon}</span>
+      <span className={cn(
+        "text-sm font-medium text-center",
+        selectedSport?.id === sport.id ? "text-primary" : "text-foreground"
+      )}>
+        {sport.label}
+      </span>
+    </Card>
+  );
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -36,26 +86,98 @@ export const SimpleSportsDashboard: React.FC = () => {
         </Button>
       </div>
 
-      {/* Sports Selection */}
-      <div className="bg-card rounded-lg p-4 border">
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">Select Sport</h2>
-        <div className="flex flex-wrap gap-2">
-          {sports.map((sport) => (
-            <Button
-              key={sport.id}
-              onClick={() => selectSport(sport)}
-              variant={selectedSport?.id === sport.id ? "default" : "outline"}
-              className={cn(
-                "transition-all",
-                selectedSport?.id === sport.id && "ring-2 ring-primary ring-offset-2"
-              )}
-            >
-              <span className="mr-2 text-lg">{sport.icon}</span>
-              {sport.label}
-            </Button>
-          ))}
-        </div>
-      </div>
+      {/* Sports Selection with Categories */}
+      <Card className="p-6">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
+            <TabsTrigger value="popular" className="text-xs">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Popular
+            </TabsTrigger>
+            <TabsTrigger value="ball" className="text-xs">
+              <Globe className="h-3 w-3 mr-1" />
+              Ball Sports
+            </TabsTrigger>
+            <TabsTrigger value="racing" className="text-xs">
+              <Zap className="h-3 w-3 mr-1" />
+              Racing
+            </TabsTrigger>
+            <TabsTrigger value="combat" className="text-xs">
+              Combat
+            </TabsTrigger>
+            <TabsTrigger value="esports" className="text-xs">
+              <Gamepad2 className="h-3 w-3 mr-1" />
+              E-Sports
+            </TabsTrigger>
+            <TabsTrigger value="all" className="text-xs">
+              All Sports
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="popular" className="mt-4">
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2">
+                {popularSports.map((sport) => (
+                  <SportButton key={sport.id} sport={sport} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="ball" className="mt-4">
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2">
+                {ballSports.map((sport) => (
+                  <SportButton key={sport.id} sport={sport} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="racing" className="mt-4">
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2">
+                {racingSports.map((sport) => (
+                  <SportButton key={sport.id} sport={sport} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="combat" className="mt-4">
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2">
+                {combatSports.map((sport) => (
+                  <SportButton key={sport.id} sport={sport} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="esports" className="mt-4">
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2">
+                {eSports.map((sport) => (
+                  <SportButton key={sport.id} sport={sport} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="all" className="mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+              {sports.map((sport) => (
+                <SportButton key={sport.id} sport={sport} />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </Card>
 
       {/* Error State */}
       {error && (
