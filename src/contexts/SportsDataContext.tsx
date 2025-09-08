@@ -137,60 +137,12 @@ export const SportsDataProvider: React.FC<{ children: ReactNode }> = ({ children
       return cachedData;
     }
 
-    // Find SID configuration for this sport
-    const sidConfig = sidConfigs.find(config => 
-      config.sport_type.toLowerCase() === sport.toLowerCase() && config.is_active
-    );
-
-    if (!sidConfig) {
-      console.warn(`No active SID configuration found for ${sport}`);
-      // Return empty array instead of throwing error
-      return [];
-    }
-
-    // Fetch from API
-    console.log(`Fetching fresh data for ${sport} ${kind} with SID: ${sidConfig.sid}`);
+    // Fetch from API - Try sports-proxy directly for now
+    console.log(`Fetching fresh data for ${sport} ${kind}`);
     const endpoint = kind === 'results' ? 'past' : kind;
     
     try {
-      // Use Diamond API with SID
-      const { data: diamondData, error: diamondError } = await supabase.functions.invoke('sports-diamond-proxy', {
-        body: { 
-          path: 'sports/esid',
-          sid: sidConfig.sid,
-          sport: sport,
-          kind: endpoint 
-        }
-      });
-
-      if (!diamondError && diamondData?.data) {
-        // Transform Diamond API response to match our format
-        const matches = Array.isArray(diamondData.data) ? diamondData.data : 
-          diamondData.data.events || diamondData.data.matches || [];
-        
-        const transformedMatches = matches.map((match: any) => ({
-          id: match.eventId || match.id || Math.random().toString(),
-          sport: sport,
-          status: match.status || 'scheduled',
-          date: match.startTime || match.date || new Date().toISOString(),
-          homeTeam: match.home?.name || match.homeTeam || 'Team A',
-          awayTeam: match.away?.name || match.awayTeam || 'Team B',
-          homeScore: match.home?.score || match.homeScore || 0,
-          awayScore: match.away?.score || match.awayScore || 0,
-          venue: match.venue || '',
-          league: match.seriesName || match.league || '',
-          provider: 'diamond',
-          diamondId: match.eventId || match.id
-        }));
-
-        if (transformedMatches.length > 0) {
-          saveToLocalStorage(sport, kind, transformedMatches);
-          setLastUpdated(prev => ({ ...prev, [`${sport}_${kind}`]: new Date() }));
-          return transformedMatches;
-        }
-      }
-
-      // Fallback to other APIs if Diamond API fails
+      // Use sports-proxy which has better data handling
       const { data, error } = await supabase.functions.invoke('sports-proxy', {
         body: { sport, kind: endpoint }
       });

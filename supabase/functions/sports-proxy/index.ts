@@ -497,6 +497,28 @@ if (s === 'cricket') {
       const u = new URL('https://cricket.sportmonks.com/api/v2.0/fixtures');
       u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
       u.searchParams.set('include', 'localteam,visitorteam,league,venue,runs');
+      
+      // Add proper filters for match kind
+      if (k === 'live') {
+        // Get matches from past 24 hours that might be live
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        u.searchParams.set('filter[starts_between]', `${yesterday.toISOString().split('T')[0]},${new Date().toISOString().split('T')[0]}`);
+      } else if (k === 'upcoming') {
+        // Get upcoming matches for next 7 days
+        const today = new Date();
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        u.searchParams.set('filter[starts_between]', `${today.toISOString().split('T')[0]},${nextWeek.toISOString().split('T')[0]}`);
+      } else if (k === 'results') {
+        // Get past matches from last 3 days
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        u.searchParams.set('filter[starts_between]', `${threeDaysAgo.toISOString().split('T')[0]},${yesterday.toISOString().split('T')[0]}`);
+      }
+      
       return u.toString();
     })();
 
