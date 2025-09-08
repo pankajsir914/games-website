@@ -50,25 +50,30 @@ export const AdminPaymentMethods = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPaymentMethods();
-  }, []);
+    if (user?.id) {
+      fetchPaymentMethods();
+    }
+  }, [user?.id]);
 
   const fetchPaymentMethods = async () => {
+    if (!user?.id) return;
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('admin_payment_methods')
         .select('*')
-        .eq('admin_id', user?.id)
+        .eq('admin_id', user.id)
         .order('is_primary', { ascending: false })
         .order('created_at', { ascending: true });
 
       if (error) throw error;
       setMethods((data || []) as PaymentMethod[]);
     } catch (error: any) {
+      console.error('Error fetching payment methods:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch payment methods",
+        description: "Failed to fetch payment methods: " + error.message,
         variant: "destructive",
       });
     } finally {
@@ -83,16 +88,16 @@ export const AdminPaymentMethods = () => {
       // Upload QR code if provided
       if (qrFile && formData.method_type === 'qr') {
         const fileExt = qrFile.name.split('.').pop();
-        const fileName = `admin-qr/${user?.id}/${Date.now()}.${fileExt}`;
+        const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('payment-qr-codes')
+          .from('admin-payment-qr')
           .upload(fileName, qrFile);
         
         if (uploadError) throw uploadError;
         
         const { data: { publicUrl } } = supabase.storage
-          .from('payment-qr-codes')
+          .from('admin-payment-qr')
           .getPublicUrl(fileName);
         
         qrCodeUrl = publicUrl;
