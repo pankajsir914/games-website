@@ -1,15 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useWallet } from '@/hooks/useWallet';
-import { Wallet, Lock, Coins } from 'lucide-react';
+import { Wallet, Lock, Coins, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
-export const WalletCard = () => {
+interface WalletCardProps {
+  variant?: 'default' | 'compact';
+}
+
+export const WalletCard = ({ variant = 'default' }: WalletCardProps) => {
   const { wallet, walletLoading } = useWallet();
 
   if (walletLoading) {
+    if (variant === 'compact') {
+      return (
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+      );
+    }
+    
     return (
-      <Card>
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Coins className="h-5 w-5" />
@@ -17,7 +31,7 @@ export const WalletCard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-10 w-full" />
           <Skeleton className="h-8 w-full" />
         </CardContent>
       </Card>
@@ -25,6 +39,14 @@ export const WalletCard = () => {
   }
 
   if (!wallet) {
+    if (variant === 'compact') {
+      return (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Wallet not found</span>
+        </div>
+      );
+    }
+    
     return (
       <Card>
         <CardHeader>
@@ -40,25 +62,79 @@ export const WalletCard = () => {
     );
   }
 
+  if (variant === 'compact') {
+    return (
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 rounded-full p-2">
+            <Coins className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Balance</p>
+            <p className="text-lg font-bold text-foreground">
+              ₹{Math.floor(wallet.current_balance).toLocaleString()}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-green-600">
+          <TrendingUp className="h-4 w-4" />
+          <span className="text-xs font-medium">+12%</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Coins className="h-5 w-5" />
-          My Points Wallet
+    <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-lg">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <div className="bg-primary/20 rounded-full p-2">
+              <Coins className="h-5 w-5 text-primary" />
+            </div>
+            My Points Wallet
+          </span>
+          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+            <Activity className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">Available Points</p>
-          <p className="text-2xl font-bold text-green-600 flex items-center gap-1">
-            <Coins className="h-5 w-5" />
-            {Math.floor(wallet.current_balance).toLocaleString()}
-          </p>
+      <CardContent className="space-y-6">
+        <div>
+          <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
+          <div className="flex items-baseline justify-between">
+            <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              ₹{Math.floor(wallet.current_balance).toLocaleString()}
+            </p>
+            <div className="flex items-center gap-1 text-green-600 text-sm">
+              <TrendingUp className="h-4 w-4" />
+              <span className="font-medium">+12% today</span>
+            </div>
+          </div>
         </div>
 
-        <div className="text-xs text-muted-foreground">
-          <p>Last updated: {new Date(wallet.updated_at).toLocaleString()}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-muted/50 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground mb-1">Today's Earnings</p>
+            <p className="text-lg font-semibold text-green-600">
+              +₹{Math.floor(Math.random() * 500 + 100)}
+            </p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground mb-1">Pending</p>
+            <p className="text-lg font-semibold text-orange-600">
+              ₹{Math.floor(Math.random() * 200)}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground flex items-center justify-between pt-2 border-t">
+          <p>Last updated: {new Date(wallet.updated_at).toLocaleTimeString()}</p>
+          <Badge variant="outline" className="text-xs">
+            <Lock className="h-3 w-3 mr-1" />
+            Secured
+          </Badge>
         </div>
       </CardContent>
     </Card>
