@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
-import { SportsDashboard } from '@/components/sports/SportsDashboard';
-import { SportsDataProvider } from '@/contexts/SportsDataContext';
+import { DiamondSportsDashboard } from '@/components/sports/DiamondSportsDashboard';
 
 const Sports: React.FC = () => {
   useEffect(() => {
@@ -9,14 +8,12 @@ const Sports: React.FC = () => {
   }, []);
 
   return (
-    <SportsDataProvider>
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-          <Navigation />
-        </header>
-        <SportsDashboard />
-      </div>
-    </SportsDataProvider>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
+        <Navigation />
+      </header>
+      <DiamondSportsDashboard />
+    </div>
   );
 };
 
