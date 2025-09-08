@@ -3194,48 +3194,65 @@ export type Database = {
       }
       withdrawal_requests: {
         Row: {
-          account_holder_name: string
+          account_holder_name: string | null
           admin_notes: string | null
           amount: number
-          bank_account_number: string
+          bank_account_number: string | null
           created_at: string | null
           id: string
-          ifsc_code: string
+          ifsc_code: string | null
+          payment_method_id: string | null
+          payment_method_type: string | null
           processed_at: string | null
           processed_by: string | null
           status: string | null
           updated_at: string | null
+          upi_id: string | null
           user_id: string
         }
         Insert: {
-          account_holder_name: string
+          account_holder_name?: string | null
           admin_notes?: string | null
           amount: number
-          bank_account_number: string
+          bank_account_number?: string | null
           created_at?: string | null
           id?: string
-          ifsc_code: string
+          ifsc_code?: string | null
+          payment_method_id?: string | null
+          payment_method_type?: string | null
           processed_at?: string | null
           processed_by?: string | null
           status?: string | null
           updated_at?: string | null
+          upi_id?: string | null
           user_id: string
         }
         Update: {
-          account_holder_name?: string
+          account_holder_name?: string | null
           admin_notes?: string | null
           amount?: number
-          bank_account_number?: string
+          bank_account_number?: string | null
           created_at?: string | null
           id?: string
-          ifsc_code?: string
+          ifsc_code?: string | null
+          payment_method_id?: string | null
+          payment_method_type?: string | null
           processed_at?: string | null
           processed_by?: string | null
           status?: string | null
           updated_at?: string | null
+          upi_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "user_payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

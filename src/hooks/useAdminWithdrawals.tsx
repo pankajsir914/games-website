@@ -19,6 +19,8 @@ export const useAdminWithdrawals = () => {
           account_holder_name,
           bank_account_number,
           ifsc_code,
+          payment_method_type,
+          upi_id,
           created_at
         `)
         .order('created_at', { ascending: false });
@@ -35,16 +37,22 @@ export const useAdminWithdrawals = () => {
       // Create a map of user profiles
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-      return withdrawals.map(withdrawal => ({
-        id: withdrawal.id,
-        user: profileMap.get(withdrawal.user_id)?.full_name || 'Unknown User',
-        amount: Number(withdrawal.amount),
-        method: 'Bank Transfer',
-        accountDetails: `${withdrawal.bank_account_number?.slice(-4)} (${withdrawal.ifsc_code})`,
-        status: withdrawal.status,
-        requestTime: new Date(withdrawal.created_at).toLocaleString(),
-        avatar: withdrawal.user_id.slice(0, 2).toUpperCase(),
-      }));
+      return withdrawals.map(withdrawal => {
+        const accountDetails = withdrawal.payment_method_type === 'upi' 
+          ? `UPI: ${withdrawal.upi_id || 'N/A'}` 
+          : `${withdrawal.bank_account_number?.slice(-4) || '••••'} (${withdrawal.ifsc_code || 'N/A'})`;
+        
+        return {
+          id: withdrawal.id,
+          user: profileMap.get(withdrawal.user_id)?.full_name || 'Unknown User',
+          amount: Number(withdrawal.amount),
+          method: withdrawal.payment_method_type === 'upi' ? 'UPI' : 'Bank Transfer',
+          accountDetails,
+          status: withdrawal.status,
+          requestTime: new Date(withdrawal.created_at).toLocaleString(),
+          avatar: withdrawal.user_id.slice(0, 2).toUpperCase(),
+        };
+      });
     },
   });
 
