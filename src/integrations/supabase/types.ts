@@ -143,6 +143,60 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_payment_methods: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          admin_id: string
+          bank_name: string | null
+          created_at: string
+          id: string
+          ifsc_code: string | null
+          is_active: boolean
+          is_primary: boolean
+          method_type: string
+          nickname: string | null
+          qr_code_type: string | null
+          qr_code_url: string | null
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          admin_id: string
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          ifsc_code?: string | null
+          is_active?: boolean
+          is_primary?: boolean
+          method_type: string
+          nickname?: string | null
+          qr_code_type?: string | null
+          qr_code_url?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          admin_id?: string
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          ifsc_code?: string | null
+          is_active?: boolean
+          is_primary?: boolean
+          method_type?: string
+          nickname?: string | null
+          qr_code_type?: string | null
+          qr_code_url?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: []
+      }
       admin_security_settings: {
         Row: {
           id: string
@@ -1725,11 +1779,13 @@ export type Database = {
       }
       payment_requests: {
         Row: {
+          admin_id: string | null
           admin_notes: string | null
           amount: number
           created_at: string | null
           id: string
           payment_method: string | null
+          payment_method_id: string | null
           processed_at: string | null
           processed_by: string | null
           receipt_url: string | null
@@ -1738,11 +1794,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_id?: string | null
           admin_notes?: string | null
           amount: number
           created_at?: string | null
           id?: string
           payment_method?: string | null
+          payment_method_id?: string | null
           processed_at?: string | null
           processed_by?: string | null
           receipt_url?: string | null
@@ -1751,11 +1809,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_id?: string | null
           admin_notes?: string | null
           amount?: number
           created_at?: string | null
           id?: string
           payment_method?: string | null
+          payment_method_id?: string | null
           processed_at?: string | null
           processed_by?: string | null
           receipt_url?: string | null
@@ -3344,6 +3404,10 @@ export type Database = {
       get_admin_credit_balance: {
         Args: { _admin_id?: string }
         Returns: number
+      }
+      get_admin_payment_methods_for_user: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_all_users_for_master_admin: {
         Args: Record<PropertyKey, never>
