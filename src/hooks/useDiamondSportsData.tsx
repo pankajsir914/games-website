@@ -23,24 +23,47 @@ export function useDiamondSportsData() {
   // Load SID configurations from database
   const loadSIDConfigs = useCallback(async () => {
     try {
+      console.log('Loading SID configurations...');
       const configs = await adminAPI.getSIDConfigs();
-      setSidConfigs(configs || []);
+      console.log('Loaded SID configs:', configs);
       
-      // Auto-select default SID if available
-      const defaultConfig = configs?.find(c => c.is_default && c.is_active);
-      if (defaultConfig && !selectedSport) {
-        setSelectedSport({
-          sport_type: defaultConfig.sport_type,
-          sid: defaultConfig.sid,
-          label: defaultConfig.label,
-          is_default: defaultConfig.is_default
-        });
+      // Use fallback if no configs found
+      const finalConfigs = configs && configs.length > 0 ? configs : [
+        { sport_type: 'cricket', sid: '4', label: 'Cricket', is_active: true, is_default: true },
+        { sport_type: 'football', sid: '1', label: 'Football', is_active: true, is_default: false },
+        { sport_type: 'tennis', sid: '2', label: 'Tennis', is_active: true, is_default: false },
+        { sport_type: 'basketball', sid: '7', label: 'Basketball', is_active: true, is_default: false },
+        { sport_type: 'hockey', sid: '8', label: 'Hockey', is_active: true, is_default: false }
+      ];
+      
+      setSidConfigs(finalConfigs);
+      
+      // Auto-select default SID if available and no sport selected
+      if (!selectedSport) {
+        const defaultConfig = finalConfigs.find(c => c.is_default && c.is_active);
+        if (defaultConfig) {
+          setSelectedSport({
+            sport_type: defaultConfig.sport_type,
+            sid: defaultConfig.sid,
+            label: defaultConfig.label,
+            is_default: defaultConfig.is_default
+          });
+        }
       }
       
-      return configs;
+      return finalConfigs;
     } catch (error) {
       console.error('Failed to load SID configs:', error);
-      return [];
+      // Return fallback configs on error
+      const fallbackConfigs = [
+        { sport_type: 'cricket', sid: '4', label: 'Cricket', is_active: true, is_default: true },
+        { sport_type: 'football', sid: '1', label: 'Football', is_active: true, is_default: false },
+        { sport_type: 'tennis', sid: '2', label: 'Tennis', is_active: true, is_default: false },
+        { sport_type: 'basketball', sid: '7', label: 'Basketball', is_active: true, is_default: false },
+        { sport_type: 'hockey', sid: '8', label: 'Hockey', is_active: true, is_default: false }
+      ];
+      setSidConfigs(fallbackConfigs);
+      return fallbackConfigs;
     }
   }, [adminAPI, selectedSport]);
   

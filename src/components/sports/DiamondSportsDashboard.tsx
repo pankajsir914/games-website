@@ -36,17 +36,36 @@ export const DiamondSportsDashboard: React.FC = () => {
     setSelectedSport
   } = useDiamondSportsData();
 
-  // Load SID configs on mount
+  // Load configurations on mount
   useEffect(() => {
-    loadSIDConfigs();
-  }, []);
+    const initializeData = async () => {
+      const configs = await loadSIDConfigs();
+      console.log('Initialized with configs:', configs);
+      // If we have configs but no selected sport, select the first active one
+      if (configs && configs.length > 0 && !selectedSport) {
+        const firstActive = configs.find(c => c.is_active);
+        if (firstActive) {
+          const sport = {
+            sport_type: firstActive.sport_type,
+            sid: firstActive.sid,
+            label: firstActive.label,
+            is_default: firstActive.is_default
+          };
+          setSelectedSport(sport);
+          await fetchMatches(sport);
+        }
+      }
+    };
+    
+    initializeData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch matches when selected sport changes
   useEffect(() => {
     if (selectedSport) {
       fetchMatches(selectedSport, true);
     }
-  }, [selectedSport]);
+  }, [selectedSport, fetchMatches]);
 
   const handleRefresh = async () => {
     if (!selectedSport) {
@@ -161,39 +180,82 @@ export const DiamondSportsDashboard: React.FC = () => {
         </div>
 
         {/* Sports Selection */}
-        {isMobile ? (
-          <Select 
-            value={selectedSport?.sport_type || ''} 
-            onValueChange={handleSportChange}
-          >
-            <SelectTrigger className="w-full mb-4">
-              <SelectValue placeholder="Select a sport" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableSports.map((sport) => (
-                <SelectItem key={sport} value={sport}>
-                  {sport.charAt(0).toUpperCase() + sport.slice(1).replace('-', ' ')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <ScrollArea className="w-full mb-6">
-            <div className="flex gap-3 pb-2">
-              {availableSports.map((sport) => (
-                <Button
-                  key={sport}
-                  variant={selectedSport?.sport_type === sport ? 'default' : 'outline'}
-                  onClick={() => handleSportChange(sport)}
-                  className="flex-shrink-0 capitalize"
-                >
-                  {sport.replace('-', ' ')}
-                </Button>
-              ))}
+        <Card className="p-4 mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-primary" />
+              Select Sport
+            </h3>
+            {selectedSport && (
+              <Badge variant="secondary" className="capitalize">
+                {selectedSport.sport_type}
+              </Badge>
+            )}
+          </div>
+          
+          {availableSports.length === 0 ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+              <span className="text-muted-foreground">Loading sports...</span>
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        )}
+          ) : isMobile ? (
+            <Select 
+              value={selectedSport?.sport_type || ''} 
+              onValueChange={handleSportChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a sport to view matches" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSports.map((sport) => (
+                  <SelectItem key={sport} value={sport}>
+                    <div className="flex items-center gap-2">
+                      {sport === 'cricket' && <Trophy className="h-4 w-4" />}
+                      {sport === 'football' && <Activity className="h-4 w-4" />}
+                      {sport === 'tennis' && <Timer className="h-4 w-4" />}
+                      {sport === 'basketball' && <TrendingUp className="h-4 w-4" />}
+                      {sport === 'hockey' && <Activity className="h-4 w-4" />}
+                      <span className="capitalize">{sport.replace('-', ' ')}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-2">
+                {availableSports.map((sport) => {
+                  const isSelected = selectedSport?.sport_type === sport;
+                  return (
+                    <Button
+                      key={sport}
+                      variant={isSelected ? 'default' : 'outline'}
+                      onClick={() => handleSportChange(sport)}
+                      className={cn(
+                        "flex-shrink-0 capitalize transition-all duration-200",
+                        isSelected && "shadow-lg scale-105"
+                      )}
+                    >
+                      {sport === 'cricket' && <Trophy className="h-4 w-4 mr-2" />}
+                      {sport === 'football' && <Activity className="h-4 w-4 mr-2" />}
+                      {sport === 'tennis' && <Timer className="h-4 w-4 mr-2" />}
+                      {sport === 'basketball' && <TrendingUp className="h-4 w-4 mr-2" />}
+                      {sport === 'hockey' && <Activity className="h-4 w-4 mr-2" />}
+                      {sport.replace('-', ' ')}
+                    </Button>
+                  );
+                })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          )}
+          
+          {!selectedSport && availableSports.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-3 text-center bg-muted/50 p-2 rounded-md">
+              👆 Please select a sport above to view available matches
+            </p>
+          )}
+        </Card>
 
         {/* Matches Content */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
