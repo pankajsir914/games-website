@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { Banknote } from 'lucide-react';
+import { Banknote, CreditCard, Smartphone, Star } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { AddPaymentMethodModal } from '@/components/wallet/AddPaymentMethodModal';
 
 interface WithdrawMoneyModalProps {
   open: boolean;
@@ -18,15 +21,20 @@ interface WithdrawMoneyModalProps {
 
 export const WithdrawMoneyModal = ({ open, onOpenChange }: WithdrawMoneyModalProps) => {
   const [amount, setAmount] = useState('');
-  const [bankDetails, setBankDetails] = useState({
-    accountNumber: '',
-    ifscCode: '',
-    accountHolderName: '',
-  });
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { wallet } = useWallet();
+  const { paymentMethods, isLoading } = usePaymentMethods();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!selectedMethodId && paymentMethods?.length) {
+      const primary = paymentMethods.find((m) => m.is_primary);
+      setSelectedMethodId((primary || paymentMethods[0]).id);
+    }
+  }, [paymentMethods, selectedMethodId]);
 
   const handleSubmit = async () => {
     if (!user || !wallet) return;
@@ -50,28 +58,37 @@ export const WithdrawMoneyModal = ({ open, onOpenChange }: WithdrawMoneyModalPro
       return;
     }
 
-    if (!bankDetails.accountNumber || !bankDetails.ifscCode || !bankDetails.accountHolderName) {
+    if (!selectedMethodId) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all bank details",
+        title: "Select a method",
+        description: "Please choose a payment method to withdraw to.",
         variant: "destructive",
       });
       return;
     }
 
+    const method = paymentMethods.find((m) => m.id === selectedMethodId);
+    if (!method) return;
+
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('withdrawal_requests')
-        .insert({
-          user_id: user.id,
-          amount: amountNum,
-          bank_account_number: bankDetails.accountNumber,
-          ifsc_code: bankDetails.ifscCode,
-          account_holder_name: bankDetails.accountHolderName,
-        });
+      const payload: any = {
+        user_id: user.id,
+        amount: amountNum,
+        payment_method_id: method.id,
+        payment_method_type: method.method_type,
+      };
 
+      if (method.method_type === 'bank_account') {
+        payload.account_holder_name = method.account_holder_name;
+        payload.bank_account_number = method.account_number;
+        payload.ifsc_code = method.ifsc_code;
+      } else if (method.method_type === 'upi') {
+        payload.upi_id = method.upi_id;
+      }
+
+      const { error } = await supabase.from('withdrawal_requests').insert(payload);
       if (error) throw error;
 
       toast({
@@ -79,13 +96,7 @@ export const WithdrawMoneyModal = ({ open, onOpenChange }: WithdrawMoneyModalPro
         description: "Your withdrawal request has been submitted for review. Processing time: 1-3 business days.",
       });
 
-      // Reset form
       setAmount('');
-      setBankDetails({
-        accountNumber: '',
-        ifscCode: '',
-        accountHolderName: '',
-      });
       onOpenChange(false);
     } catch (error: any) {
       toast({
@@ -125,45 +136,46 @@ export const WithdrawMoneyModal = ({ open, onOpenChange }: WithdrawMoneyModalPro
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-semibold">Bank Details</h4>
-            
-            <div className="space-y-2">
-              <Label htmlFor="accountHolder">Account Holder Name</Label>
-              <Input
-                id="accountHolder"
-                placeholder="Full name as per bank"
-                value={bankDetails.accountHolderName}
-                onChange={(e) => setBankDetails(prev => ({
-                  ...prev,
-                  accountHolderName: e.target.value
-                }))}
-              />
-            </div>
+            <h4 className="font-semibold">Select Payment Method</h4>
 
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account Number</Label>
-              <Input
-                id="accountNumber"
-                placeholder="Bank account number"
-                value={bankDetails.accountNumber}
-                onChange={(e) => setBankDetails(prev => ({
-                  ...prev,
-                  accountNumber: e.target.value
-                }))}
-              />
-            </div>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading your payment methods...</p>
+            ) : paymentMethods.length === 0 ? (
+              <div className="p-4 border rounded-lg flex flex-col items-start gap-3">
+                <p className="text-sm text-muted-foreground">No payment methods added yet.</p>
+                <Button variant="outline" onClick={() => setAddModalOpen(true)}>Add Payment Method</Button>
+              </div>
+            ) : (
+              <RadioGroup value={selectedMethodId || ''} onValueChange={setSelectedMethodId} className="space-y-3">
+                {paymentMethods.map((m) => {
+                  const last4 = m.account_number ? m.account_number.slice(-4) : undefined;
+                  const label = m.method_type === 'bank_account'
+                    ? `${m.bank_name || 'Bank'} • ****${last4 || '••••'}${m.ifsc_code ? ' • ' + m.ifsc_code : ''}`
+                    : `${m.upi_id}`;
 
-            <div className="space-y-2">
-              <Label htmlFor="ifscCode">IFSC Code</Label>
-              <Input
-                id="ifscCode"
-                placeholder="Bank IFSC code"
-                value={bankDetails.ifscCode}
-                onChange={(e) => setBankDetails(prev => ({
-                  ...prev,
-                  ifscCode: e.target.value.toUpperCase()
-                }))}
-              />
+                  return (
+                    <label key={m.id} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent/5 ${selectedMethodId === m.id ? 'ring-2 ring-primary' : ''}`}>
+                      <RadioGroupItem value={m.id} id={m.id} />
+                      {m.method_type === 'bank_account' ? (
+                        <CreditCard className="h-4 w-4" />
+                      ) : (
+                        <Smartphone className="h-4 w-4" />
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{m.nickname || (m.method_type === 'bank_account' ? 'Bank Account' : 'UPI')}</span>
+                          {m.is_primary && <Star className="h-3 w-3 text-yellow-500" />}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{label}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </RadioGroup>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setAddModalOpen(true)}>+ Add new method</Button>
             </div>
           </div>
 
@@ -187,6 +199,7 @@ export const WithdrawMoneyModal = ({ open, onOpenChange }: WithdrawMoneyModalPro
             {isSubmitting ? 'Submitting...' : 'Submit Withdrawal Request'}
           </Button>
         </div>
+        <AddPaymentMethodModal open={addModalOpen} onOpenChange={setAddModalOpen} />
       </DialogContent>
     </Dialog>
   );
