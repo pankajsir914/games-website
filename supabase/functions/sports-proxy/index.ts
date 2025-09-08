@@ -80,21 +80,26 @@ function buildUrl(sport: Sport, kind: Kind, q: { date?: string }) {
       // Add API token
       u.searchParams.set('api_token', SPORTMONKS_API_TOKEN);
       
-      // Include essential data
-      u.searchParams.set('include', 'participants,league,venue,state,scores');
+      // Include essential data - correct field names for v3
+      if (sport === 'football') {
+        u.searchParams.set('include', 'participants,league,venue,state,scores');
+      } else {
+        // Basketball has different includes
+        u.searchParams.set('include', 'participants,league,venue,state,scores');
+      }
       
-      // Filter by status
+      // Filter by status - correct format for filters
       if (kind === 'live') {
-        u.searchParams.set('filters[status]', 'LIVE,HT,ET,PEN_LIVE,BREAK');
+        u.searchParams.set('filters', 'statusCode:LIVE,HT,ET,PEN_LIVE,BREAK');
       } else if (kind === 'upcoming') {
-        u.searchParams.set('filters[status]', 'NS,TBA,POSTPONED');
+        u.searchParams.set('filters', 'statusCode:NS,TBA,POSTPONED');
         if (q.date) {
-          u.searchParams.set('filters[starting_at]', `${q.date},${q.date} 23:59:59`);
+          u.searchParams.set('filters', `statusCode:NS,TBA,POSTPONED;startsBetween:${q.date} 00:00:00,${q.date} 23:59:59`);
         }
       } else if (kind === 'results') {
-        u.searchParams.set('filters[status]', 'FT,AET,FT_PEN,CANCELLED,AWARDED,ABANDONED');
+        u.searchParams.set('filters', 'statusCode:FT,AET,FT_PEN,CANCELLED,AWARDED,ABANDONED');
         if (q.date) {
-          u.searchParams.set('filters[starting_at]', `${q.date},${q.date} 23:59:59`);
+          u.searchParams.set('filters', `statusCode:FT,AET,FT_PEN;startsBetween:${q.date} 00:00:00,${q.date} 23:59:59`);
         }
       }
       

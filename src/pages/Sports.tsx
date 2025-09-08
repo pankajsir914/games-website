@@ -3,7 +3,6 @@ import Navigation from '@/components/Navigation';
 import { SportsDashboard } from '@/components/sports/SportsDashboard';
 import { SportsDataProvider } from '@/contexts/SportsDataContext';
 
-
 const Sports: React.FC = () => {
   useEffect(() => {
     document.title = 'Sports Dashboard — Live Matches & Betting';
