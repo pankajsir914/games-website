@@ -1789,7 +1789,9 @@ export type Database = {
           processed_at: string | null
           processed_by: string | null
           receipt_url: string | null
+          screenshot_url: string | null
           status: string | null
+          transaction_ref: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1804,7 +1806,9 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           receipt_url?: string | null
+          screenshot_url?: string | null
           status?: string | null
+          transaction_ref?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1819,7 +1823,9 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           receipt_url?: string | null
+          screenshot_url?: string | null
           status?: string | null
+          transaction_ref?: string | null
           updated_at?: string | null
           user_id?: string
         }

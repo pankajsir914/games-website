@@ -131,11 +131,11 @@ export const AddMoneyModal = ({ open, onOpenChange }: AddMoneyModalProps) => {
         
         if (uploadError) throw uploadError;
         
-        const { data: { publicUrl } } = supabase.storage
+        const { data: signed, error: signError } = await supabase.storage
           .from('payment-proofs')
-          .getPublicUrl(fileName);
-        
-        screenshotUrl = publicUrl;
+          .createSignedUrl(fileName, 60 * 60 * 24 * 7); // 7 days
+        if (signError) throw signError;
+        screenshotUrl = signed.signedUrl;
       }
 
       // Create payment request
