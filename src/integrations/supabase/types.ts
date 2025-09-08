@@ -2729,6 +2729,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sports_sid_configs: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          label: string
+          sid: string
+          sport_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          label: string
+          sid: string
+          sport_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          label?: string
+          sid?: string
+          sport_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       teen_patti_bets: {
         Row: {
           bet_amount: number

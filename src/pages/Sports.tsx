@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
-import { DiamondSportsDashboard } from '@/components/sports/DiamondSportsDashboard';
+import { SimpleSportsDashboard } from '@/components/sports/SimpleSportsDashboard';
 
 const Sports: React.FC = () => {
   useEffect(() => {
@@ -12,7 +12,7 @@ const Sports: React.FC = () => {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <Navigation />
       </header>
-      <DiamondSportsDashboard />
+      <SimpleSportsDashboard />
     </div>
   );
 };

@@ -10,13 +10,15 @@ const RAPIDAPI_KEY = 'c6d4b3472dmsh7e309839b7b34c8p12004djsnafe1fd91fff7';
 const DIAMOND_HOST = 'diamond-sports-api-d247-sky-exchange-betfair.p.rapidapi.com';
 
 // Simple in-memory cache with longer TTL
-const cache = new Map<string, { data: any; ts: number }>();
+const cache = new Map<string, { data: any; ts: number; retryAfter?: number }>();
 const TTL_MS = 5 * 60 * 1000; // 5 minutes for general data
 const LIVE_TTL_MS = 60 * 1000; // 1 minute for live matches
 
-// Rate limiting
+// Rate limiting with exponential backoff
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+const MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests
+let rateLimitBackoff = 0;
+let consecutiveRateLimits = 0;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -101,10 +103,13 @@ serve(async (req) => {
       });
     }
 
-    // Rate limiting - wait if making requests too fast
+    // Enhanced rate limiting with exponential backoff
     const timeSinceLastRequest = now - lastRequestTime;
-    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-      const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+    const currentInterval = MIN_REQUEST_INTERVAL + rateLimitBackoff;
+    
+    if (timeSinceLastRequest < currentInterval) {
+      const waitTime = currentInterval - timeSinceLastRequest;
+      console.log(`Rate limiting: waiting ${waitTime}ms before next request`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     lastRequestTime = Date.now();
@@ -132,8 +137,25 @@ serve(async (req) => {
     }
 
     if (!res.ok) {
+      // Handle rate limiting
+      if (res.status === 429) {
+        consecutiveRateLimits++;
+        rateLimitBackoff = Math.min(30000, MIN_REQUEST_INTERVAL * Math.pow(2, consecutiveRateLimits)); // Max 30s backoff
+        console.log(`Rate limited (429). Increasing backoff to ${rateLimitBackoff}ms`);
+        
+        // Cache the error to prevent immediate retries
+        cache.set(cacheKey, { 
+          data: { error: 'Rate limited. Please try again later.', status: 429 }, 
+          ts: now,
+          retryAfter: rateLimitBackoff 
+        });
+      }
       throw new Error(`Diamond API error ${res.status}: ${res.statusText}`);
     }
+    
+    // Reset rate limit counters on successful request
+    consecutiveRateLimits = 0;
+    rateLimitBackoff = 0;
 
     if (method === 'GET') cache.set(cacheKey, { data: json, ts: now });
 
