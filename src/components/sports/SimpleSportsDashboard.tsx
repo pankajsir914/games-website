@@ -8,6 +8,53 @@ import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2
 import { useSimpleSportsData } from '@/hooks/useSimpleSportsData';
 import { cn } from '@/lib/utils';
 
+// Match Card Component
+const MatchCard: React.FC<{ match: any; isLive?: boolean }> = ({ match, isLive }) => {
+  return (
+    <Card className={cn(
+      "p-6 hover:shadow-lg transition-shadow cursor-pointer",
+      isLive && "border-destructive/50 bg-destructive/5"
+    )}>
+      {isLive && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive/60 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+          </span>
+          <span className="text-xs font-semibold text-destructive">LIVE</span>
+        </div>
+      )}
+      
+      <div className="space-y-3">
+        <div className="flex justify-between items-start">
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">{match.team1}</p>
+            {match.score && (
+              <p className="text-sm text-muted-foreground">{match.score.split('-')[0]}</p>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">VS</span>
+          <div className="space-y-1 text-right">
+            <p className="font-semibold text-foreground">{match.team2}</p>
+            {match.score && (
+              <p className="text-sm text-muted-foreground">{match.score.split('-')[1]}</p>
+            )}
+          </div>
+        </div>
+        
+        {!isLive && (
+          <div className="pt-3 border-t">
+            <p className="text-xs text-muted-foreground">
+              {new Date(match.date).toLocaleDateString()}
+              {match.time && ` at ${match.time}`}
+            </p>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+};
+
 export const SimpleSportsDashboard: React.FC = () => {
   const {
     sports,
@@ -276,56 +323,5 @@ export const SimpleSportsDashboard: React.FC = () => {
         </Card>
       )}
     </div>
-  );
-};
-
-interface MatchCardProps {
-  match: any;
-  isLive?: boolean;
-}
-
-const MatchCard: React.FC<MatchCardProps> = ({ match, isLive }) => {
-  return (
-    <Card className={cn(
-      "p-6 hover:shadow-lg transition-shadow cursor-pointer",
-      isLive && "border-destructive/50 bg-destructive/5"
-    )}>
-      {isLive && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive/60 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
-          </span>
-          <span className="text-xs font-semibold text-destructive">LIVE</span>
-        </div>
-      )}
-      
-      <div className="space-y-3">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">{match.team1}</p>
-            {match.score && (
-              <p className="text-sm text-muted-foreground">{match.score.split('-')[0]}</p>
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">VS</span>
-          <div className="space-y-1 text-right">
-            <p className="font-semibold text-foreground">{match.team2}</p>
-            {match.score && (
-              <p className="text-sm text-muted-foreground">{match.score.split('-')[1]}</p>
-            )}
-          </div>
-        </div>
-        
-        {!isLive && (
-          <div className="pt-3 border-t">
-            <p className="text-xs text-muted-foreground">
-              {new Date(match.date).toLocaleDateString()}
-              {match.time && ` at ${match.time}`}
-            </p>
-          </div>
-        )}
-      </div>
-    </Card>
   );
 };
