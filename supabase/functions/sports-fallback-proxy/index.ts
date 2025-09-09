@@ -9,8 +9,9 @@ const corsHeaders = {
 const MOCK_MATCHES = {
   cricket: [
     {
-      id: 'mock1',
-      eventId: 'mock1',
+      id: '515110061',  // Using realistic match IDs like Diamond API
+      eventId: '515110061',
+      gmid: '515110061',
       name: 'India vs Australia',
       team1: 'India',
       team2: 'Australia',
@@ -20,8 +21,9 @@ const MOCK_MATCHES = {
       isLive: true,
     },
     {
-      id: 'mock2',
-      eventId: 'mock2',
+      id: '569905578',  // Using realistic match IDs
+      eventId: '569905578',
+      gmid: '569905578',
       name: 'England vs New Zealand',
       team1: 'England',
       team2: 'New Zealand',
@@ -34,8 +36,9 @@ const MOCK_MATCHES = {
   ],
   football: [
     {
-      id: 'mock3',
-      eventId: 'mock3',
+      id: '602454856',  // Using realistic match IDs
+      eventId: '602454856',
+      gmid: '602454856',
       name: 'Real Madrid vs Barcelona',
       team1: 'Real Madrid',
       team2: 'Barcelona',
@@ -45,8 +48,9 @@ const MOCK_MATCHES = {
       isLive: true,
     },
     {
-      id: 'mock4',
-      eventId: 'mock4',
+      id: '683236118',  // Using realistic match IDs
+      eventId: '683236118',
+      gmid: '683236118',
       name: 'Manchester United vs Liverpool',
       team1: 'Manchester United',
       team2: 'Liverpool',
