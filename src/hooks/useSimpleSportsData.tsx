@@ -76,6 +76,36 @@ export function useSimpleSportsData() {
     }
   }, [selectedSport]);
 
+  // Local storage cache
+  const getCachedMatches = useCallback((sportId: string): SportMatch[] | null => {
+    try {
+      const cached = localStorage.getItem(`sports_matches_${sportId}`);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const cacheAge = Date.now() - timestamp;
+        const maxAge = 5 * 60 * 1000; // 5 minutes
+        
+        if (cacheAge < maxAge) {
+          return data;
+        }
+      }
+    } catch (err) {
+      console.error('Error reading cache:', err);
+    }
+    return null;
+  }, []);
+
+  const setCachedMatches = useCallback((sportId: string, matches: SportMatch[]) => {
+    try {
+      localStorage.setItem(`sports_matches_${sportId}`, JSON.stringify({
+        data: matches,
+        timestamp: Date.now()
+      }));
+    } catch (err) {
+      console.error('Error setting cache:', err);
+    }
+  }, []);
+
   // Fetch matches for selected sport
   const fetchMatches = useCallback(async (sport?: SportConfig) => {
     const targetSport = sport || selectedSport;
@@ -84,55 +114,140 @@ export function useSimpleSportsData() {
     setLoading(true);
     setError(null);
 
-    try {
-      // Call the edge function with the SID
-      const { data: response, error: fnError } = await supabase.functions.invoke('sports-diamond-proxy', {
-        body: {
-          path: 'sports/esid',
-          sid: targetSport.sid
-        }
-      });
-
-      if (fnError) throw fnError;
-
-      if (response?.success && response?.data) {
-        // Parse the response - Diamond API returns an array of matches
-        const rawMatches = Array.isArray(response.data) ? response.data : [];
-        
-        const parsedMatches: SportMatch[] = rawMatches.map((match: any) => ({
-          id: match.eventId || match.id || Math.random().toString(),
-          name: match.name || `${match.team1} vs ${match.team2}`,
-          team1: match.team1 || match.home || 'Team A',
-          team2: match.team2 || match.away || 'Team B',
-          score: match.score || match.result || '',
-          status: match.status || (match.isLive ? 'live' : 'upcoming'),
-          date: match.date || match.eventDate || new Date().toISOString(),
-          time: match.time || match.eventTime,
-          isLive: match.isLive || match.status === 'live',
-          eventId: match.eventId || match.id
-        }));
-
-        setMatches(parsedMatches);
-        
-        if (parsedMatches.length === 0) {
-          toast.info(`No matches found for ${targetSport.label}`);
-        }
-      } else if (response?.error?.includes('429')) {
-        // Rate limited
-        setError('API rate limit reached. Please try again in a few minutes.');
-        toast.error('Too many requests. Please wait a moment.');
-      } else {
-        setError('Failed to fetch matches');
-        toast.error('Failed to load matches');
-      }
-    } catch (err: any) {
-      console.error('Error fetching matches:', err);
-      setError(err.message || 'Failed to fetch matches');
-      toast.error('Error loading matches');
-    } finally {
-      setLoading(false);
+    // Check local cache first
+    const cachedData = getCachedMatches(targetSport.id);
+    if (cachedData && cachedData.length > 0) {
+      setMatches(cachedData);
+      toast.info('Showing cached matches (updating in background)');
     }
-  }, [selectedSport]);
+
+    let attempts = 0;
+    const maxAttempts = 2;
+    let lastError: any = null;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      
+      try {
+        // Try primary API first
+        const { data: response, error: fnError } = await supabase.functions.invoke('sports-diamond-proxy', {
+          body: {
+            path: 'sports/esid',
+            sid: targetSport.sid
+          }
+        });
+
+        if (!fnError && response?.success && response?.data) {
+          // Parse the response - Diamond API returns an array of matches
+          const rawMatches = Array.isArray(response.data) ? response.data : [];
+          
+          const parsedMatches: SportMatch[] = rawMatches.map((match: any) => ({
+            id: match.eventId || match.id || Math.random().toString(),
+            name: match.name || `${match.team1} vs ${match.team2}`,
+            team1: match.team1 || match.home || 'Team A',
+            team2: match.team2 || match.away || 'Team B',
+            score: match.score || match.result || '',
+            status: match.status || (match.isLive ? 'live' : 'upcoming'),
+            date: match.date || match.eventDate || new Date().toISOString(),
+            time: match.time || match.eventTime,
+            isLive: match.isLive || match.status === 'live',
+            eventId: match.eventId || match.id
+          }));
+
+          setMatches(parsedMatches);
+          setCachedMatches(targetSport.id, parsedMatches);
+          
+          if (parsedMatches.length === 0) {
+            toast.info(`No matches found for ${targetSport.label}`);
+          }
+          
+          setError(null);
+          break; // Success, exit loop
+        }
+
+        // If rate limited or error, try fallback
+        if (response?.error?.includes('429') || response?.error || fnError) {
+          lastError = response?.error || fnError;
+          
+          if (attempts === 1) {
+            console.log('Primary API failed, trying fallback...');
+            
+            // Try fallback API
+            const { data: fallbackResponse, error: fallbackError } = await supabase.functions.invoke('sports-fallback-proxy', {
+              body: {
+                sport: targetSport.sport_type,
+                sid: targetSport.sid
+              }
+            });
+
+            if (!fallbackError && fallbackResponse?.success && fallbackResponse?.data) {
+              const fallbackMatches = Array.isArray(fallbackResponse.data) ? fallbackResponse.data : [];
+              
+              const parsedFallbackMatches: SportMatch[] = fallbackMatches.map((match: any) => ({
+                id: match.eventId || match.id || Math.random().toString(),
+                name: match.name || `${match.team1} vs ${match.team2}`,
+                team1: match.team1 || match.home || 'Team A',
+                team2: match.team2 || match.away || 'Team B',
+                score: match.score || match.result || '',
+                status: match.status || (match.isLive ? 'live' : 'upcoming'),
+                date: match.date || match.eventDate || new Date().toISOString(),
+                time: match.time || match.eventTime,
+                isLive: match.isLive || match.status === 'live',
+                eventId: match.eventId || match.id
+              }));
+
+              setMatches(parsedFallbackMatches);
+              setCachedMatches(targetSport.id, parsedFallbackMatches);
+              
+              if (fallbackResponse.provider === 'fallback') {
+                toast.info('Using sample data (API temporarily unavailable)');
+              }
+              
+              setError(null);
+              break; // Success with fallback
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error(`Attempt ${attempts} failed:`, err);
+        lastError = err;
+      }
+    }
+
+    // If all attempts failed and no cached data
+    if (attempts >= maxAttempts && (!cachedData || cachedData.length === 0)) {
+      setError('Unable to load matches. Please try again later.');
+      toast.error('Failed to load matches. API services are temporarily unavailable.');
+      
+      // Use fallback mock data as last resort
+      const fallbackMatches: SportMatch[] = [
+        {
+          id: 'fallback1',
+          name: 'Sample Match 1',
+          team1: 'Team A',
+          team2: 'Team B',
+          score: '',
+          status: 'upcoming',
+          date: new Date().toISOString(),
+          time: '15:00',
+          isLive: false,
+        },
+        {
+          id: 'fallback2',
+          name: 'Sample Match 2',
+          team1: 'Team C',
+          team2: 'Team D',
+          score: '1-0',
+          status: 'live',
+          date: new Date().toISOString(),
+          isLive: true,
+        }
+      ];
+      setMatches(fallbackMatches);
+    }
+
+    setLoading(false);
+  }, [selectedSport, getCachedMatches, setCachedMatches]);
 
   // Initialize on mount
   useEffect(() => {

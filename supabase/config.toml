@@ -31,5 +31,8 @@ verify_jwt = false
 [functions.sports-diamond-proxy]
 verify_jwt = false
 
+[functions.sports-fallback-proxy]
+verify_jwt = false
+
 [functions.ludo-game-manager]
 verify_jwt = true
