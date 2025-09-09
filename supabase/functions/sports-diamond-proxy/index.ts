@@ -157,9 +157,18 @@ serve(async (req) => {
     consecutiveRateLimits = 0;
     rateLimitBackoff = 0;
 
-    if (method === 'GET') cache.set(cacheKey, { data: json, ts: now });
+    // Normalize the response structure for consistency
+    let normalizedData = json;
+    
+    // If the response has the nested Diamond API structure, extract the matches
+    if (json?.data?.t1) {
+      console.log('Normalizing Diamond API response: found data.t1 structure');
+      normalizedData = json;  // Keep full structure for detailed parsing in frontend
+    }
+    
+    if (method === 'GET') cache.set(cacheKey, { data: normalizedData, ts: now });
 
-    return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: false, data: json }), {
+    return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: false, data: normalizedData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e: any) {

@@ -138,21 +138,51 @@ export function useSimpleSportsData() {
         });
 
         if (!fnError && response?.success && response?.data) {
-          // Parse the response - Diamond API returns an array of matches
-          const rawMatches = Array.isArray(response.data) ? response.data : [];
+          // Parse the response - Diamond API has nested structure
+          let rawMatches = [];
           
-          const parsedMatches: SportMatch[] = rawMatches.map((match: any) => ({
-            id: match.eventId || match.id || Math.random().toString(),
-            name: match.name || `${match.team1} vs ${match.team2}`,
-            team1: match.team1 || match.home || 'Team A',
-            team2: match.team2 || match.away || 'Team B',
-            score: match.score || match.result || '',
-            status: match.status || (match.isLive ? 'live' : 'upcoming'),
-            date: match.date || match.eventDate || new Date().toISOString(),
-            time: match.time || match.eventTime,
-            isLive: match.isLive || match.status === 'live',
-            eventId: match.eventId || match.id
-          }));
+          // Handle Diamond API's nested response structure: data.data.t1
+          if (response.data?.data?.t1 && Array.isArray(response.data.data.t1)) {
+            console.log('Diamond API response structure detected: data.data.t1');
+            rawMatches = response.data.data.t1;
+          } else if (response.data?.t1 && Array.isArray(response.data.t1)) {
+            console.log('Diamond API response structure detected: data.t1');
+            rawMatches = response.data.t1;
+          } else if (Array.isArray(response.data)) {
+            console.log('Direct array structure detected');
+            rawMatches = response.data;
+          }
+          
+          console.log(`Processing ${rawMatches.length} matches from Diamond API`);
+          
+          const parsedMatches: SportMatch[] = rawMatches.map((match: any) => {
+            // Extract teams from section array (Diamond API structure)
+            let team1 = 'Team A';
+            let team2 = 'Team B';
+            
+            if (match.section && Array.isArray(match.section)) {
+              // Diamond API structure: section[0].nat is team1, section[2].nat is team2
+              team1 = match.section[0]?.nat || team1;
+              team2 = match.section[2]?.nat || team2;
+            } else {
+              // Fallback to other possible field names
+              team1 = match.team1 || match.home || team1;
+              team2 = match.team2 || match.away || team2;
+            }
+            
+            return {
+              id: match.gmid || match.eventId || match.id || Math.random().toString(),
+              name: match.ename || match.name || `${team1} vs ${team2}`,
+              team1,
+              team2,
+              score: match.score || match.result || '',
+              status: match.iplay ? 'live' : (match.status || 'upcoming'),
+              date: match.stime || match.date || match.eventDate || new Date().toISOString(),
+              time: match.time || match.eventTime,
+              isLive: match.iplay === true || match.status === 'live',
+              eventId: match.gmid || match.eventId || match.id
+            };
+          });
 
           setMatches(parsedMatches);
           setCachedMatches(targetSport.id, parsedMatches);
