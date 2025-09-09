@@ -1,109 +1,148 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, DollarSign, Clock, MapPin, Trophy, Users } from 'lucide-react';
-import { useSportsData, SportsMatch } from '@/hooks/useSportsData';
-import { useBettingOdds, useMockBetting } from '@/hooks/useSportsBetting';
+import { ArrowLeft, TrendingUp, TrendingDown, Trophy, Users, Clock } from 'lucide-react';
+import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
+import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
-export default function SportsBet() {
+const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const { state } = location;
+  const { callAPI } = useDiamondSportsAPI();
+  const { wallet } = useWallet();
   const { toast } = useToast();
   
-  // Fetch match data from all categories to find the specific match
-  const { data: liveData } = useSportsData(sport || 'cricket', 'live');
-  const { data: upcomingData } = useSportsData(sport || 'cricket', 'upcoming'); 
-  const { data: resultsData } = useSportsData(sport || 'cricket', 'results');
-  
-  const [match, setMatch] = useState<SportsMatch | null>(null);
-  const [betAmount, setBetAmount] = useState('');
-  const [selectedBet, setSelectedBet] = useState<{ type: string; odds: number; team?: string } | null>(null);
-  
-  const { odds } = useBettingOdds(sport || 'cricket', matchId || '');
-  const { placeMockBet, loading: bettingLoading } = useMockBetting();
+  const [match, setMatch] = useState<any>(state?.match || null);
+  const [odds, setOdds] = useState<any>(null);
+  const [selectedBet, setSelectedBet] = useState<any>(null);
+  const [betAmount, setBetAmount] = useState<string>('');
+  const [isLoadingOdds, setIsLoadingOdds] = useState(false);
+  const [isPlacingBet, setIsPlacingBet] = useState(false);
 
+  // Fetch odds from Diamond API
   useEffect(() => {
-    // Find the match from all data sources
-    const allMatches = [...(liveData || []), ...(upcomingData || []), ...(resultsData || [])];
-    const foundMatch = allMatches.find(m => m.id === matchId);
-    setMatch(foundMatch || null);
-  }, [matchId, liveData, upcomingData, resultsData]);
+    const fetchOdds = async () => {
+      if (!matchId) return;
+      
+      setIsLoadingOdds(true);
+      try {
+        const response = await callAPI(`markets/emid`, {
+          params: { emid: matchId }
+        });
+        
+        if (response?.success && response.data) {
+          setOdds(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch odds:', error);
+      } finally {
+        setIsLoadingOdds(false);
+      }
+    };
 
-  useEffect(() => {
-    document.title = match ? `Bet on ${match.teams.home} vs ${match.teams.away}` : 'Sports Betting';
-  }, [match]);
+    fetchOdds();
+  }, [matchId, callAPI]);
+
+  const handleSelectBet = (selection: any, type: 'back' | 'lay', rate: number) => {
+    setSelectedBet({
+      selection,
+      type,
+      rate,
+      matchId,
+      matchName: `${match?.team1} vs ${match?.team2}`,
+      sport
+    });
+  };
 
   const handlePlaceBet = async () => {
-    if (!selectedBet || !betAmount || !match) {
+    if (!selectedBet || !betAmount || parseFloat(betAmount) <= 0) {
       toast({
-        title: "Invalid Bet",
-        description: "Please select bet type and enter amount",
-        variant: "destructive",
+        title: "Invalid bet",
+        description: "Please enter a valid bet amount",
+        variant: "destructive"
       });
       return;
     }
 
-    try {
-      await placeMockBet({
-        sport_type: match.sport,
-        match_id: match.id,
-        bet_type: selectedBet.type,
-        team_name: selectedBet.team,
-        amount: parseFloat(betAmount),
-        odds: selectedBet.odds
-      });
-
+    const amount = parseFloat(betAmount);
+    if (wallet && amount > (wallet as any).balance) {
       toast({
-        title: "Bet Placed Successfully!",
-        description: `${betAmount} coins bet on ${selectedBet.team || selectedBet.type}`,
+        title: "Insufficient balance",
+        description: "You don't have enough balance to place this bet",
+        variant: "destructive"
       });
+      return;
+    }
 
-      setBetAmount('');
+    setIsPlacingBet(true);
+    try {
+      // Here you would normally call your bet placement API
+      // For now, we'll simulate it
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Bet placed successfully!",
+        description: `Your ${selectedBet.type} bet of ₹${amount} has been placed`,
+      });
+      
+      // Reset bet slip
       setSelectedBet(null);
+      setBetAmount('');
     } catch (error) {
       toast({
-        title: "Bet Failed",
-        description: "Failed to place bet. Please try again.",
-        variant: "destructive",
+        title: "Failed to place bet",
+        description: "Please try again later",
+        variant: "destructive"
       });
+    } finally {
+      setIsPlacingBet(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const statusLower = status.toLowerCase();
-    if (statusLower.includes('live') || statusLower.includes('in progress')) return 'destructive';
-    if (statusLower.includes('completed') || statusLower.includes('finished') || statusLower.includes('won')) return 'secondary';
-    return 'default';
+  const calculatePotentialWin = () => {
+    if (!betAmount || !selectedBet) return 0;
+    const amount = parseFloat(betAmount);
+    if (selectedBet.type === 'back') {
+      return amount * selectedBet.rate;
+    } else {
+      // For lay bets, you win the stake amount
+      return amount;
+    }
   };
 
-  const formatScore = (score: number | null) => {
-    return score !== null ? score.toString() : '-';
+  const calculateLiability = () => {
+    if (!betAmount || !selectedBet) return 0;
+    const amount = parseFloat(betAmount);
+    if (selectedBet.type === 'lay') {
+      return amount * (selectedBet.rate - 1);
+    }
+    return amount;
   };
 
   if (!match) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="ghost" onClick={() => navigate('/sports')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Sports
-            </Button>
-          </div>
+        <div className="container mx-auto px-4 py-8">
           <Card>
-            <CardContent className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Match not found</p>
-              </div>
+            <CardContent className="p-12 text-center">
+              <p className="text-muted-foreground">Match not found</p>
+              <Button 
+                onClick={() => navigate('/sports')}
+                className="mt-4"
+              >
+                Back to Sports
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -111,259 +150,279 @@ export default function SportsBet() {
     );
   }
 
-  const isLive = match.status.toLowerCase().includes('live') || match.status.toLowerCase().includes('in progress');
-  const isCompleted = match.status.toLowerCase().includes('completed') || match.status.toLowerCase().includes('won');
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => navigate('/sports')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/sports')}
+            className="mb-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Sports
           </Button>
-          <h1 className="text-2xl font-bold">Sports Betting</h1>
+          
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl">
+                    {match.team1} vs {match.team2}
+                  </CardTitle>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant={match.status === 'Live' ? 'destructive' : 'secondary'}>
+                      {match.status || 'Upcoming'}
+                    </Badge>
+                    <Badge variant="outline">{sport}</Badge>
+                    {match.league && <Badge variant="outline">{match.league}</Badge>}
+                  </div>
+                </div>
+                {match.score && (
+                  <div className="text-right">
+                    <p className="text-3xl font-bold">{match.score}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Current Score</p>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Match Display Section */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-              
-              <CardHeader className="relative z-10">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl font-bold">{match.league}</CardTitle>
-                    <Badge variant={getStatusColor(match.status)} className="mt-2">
-                      {match.status}
-                    </Badge>
-                  </div>
-                  {isLive && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-destructive/10 text-destructive rounded-full">
-                      <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
-                      <span className="text-sm font-medium">LIVE</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-6 text-sm text-muted-foreground mt-4">
-                  {match.date && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>{new Date(match.date).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {match.venue && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>{match.venue}</span>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="relative z-10">
-                <div className="bg-muted/30 rounded-xl p-6">
-                  {/* Teams and Scores */}
-                  <div className="space-y-4">
-                    {/* Home Team */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center">
-                          <span className="font-bold text-primary">H</span>
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-lg">{match.teams.home}</h3>
-                          {match.overs?.home && (
-                            <p className="text-sm text-muted-foreground">{match.overs.home} overs</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-primary">
-                          {formatScore(match.scores.home)}
-                        </div>
-                        {match.wickets?.home !== undefined && (
-                          <div className="text-sm text-muted-foreground">{match.wickets.home}w</div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* VS Divider */}
-                    <div className="flex items-center justify-center py-2">
-                      <div className="flex-1 h-px bg-border"></div>
-                      <span className="mx-4 text-sm font-medium text-muted-foreground">VS</span>
-                      <div className="flex-1 h-px bg-border"></div>
-                    </div>
-
-                    {/* Away Team */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-accent/20 to-accent/10 rounded-full flex items-center justify-center">
-                          <span className="font-bold text-accent-foreground">A</span>
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-lg">{match.teams.away}</h3>
-                          {match.overs?.away && (
-                            <p className="text-sm text-muted-foreground">{match.overs.away} overs</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-primary">
-                          {formatScore(match.scores.away)}
-                        </div>
-                        {match.wickets?.away !== undefined && (
-                          <div className="text-sm text-muted-foreground">{match.wickets.away}w</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Betting Odds Section */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Betting Markets */}
+          <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Betting Odds
-                </CardTitle>
+                <CardTitle>Betting Markets</CardTitle>
               </CardHeader>
               <CardContent>
-                {isCompleted ? (
+                {isLoadingOdds ? (
                   <div className="text-center py-8">
-                    <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Betting is closed for completed matches</p>
+                    <p className="text-muted-foreground">Loading odds...</p>
                   </div>
-                ) : (
-                  <Tabs defaultValue="match-winner" className="w-full">
+                ) : odds && odds.data ? (
+                  <Tabs defaultValue="match-odds" className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="match-winner">Match Winner</TabsTrigger>
-                      <TabsTrigger value="totals">Totals</TabsTrigger>
-                      <TabsTrigger value="specials">Specials</TabsTrigger>
+                      <TabsTrigger value="match-odds">Match Odds</TabsTrigger>
+                      <TabsTrigger value="fancy">Fancy Bets</TabsTrigger>
+                      <TabsTrigger value="bookmaker">Bookmaker</TabsTrigger>
                     </TabsList>
-
-                    <TabsContent value="match-winner" className="space-y-4 mt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button
-                          variant={selectedBet?.team === match.teams.home ? "default" : "outline"}
-                          className="h-auto p-4 flex-col gap-2"
-                          onClick={() => setSelectedBet({ type: 'match_winner', odds: 1.85, team: match.teams.home })}
-                        >
-                          <span className="font-medium">{match.teams.home}</span>
-                          <span className="text-lg font-bold">1.85x</span>
-                        </Button>
-                        <Button
-                          variant={selectedBet?.team === match.teams.away ? "default" : "outline"}
-                          className="h-auto p-4 flex-col gap-2"
-                          onClick={() => setSelectedBet({ type: 'match_winner', odds: 2.10, team: match.teams.away })}
-                        >
-                          <span className="font-medium">{match.teams.away}</span>
-                          <span className="text-lg font-bold">2.10x</span>
-                        </Button>
-                      </div>
+                    
+                    <TabsContent value="match-odds" className="space-y-4">
+                      {odds.data.t1 && odds.data.t1.map((market: any) => (
+                        <div key={market.sid} className="border rounded-lg p-4">
+                          <h4 className="font-semibold mb-3">{market.nat || 'Match Winner'}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {market.section?.map((selection: any, idx: number) => (
+                              <div key={idx} className="space-y-2">
+                                <p className="text-sm font-medium">{selection.nat || `Option ${idx + 1}`}</p>
+                                <div className="flex gap-2">
+                                  {selection.b1 && (
+                                    <Button
+                                      variant={selectedBet?.selection === selection.nat && selectedBet?.type === 'back' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => handleSelectBet(selection.nat, 'back', parseFloat(selection.b1))}
+                                      className={cn(
+                                        "flex-1",
+                                        "bg-primary/10 hover:bg-primary/20 border-primary/30"
+                                      )}
+                                    >
+                                      <div>
+                                        <p className="text-xs">Back</p>
+                                        <p className="font-bold">{selection.b1}</p>
+                                      </div>
+                                    </Button>
+                                  )}
+                                  {selection.l1 && (
+                                    <Button
+                                      variant={selectedBet?.selection === selection.nat && selectedBet?.type === 'lay' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => handleSelectBet(selection.nat, 'lay', parseFloat(selection.l1))}
+                                      className={cn(
+                                        "flex-1",
+                                        "bg-destructive/10 hover:bg-destructive/20 border-destructive/30"
+                                      )}
+                                    >
+                                      <div>
+                                        <p className="text-xs">Lay</p>
+                                        <p className="font-bold">{selection.l1}</p>
+                                      </div>
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </TabsContent>
-
-                    <TabsContent value="totals" className="space-y-4 mt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button
-                          variant={selectedBet?.type === 'over_150' ? "default" : "outline"}
-                          className="h-auto p-4 flex-col gap-2"
-                          onClick={() => setSelectedBet({ type: 'over_150', odds: 1.90 })}
-                        >
-                          <span className="font-medium">Over 150 Runs</span>
-                          <span className="text-lg font-bold">1.90x</span>
-                        </Button>
-                        <Button
-                          variant={selectedBet?.type === 'under_150' ? "default" : "outline"}
-                          className="h-auto p-4 flex-col gap-2"
-                          onClick={() => setSelectedBet({ type: 'under_150', odds: 1.95 })}
-                        >
-                          <span className="font-medium">Under 150 Runs</span>
-                          <span className="text-lg font-bold">1.95x</span>
-                        </Button>
-                      </div>
+                    
+                    <TabsContent value="fancy" className="space-y-4">
+                      {odds.data.t2 && odds.data.t2.length > 0 ? (
+                        odds.data.t2.map((fancy: any) => (
+                          <div key={fancy.sid} className="border rounded-lg p-4">
+                            <h4 className="font-semibold mb-3">{fancy.nat}</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              {fancy.gstatus === "1" && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSelectBet(fancy.nat, 'back', parseFloat(fancy.b1 || 0))}
+                                    className="bg-primary/10"
+                                  >
+                                    <div>
+                                      <p className="text-xs">Yes</p>
+                                      <p className="font-bold">{fancy.b1 || '-'}</p>
+                                    </div>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSelectBet(fancy.nat, 'lay', parseFloat(fancy.l1 || 0))}
+                                    className="bg-destructive/10"
+                                  >
+                                    <div>
+                                      <p className="text-xs">No</p>
+                                      <p className="font-bold">{fancy.l1 || '-'}</p>
+                                    </div>
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">No fancy bets available</p>
+                      )}
                     </TabsContent>
-
-                    <TabsContent value="specials" className="space-y-4 mt-6">
-                      <div className="grid grid-cols-1 gap-4">
-                        <Button
-                          variant={selectedBet?.type === 'man_of_match' ? "default" : "outline"}
-                          className="h-auto p-4 flex-col gap-2"
-                          onClick={() => setSelectedBet({ type: 'man_of_match', odds: 3.50 })}
-                        >
-                          <span className="font-medium">Man of the Match</span>
-                          <span className="text-lg font-bold">3.50x</span>
-                        </Button>
-                      </div>
+                    
+                    <TabsContent value="bookmaker" className="space-y-4">
+                      {odds.data.t3 && odds.data.t3.length > 0 ? (
+                        odds.data.t3.map((bookmaker: any) => (
+                          <div key={bookmaker.sid} className="border rounded-lg p-4">
+                            <h4 className="font-semibold mb-3">{bookmaker.nat}</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-primary/10"
+                              >
+                                <div>
+                                  <p className="text-xs">Back</p>
+                                  <p className="font-bold">{bookmaker.b1 || '-'}</p>
+                                </div>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-destructive/10"
+                              >
+                                <div>
+                                  <p className="text-xs">Lay</p>
+                                  <p className="font-bold">{bookmaker.l1 || '-'}</p>
+                                </div>
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">No bookmaker odds available</p>
+                      )}
                     </TabsContent>
                   </Tabs>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No odds available for this match</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Bet Slip Sidebar */}
-          <div className="space-y-6">
-            <Card>
+          {/* Bet Slip */}
+          <div>
+            <Card className="sticky top-4">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Bet Slip
-                </CardTitle>
+                <CardTitle>Bet Slip</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {selectedBet ? (
-                  <>
-                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                      <div className="font-medium">
-                        {selectedBet.team ? `${selectedBet.team} to Win` : selectedBet.type.replace('_', ' ').toUpperCase()}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Odds: {selectedBet.odds}x
+                  <div className="space-y-4">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="font-semibold">{selectedBet.matchName}</p>
+                      <p className="text-sm text-muted-foreground">{selectedBet.selection}</p>
+                      <div className="flex justify-between mt-2">
+                        <Badge variant={selectedBet.type === 'back' ? 'default' : 'destructive'}>
+                          {selectedBet.type.toUpperCase()}
+                        </Badge>
+                        <span className="font-bold">{selectedBet.rate}</span>
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="betAmount">Bet Amount (Coins)</Label>
+                    
+                    <div>
+                      <Label htmlFor="bet-amount">Stake Amount (₹)</Label>
                       <Input
-                        id="betAmount"
+                        id="bet-amount"
                         type="number"
-                        placeholder="Enter amount..."
+                        placeholder="Enter amount"
                         value={betAmount}
                         onChange={(e) => setBetAmount(e.target.value)}
-                        min="1"
+                        className="mt-1"
                       />
                     </div>
-
-                    {betAmount && (
-                      <div className="bg-primary/10 rounded-lg p-3">
-                        <div className="text-sm">Potential Payout</div>
-                        <div className="text-lg font-bold text-primary">
-                          {(parseFloat(betAmount) * selectedBet.odds).toFixed(2)} Coins
-                        </div>
+                    
+                    <div className="space-y-2 p-3 bg-muted rounded-lg">
+                      <div className="flex justify-between text-sm">
+                        <span>Potential Win:</span>
+                        <span className="font-semibold text-primary">
+                          ₹{calculatePotentialWin().toFixed(2)}
+                        </span>
                       </div>
-                    )}
-
-                    <Button 
-                      className="w-full" 
-                      onClick={handlePlaceBet}
-                      disabled={!betAmount || bettingLoading || isCompleted}
-                    >
-                      {bettingLoading ? 'Placing Bet...' : 'Place Bet'}
-                    </Button>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Select a betting option to get started</p>
+                      <div className="flex justify-between text-sm">
+                        <span>Liability:</span>
+                        <span className="font-semibold text-destructive">
+                          ₹{calculateLiability().toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Button
+                        className="w-full"
+                        onClick={handlePlaceBet}
+                        disabled={!betAmount || parseFloat(betAmount) <= 0 || isPlacingBet}
+                      >
+                        {isPlacingBet ? 'Placing Bet...' : 'Place Bet'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setSelectedBet(null);
+                          setBetAmount('');
+                        }}
+                      >
+                        Clear Bet Slip
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Select a bet to get started
+                  </p>
                 )}
+                
+                {/* Wallet Balance */}
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Wallet Balance:</span>
+                    <span className="font-semibold">₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -371,4 +430,6 @@ export default function SportsBet() {
       </div>
     </div>
   );
-}
+};
+
+export default SportsBet;

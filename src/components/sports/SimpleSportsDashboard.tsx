@@ -7,14 +7,26 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2 } from 'lucide-react';
 import { useSimpleSportsData } from '@/hooks/useSimpleSportsData';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 // Match Card Component
-const MatchCard: React.FC<{ match: any; isLive?: boolean }> = ({ match, isLive }) => {
+const MatchCard: React.FC<{ match: any; isLive?: boolean; sport: string }> = ({ match, isLive, sport }) => {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    // Navigate to betting page with match ID and sport
+    navigate(`/sports/bet/${sport}/${match.gmid}`, {
+      state: { match, sport }
+    });
+  };
+  
   return (
-    <Card className={cn(
-      "p-6 hover:shadow-lg transition-shadow cursor-pointer",
-      isLive && "border-destructive/50 bg-destructive/5"
-    )}>
+    <Card 
+      onClick={handleClick}
+      className={cn(
+        "p-6 hover:shadow-lg transition-shadow cursor-pointer",
+        isLive && "border-destructive/50 bg-destructive/5"
+      )}>
       {isLive && (
         <div className="flex items-center gap-2 mb-3">
           <span className="relative flex h-2 w-2">
@@ -278,7 +290,7 @@ export const SimpleSportsDashboard: React.FC = () => {
               </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {liveMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} isLive />
+                  <MatchCard key={match.id} match={match} sport={selectedSport.label} isLive />
                 ))}
               </div>
             </div>
@@ -293,7 +305,7 @@ export const SimpleSportsDashboard: React.FC = () => {
               </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {upcomingMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} />
+                  <MatchCard key={match.id} match={match} sport={selectedSport.label} />
                 ))}
               </div>
             </div>
