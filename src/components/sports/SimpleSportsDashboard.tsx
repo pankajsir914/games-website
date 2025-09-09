@@ -15,7 +15,9 @@ const MatchCard: React.FC<{ match: any; isLive?: boolean; sport: string }> = ({ 
   
   const handleClick = () => {
     // Navigate to betting page with match ID and sport
-    navigate(`/sports/bet/${sport}/${match.gmid}`, {
+    // Use eventId or id as fallback, since Diamond API uses gmid field
+    const matchId = match.gmid || match.eventId || match.id;
+    navigate(`/sports/bet/${sport}/${matchId}`, {
       state: { match, sport }
     });
   };

@@ -32,7 +32,15 @@ const SportsBet: React.FC = () => {
   // Fetch odds from Diamond API
   useEffect(() => {
     const fetchOdds = async () => {
-      if (!matchId) return;
+      if (!matchId || matchId === 'undefined') {
+        console.error('Invalid match ID:', matchId);
+        toast({
+          title: "Error",
+          description: "Invalid match ID. Please select a valid match.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       setIsLoadingOdds(true);
       try {
@@ -42,9 +50,20 @@ const SportsBet: React.FC = () => {
         
         if (response?.success && response.data) {
           setOdds(response.data);
+        } else {
+          toast({
+            title: "No odds available",
+            description: "Odds are not available for this match yet.",
+            variant: "destructive"
+          });
         }
       } catch (error) {
         console.error('Failed to fetch odds:', error);
+        toast({
+          title: "Failed to fetch odds",
+          description: "Could not load betting odds. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoadingOdds(false);
       }
