@@ -250,14 +250,26 @@ export const SimpleSportsDashboard: React.FC = () => {
         </Tabs>
       </Card>
 
-      {/* Error State */}
-      {error && (
-        <Card className="p-6 border-destructive/50 bg-destructive/5">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <div>
-              <p className="font-medium text-destructive">Error loading matches</p>
-              <p className="text-sm text-muted-foreground">{error}</p>
+      {/* Error State - Show proper message for unavailable API */}
+      {error && !loading && (
+        <Card className="p-8 border-warning/50 bg-warning/5">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-warning" />
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-semibold">Service Temporarily Unavailable</h3>
+              <p className="text-muted-foreground max-w-md">
+                The sports data service is currently unavailable due to high traffic. 
+                Please wait a moment and try refreshing.
+              </p>
+              <Button 
+                onClick={() => refresh()}
+                variant="outline" 
+                className="mt-4"
+                disabled={loading}
+              >
+                <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
+                Try Again
+              </Button>
             </div>
           </div>
         </Card>

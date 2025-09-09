@@ -202,40 +202,13 @@ export function useSimpleSportsData() {
           if (attempts === 1) {
             console.log('Primary API failed, trying fallback...');
             
-            // Try fallback API
-            const { data: fallbackResponse, error: fallbackError } = await supabase.functions.invoke('sports-fallback-proxy', {
-              body: {
-                sport: targetSport.sport_type,
-                sid: targetSport.sid
-              }
+            // Don't use fallback mock data, just show error
+            setMatches([]);
+            setError('Sports data service is temporarily unavailable. Please try again later.');
+            toast.warning('API rate limit reached. Please wait a moment and try again.', {
+              duration: 5000
             });
-
-            if (!fallbackError && fallbackResponse?.success && fallbackResponse?.data) {
-              const fallbackMatches = Array.isArray(fallbackResponse.data) ? fallbackResponse.data : [];
-              
-              const parsedFallbackMatches: SportMatch[] = fallbackMatches.map((match: any) => ({
-                id: match.eventId || match.id || Math.random().toString(),
-                name: match.name || `${match.team1} vs ${match.team2}`,
-                team1: match.team1 || match.home || 'Team A',
-                team2: match.team2 || match.away || 'Team B',
-                score: match.score || match.result || '',
-                status: match.status || (match.isLive ? 'live' : 'upcoming'),
-                date: match.date || match.eventDate || new Date().toISOString(),
-                time: match.time || match.eventTime,
-                isLive: match.isLive || match.status === 'live',
-                eventId: match.eventId || match.id
-              }));
-
-              setMatches(parsedFallbackMatches);
-              setCachedMatches(targetSport.id, parsedFallbackMatches);
-              
-              if (fallbackResponse.provider === 'fallback') {
-                toast.info('Using sample data (API temporarily unavailable)');
-              }
-              
-              setError(null);
-              break; // Success with fallback
-            }
+            break;
           }
         }
       } catch (err: any) {
