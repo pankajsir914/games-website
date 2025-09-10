@@ -5,9 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Use the API key directly for Diamond Sports API
-const RAPIDAPI_KEY = 'c6d4b3472dmsh7e309839b7b34c8p12004djsnafe1fd91fff7';
+// Get API key from environment variable (secure)
+const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY');
 const DIAMOND_HOST = 'diamond-sports-api-d247-sky-exchange-betfair.p.rapidapi.com';
+
+// Check if API key is available
+if (!RAPIDAPI_KEY) {
+  console.error('RAPIDAPI_KEY is not configured in environment variables');
+}
 
 // Simple in-memory cache with longer TTL
 const cache = new Map<string, { data: any; ts: number; retryAfter?: number }>();
@@ -23,6 +28,20 @@ let consecutiveRateLimits = 0;
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Check if API key is configured
+  if (!RAPIDAPI_KEY) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'API key not configured. Please contact administrator.' 
+      }),
+      { 
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 
   try {
@@ -56,13 +75,6 @@ serve(async (req) => {
           // ignore
         }
       }
-    }
-
-    if (!RAPIDAPI_KEY) {
-      return new Response(JSON.stringify({ success: false, error: 'RAPIDAPI_KEY missing', data: [] }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     // Fix path formatting - remove leading slash if present

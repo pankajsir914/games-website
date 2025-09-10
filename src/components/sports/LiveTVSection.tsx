@@ -51,11 +51,19 @@ const LiveTVSection: React.FC<LiveTVSectionProps> = ({ matchId, match, isLive = 
 
         if (tvData?.success && tvData.data) {
           console.log('Live TV data:', tvData.data);
-          // Extract iframe URL or streaming link
-          if (tvData.data.iframeUrl || tvData.data.url || tvData.data.liveUrl) {
-            setLiveData({
-              iframeUrl: tvData.data.iframeUrl || tvData.data.url || tvData.data.liveUrl
-            });
+          // Extract iframe URL or streaming link from various possible fields
+          const iframeUrl = tvData.data.iframeUrl || 
+                           tvData.data.url || 
+                           tvData.data.liveUrl ||
+                           tvData.data.hlsUrl ||
+                           tvData.data.streamUrl ||
+                           tvData.data.tv_url;
+          
+          if (iframeUrl) {
+            setLiveData({ iframeUrl });
+          } else if (tvData.data.m3u8) {
+            // Handle HLS stream URL
+            setLiveData({ iframeUrl: tvData.data.m3u8 });
           }
         }
 
@@ -194,7 +202,14 @@ const LiveTVSection: React.FC<LiveTVSectionProps> = ({ matchId, match, isLive = 
             </TabsList>
 
             <TabsContent value="tv" className="mt-4">
-              {liveData?.iframeUrl ? (
+              {isLoading ? (
+                <div className="bg-muted rounded-lg p-12 text-center">
+                  <div className="animate-pulse">
+                    <Tv className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Loading live stream...</p>
+                  </div>
+                </div>
+              ) : liveData?.iframeUrl ? (
                 <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                   <iframe
                     src={liveData.iframeUrl}
@@ -202,13 +217,16 @@ const LiveTVSection: React.FC<LiveTVSectionProps> = ({ matchId, match, isLive = 
                     allowFullScreen
                     frameBorder="0"
                     title="Live Match Stream"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   />
                 </div>
               ) : (
                 <div className="bg-muted rounded-lg p-12 text-center">
                   <PlayCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Live stream will appear here when available</p>
-                  <p className="text-sm text-muted-foreground mt-2">Check back when the match starts</p>
+                  <p className="text-muted-foreground">Live stream not available</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {match?.status === 'Live' ? 'Stream will start soon' : 'Check back when the match starts'}
+                  </p>
                 </div>
               )}
             </TabsContent>
