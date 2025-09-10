@@ -161,14 +161,33 @@ export function useSimpleSportsData() {
             let team2 = 'Team B';
             
             if (match.section && Array.isArray(match.section)) {
-              // Diamond API structure: section[0].nat is team1, section[2].nat is team2
-              team1 = match.section[0]?.nat || team1;
-              team2 = match.section[2]?.nat || team2;
-            } else {
-              // Fallback to other possible field names
-              team1 = match.team1 || match.home || team1;
-              team2 = match.team2 || match.away || team2;
+              // Diamond API structure: Teams are in section array
+              // Look for objects with 'nat' property for team names
+              const teams = match.section.filter((item: any) => item?.nat);
+              if (teams.length >= 2) {
+                team1 = teams[0].nat || team1;
+                team2 = teams[1].nat || team2;
+              } else if (teams.length === 1) {
+                team1 = teams[0].nat || team1;
+                // Try to find second team in other positions
+                team2 = match.section[2]?.nat || match.section[1]?.nat || team2;
+              }
+            } 
+            
+            // Also check ename field which often contains "Team1 vs Team2" format
+            if (match.ename && match.ename.includes(' vs ')) {
+              const [t1, t2] = match.ename.split(' vs ').map((t: string) => t.trim());
+              if (t1) team1 = t1;
+              if (t2) team2 = t2;
+            } else if (match.ename && match.ename.includes(' - ')) {
+              const [t1, t2] = match.ename.split(' - ').map((t: string) => t.trim());
+              if (t1) team1 = t1;
+              if (t2) team2 = t2;
             }
+            
+            // Final fallback to other possible field names
+            team1 = team1 === 'Team A' ? (match.team1 || match.home || team1) : team1;
+            team2 = team2 === 'Team B' ? (match.team2 || match.away || team2) : team2;
             
             return {
               id: match.gmid || match.eventId || match.id || Math.random().toString(),
