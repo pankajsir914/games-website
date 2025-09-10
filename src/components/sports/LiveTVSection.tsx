@@ -13,48 +13,77 @@ interface LiveTVSectionProps {
 }
 
 const LiveTVSection: React.FC<LiveTVSectionProps> = ({ matchId, match, isLive = false }) => {
-  const { getLiveTv, getSportsScore, getDiamondIframeTV, getAllGameDetails } = useDiamondSportsAPI();
+  const { getLiveTv, getSportsScore, getDiamondIframeTV, getAllGameDetails, callAPI } = useDiamondSportsAPI();
   const [liveData, setLiveData] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
   const [gameDetails, setGameDetails] = useState<any>(null);
   const [countdown, setCountdown] = useState<string>('');
   const [activeTab, setActiveTab] = useState('tv');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch live data
   useEffect(() => {
     const fetchLiveData = async () => {
       if (!matchId) return;
-
+      
+      setIsLoading(true);
       try {
-        // Fetch different data types
-        const [tvResponse, scoreResponse, detailsResponse] = await Promise.all([
-          getDiamondIframeTV(matchId),
-          getSportsScore(matchId),
-          getAllGameDetails(matchId)
-        ]);
-
-        if (tvResponse?.success) {
-          setLiveData(tvResponse.data);
+        console.log('Fetching live data for match:', matchId);
+        
+        // Try multiple endpoints for live TV
+        let tvData = await getDiamondIframeTV(matchId);
+        if (!tvData?.success) {
+          tvData = await getLiveTv(matchId);
         }
-        if (scoreResponse?.success) {
+        
+        // Try to get live TV URL from different endpoints
+        if (!tvData?.success) {
+          const response = await callAPI('sports/livetv', { 
+            params: { eventId: matchId } 
+          });
+          if (response?.success) {
+            tvData = response;
+          }
+        }
+
+        if (tvData?.success && tvData.data) {
+          console.log('Live TV data:', tvData.data);
+          // Extract iframe URL or streaming link
+          if (tvData.data.iframeUrl || tvData.data.url || tvData.data.liveUrl) {
+            setLiveData({
+              iframeUrl: tvData.data.iframeUrl || tvData.data.url || tvData.data.liveUrl
+            });
+          }
+        }
+
+        // Fetch score
+        const scoreResponse = await getSportsScore(matchId);
+        if (scoreResponse?.success && scoreResponse.data) {
+          console.log('Score data:', scoreResponse.data);
           setScore(scoreResponse.data);
         }
-        if (detailsResponse?.success) {
+
+        // Fetch game details
+        const detailsResponse = await getAllGameDetails(matchId);
+        if (detailsResponse?.success && detailsResponse.data) {
+          console.log('Game details:', detailsResponse.data);
           setGameDetails(detailsResponse.data);
         }
       } catch (error) {
         console.error('Error fetching live data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchLiveData();
     
-    // Refresh score every 10 seconds for live matches
+    // Refresh data every 10 seconds for live matches
     if (isLive) {
       const interval = setInterval(fetchLiveData, 10000);
       return () => clearInterval(interval);
     }
-  }, [matchId, isLive]);
+  }, [matchId, isLive, callAPI]);
 
   // Countdown timer for upcoming matches
   useEffect(() => {

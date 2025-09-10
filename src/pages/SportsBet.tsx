@@ -29,7 +29,66 @@ const SportsBet: React.FC = () => {
   const [isLoadingOdds, setIsLoadingOdds] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
 
-  // Fetch odds from Diamond API
+  const [liveScore, setLiveScore] = useState<any>(null);
+  const [liveDetails, setLiveDetails] = useState<any>(null);
+
+  // Fetch live match details and score
+  useEffect(() => {
+    const fetchLiveMatchData = async () => {
+      if (!matchId || matchId === 'undefined') return;
+
+      try {
+        // Fetch match details, score and other live data
+        const [scoreResponse, detailsResponse, matchResponse] = await Promise.all([
+          callAPI(`sports/sportsScore`, { params: { eventId: matchId } }),
+          callAPI(`sports/allGameDetails`, { params: { eventId: matchId } }),
+          callAPI(`sports/esid`, { sid: '4' }) // Cricket SID
+        ]);
+
+        if (scoreResponse?.success) {
+          setLiveScore(scoreResponse.data);
+          console.log('Live score:', scoreResponse.data);
+        }
+
+        if (detailsResponse?.success) {
+          setLiveDetails(detailsResponse.data);
+          console.log('Live details:', detailsResponse.data);
+        }
+
+        // Update match info if available
+        if (matchResponse?.success && matchResponse.data?.t1) {
+          const liveMatch = matchResponse.data.t1.find((m: any) => 
+            m.eid === matchId || m.gmid === matchId
+          );
+          if (liveMatch) {
+            setMatch(prev => ({
+              ...prev,
+              team1: liveMatch.t1 || prev?.team1,
+              team2: liveMatch.t2 || prev?.team2,
+              status: liveMatch.status === '1' ? 'Live' : prev?.status,
+              score: liveMatch.score || prev?.score
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching live match data:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchLiveMatchData();
+
+    // Set up interval for live updates (every 5 seconds for live matches)
+    const interval = setInterval(() => {
+      if (match?.status === 'Live') {
+        fetchLiveMatchData();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [matchId, match?.status, callAPI]);
+
+  // Fetch odds from Diamond API with live updates
   useEffect(() => {
     const fetchOdds = async () => {
       if (!matchId || matchId === 'undefined') {
@@ -47,15 +106,23 @@ const SportsBet: React.FC = () => {
         console.log('Fetching odds for match:', matchId);
         
         // Try multiple endpoints to get odds
-        let response = await callAPI(`markets/emid`, {
-          params: { emid: matchId }
+        let response = await callAPI(`sports/matchOdds`, {
+          params: { matchId: matchId }
         });
         
         // If first endpoint fails, try alternative endpoints
         if (!response?.success || !response.data) {
           console.log('Trying alternative endpoint for odds...');
-          response = await callAPI(`sports/gamesbysid`, {
-            params: { gmid: matchId }
+          response = await callAPI(`sports/odds`, {
+            params: { eventId: matchId }
+          });
+        }
+
+        // Third attempt with markets endpoint
+        if (!response?.success || !response.data) {
+          console.log('Trying markets endpoint...');
+          response = await callAPI(`markets/emid`, {
+            params: { emid: matchId }
           });
         }
         
@@ -64,39 +131,16 @@ const SportsBet: React.FC = () => {
           setOdds(response.data);
         } else {
           console.warn('No odds data available for match:', matchId);
-          // Set mock odds for demonstration
-          setOdds({
-            markets: [{
-              marketName: 'Match Odds',
-              runners: [
-                { name: match?.team1 || 'Team 1', back: [{ price: 1.85, size: 10000 }], lay: [{ price: 1.95, size: 10000 }] },
-                { name: match?.team2 || 'Team 2', back: [{ price: 2.10, size: 10000 }], lay: [{ price: 2.20, size: 10000 }] }
-              ]
-            }]
-          });
-          
           toast({
             title: "Limited odds available",
-            description: "Live odds are currently unavailable. Showing default rates.",
+            description: "Live odds are being fetched. Please wait...",
           });
         }
       } catch (error) {
         console.error('Failed to fetch odds:', error);
-        
-        // Set fallback odds on error
-        setOdds({
-          markets: [{
-            marketName: 'Match Odds',
-            runners: [
-              { name: match?.team1 || 'Team 1', back: [{ price: 1.90, size: 5000 }], lay: [{ price: 2.00, size: 5000 }] },
-              { name: match?.team2 || 'Team 2', back: [{ price: 2.05, size: 5000 }], lay: [{ price: 2.15, size: 5000 }] }
-            ]
-          }]
-        });
-        
         toast({
-          title: "Using default odds",
-          description: "Live API is unavailable. Showing default betting rates.",
+          title: "Fetching live data",
+          description: "Connecting to live odds feed...",
         });
       } finally {
         setIsLoadingOdds(false);
@@ -104,7 +148,16 @@ const SportsBet: React.FC = () => {
     };
 
     fetchOdds();
-  }, [matchId, match, callAPI]);
+    
+    // Refresh odds every 10 seconds for live matches
+    const oddsInterval = setInterval(() => {
+      if (match?.status === 'Live') {
+        fetchOdds();
+      }
+    }, 10000);
+
+    return () => clearInterval(oddsInterval);
+  }, [matchId, match?.status, callAPI, toast]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({
@@ -227,20 +280,58 @@ const SportsBet: React.FC = () => {
                     {match.team1} vs {match.team2}
                   </CardTitle>
                   <div className="flex gap-2 mt-2">
-                    <Badge variant={match.status === 'Live' ? 'destructive' : 'secondary'}>
+                    <Badge variant={match.status === 'Live' ? 'destructive' : 'secondary'} className={match.status === 'Live' ? 'animate-pulse' : ''}>
                       {match.status || 'Upcoming'}
                     </Badge>
                     <Badge variant="outline">{sport}</Badge>
                     {match.league && <Badge variant="outline">{match.league}</Badge>}
+                    {match.status === 'Live' && (
+                      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600/30">
+                        🔴 LIVE
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                {match.score && (
-                  <div className="text-right">
-                    <p className="text-3xl font-bold">{match.score}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Current Score</p>
-                  </div>
-                )}
+                <div className="text-right">
+                  {liveScore ? (
+                    <>
+                      <p className="text-3xl font-bold">
+                        {liveScore.runs}/{liveScore.wickets}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Overs: {liveScore.overs} | RR: {liveScore.runRate}
+                      </p>
+                    </>
+                  ) : match.score ? (
+                    <>
+                      <p className="text-3xl font-bold">{match.score}</p>
+                      <p className="text-sm text-muted-foreground mt-1">Current Score</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Score will appear here</p>
+                  )}
+                </div>
               </div>
+              {liveDetails && (
+                <div className="mt-4 pt-4 border-t grid grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold">{liveDetails.fours || '0'}</p>
+                    <p className="text-xs text-muted-foreground">Fours</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{liveDetails.sixes || '0'}</p>
+                    <p className="text-xs text-muted-foreground">Sixes</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{liveDetails.extras || '0'}</p>
+                    <p className="text-xs text-muted-foreground">Extras</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{liveDetails.runRate || '0.0'}</p>
+                    <p className="text-xs text-muted-foreground">Run Rate</p>
+                  </div>
+                </div>
+              )}
             </CardHeader>
           </Card>
         </div>
