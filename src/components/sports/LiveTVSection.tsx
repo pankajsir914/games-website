@@ -13,7 +13,7 @@ interface LiveTVSectionProps {
 }
 
 const LiveTVSection: React.FC<LiveTVSectionProps> = ({ matchId, match, isLive = false }) => {
-  const { getLiveTv, getSportsScore, getDiamondIframeTV, getAllGameDetails, callAPI } = useDiamondSportsAPI();
+  const { getLiveTv, getSportsScore, getDiamondIframeTV, getAllGameDetails, getHlsTv, callAPI } = useDiamondSportsAPI();
   const [liveData, setLiveData] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
   const [gameDetails, setGameDetails] = useState<any>(null);
@@ -34,6 +34,9 @@ const LiveTVSection: React.FC<LiveTVSectionProps> = ({ matchId, match, isLive = 
         let tvData = await getDiamondIframeTV(matchId);
         if (!tvData?.success) {
           tvData = await getLiveTv(matchId);
+        }
+        if (!tvData?.success) {
+          tvData = await getHlsTv(matchId);
         }
         
         // Try to get live TV URL from different endpoints

@@ -90,6 +90,9 @@ export function useDiamondSportsAPI() {
   const getDiamondIframeTV = useCallback((eventId: string) => 
     callAPI('sports/diamondIframeTV', { params: { eventId } }), [callAPI]);
 
+  const getHlsTv = useCallback((eventId: string) =>
+    callAPI('sports/hlstv', { params: { eventid: eventId } }), [callAPI]);
+
   const getMatchOdds = useCallback((matchId: string) => 
     callAPI('sports/matchOdds', { params: { matchId } }), [callAPI]);
 
@@ -109,6 +112,7 @@ export function useDiamondSportsAPI() {
     postMarketResult,
     getPostedMarketResult,
     getDiamondIframeTV,
+    getHlsTv,
     getMatchOdds
   };
 }
