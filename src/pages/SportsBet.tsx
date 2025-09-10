@@ -4,14 +4,14 @@ import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, TrendingUp, TrendingDown, Trophy, Users, Clock } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import LiveTVSection from '@/components/sports/LiveTVSection';
+import EnhancedOddsDisplay from '@/components/sports/EnhancedOddsDisplay';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
@@ -245,19 +245,33 @@ const SportsBet: React.FC = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Betting Markets */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Betting Markets</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingOdds ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Loading odds...</p>
-                  </div>
-                ) : odds ? (
-                  <Tabs defaultValue="match-odds" className="w-full">
+      {/* Live TV and Score Section */}
+      <div className="lg:col-span-3">
+        <LiveTVSection 
+          matchId={matchId || ''} 
+          match={match} 
+          isLive={match?.status === 'Live'} 
+        />
+      </div>
+
+      {/* Betting Markets */}
+      <div className="lg:col-span-2">
+        <EnhancedOddsDisplay 
+          odds={odds}
+          selectedBet={selectedBet}
+          onSelectBet={(selection, type, rate, marketType) => {
+            setSelectedBet({
+              selection,
+              type,
+              rate,
+              marketType,
+              matchId,
+              matchName: `${match?.team1} vs ${match?.team2}`,
+              sport
+            });
+          }}
+          isLoading={isLoadingOdds}
+        />
                     <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="match-odds">Match Odds</TabsTrigger>
                       <TabsTrigger value="fancy">Fancy Bets</TabsTrigger>
