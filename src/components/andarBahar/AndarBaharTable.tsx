@@ -3,6 +3,7 @@ import AnimatedCard from '@/components/game/AnimatedCard';
 import { useGameSounds } from '@/hooks/useGameSounds';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ShuffleAnimation } from './ShuffleAnimation';
 
 interface AndarBaharTableProps {
   jokerCard?: Card;
@@ -11,6 +12,7 @@ interface AndarBaharTableProps {
   winningSide?: 'andar' | 'bahar';
   winningCard?: Card;
   isDealing: boolean;
+  status?: 'betting' | 'shuffling' | 'dealing' | 'completed';
 }
 
 export const AndarBaharTable = ({
@@ -19,23 +21,43 @@ export const AndarBaharTable = ({
   baharCards,
   winningSide,
   winningCard,
-  isDealing
+  isDealing,
+  status = 'betting'
 }: AndarBaharTableProps) => {
   const { playCardFlip, playWin } = useGameSounds();
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [showTable, setShowTable] = useState(true);
 
+  // Handle shuffle animation when betting ends and dealing starts
   useEffect(() => {
-    if (isDealing) {
-      // Animate cards being dealt one by one
-      const allCards = [...andarCards, ...baharCards];
-      allCards.forEach((card, index) => {
+    if (status === 'betting' && !isDealing) {
+      setIsShuffling(false);
+      setShowTable(true);
+      setRevealedCards(new Set());
+    } else if (status === 'dealing' && !isShuffling && revealedCards.size === 0) {
+      // Start shuffle animation before dealing
+      setIsShuffling(true);
+      setShowTable(false);
+      
+      // After shuffle completes, show table and start dealing
+      setTimeout(() => {
+        setIsShuffling(false);
+        setShowTable(true);
+        
+        // Start dealing cards after a short delay
         setTimeout(() => {
-          setRevealedCards(prev => new Set(prev).add(`${card.suit}-${card.rank}-${index}`));
-          playCardFlip();
-        }, index * 300);
-      });
+          const allCards = [...andarCards, ...baharCards];
+          allCards.forEach((card, index) => {
+            setTimeout(() => {
+              setRevealedCards(prev => new Set(prev).add(`${card.suit}-${card.rank}-${index}`));
+              playCardFlip();
+            }, index * 300);
+          });
+        }, 500);
+      }, 2800);
     }
-  }, [isDealing, andarCards, baharCards, playCardFlip]);
+  }, [status, isDealing, isShuffling, andarCards, baharCards, playCardFlip, revealedCards.size]);
 
   useEffect(() => {
     if (winningSide) {
@@ -45,6 +67,18 @@ export const AndarBaharTable = ({
 
   return (
     <div className="relative w-full max-w-6xl mx-auto">
+      {/* Shuffle Animation Overlay */}
+      <ShuffleAnimation 
+        isShuffling={isShuffling} 
+        onShuffleComplete={() => setIsShuffling(false)} 
+      />
+      
+      {/* Table only shows when not shuffling */}
+      <div className={cn(
+        "transition-opacity duration-500",
+        showTable ? "opacity-100" : "opacity-0"
+      )}>
+        {/* Table Background */}
       {/* Table Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-green-800 to-green-900 rounded-3xl shadow-2xl">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgb3BhY2l0eT0iMC4wNSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20"></div>
@@ -170,6 +204,7 @@ export const AndarBaharTable = ({
         <div className="absolute top-4 right-4 text-red-500/30 text-6xl">♥</div>
         <div className="absolute bottom-4 left-4 text-red-500/30 text-6xl">♦</div>
         <div className="absolute bottom-4 right-4 text-yellow-500/30 text-6xl">♣</div>
+      </div>
       </div>
     </div>
   );

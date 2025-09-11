@@ -48,13 +48,14 @@ export const GameBoard = ({ currentRound, timeRemaining }: GameBoardProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <AndarBaharTable
+        <AndarBaharTable 
           jokerCard={currentRound?.joker_card}
           andarCards={currentRound?.andar_cards || []}
           baharCards={currentRound?.bahar_cards || []}
           winningSide={currentRound?.winning_side}
           winningCard={currentRound?.winning_card}
           isDealing={currentRound?.status === 'dealing'}
+          status={currentRound?.status}
         />
       </CardContent>
     </Card>

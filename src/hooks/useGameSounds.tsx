@@ -123,6 +123,26 @@ export const useGameSounds = () => {
     setTimeout(() => playSound(600, 0.1, 'sine', 0.2), 200);
   }, [playSound]);
 
+  const playShuffle = useCallback(() => {
+    // Card shuffle sound effect
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        playSound(400 + Math.random() * 200, 0.03, 'square', 0.1);
+      }, i * 30);
+    }
+  }, [playSound]);
+
+  const playGenericSound = useCallback((soundName: string) => {
+    switch(soundName) {
+      case 'shuffle': playShuffle(); break;
+      case 'cardFlip': playCardFlip(); break;
+      case 'win': playWin(); break;
+      case 'lose': playLose(); break;
+      case 'click': playClick(); break;
+      default: break;
+    }
+  }, [playShuffle, playCardFlip, playWin, playLose, playClick]);
+
   return {
     playCardFlip,
     playChipPlace,
@@ -137,6 +157,8 @@ export const useGameSounds = () => {
     stopJetEngine,
     playCrash,
     playCashOut,
-    playTakeoff
+    playTakeoff,
+    playShuffle,
+    playSound: playGenericSound
   };
 };
