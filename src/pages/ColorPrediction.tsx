@@ -1,29 +1,26 @@
-
-import React from 'react';
-import Navigation from '@/components/Navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Clock, 
-  Wallet, 
-  Trophy, 
-  History,
-  TrendingUp,
-  Target
- } from 'lucide-react';
-import { useColorPrediction } from '@/hooks/useColorPrediction';
-import { useGameManagement } from '@/hooks/useGameManagement';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWallet } from '@/hooks/useWallet';
-import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
+import { useGameManagement } from '@/hooks/useGameManagement';
+import { useColorPrediction } from '@/hooks/useColorPrediction';
+import { Navigation } from '@/components/Navigation';
+import ColorPredictionWheel from '@/components/colorPrediction/ColorPredictionWheel';
+import BettingCards from '@/components/colorPrediction/BettingCards';
+import GameTimer from '@/components/colorPrediction/GameTimer';
+import ResultsHistory from '@/components/colorPrediction/ResultsHistory';
+import WinnerCelebration from '@/components/colorPrediction/WinnerCelebration';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertCircle, TrendingUp, Users, Trophy, Wallet } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const ColorPrediction = () => {
   const { user } = useAuth();
-  const { wallet } = useWallet();
-  const { isGamePaused } = useGameManagement();
+  const { balance, refreshBalance } = useWallet();
+  const { gameSettings } = useGameManagement();
+  const colorPredictionSettings = gameSettings?.color_prediction;
+  
   const {
     currentRound,
     recentRounds,
@@ -31,296 +28,231 @@ const ColorPrediction = () => {
     userBetHistory,
     timeLeft,
     roundLoading,
-    placeBet,
-    isPlacingBet,
+    placeBet
   } = useColorPrediction();
 
-  const gameIsPaused = isGamePaused('color_prediction');
-  const [selectedColor, setSelectedColor] = useState<'red' | 'green' | 'violet' | null>(null);
-  const [betAmount, setBetAmount] = useState(10);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [betAmount, setBetAmount] = useState(100);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [showWinner, setShowWinner] = useState(false);
+  const [lastWinningColor, setLastWinningColor] = useState<'red' | 'green' | 'violet' | null>(null);
 
-  const betAmounts = [10, 50, 100, 500, 1000];
-  const colors = [
-    { name: 'red' as const, label: 'Red', bg: 'bg-red-500', hover: 'hover:bg-red-600', multiplier: '2x' },
-    { name: 'green' as const, label: 'Green', bg: 'bg-green-500', hover: 'hover:bg-green-600', multiplier: '2x' },
-    { name: 'violet' as const, label: 'Violet', bg: 'bg-purple-500', hover: 'hover:bg-purple-600', multiplier: '4.5x' }
-  ];
+  // Check for round completion and trigger animation
+  useEffect(() => {
+    if (currentRound?.status === 'completed' && currentRound.winning_color && !isSpinning) {
+      setIsSpinning(true);
+      setLastWinningColor(currentRound.winning_color);
+      setTimeout(() => {
+        setIsSpinning(false);
+        setShowWinner(true);
+        refreshBalance();
+      }, 4000);
+    }
+  }, [currentRound, refreshBalance]);
 
-  const handlePlaceBet = () => {
-    if (!currentRound || !selectedColor || !user) return;
+  const handlePlaceBet = async () => {
+    if (!selectedColor || !currentRound) return;
     
-    placeBet({
-      roundId: currentRound.id,
-      color: selectedColor,
-      amount: betAmount,
-    });
-  };
-
-  const getColorDisplay = (color: string) => {
-    switch (color) {
-      case 'red': return { bg: 'bg-red-500', text: 'Red' };
-      case 'green': return { bg: 'bg-green-500', text: 'Green' };
-      case 'violet': return { bg: 'bg-purple-500', text: 'Violet' };
-      default: return { bg: 'bg-gray-500', text: 'Unknown' };
+    try {
+      await placeBet.mutateAsync({
+        roundId: currentRound.id,
+        color: selectedColor as 'red' | 'green' | 'violet',
+        amount: betAmount
+      });
+      
+      setSelectedColor(null);
+      refreshBalance();
+    } catch (error) {
+      console.error('Failed to place bet:', error);
     }
   };
 
-  const canBet = currentRound?.status === 'betting' && timeLeft > 5 && !userBet && user && !gameIsPaused;
+  const canBet = currentRound?.status === 'betting' && !userBet && timeLeft > 0;
+
+  // Calculate user statistics
+  const userStats = {
+    totalBets: userBetHistory?.length || 0,
+    totalWins: userBetHistory?.filter(b => b.status === 'won').length || 0,
+    totalWinnings: userBetHistory?.reduce((sum, bet) => 
+      bet.status === 'won' ? sum + (bet.payout_amount || 0) : sum, 0) || 0
+  };
+
+  const isGamePaused = colorPredictionSettings?.is_active === false;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
       <Navigation />
       
       {/* Header */}
-      <div className="bg-gradient-hero py-6">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex justify-between items-center">
+      <div className="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-30">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                Color <span className="bg-gradient-primary bg-clip-text text-transparent">Prediction</span>
-              </h1>
-              <p className="text-muted-foreground">Predict the winning color and win big!</p>
+              <h1 className="text-2xl font-bold text-white">Color Prediction</h1>
+              <p className="text-gray-400 text-sm">Predict the winning color and win big!</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-card rounded-lg px-4 py-2">
-                <Wallet className="h-5 w-5 text-gaming-gold mr-2" />
-                <span className="font-bold text-gaming-gold">₹{wallet?.current_balance || 0}</span>
-              </div>
-            </div>
+            {user && (
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded-xl px-4 py-2"
+              >
+                <Wallet className="w-5 h-5 text-yellow-400" />
+                <span className="text-yellow-400 font-bold text-lg">₹{balance.toLocaleString()}</span>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        
-        {/* Game Paused Alert */}
-        {gameIsPaused && (
-          <Alert variant="destructive" className="mb-6 border-red-500 bg-red-50 dark:bg-red-950">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-red-700 dark:text-red-300 font-medium">
-              Color Prediction game is currently paused for maintenance. Please check back later.
+      <div className="container mx-auto px-4 py-8">
+        {isGamePaused && (
+          <Alert className="mb-6 border-yellow-500/50 bg-yellow-500/10">
+            <AlertCircle className="h-4 w-4 text-yellow-500" />
+            <AlertDescription className="text-yellow-200">
+              Game is currently paused by admin. Please wait for it to resume.
             </AlertDescription>
           </Alert>
         )}
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Game Section */}
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Main Game Area */}
           <div className="lg:col-span-2 space-y-6">
-            
-            {/* Timer and Period */}
-            <Card className="bg-gradient-card border-border">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    <span className="text-sm text-muted-foreground">
-                      Period: {currentRound?.period || 'Loading...'}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
-                    {currentRound?.status === 'betting' ? 'Betting Open' : 
-                     currentRound?.status === 'drawing' ? 'Drawing...' : 'Waiting for next round'}
-                  </Badge>
-                </div>
-                
-                <div className="text-center">
-                  <div className="bg-primary/10 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-4">
-                    <span className="text-3xl font-bold text-primary">{timeLeft}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {timeLeft > 5 ? 'Time left to place bet' : 'Betting closed'}
-                  </p>
-                </div>
-              </CardContent>
+            {/* Timer and Round Info */}
+            <GameTimer
+              timeLeft={timeLeft}
+              roundNumber={currentRound?.period || '0'}
+              status={currentRound?.status || 'betting'}
+              totalBets={currentRound?.total_bets_amount || 0}
+              totalPlayers={currentRound?.total_players || 0}
+            />
+
+            {/* Color Prediction Wheel */}
+            <Card className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+              <ColorPredictionWheel
+                isSpinning={isSpinning}
+                winningColor={lastWinningColor || undefined}
+                onSpinComplete={() => setIsSpinning(false)}
+              />
             </Card>
 
-            {/* Latest Result */}
-            {recentRounds.length > 0 && (
-              <Card className="bg-gradient-card border-border">
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold mb-4">Latest Result</h3>
-                    <div className="flex items-center justify-center space-x-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Period: {recentRounds[0].period}</p>
-                        <div className={`w-16 h-16 rounded-full mx-auto mb-2 ${getColorDisplay(recentRounds[0].winning_color!).bg}`}></div>
-                        <p className="text-xl font-bold">{getColorDisplay(recentRounds[0].winning_color!).text}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Color Selection */}
-            {user ? (
-              <Card className="bg-gradient-card border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Target className="h-5 w-5 mr-2" />
-                    Select Your Color
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    {colors.map((color) => (
-                      <Button
-                        key={color.name}
-                        variant={selectedColor === color.name ? "default" : "outline"}
-                        className={`h-24 flex flex-col space-y-2 ${
-                          selectedColor === color.name 
-                            ? `${color.bg} text-white hover:${color.bg}/90` 
-                            : `border-2 hover:${color.bg}/10`
-                        }`}
-                        onClick={() => setSelectedColor(color.name)}
-                        disabled={!canBet || gameIsPaused}
-                      >
-                        <div className={`w-8 h-8 rounded-full ${color.bg}`}></div>
-                        <span className="font-medium">{color.label}</span>
-                        <span className="text-xs">{color.multiplier}</span>
-                      </Button>
-                    ))}
-                  </div>
-
-                  {/* Bet Amount Selection */}
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium mb-3">Select Bet Amount</h4>
-                    <div className="grid grid-cols-5 gap-2">
-                      {betAmounts.map((amount) => (
-                        <Button
-                          key={amount}
-                          variant={betAmount === amount ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setBetAmount(amount)}
-                          disabled={amount > (wallet?.current_balance || 0)}
-                        >
-                          ₹{amount}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Place Bet Button */}
-                  {userBet ? (
-                    <div className="p-4 bg-gaming-success/10 rounded-lg text-center">
-                      <p className="text-gaming-success font-medium">
-                        Bet placed on {colors.find(c => c.name === userBet.color)?.label} for ₹{userBet.bet_amount}
-                      </p>
-                    </div>
-                  ) : (
-                    <Button 
-                      className="w-full h-12 text-lg font-semibold shadow-gaming"
-                      onClick={handlePlaceBet}
-                      disabled={!canBet || !selectedColor || isPlacingBet || betAmount > (wallet?.current_balance || 0) || gameIsPaused}
-                    >
-                      {gameIsPaused ? 'Game Paused' : isPlacingBet ? 'Placing Bet...' : `Place Bet - ₹${betAmount}`}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-gradient-card border-border">
-                <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">Please login to place bets</p>
-                </CardContent>
-              </Card>
+            {/* Betting Interface */}
+            {!isGamePaused && (
+              <BettingCards
+                selectedColor={selectedColor}
+                onSelectColor={setSelectedColor}
+                betAmount={betAmount}
+                onSelectAmount={setBetAmount}
+                onPlaceBet={handlePlaceBet}
+                canBet={canBet}
+                isPlacingBet={placeBet.isPending}
+                userBet={userBet}
+              />
             )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            
-            {/* Game History */}
-            <Card className="bg-gradient-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <History className="h-5 w-5 mr-2" />
-                  Recent Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentRounds.length === 0 ? (
-                    <p className="text-muted-foreground text-sm text-center py-4">
-                      No results yet
-                    </p>
-                  ) : (
-                    recentRounds.slice(0, 10).map((round) => (
-                      <div key={round.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-4 h-4 rounded-full ${getColorDisplay(round.winning_color!).bg}`}></div>
-                          <span className="text-sm font-medium">{getColorDisplay(round.winning_color!).text}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {round.period}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Results History */}
+            <ResultsHistory rounds={recentRounds || []} />
 
-            {/* User Stats */}
+            {/* User Statistics */}
             {user && (
-              <Card className="bg-gradient-card border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2" />
-                    Your Stats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Wallet Balance</span>
-                      <span className="font-semibold text-gaming-gold">₹{wallet?.current_balance || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Games Played</span>
-                      <span className="font-semibold">{userBetHistory.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Won</span>
-                      <span className="font-semibold text-gaming-success">
-                        ₹{userBetHistory.filter(bet => bet.status === 'won').reduce((sum, bet) => sum + (bet.payout_amount || 0), 0)}
-                      </span>
-                    </div>
+              <Card className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-400" />
+                  Your Statistics
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Total Bets</span>
+                    <Badge variant="outline" className="border-gray-600">
+                      {userStats.totalBets}
+                    </Badge>
                   </div>
-                </CardContent>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Wins</span>
+                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                      {userStats.totalWins}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Win Rate</span>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      {userStats.totalBets > 0 
+                        ? `${((userStats.totalWins / userStats.totalBets) * 100).toFixed(1)}%`
+                        : '0%'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-700">
+                    <span className="text-gray-400 font-semibold">Total Winnings</span>
+                    <span className="text-yellow-400 font-bold text-lg">
+                      ₹{userStats.totalWinnings.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </Card>
             )}
 
-            {/* Leaderboard */}
-            <Card className="bg-gradient-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Trophy className="h-5 w-5 mr-2" />
-                  Top Winners
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Player1', amount: 5000, rank: 1 },
-                    { name: 'Player2', amount: 3500, rank: 2 },
-                    { name: 'Player3', amount: 2800, rank: 3 }
-                  ].map((player) => (
-                    <div key={player.rank} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">#{player.rank}</span>
-                        <span className="text-sm">{player.name}</span>
+            {/* Top Winners */}
+            <Card className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-400" />
+                Top Winners Today
+              </h3>
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((rank) => (
+                  <div key={rank} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        rank === 1 ? 'bg-yellow-500 text-black' :
+                        rank === 2 ? 'bg-gray-400 text-black' :
+                        rank === 3 ? 'bg-orange-600 text-white' :
+                        'bg-gray-700 text-gray-400'
+                      }`}>
+                        {rank}
                       </div>
-                      <span className="text-sm font-semibold text-gaming-gold">₹{player.amount}</span>
+                      <span className="text-gray-300">Player{rank}</span>
                     </div>
-                  ))}
+                    <span className="text-yellow-400 font-semibold">
+                      ₹{(10000 - rank * 1500).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Live Stats */}
+            <Card className="p-6 bg-gradient-to-br from-purple-900/30 via-gray-800 to-gray-900 border-purple-500/30">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
+                Live Statistics
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-emerald-400">
+                    {currentRound?.total_players || 0}
+                  </p>
+                  <p className="text-gray-400 text-sm">Active Players</p>
                 </div>
-              </CardContent>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-yellow-400">
+                    ₹{(currentRound?.total_bets_amount || 0).toLocaleString()}
+                  </p>
+                  <p className="text-gray-400 text-sm">Prize Pool</p>
+                </div>
+              </div>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Winner Celebration */}
+      <WinnerCelebration
+        show={showWinner}
+        winningColor={lastWinningColor || 'red'}
+        amount={userBet?.status === 'won' ? userBet.payout_amount : undefined}
+        onClose={() => setShowWinner(false)}
+      />
     </div>
   );
 };
