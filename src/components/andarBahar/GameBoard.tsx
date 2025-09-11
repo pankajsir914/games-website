@@ -56,6 +56,7 @@ export const GameBoard = ({ currentRound, timeRemaining }: GameBoardProps) => {
           winningCard={currentRound?.winning_card}
           isDealing={currentRound?.status === 'dealing'}
           status={currentRound?.status}
+          roundId={currentRound?.id}
         />
       </CardContent>
     </Card>
