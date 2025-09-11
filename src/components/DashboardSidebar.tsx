@@ -201,11 +201,6 @@ export function DashboardSidebar() {
                           <span className="text-sm font-medium">{item.title}</span>
                         )}
                       </div>
-                      {!collapsed && (
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {item.count}
-                        </span>
-                      )}
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
