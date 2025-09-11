@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { useGameManagement } from '@/hooks/useGameManagement';
 import { useColorPrediction } from '@/hooks/useColorPrediction';
-import { Navigation } from '@/components/Navigation';
+import Navigation from '@/components/Navigation';
 import ColorPredictionWheel from '@/components/colorPrediction/ColorPredictionWheel';
 import BettingCards from '@/components/colorPrediction/BettingCards';
 import GameTimer from '@/components/colorPrediction/GameTimer';
@@ -17,9 +17,9 @@ import { motion } from 'framer-motion';
 
 const ColorPrediction = () => {
   const { user } = useAuth();
-  const { balance, refreshBalance } = useWallet();
+  const { wallet } = useWallet();
   const { gameSettings } = useGameManagement();
-  const colorPredictionSettings = gameSettings?.color_prediction;
+  const colorPredictionSettings = gameSettings?.find(s => s.game_type === 'color_prediction');
   
   const {
     currentRound,
@@ -36,6 +36,7 @@ const ColorPrediction = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
   const [lastWinningColor, setLastWinningColor] = useState<'red' | 'green' | 'violet' | null>(null);
+  const [isPlacingBet, setIsPlacingBet] = useState(false);
 
   // Check for round completion and trigger animation
   useEffect(() => {
@@ -45,25 +46,28 @@ const ColorPrediction = () => {
       setTimeout(() => {
         setIsSpinning(false);
         setShowWinner(true);
-        refreshBalance();
+        // Balance will refresh automatically via subscriptions
       }, 4000);
     }
-  }, [currentRound, refreshBalance]);
+  }, [currentRound]);
 
   const handlePlaceBet = async () => {
     if (!selectedColor || !currentRound) return;
     
+    setIsPlacingBet(true);
     try {
-      await placeBet.mutateAsync({
+      await placeBet({
         roundId: currentRound.id,
         color: selectedColor as 'red' | 'green' | 'violet',
         amount: betAmount
       });
       
       setSelectedColor(null);
-      refreshBalance();
+      // Balance will refresh automatically via subscriptions
     } catch (error) {
       console.error('Failed to place bet:', error);
+    } finally {
+      setIsPlacingBet(false);
     }
   };
 
@@ -77,7 +81,7 @@ const ColorPrediction = () => {
       bet.status === 'won' ? sum + (bet.payout_amount || 0) : sum, 0) || 0
   };
 
-  const isGamePaused = colorPredictionSettings?.is_active === false;
+  const isGamePaused = colorPredictionSettings?.settings?.is_active === false;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
@@ -97,7 +101,7 @@ const ColorPrediction = () => {
                 className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded-xl px-4 py-2"
               >
                 <Wallet className="w-5 h-5 text-yellow-400" />
-                <span className="text-yellow-400 font-bold text-lg">₹{balance.toLocaleString()}</span>
+                <span className="text-yellow-400 font-bold text-lg">₹{(wallet?.current_balance || 0).toLocaleString()}</span>
               </motion.div>
             )}
           </div>
@@ -144,7 +148,7 @@ const ColorPrediction = () => {
                 onSelectAmount={setBetAmount}
                 onPlaceBet={handlePlaceBet}
                 canBet={canBet}
-                isPlacingBet={placeBet.isPending}
+                isPlacingBet={isPlacingBet}
                 userBet={userBet}
               />
             )}
