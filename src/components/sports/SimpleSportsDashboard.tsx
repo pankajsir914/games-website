@@ -4,71 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2 } from 'lucide-react';
+import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2, Grid2x2, List } from 'lucide-react';
 import { useSimpleSportsData } from '@/hooks/useSimpleSportsData';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
-
-// Match Card Component
-const MatchCard: React.FC<{ match: any; isLive?: boolean; sport: string }> = ({ match, isLive, sport }) => {
-  const navigate = useNavigate();
-  
-  const handleClick = () => {
-    // Navigate to betting page with match ID and sport
-    // Use eventId which is properly set from gmid or id in the data
-    const matchId = match.eventId || match.id;
-    console.log('Navigating with matchId:', matchId, 'from match:', match);
-    navigate(`/sports/bet/${sport}/${matchId}`, {
-      state: { match, sport }
-    });
-  };
-  
-  return (
-    <Card 
-      onClick={handleClick}
-      className={cn(
-        "p-6 hover:shadow-lg transition-shadow cursor-pointer",
-        isLive && "border-destructive/50 bg-destructive/5"
-      )}>
-      {isLive && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive/60 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
-          </span>
-          <span className="text-xs font-semibold text-destructive">LIVE</span>
-        </div>
-      )}
-      
-      <div className="space-y-3">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">{match.team1}</p>
-            {match.score && (
-              <p className="text-sm text-muted-foreground">{match.score.split('-')[0]}</p>
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">VS</span>
-          <div className="space-y-1 text-right">
-            <p className="font-semibold text-foreground">{match.team2}</p>
-            {match.score && (
-              <p className="text-sm text-muted-foreground">{match.score.split('-')[1]}</p>
-            )}
-          </div>
-        </div>
-        
-        {!isLive && (
-          <div className="pt-3 border-t">
-            <p className="text-xs text-muted-foreground">
-              {new Date(match.date).toLocaleDateString()}
-              {match.time && ` at ${match.time}`}
-            </p>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-};
+import { EnhancedSportsMatchCard, EnhancedSportsMatchCardSkeleton } from '@/components/sports/EnhancedSportsMatchCard';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export const SimpleSportsDashboard: React.FC = () => {
   const {
@@ -82,6 +22,7 @@ export const SimpleSportsDashboard: React.FC = () => {
   } = useSimpleSportsData();
 
   const [activeCategory, setActiveCategory] = useState('popular');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Categorize sports
   const popularSports = sports.filter(s => 
@@ -137,15 +78,25 @@ export const SimpleSportsDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-foreground">Sports Matches</h1>
-        <Button
-          onClick={refresh}
-          disabled={loading}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'list')}>
+            <ToggleGroupItem value="grid" aria-label="Grid view" size="sm">
+              <Grid2x2 className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view" size="sm">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Button
+            onClick={refresh}
+            disabled={loading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Sports Selection with Categories */}
@@ -303,9 +254,19 @@ export const SimpleSportsDashboard: React.FC = () => {
                 </span>
                 Live Matches
               </h3>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className={cn(
+                viewMode === 'grid' 
+                  ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  : "space-y-3"
+              )}>
                 {liveMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} sport={selectedSport.label} isLive />
+                  <EnhancedSportsMatchCard 
+                    key={match.id} 
+                    match={match} 
+                    sport={selectedSport.label} 
+                    isLive 
+                    variant={viewMode === 'list' ? 'compact' : 'default'}
+                  />
                 ))}
               </div>
             </div>
@@ -318,9 +279,18 @@ export const SimpleSportsDashboard: React.FC = () => {
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 Upcoming Matches
               </h3>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className={cn(
+                viewMode === 'grid' 
+                  ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  : "space-y-3"
+              )}>
                 {upcomingMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} sport={selectedSport.label} />
+                  <EnhancedSportsMatchCard 
+                    key={match.id} 
+                    match={match} 
+                    sport={selectedSport.label}
+                    variant={viewMode === 'list' ? 'compact' : 'default'}
+                  />
                 ))}
               </div>
             </div>
