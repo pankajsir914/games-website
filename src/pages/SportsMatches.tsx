@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, ArrowLeft } from 'lucide-react';
 import { useSportsData, type SportsMatch } from '@/hooks/useSportsData';
-import { MatchCard } from '@/components/sports/MatchCard';
+import { EnhancedSportsMatchCard } from '@/components/sports/EnhancedSportsMatchCard';
 import { BetSlip } from '@/components/sports/BetSlip';
 
 // Import sports background images
@@ -138,13 +138,12 @@ const SportsMatches: React.FC = () => {
                 {/* Matches Grid */}
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {data.map((match, idx) => (
-                    <MatchCard
+                    <EnhancedSportsMatchCard
                       key={`${match.id ?? 'x'}-${idx}`}
                       match={match}
-                      sportBackground={sportBackground}
-                      onBetSelect={handleBetSelect}
-                      showBetting={matchType !== 'results'}
-                      isLandscape={false} // Use portrait layout for better grid view
+                      sport={sportType}
+                      isLive={matchType === 'live'}
+                      showOdds={matchType !== 'results'}
                     />
                   ))}
                 </div>
