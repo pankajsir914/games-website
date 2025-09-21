@@ -14,7 +14,7 @@ interface TransactionHistoryProps {
 export const TransactionHistory = ({ limit, compact = false }: TransactionHistoryProps = {}) => {
   const { transactions, transactionsLoading } = useWallet();
   
-  const displayTransactions = limit ? transactions?.slice(0, limit) : transactions;
+  const displayTransactions = transactions && limit ? transactions.slice(0, limit) : transactions;
 
   if (transactionsLoading) {
     if (compact) {
