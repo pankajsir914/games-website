@@ -113,9 +113,11 @@ export const WithdrawalRequestsCard = () => {
                   <p className="text-xs text-muted-foreground">
                     {new Date(request.created_at).toLocaleDateString()}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    A/C: ***{request.bank_account_number.slice(-4)}
-                  </p>
+                  {request.bank_account_number && (
+                    <p className="text-xs text-muted-foreground">
+                      A/C: ***{request.bank_account_number.slice(-4)}
+                    </p>
+                  )}
                   {request.admin_notes && (
                     <p className="text-xs text-muted-foreground italic">
                       Note: {request.admin_notes}
