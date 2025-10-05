@@ -3498,6 +3498,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_old_security_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       complete_jackpot_game: {
         Args: { p_game_id: string }
         Returns: Json

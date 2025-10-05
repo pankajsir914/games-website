@@ -19,20 +19,40 @@ verify_jwt = true
 [functions.get-team-members]
 verify_jwt = true
 
+# Sports functions - now require authentication for security
 [functions.sports-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sports-rapidapi]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sports-rapidapi-odds]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sports-diamond-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sports-fallback-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ludo-game-manager]
 verify_jwt = true
+
+# Game manager functions
+[functions.aviator-game-manager]
+verify_jwt = false
+
+[functions.color-prediction-manager]
+verify_jwt = false
+
+[functions.jackpot-manager]
+verify_jwt = false
+
+[functions.roulette-game-manager]
+verify_jwt = false
+
+[functions.poker-game-manager]
+verify_jwt = false
+
+[functions.teen-patti-manager]
+verify_jwt = false

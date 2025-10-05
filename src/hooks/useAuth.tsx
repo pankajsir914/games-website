@@ -82,7 +82,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Track failed login attempt
+        try {
+          await supabase.rpc('track_failed_login', {
+            p_email: email,
+            p_ip_address: null,
+            p_user_agent: navigator.userAgent
+          });
+        } catch (trackError) {
+          console.error('Failed to track login attempt:', trackError);
+        }
+        throw error;
+      }
       
       toast({
         title: "Welcome back!",
