@@ -10,12 +10,7 @@ import {
   Clock, 
   TrendingUp, 
   Activity,
-  Users,
-  Star,
-  Share2,
-  ChevronRight,
   Timer,
-  Zap,
   Calendar
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +31,6 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
   variant = 'default' 
 }) => {
   const navigate = useNavigate();
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const handleClick = () => {
@@ -46,15 +40,6 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
     });
   };
 
-  const handleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsFavorite(!isFavorite);
-  };
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Implement share functionality
-  };
 
   const formatScore = (score: string | null) => {
     if (!score) return null;
@@ -309,42 +294,6 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 w-8 p-0",
-                isFavorite && "text-yellow-500"
-              )}
-              onClick={handleFavorite}
-            >
-              <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={handleShare}
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <Button
-            variant="default"
-            size="sm"
-            className={cn(
-              "group/btn",
-              isLive && "bg-destructive hover:bg-destructive/90"
-            )}
-          >
-            {isLive ? 'Bet Now' : 'View Match'}
-            <ChevronRight className="h-4 w-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
-          </Button>
-        </div>
 
         {/* Live Match Stats */}
         {isLive && match.stats && (
