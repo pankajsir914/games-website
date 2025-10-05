@@ -1,10 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { TrendingUp, TrendingDown, Trophy, Target, Users, Zap, Star, Lock } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 interface EnhancedOddsDisplayProps {
@@ -45,266 +42,187 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
   const fancyMarkets = odds.data?.t2 || [];
   const bookmakerMarkets = odds.data?.t3 || [];
 
-  const renderOddsButton = (
+  // Render odds cell with proper styling
+  const renderOddsCell = (
     selection: string,
     type: 'back' | 'lay',
-    rate: number,
-    size?: number,
-    marketType: string = 'match'
+    rate: string | number | null,
+    size: string | number | null,
+    marketType: string,
+    isSuspended: boolean = false
   ) => {
+    if (!rate || isSuspended) {
+      return (
+        <TableCell className={cn(
+          "text-center p-2 cursor-not-allowed",
+          type === 'back' ? "bg-blue-100" : "bg-pink-100"
+        )}>
+          <span className="text-xs text-red-600 font-semibold">-</span>
+        </TableCell>
+      );
+    }
+
     const isSelected = selectedBet?.selection === selection && 
                       selectedBet?.type === type && 
                       selectedBet?.marketType === marketType;
-    
+
     return (
-      <Button
-        variant={isSelected ? 'default' : 'outline'}
-        size="sm"
-        onClick={() => onSelectBet(selection, type, rate, marketType)}
+      <TableCell 
         className={cn(
-          "relative overflow-hidden transition-all",
-          type === 'back' 
-            ? "bg-primary/10 hover:bg-primary/20 border-primary/30" 
-            : "bg-destructive/10 hover:bg-destructive/20 border-destructive/30",
-          isSelected && "ring-2 ring-offset-2"
+          "text-center p-2 cursor-pointer hover:opacity-80 transition-opacity",
+          type === 'back' ? "bg-blue-200 hover:bg-blue-300" : "bg-pink-200 hover:bg-pink-300",
+          isSelected && "ring-2 ring-primary ring-inset"
         )}
+        onClick={() => !isSuspended && onSelectBet(selection, type, parseFloat(rate.toString()), marketType)}
       >
         <div className="flex flex-col items-center">
-          <span className="text-xs uppercase opacity-70">{type}</span>
-          <span className="font-bold text-lg">{rate.toFixed(2)}</span>
-          {size && (
-            <span className="text-xs opacity-70">₹{size}</span>
-          )}
+          <span className="font-bold text-base text-gray-900">{parseFloat(rate.toString()).toFixed(2)}</span>
+          {size && <span className="text-xs text-gray-700">{size}</span>}
         </div>
-      </Button>
+      </TableCell>
     );
   };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Betting Markets</span>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="text-xs">
-              Min: ₹100
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              Max: ₹10,000
-            </Badge>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="match" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="match" className="flex items-center gap-1">
-              <Trophy className="h-3 w-3" />
-              Match
-            </TabsTrigger>
-            <TabsTrigger value="fancy" className="flex items-center gap-1">
-              <Target className="h-3 w-3" />
-              Fancy
-            </TabsTrigger>
-            <TabsTrigger value="bookmaker" className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              Bookmaker
-            </TabsTrigger>
-            <TabsTrigger value="special" className="flex items-center gap-1">
-              <Star className="h-3 w-3" />
-              Special
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="match" className="mt-4">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {/* Match Winner Market */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold">Match Winner</h4>
-                    <Badge variant="secondary" className="text-xs">
-                      <Zap className="h-3 w-3 mr-1" />
-                      Popular
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {matchMarkets[0]?.section?.map((team: any, idx: number) => (
-                      <div key={idx} className="space-y-2">
-                        <p className="font-medium">{team.nat || `Team ${idx + 1}`}</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {team.b1 && renderOddsButton(team.nat, 'back', parseFloat(team.b1), team.bs1, 'match')}
-                          {team.l1 && renderOddsButton(team.nat, 'lay', parseFloat(team.l1), team.ls1, 'match')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+      <CardContent className="p-4">
+        <ScrollArea className="w-full">
+          <div className="space-y-6">
+            {/* Match Odds Section */}
+            {matchMarkets.length > 0 && (
+              <div className="space-y-2">
+                <div className="bg-slate-700 text-white px-4 py-2 rounded-t font-semibold">
+                  Match Odds
                 </div>
-
-                {/* Additional Match Markets */}
-                {matchMarkets.slice(1).map((market: any, idx: number) => (
-                  <div key={idx} className="border rounded-lg p-4">
-                    <h4 className="font-semibold mb-3">{market.nat || market.marketName}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {market.section?.map((option: any, optIdx: number) => (
-                        <div key={optIdx} className="space-y-2">
-                          <p className="text-sm">{option.nat}</p>
-                          <div className="grid grid-cols-2 gap-1">
-                            {option.b1 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="bg-primary/10 text-xs"
-                                onClick={() => onSelectBet(option.nat, 'back', parseFloat(option.b1), 'match')}
-                              >
-                                {option.b1}
-                              </Button>
+                <div className="overflow-x-auto">
+                  <Table className="border">
+                    <TableHeader>
+                      <TableRow className="bg-slate-100">
+                        <TableHead className="font-semibold text-gray-900 min-w-[150px]"></TableHead>
+                        <TableHead className="text-center text-xs text-gray-600 w-12"></TableHead>
+                        <TableHead className="text-center text-xs text-gray-600 w-12"></TableHead>
+                        <TableHead className="text-center text-xs text-gray-600 w-12"></TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-20">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-20">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-20">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-20">Lay</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-20">Lay</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-20">Lay</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {matchMarkets[0]?.section?.map((team: any, idx: number) => (
+                        <TableRow key={idx} className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-gray-900 p-3">
+                            {team.gstatus === 'SUSPENDED' ? (
+                              <span className="text-red-600 font-semibold">SUSPENDED</span>
+                            ) : (
+                              team.nat || `Team ${idx + 1}`
                             )}
-                            {option.l1 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="bg-destructive/10 text-xs"
-                                onClick={() => onSelectBet(option.nat, 'lay', parseFloat(option.l1), 'match')}
-                              >
-                                {option.l1}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
+                          </TableCell>
+                          <TableCell className="bg-slate-50"></TableCell>
+                          <TableCell className="bg-slate-50"></TableCell>
+                          <TableCell className="bg-slate-50"></TableCell>
+                          {renderOddsCell(team.nat, 'back', team.b1, team.bs1, 'match', team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat, 'back', team.b2, team.bs2, 'match', team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat, 'back', team.b3, team.bs3, 'match', team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat, 'lay', team.l1, team.ls1, 'match', team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat, 'lay', team.l2, team.ls2, 'match', team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat, 'lay', team.l3, team.ls3, 'match', team.gstatus === 'SUSPENDED')}
+                        </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Bookmaker Section */}
+            {bookmakerMarkets.length > 0 && (
+              <div className="space-y-2">
+                <div className="bg-slate-700 text-white px-4 py-2 font-semibold">
+                  Bookmaker
+                </div>
+                <div className="overflow-x-auto">
+                  <Table className="border">
+                    <TableHeader>
+                      <TableRow className="bg-slate-100">
+                        <TableHead className="font-semibold text-gray-900 min-w-[150px]"></TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-24">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-24">Lay</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookmakerMarkets.map((bookmaker: any) => (
+                        <TableRow key={bookmaker.sid} className="hover:bg-slate-50">
+                          <TableCell className="font-medium text-gray-900 p-3">
+                            {bookmaker.gstatus === 'SUSPENDED' ? (
+                              <span className="text-red-600 font-semibold">SUSPENDED</span>
+                            ) : (
+                              bookmaker.nat
+                            )}
+                          </TableCell>
+                          {renderOddsCell(bookmaker.nat, 'back', bookmaker.b1, bookmaker.bs1, 'bookmaker', bookmaker.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(bookmaker.nat, 'lay', bookmaker.l1, bookmaker.ls1, 'bookmaker', bookmaker.gstatus === 'SUSPENDED')}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Fancy Markets Section */}
+            {fancyMarkets.length > 0 && (
+              <div className="space-y-4">
+                <div className="bg-slate-700 text-white px-4 py-2 font-semibold">
+                  Fancy Markets
+                </div>
+                
+                {/* Group fancy markets by type */}
+                {fancyMarkets.map((fancy: any) => (
+                  <div key={fancy.sid} className="space-y-2">
+                    <div className="bg-slate-600 text-white px-4 py-1.5 text-sm font-medium">
+                      {fancy.nat}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table className="border">
+                        <TableHeader>
+                          <TableRow className="bg-slate-100">
+                            <TableHead className="font-semibold text-gray-900 min-w-[120px]"></TableHead>
+                            <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-24">No</TableHead>
+                            <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-24">Yes</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow className="hover:bg-slate-50">
+                            <TableCell className="font-medium text-gray-900 p-3">
+                              {fancy.gstatus === 'SUSPENDED' ? (
+                                <span className="text-red-600 font-semibold">SUSPENDED</span>
+                              ) : (
+                                `Line: ${fancy.line || '-'}`
+                              )}
+                            </TableCell>
+                            {renderOddsCell(fancy.nat, 'lay', fancy.l1, fancy.ls1, 'fancy', fancy.gstatus === 'SUSPENDED')}
+                            {renderOddsCell(fancy.nat, 'back', fancy.b1, fancy.bs1, 'fancy', fancy.gstatus === 'SUSPENDED')}
+                          </TableRow>
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                 ))}
               </div>
-            </ScrollArea>
-          </TabsContent>
+            )}
 
-          <TabsContent value="fancy" className="mt-4">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
-                {fancyMarkets.length > 0 ? (
-                  fancyMarkets.map((fancy: any) => (
-                    <div key={fancy.sid} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium">{fancy.nat}</h4>
-                        {fancy.suspended && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Lock className="h-3 w-3 mr-1" />
-                            Suspended
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">No</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full bg-destructive/10"
-                            disabled={fancy.suspended}
-                            onClick={() => onSelectBet(fancy.nat, 'no', parseFloat(fancy.l1 || '0'), 'fancy')}
-                          >
-                            <div>
-                              <p className="font-bold">{fancy.l1 || '-'}</p>
-                              <p className="text-xs">{fancy.ls1 || ''}</p>
-                            </div>
-                          </Button>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Line</p>
-                          <div className="bg-muted rounded px-2 py-3">
-                            <p className="font-bold">{fancy.line || '-'}</p>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Yes</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full bg-primary/10"
-                            disabled={fancy.suspended}
-                            onClick={() => onSelectBet(fancy.nat, 'yes', parseFloat(fancy.b1 || '0'), 'fancy')}
-                          >
-                            <div>
-                              <p className="font-bold">{fancy.b1 || '-'}</p>
-                              <p className="text-xs">{fancy.bs1 || ''}</p>
-                            </div>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No fancy markets available</p>
-                    <p className="text-sm mt-2">Check back closer to match time</p>
-                  </div>
-                )}
+            {/* Empty state if no markets */}
+            {matchMarkets.length === 0 && bookmakerMarkets.length === 0 && fancyMarkets.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No betting markets available</p>
+                <p className="text-sm mt-2">Check back closer to match time</p>
               </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="bookmaker" className="mt-4">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
-                {bookmakerMarkets.length > 0 ? (
-                  bookmakerMarkets.map((bookmaker: any) => (
-                    <div key={bookmaker.sid} className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-3">{bookmaker.nat}</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">Back</p>
-                          <Button
-                            variant="outline"
-                            className="w-full bg-primary/10"
-                            onClick={() => onSelectBet(bookmaker.nat, 'back', parseFloat(bookmaker.b1 || '0'), 'bookmaker')}
-                          >
-                            <div>
-                              <p className="font-bold text-lg">{bookmaker.b1 || '-'}</p>
-                              <p className="text-xs">₹{bookmaker.bs1 || '0'}</p>
-                            </div>
-                          </Button>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">Lay</p>
-                          <Button
-                            variant="outline"
-                            className="w-full bg-destructive/10"
-                            onClick={() => onSelectBet(bookmaker.nat, 'lay', parseFloat(bookmaker.l1 || '0'), 'bookmaker')}
-                          >
-                            <div>
-                              <p className="font-bold text-lg">{bookmaker.l1 || '-'}</p>
-                              <p className="text-xs">₹{bookmaker.ls1 || '0'}</p>
-                            </div>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No bookmaker markets available</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="special" className="mt-4">
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
-                <div className="text-center py-12 text-muted-foreground">
-                  <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Special markets coming soon</p>
-                  <p className="text-sm mt-2">Check back for exclusive betting options</p>
-                </div>
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+            )}
+          </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
