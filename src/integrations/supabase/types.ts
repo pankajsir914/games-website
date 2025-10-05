@@ -143,6 +143,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_ip_whitelist: {
+        Row: {
+          added_by: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          ip_address: unknown
+          is_active: boolean | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address: unknown
+          is_active?: boolean | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       admin_payment_methods: {
         Row: {
           account_holder_name: string | null
@@ -861,6 +888,30 @@ export type Database = {
           sport_type?: string
           sync_interval?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      failed_login_attempts: {
+        Row: {
+          attempted_at: string | null
+          email: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          email: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempted_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -2348,6 +2399,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_tracking: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          ip_address: unknown | null
+          request_count: number | null
+          user_id: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          ip_address?: unknown | null
+          request_count?: number | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          ip_address?: unknown | null
+          request_count?: number | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       roulette_bets: {
         Row: {
           bet_amount: number
@@ -2572,6 +2653,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          request_data: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          response_status: number | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          request_data?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          response_status?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          request_data?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          response_status?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       sports_betting_odds: {
         Row: {
@@ -3354,12 +3474,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_ip_whitelist: {
+        Args: { p_ip_address: unknown }
+        Returns: boolean
+      }
       check_rate_limit: {
-        Args: {
-          p_endpoint: string
-          p_max_attempts?: number
-          p_window_minutes?: number
-        }
+        Args:
+          | {
+              p_endpoint: string
+              p_max_attempts?: number
+              p_window_minutes?: number
+            }
+          | {
+              p_endpoint?: string
+              p_ip_address?: unknown
+              p_max_requests?: number
+              p_user_id?: string
+              p_window_minutes?: number
+            }
         Returns: boolean
       }
       cleanup_inactive_poker_players: {
@@ -3548,6 +3680,16 @@ export type Database = {
         }
         Returns: string
       }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_request_data?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_response_status?: number
+        }
+        Returns: undefined
+      }
       manage_diamond_sports_sid: {
         Args:
           | {
@@ -3673,6 +3815,10 @@ export type Database = {
         }
         Returns: Json
       }
+      track_failed_login: {
+        Args: { p_email: string; p_ip_address?: unknown; p_user_agent?: string }
+        Returns: undefined
+      }
       transfer_admin_credits_to_user: {
         Args: { p_amount: number; p_notes?: string; p_user_id: string }
         Returns: Json
@@ -3710,6 +3856,10 @@ export type Database = {
       }
       validate_and_sanitize_input: {
         Args: { p_allow_html?: boolean; p_input: string; p_max_length?: number }
+        Returns: string
+      }
+      validate_input: {
+        Args: { p_input: string; p_input_type?: string; p_max_length?: number }
         Returns: string
       }
     }
