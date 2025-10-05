@@ -209,62 +209,6 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
           </div>
         </div>
 
-        {/* Odds Section */}
-        {showOdds && !isLive && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3" />
-              <span>Betting Odds</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-auto py-1.5 px-2 flex flex-col",
-                  "hover:bg-primary/10 hover:border-primary/50 transition-all",
-                  "group/odds"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[10px] text-muted-foreground">Home</span>
-                <span className="font-bold text-primary group-hover/odds:scale-110 transition-transform">
-                  {odds.home}
-                </span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-auto py-1.5 px-2 flex flex-col",
-                  "hover:bg-primary/10 hover:border-primary/50 transition-all",
-                  "group/odds"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[10px] text-muted-foreground">Draw</span>
-                <span className="font-bold text-primary group-hover/odds:scale-110 transition-transform">
-                  {odds.draw}
-                </span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-auto py-1.5 px-2 flex flex-col",
-                  "hover:bg-primary/10 hover:border-primary/50 transition-all",
-                  "group/odds"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[10px] text-muted-foreground">Away</span>
-                <span className="font-bold text-primary group-hover/odds:scale-110 transition-transform">
-                  {odds.away}
-                </span>
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Match Info */}
         <div className={cn(
