@@ -165,18 +165,19 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
                 )}
               </div>
             </div>
-            {scores && (
-              <div className="text-2xl font-bold text-primary animate-fade-in">
-                {scores.home}
-              </div>
-            )}
+            <div className={cn(
+              "text-3xl font-bold",
+              scores ? "text-primary animate-fade-in" : "text-muted-foreground/20"
+            )}>
+              {scores ? scores.home : "0"}
+            </div>
           </div>
 
-          {/* VS Divider */}
+          {/* VS Divider with Score Separator */}
           <div className="flex items-center justify-center relative">
             <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
             <span className="bg-card px-3 py-1 text-xs text-muted-foreground font-medium relative">
-              VS
+              {scores ? `${scores.home} - ${scores.away}` : "VS"}
             </span>
           </div>
 
@@ -199,11 +200,12 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
                 )}
               </div>
             </div>
-            {scores && (
-              <div className="text-2xl font-bold text-primary animate-fade-in">
-                {scores.away}
-              </div>
-            )}
+            <div className={cn(
+              "text-3xl font-bold",
+              scores ? "text-primary animate-fade-in" : "text-muted-foreground/20"
+            )}>
+              {scores ? scores.away : "0"}
+            </div>
           </div>
         </div>
 
