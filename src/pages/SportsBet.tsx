@@ -149,20 +149,33 @@ const SportsBet: React.FC = () => {
       try {
         console.log('Fetching odds for match:', matchId);
         
-        // Try multiple endpoints to get odds
-        let response = await callAPI(`sports/matchOdds`, {
-          params: { matchId: matchId }
+        // Primary: Try the getPriveteData endpoint with detailed odds
+        let response = await callAPI(`sports/getPriveteData`, {
+          params: { 
+            sid: '4', // Cricket sport ID
+            gmid: matchId 
+          }
         });
         
-        // If first endpoint fails, try alternative endpoints
+        console.log('Diamond getPriveteData response:', response);
+        
+        // If primary endpoint fails, try alternative endpoints
         if (!response?.success || !response.data) {
-          console.log('Trying alternative endpoint for odds...');
+          console.log('Trying alternative matchOdds endpoint...');
+          response = await callAPI(`sports/matchOdds`, {
+            params: { matchId: matchId }
+          });
+        }
+        
+        // Second fallback
+        if (!response?.success || !response.data) {
+          console.log('Trying odds endpoint...');
           response = await callAPI(`sports/odds`, {
             params: { eventId: matchId }
           });
         }
 
-        // Third attempt with markets endpoint
+        // Third fallback with markets endpoint
         if (!response?.success || !response.data) {
           console.log('Trying markets endpoint...');
           response = await callAPI(`markets/emid`, {
