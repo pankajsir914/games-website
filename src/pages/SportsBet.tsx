@@ -29,9 +29,52 @@ const SportsBet: React.FC = () => {
   const [betAmount, setBetAmount] = useState<string>('');
   const [isLoadingOdds, setIsLoadingOdds] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
+  const [liveTvUrl, setLiveTvUrl] = useState<string | null>(null);
+  const [isLoadingTv, setIsLoadingTv] = useState(false);
 
   const [liveScore, setLiveScore] = useState<any>(null);
   const [liveDetails, setLiveDetails] = useState<any>(null);
+
+  // Fetch live TV URL
+  useEffect(() => {
+    const fetchLiveTv = async () => {
+      if (!matchId || matchId === 'undefined') return;
+      
+      setIsLoadingTv(true);
+      try {
+        // Try to get live TV URL
+        const response = await callAPI('sports/livetv', { 
+          params: { eventId: matchId } 
+        });
+        
+        if (response?.success && response.data) {
+          const iframeUrl = response.data.iframeUrl || 
+                           response.data.url || 
+                           response.data.liveUrl ||
+                           response.data.hlsUrl ||
+                           response.data.streamUrl ||
+                           response.data.tv_url ||
+                           response.data.m3u8;
+          
+          if (iframeUrl) {
+            setLiveTvUrl(iframeUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching live TV:', error);
+      } finally {
+        setIsLoadingTv(false);
+      }
+    };
+
+    fetchLiveTv();
+    
+    // Refresh TV URL every 30 seconds for live matches
+    if (match?.status === 'Live') {
+      const interval = setInterval(fetchLiveTv, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [matchId, match?.status, callAPI]);
 
   // Fetch live match details and score
   useEffect(() => {
@@ -551,11 +594,43 @@ const SportsBet: React.FC = () => {
 
           {/* Live TV Tab */}
           <TabsContent value="livetv" className="space-y-6">
-            <LiveTVSection 
-              matchId={matchId || ''} 
-              match={match} 
-              isLive={match?.status === 'Live'} 
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tv className="h-5 w-5" />
+                  Live Match Stream
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingTv ? (
+                  <div className="bg-muted rounded-lg p-12 text-center">
+                    <div className="animate-pulse">
+                      <Tv className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">Loading live stream...</p>
+                    </div>
+                  </div>
+                ) : liveTvUrl ? (
+                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      src={liveTvUrl}
+                      className="absolute top-0 left-0 w-full h-full rounded-lg"
+                      allowFullScreen
+                      frameBorder="0"
+                      title="Live Match Stream"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                  </div>
+                ) : (
+                  <div className="bg-muted rounded-lg p-12 text-center">
+                    <Tv className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Live stream not available</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {match?.status === 'Live' ? 'Stream will start soon' : 'Check back when the match starts'}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Match Details Tab */}
