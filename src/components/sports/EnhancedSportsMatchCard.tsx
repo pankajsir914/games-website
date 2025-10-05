@@ -280,8 +280,11 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
         )}
 
         {/* Match Info */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/30">
-          <div className="flex items-center gap-3">
+        <div className={cn(
+          "flex items-center justify-between text-xs pt-2 border-t border-border/30",
+          isLive ? "text-foreground font-medium" : "text-muted-foreground"
+        )}>
+          <div className="flex items-center gap-3 flex-wrap">
             {!isLive && (
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
@@ -295,9 +298,12 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
               </div>
             )}
             {match.venue && (
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span className="truncate max-w-[100px]">{match.venue}</span>
+              <div className={cn(
+                "flex items-center gap-1",
+                isLive && "bg-primary/10 px-2 py-1 rounded"
+              )}>
+                <MapPin className={cn("h-3 w-3", isLive && "text-primary")} />
+                <span className="truncate max-w-[150px]">{match.venue}</span>
               </div>
             )}
           </div>
