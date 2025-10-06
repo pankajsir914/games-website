@@ -71,7 +71,11 @@ serve(async (req) => {
           path = body.path || path;
           sid = body.sid ?? null;
           gmid = body.gmid ?? null;
-          qs = typeof body.params === 'object' && body.params ? body.params : {};
+          // Extract params from body but don't override sid/gmid
+          const bodyParams = typeof body.params === 'object' && body.params ? body.params : {};
+          // Remove sid and gmid from params if they exist there
+          const { sid: _, gmid: __, ...cleanParams } = bodyParams;
+          qs = cleanParams;
           method = (body.method || 'GET').toString().toUpperCase();
           payload = body.payload ?? null;
         } catch (_) {
