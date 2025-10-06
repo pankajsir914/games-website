@@ -6,12 +6,12 @@ const corsHeaders = {
 };
 
 // Get API key from environment variable (secure)
-const RAPIDAPI_KEY = Deno.env.get('DIAMOND_SPORTS_RAPIDAPI_KEY') || Deno.env.get('RAPIDAPI_KEY');
+const RAPIDAPI_KEY = Deno.env.get('RAPIDAPI_KEY');
 const DIAMOND_HOST = 'diamond-sports-api-d247-sky-exchange-betfair.p.rapidapi.com';
 
 // Check if API key is available
 if (!RAPIDAPI_KEY) {
-  console.error('DIAMOND_SPORTS_RAPIDAPI_KEY is not configured in environment variables');
+  console.error('RAPIDAPI_KEY is not configured in environment variables');
 }
 
 // Simple in-memory cache with longer TTL
@@ -48,7 +48,6 @@ serve(async (req) => {
     // Parse inputs from JSON body or query string
     let path = 'sports/esid';
     let sid: string | null = null;
-    let gmid: string | null = null;
     let qs: Record<string, string> = {};
     let method = 'GET';
     let payload: any = null;
@@ -58,10 +57,9 @@ serve(async (req) => {
       method = 'GET';
       path = url.searchParams.get('path') || path;
       sid = url.searchParams.get('sid');
-      gmid = url.searchParams.get('gmid');
       // collect any extra query params
       url.searchParams.forEach((v, k) => {
-        if (!['path', 'sid', 'gmid'].includes(k)) qs[k] = v;
+        if (!['path', 'sid'].includes(k)) qs[k] = v;
       });
     } else {
       const text = await req.text();
@@ -70,12 +68,7 @@ serve(async (req) => {
           const body = JSON.parse(text);
           path = body.path || path;
           sid = body.sid ?? null;
-          gmid = body.gmid ?? null;
-          // Extract params from body but don't override sid/gmid
-          const bodyParams = typeof body.params === 'object' && body.params ? body.params : {};
-          // Remove sid and gmid from params if they exist there
-          const { sid: _, gmid: __, ...cleanParams } = bodyParams;
-          qs = cleanParams;
+          qs = typeof body.params === 'object' && body.params ? body.params : {};
           method = (body.method || 'GET').toString().toUpperCase();
           payload = body.payload ?? null;
         } catch (_) {
@@ -96,24 +89,13 @@ serve(async (req) => {
       });
     }
 
-    // Require sid and gmid for getPriveteData endpoint
-    if (path === 'sports/getPriveteData' && (!sid || !gmid)) {
-      console.log('Missing SID or GMID for sports/getPriveteData endpoint');
-      return new Response(JSON.stringify({ success: false, error: 'sid and gmid are required for sports/getPriveteData', data: [] }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const params = new URLSearchParams(qs);
     if (sid) params.set('sid', String(sid));
-    if (gmid) params.set('gmid', String(gmid));
     const targetUrl = `https://${DIAMOND_HOST}/${path}${params.toString() ? `?${params.toString()}` : ''}`;
     
     console.log('Request details:', {
       path,
       sid,
-      gmid,
       params: Object.fromEntries(params),
       targetUrl,
       method

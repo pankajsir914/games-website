@@ -14,7 +14,6 @@ interface DiamondAPIOptions {
   params?: Record<string, string>;
   payload?: any;
   sid?: string;
-  gmid?: string;
 }
 
 export function useDiamondSportsAPI() {
@@ -35,8 +34,7 @@ export function useDiamondSportsAPI() {
           method: options.method || 'GET',
           params: options.params,
           payload: options.payload,
-          sid: options.sid,
-          gmid: options.gmid
+          sid: options.sid
         }
       });
 
