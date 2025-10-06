@@ -151,10 +151,8 @@ const SportsBet: React.FC = () => {
         
         // Primary: Try the getPriveteData endpoint with detailed odds
         let response = await callAPI(`sports/getPriveteData`, {
-          params: { 
-            sid: '4', // Cricket sport ID
-            gmid: matchId 
-          }
+          sid: '4', // Cricket sport ID
+          gmid: matchId
         });
         
         console.log('Diamond getPriveteData response:', response);
