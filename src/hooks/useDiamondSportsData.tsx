@@ -89,24 +89,45 @@ export function useDiamondSportsData() {
       console.log('Fetching matches for', targetSport.sport_type, 'with SID:', targetSport.sid);
       const response = await diamondAPI.getAllMatch(targetSport.sid);
       
+      console.log('Diamond API response structure:', response);
+      
       if (response?.success && response?.data) {
+        // Check if API returned an error in the data
+        if (response.data.status === false || response.data.error) {
+          console.error('Diamond API error in response:', response.data);
+          throw new Error(response.data.error || 'API returned error status');
+        }
+        
         // Handle different data structures from the API
         let matchData = response.data;
         
+        // Diamond API structure: data.t1 array contains matches
+        if (matchData.data?.t1 && Array.isArray(matchData.data.t1)) {
+          console.log('Diamond API response: found data.data.t1 structure');
+          matchData = matchData.data.t1;
+        }
         // If data is nested in a 'data' property
-        if (matchData.data && Array.isArray(matchData.data)) {
+        else if (matchData.data && Array.isArray(matchData.data)) {
           matchData = matchData.data;
+        }
+        // If data has 't1' property (another Diamond API structure)
+        else if (matchData.t1 && Array.isArray(matchData.t1)) {
+          matchData = matchData.t1;
         }
         // If data has 'matches' property
         else if (matchData.matches && Array.isArray(matchData.matches)) {
           matchData = matchData.matches;
         }
+        
         // Ensure we have an array
-        else if (!Array.isArray(matchData)) {
-          matchData = Object.values(matchData).filter(item => 
-            typeof item === 'object' && item !== null
+        if (!Array.isArray(matchData)) {
+          console.warn('Match data is not an array, attempting to convert:', matchData);
+          matchData = Object.values(matchData).filter((item): item is Record<string, any> => 
+            typeof item === 'object' && item !== null && 'gmid' in item
           );
         }
+        
+        console.log('Processing', matchData.length, 'matches from Diamond API');
         
         // Enrich matches with sport type
         const enrichedMatches = matchData.map((match: any) => ({
