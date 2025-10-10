@@ -167,20 +167,68 @@ serve(async (req) => {
     }
 
     if (!res.ok) {
-      // Handle rate limiting
+      // Handle different error types with specific messages
       if (res.status === 429) {
         consecutiveRateLimits++;
-        rateLimitBackoff = Math.min(30000, MIN_REQUEST_INTERVAL * Math.pow(2, consecutiveRateLimits)); // Max 30s backoff
+        rateLimitBackoff = Math.min(30000, MIN_REQUEST_INTERVAL * Math.pow(2, consecutiveRateLimits));
         console.log(`Rate limited (429). Increasing backoff to ${rateLimitBackoff}ms`);
         
-        // Cache the error to prevent immediate retries
         cache.set(cacheKey, { 
           data: { error: 'Rate limited. Please try again later.', status: 429 }, 
           ts: now,
           retryAfter: rateLimitBackoff 
         });
+        
+        return new Response(JSON.stringify({ 
+          success: false, 
+          provider: 'diamond', 
+          error: 'Rate limited. Please try again in a moment.',
+          errorCode: 429,
+          data: [] 
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else if (res.status === 404) {
+        console.log(`Resource not found (404) for: ${targetUrl}`);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          provider: 'diamond', 
+          error: 'Odds not available for this match. The match may not have started yet or has ended.',
+          errorCode: 404,
+          debug: {
+            path,
+            sid,
+            gmid,
+            targetUrl
+          },
+          data: [] 
+        }), {
+          status: 200, // Return 200 so frontend doesn't treat as error
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
-      throw new Error(`Diamond API error ${res.status}: ${res.statusText}`);
+      
+      console.error(`Diamond API error ${res.status}: ${res.statusText} for ${targetUrl}`);
+      console.error(`Response body: ${text}`);
+      
+      return new Response(JSON.stringify({ 
+        success: false, 
+        provider: 'diamond', 
+        error: `API error: ${res.statusText}`,
+        errorCode: res.status,
+        debug: {
+          path,
+          sid,
+          gmid,
+          targetUrl,
+          response: text.substring(0, 200)
+        },
+        data: [] 
+      }), {
+        status: res.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
     
     // Reset rate limit counters on successful request

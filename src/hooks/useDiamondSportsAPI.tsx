@@ -7,6 +7,8 @@ export interface DiamondAPIResponse<T = any> {
   cached?: boolean;
   data: T;
   error?: string;
+  errorCode?: number;
+  debug?: any;
 }
 
 interface DiamondAPIOptions {
@@ -64,9 +66,17 @@ export function useDiamondSportsAPI() {
   const getAllMatch = useCallback((sid?: string) => 
     callAPI('sports/esid', { sid }), [callAPI]);
 
+  // Get detailed odds/market data for a specific match (getPriveteData endpoint)
+  const getPriveteData = useCallback(async (sid: string, gmid: string) => {
+    if (!sid || !gmid) {
+      setError('Both SID and GMID are required');
+      return null;
+    }
+    return callAPI<any>('sports/getPriveteData', { sid, gmid });
+  }, [callAPI]);
+
   const getOdds = useCallback((eventId: string) => 
     callAPI('sports/odds', { params: { eventId } }), [callAPI]);
-
 
   const getLiveTv = useCallback((eventId: string) => 
     callAPI('sports/livetv', { params: { eventId } }), [callAPI]);
@@ -106,6 +116,7 @@ export function useDiamondSportsAPI() {
     // Specific endpoints
     getAllSportsId,
     getAllMatch,
+    getPriveteData,
     getOdds,
     getLiveTv,
     getSportsScore,

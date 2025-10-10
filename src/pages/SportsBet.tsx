@@ -7,19 +7,20 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, Tv, FileText, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import LiveTVSection from '@/components/sports/LiveTVSection';
 import EnhancedOddsDisplay from '@/components/sports/EnhancedOddsDisplay';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = location;
-  const { callAPI } = useDiamondSportsAPI();
+  const { getPriveteData, callAPI } = useDiamondSportsAPI();
   const { wallet } = useWallet();
   const { toast } = useToast();
   
@@ -31,9 +32,23 @@ const SportsBet: React.FC = () => {
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [liveTvUrl, setLiveTvUrl] = useState<string | null>(null);
   const [isLoadingTv, setIsLoadingTv] = useState(false);
+  const [oddsError, setOddsError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [apiDebugInfo, setApiDebugInfo] = useState<any>(null);
 
   const [liveScore, setLiveScore] = useState<any>(null);
   const [liveDetails, setLiveDetails] = useState<any>(null);
+
+  // Helper: Get SID from sport type
+  const getSportSID = (sportType: string): string => {
+    const sidMap: Record<string, string> = {
+      'Cricket': '4',
+      'Football': '1', 
+      'Tennis': '2',
+      'Soccer': '1'
+    };
+    return sidMap[sportType] || '4'; // Default to cricket
+  };
 
   // Fetch live TV URL
   useEffect(() => {
@@ -136,66 +151,79 @@ const SportsBet: React.FC = () => {
   useEffect(() => {
     const fetchOdds = async () => {
       if (!matchId || matchId === 'undefined') {
-        console.error('Invalid match ID:', matchId);
-        toast({
-          title: "Error",
-          description: "Invalid match ID. Please select a valid match.",
-          variant: "destructive"
-        });
+        const errorMsg = 'Invalid match ID. Please select a valid match.';
+        setOddsError(errorMsg);
+        setApiDebugInfo({ error: errorMsg, matchId, sport });
         return;
       }
       
       setIsLoadingOdds(true);
+      setOddsError(null);
+      
       try {
-        console.log('Fetching odds for match:', matchId);
+        const sid = getSportSID(sport || 'Cricket');
+        console.log(`Fetching odds: SID=${sid}, GMID=${matchId}, Sport=${sport}`);
         
-        // Primary: Try the getPriveteData endpoint with detailed odds
-        let response = await callAPI(`sports/getPriveteData`, {
-          sid: '4', // Cricket sport ID
-          gmid: matchId
+        // Primary: Use the dedicated getPriveteData function
+        const response = await getPriveteData(sid, matchId);
+        
+        // Store debug info
+        setApiDebugInfo({
+          endpoint: 'sports/getPriveteData',
+          sid,
+          gmid: matchId,
+          sport,
+          success: response?.success,
+          errorCode: response?.errorCode,
+          error: response?.error,
+          dataReceived: !!response?.data,
+          timestamp: new Date().toISOString()
         });
         
-        console.log('Diamond getPriveteData response:', response);
-        
-        // If primary endpoint fails, try alternative endpoints
-        if (!response?.success || !response.data) {
-          console.log('Trying alternative matchOdds endpoint...');
-          response = await callAPI(`sports/matchOdds`, {
-            params: { matchId: matchId }
-          });
-        }
-        
-        // Second fallback
-        if (!response?.success || !response.data) {
-          console.log('Trying odds endpoint...');
-          response = await callAPI(`sports/odds`, {
-            params: { eventId: matchId }
-          });
-        }
-
-        // Third fallback with markets endpoint
-        if (!response?.success || !response.data) {
-          console.log('Trying markets endpoint...');
-          response = await callAPI(`markets/emid`, {
-            params: { emid: matchId }
-          });
-        }
+        console.log('Diamond API response:', response);
         
         if (response?.success && response.data) {
-          console.log('Odds data received:', response.data);
           setOdds(response.data);
+          setOddsError(null);
         } else {
-          console.warn('No odds data available for match:', matchId);
-          toast({
-            title: "Limited odds available",
-            description: "Live odds are being fetched. Please wait...",
-          });
+          // Handle specific error cases
+          const errorMsg = response?.error || 'Odds not available for this match';
+          setOddsError(errorMsg);
+          
+          // Show user-friendly toast based on error type
+          if (response?.errorCode === 404) {
+            toast({
+              title: "Odds Not Available",
+              description: "This match doesn't have live odds yet. Check back when the match starts.",
+            });
+          } else if (response?.errorCode === 429) {
+            toast({
+              title: "Too Many Requests",
+              description: "Please wait a moment before refreshing odds.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Loading Odds",
+              description: "Connecting to live odds feed...",
+            });
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch odds:', error);
+        const errorMsg = error?.message || 'Failed to load odds';
+        setOddsError(errorMsg);
+        setApiDebugInfo({
+          error: errorMsg,
+          matchId,
+          sport,
+          timestamp: new Date().toISOString()
+        });
+        
         toast({
-          title: "Fetching live data",
-          description: "Connecting to live odds feed...",
+          title: "Connection Error",
+          description: "Unable to fetch odds. Please check your connection.",
+          variant: "destructive"
         });
       } finally {
         setIsLoadingOdds(false);
@@ -212,7 +240,7 @@ const SportsBet: React.FC = () => {
     }, 10000);
 
     return () => clearInterval(oddsInterval);
-  }, [matchId, match?.status, callAPI, toast]);
+  }, [matchId, match?.status, sport, getPriveteData, toast]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({
@@ -413,6 +441,53 @@ const SportsBet: React.FC = () => {
 
           {/* ODDS Tab */}
           <TabsContent value="odds" className="space-y-6">
+            {/* Error Alert with Refresh */}
+            {oddsError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>{oddsError}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.reload()}
+                    className="ml-4"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Retry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Debug Panel (Dev Mode) */}
+            {apiDebugInfo && (
+              <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+                <CardHeader className="cursor-pointer" onClick={() => setShowDebug(!showDebug)}>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      API Diagnostic Info
+                    </CardTitle>
+                    {showDebug ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </CardHeader>
+                {showDebug && (
+                  <CardContent className="text-xs font-mono space-y-1">
+                    <div><strong>Match ID (gmid):</strong> {apiDebugInfo.gmid || matchId}</div>
+                    <div><strong>Sport ID (sid):</strong> {apiDebugInfo.sid || getSportSID(sport || 'Cricket')}</div>
+                    <div><strong>Sport Type:</strong> {apiDebugInfo.sport || sport}</div>
+                    <div><strong>Endpoint:</strong> {apiDebugInfo.endpoint || 'sports/getPriveteData'}</div>
+                    <div><strong>Success:</strong> {apiDebugInfo.success ? '✅ Yes' : '❌ No'}</div>
+                    {apiDebugInfo.errorCode && <div><strong>Error Code:</strong> {apiDebugInfo.errorCode}</div>}
+                    {apiDebugInfo.error && <div><strong>Error:</strong> {apiDebugInfo.error}</div>}
+                    <div><strong>Data Received:</strong> {apiDebugInfo.dataReceived ? '✅ Yes' : '❌ No'}</div>
+                    <div><strong>Timestamp:</strong> {apiDebugInfo.timestamp || new Date().toISOString()}</div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <EnhancedOddsDisplay 
