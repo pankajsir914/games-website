@@ -37,10 +37,10 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
     );
   }
 
-  // Organize markets by type
-  const matchMarkets = odds.data?.t1 || odds.markets || [];
-  const fancyMarkets = odds.data?.t2 || [];
-  const bookmakerMarkets = odds.data?.t3 || [];
+  // Organize markets by type - handle both direct and nested formats
+  const matchMarkets = odds.t1 || odds.data?.t1 || odds.markets || [];
+  const fancyMarkets = odds.t2 || odds.data?.t2 || [];
+  const bookmakerMarkets = odds.t3 || odds.data?.t3 || [];
 
   // Render odds cell with proper styling
   const renderOddsCell = (
