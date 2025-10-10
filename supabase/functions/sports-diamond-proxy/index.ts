@@ -238,10 +238,61 @@ serve(async (req) => {
     // Normalize the response structure for consistency
     let normalizedData = json;
     
-    // If the response has the nested Diamond API structure, extract the matches
-    if (json?.data?.t1) {
-      console.log('Normalizing Diamond API response: found data.t1 structure');
-      normalizedData = json;  // Keep full structure for detailed parsing in frontend
+    // Transform getPriveteData response to t1/t2/t3 format
+    if (path === 'sports/getPriveteData' && json?.data) {
+      console.log('Transforming Diamond API getPriveteData response');
+      
+      const markets = Array.isArray(json.data) ? json.data : [];
+      const transformed: any = { t1: [], t2: [], t3: [] };
+      
+      markets.forEach((market: any) => {
+        const mname = market.mname?.toUpperCase() || '';
+        
+        // Transform section array: convert odds[] to b1/l1 format
+        const transformedSection = (market.section || []).map((team: any) => {
+          const backOdds = (team.odds || []).filter((o: any) => o.otype === 'back');
+          const layOdds = (team.odds || []).filter((o: any) => o.otype === 'lay');
+          
+          return {
+            sid: team.sid,
+            nat: team.nat,
+            gstatus: team.gstatus || 'ACTIVE',
+            b1: backOdds[0]?.odds || null,
+            bs1: backOdds[0]?.size || null,
+            b2: backOdds[1]?.odds || null,
+            bs2: backOdds[1]?.size || null,
+            b3: backOdds[2]?.odds || null,
+            bs3: backOdds[2]?.size || null,
+            l1: layOdds[0]?.odds || null,
+            ls1: layOdds[0]?.size || null,
+            l2: layOdds[1]?.odds || null,
+            ls2: layOdds[1]?.size || null,
+            l3: layOdds[2]?.odds || null,
+            ls3: layOdds[2]?.size || null,
+          };
+        });
+        
+        const transformedMarket = {
+          ...market,
+          section: transformedSection
+        };
+        
+        // Categorize by market type
+        if (mname.includes('MATCH') || mname === 'ODDS') {
+          transformed.t1.push(transformedMarket);
+        } else if (mname.includes('BOOKMAKER')) {
+          transformed.t3.push(transformedMarket);
+        } else {
+          transformed.t2.push(transformedMarket); // Fancy markets
+        }
+      });
+      
+      normalizedData = transformed;
+      console.log('Transformed structure:', { 
+        matchMarkets: transformed.t1.length, 
+        fancyMarkets: transformed.t2.length,
+        bookmakerMarkets: transformed.t3.length 
+      });
     }
     
     if (method === 'GET') cache.set(cacheKey, { data: normalizedData, ts: now });
