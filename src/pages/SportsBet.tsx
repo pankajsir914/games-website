@@ -20,7 +20,7 @@ const SportsBet: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = location;
-  const { getPriveteData, callAPI } = useDiamondSportsAPI();
+  const { getPriveteData, callAPI, getBetfairScoreTv } = useDiamondSportsAPI();
   const { wallet } = useWallet();
   const { toast } = useToast();
   
@@ -50,29 +50,40 @@ const SportsBet: React.FC = () => {
     return sidMap[sportType] || '4'; // Default to cricket
   };
 
-  // Fetch live TV URL
+  // Fetch live TV URL using Betfair Score TV endpoint
   useEffect(() => {
     const fetchLiveTv = async () => {
       if (!matchId || matchId === 'undefined') return;
       
       setIsLoadingTv(true);
       try {
-        // Try to get live TV URL
-        const response = await callAPI('sports/livetv', { 
-          params: { eventId: matchId } 
-        });
+        const sportSid = getSportSID(sport || 'Cricket');
+        
+        // Use the new getBetfairScoreTv endpoint
+        const response = await getBetfairScoreTv(
+          matchId, // diamondeventid
+          sportSid  // diamondsportsid
+        );
+        
+        console.log('Betfair Score TV Response:', response);
         
         if (response?.success && response.data) {
-          const iframeUrl = response.data.iframeUrl || 
-                           response.data.url || 
-                           response.data.liveUrl ||
-                           response.data.hlsUrl ||
-                           response.data.streamUrl ||
-                           response.data.tv_url ||
-                           response.data.m3u8;
+          // Check for various TV URL formats in the response
+          const tvData = response.data.data || response.data;
+          const iframeUrl = tvData?.tv_url || 
+                           tvData?.iframeUrl || 
+                           tvData?.url || 
+                           tvData?.liveUrl ||
+                           tvData?.hlsUrl ||
+                           tvData?.streamUrl ||
+                           tvData?.m3u8 ||
+                           tvData?.stream_url;
           
           if (iframeUrl) {
+            console.log('Found TV URL:', iframeUrl);
             setLiveTvUrl(iframeUrl);
+          } else {
+            console.log('No TV URL found in response');
           }
         }
       } catch (error) {
@@ -89,7 +100,7 @@ const SportsBet: React.FC = () => {
       const interval = setInterval(fetchLiveTv, 30000);
       return () => clearInterval(interval);
     }
-  }, [matchId, match?.status, callAPI]);
+  }, [matchId, match?.status, sport, getBetfairScoreTv]);
 
   // Fetch live match details and score
   useEffect(() => {
@@ -685,6 +696,41 @@ const SportsBet: React.FC = () => {
                 <CardTitle className="flex items-center gap-2">
                   <Tv className="h-5 w-5" />
                   Live Match Stream
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsLoadingTv(true);
+                      const sportSid = getSportSID(sport || 'Cricket');
+                      getBetfairScoreTv(matchId!, sportSid).then((response) => {
+                        console.log('Manual refresh response:', response);
+                        if (response?.success && response.data) {
+                          const tvData = response.data.data || response.data;
+                          const iframeUrl = tvData?.tv_url || tvData?.iframeUrl || tvData?.url;
+                          if (iframeUrl) {
+                            setLiveTvUrl(iframeUrl);
+                            toast({ title: 'Stream refreshed successfully' });
+                          } else {
+                            toast({ 
+                              title: 'No stream available', 
+                              description: 'Live stream URL not found in response',
+                              variant: 'destructive' 
+                            });
+                          }
+                        } else {
+                          toast({ 
+                            title: 'Failed to load stream', 
+                            description: response?.error || 'Unknown error',
+                            variant: 'destructive' 
+                          });
+                        }
+                        setIsLoadingTv(false);
+                      });
+                    }}
+                    disabled={isLoadingTv}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoadingTv ? 'animate-spin' : ''}`} />
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -712,6 +758,9 @@ const SportsBet: React.FC = () => {
                     <p className="text-muted-foreground">Live stream not available</p>
                     <p className="text-sm text-muted-foreground mt-2">
                       {match?.status === 'Live' ? 'Stream will start soon' : 'Check back when the match starts'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Match ID: {matchId} | Sport SID: {getSportSID(sport || 'Cricket')}
                     </p>
                   </div>
                 )}
