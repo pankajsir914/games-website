@@ -3327,6 +3327,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          expires_at: string | null
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -3638,6 +3677,14 @@ export type Database = {
         Args: { p_id: string } | { p_sport_type: string }
         Returns: Json
       }
+      enforce_single_device_login: {
+        Args: {
+          p_device_info?: Json
+          p_session_token: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       get_admin_credit_balance: {
         Args: { _admin_id?: string }
         Returns: number
@@ -3712,6 +3759,10 @@ export type Database = {
       }
       is_master_admin_user: {
         Args: { _user_id: string }
+        Returns: boolean
+      }
+      is_session_valid: {
+        Args: { p_session_token: string }
         Returns: boolean
       }
       join_jackpot_round: {

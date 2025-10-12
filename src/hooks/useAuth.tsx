@@ -1,5 +1,4 @@
-
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -39,6 +38,86 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Get device information for session tracking
+  const getDeviceInfo = () => {
+    return {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      screenResolution: `${window.screen.width}x${window.screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+  };
+
+  // Enforce single device login
+  const enforceSingleSession = async (userId: string, sessionToken: string) => {
+    try {
+      const deviceInfo = getDeviceInfo();
+      
+      const { data, error } = await supabase.rpc('enforce_single_device_login', {
+        p_user_id: userId,
+        p_session_token: sessionToken,
+        p_device_info: deviceInfo
+      });
+
+      if (error) {
+        console.error('Failed to enforce single session:', error);
+        return;
+      }
+
+      const result = data as { success: boolean; invalidated_sessions: number; message: string } | null;
+      
+      if (result && result.invalidated_sessions > 0) {
+        toast({
+          title: "Previous sessions logged out",
+          description: `You were logged out from ${result.invalidated_sessions} other device(s).`,
+        });
+      }
+
+      // Store session token in localStorage for validation
+      localStorage.setItem('session_token', sessionToken);
+    } catch (error) {
+      console.error('Error enforcing single session:', error);
+    }
+  };
+
+  // Validate current session
+  const validateSession = useCallback(async () => {
+    const sessionToken = localStorage.getItem('session_token');
+    
+    if (!sessionToken || !session) {
+      return true; // Allow if no stored token
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('is_session_valid', {
+        p_session_token: sessionToken
+      });
+
+      if (error) {
+        console.error('Session validation error:', error);
+        return true; // Allow on error
+      }
+
+      // If session is not valid, force logout
+      if (!data) {
+        toast({
+          title: "Session Expired",
+          description: "You have been logged in on another device.",
+          variant: "destructive",
+        });
+        
+        await signOut();
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error validating session:', error);
+      return true; // Allow on error
+    }
+  }, [session]);
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -94,6 +173,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error('Failed to track login attempt:', trackError);
         }
         throw error;
+      }
+
+      // Enforce single device login
+      if (data.session && data.user) {
+        await enforceSingleSession(data.user.id, data.session.access_token);
       }
       
       toast({
@@ -115,6 +199,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     setLoading(true);
     try {
+      // Clear stored session token
+      localStorage.removeItem('session_token');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -156,6 +243,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const clearPasswordChangeFlag = () => {
     setRequiresPasswordChange(false);
   };
+
+  // Periodic session validation (every 30 seconds)
+  useEffect(() => {
+    if (!session) return;
+
+    // Validate session immediately
+    validateSession();
+
+    // Set up periodic validation
+    const intervalId = setInterval(() => {
+      validateSession();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [session, validateSession]);
 
   return (
     <AuthContext.Provider value={{
