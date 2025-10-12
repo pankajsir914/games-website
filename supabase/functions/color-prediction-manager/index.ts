@@ -287,10 +287,10 @@ serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        // Only create new round if last result was shown for at least 5 seconds
+        // Only create new round if last result was shown for at least 3 seconds
         if (lastCompletedRound?.draw_time) {
           const timeSinceCompletion = Date.now() - new Date(lastCompletedRound.draw_time).getTime();
-          const minDisplayTime = 5000; // 5 seconds
+          const minDisplayTime = 3000; // 3 seconds
           
           if (timeSinceCompletion < minDisplayTime) {
             console.log(`Waiting for result display (${Math.floor(timeSinceCompletion / 1000)}s / ${minDisplayTime / 1000}s)`);

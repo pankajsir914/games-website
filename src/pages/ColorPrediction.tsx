@@ -41,7 +41,7 @@ const ColorPrediction = () => {
     if (lastCompletedRound?.winning_color) {
       console.log('🎉 Showing winner celebration for:', lastCompletedRound.winning_color);
       setShowWinner(true);
-      const timer = setTimeout(() => setShowWinner(false), 5000);
+      const timer = setTimeout(() => setShowWinner(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [lastCompletedRound?.id]);
