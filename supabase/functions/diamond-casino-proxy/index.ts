@@ -40,38 +40,25 @@ serve(async (req) => {
         throw new Error(`Failed to fetch table IDs: ${tableIdsResponse.statusText}`);
       }
 
-      const tableIds = await tableIdsResponse.json();
-      console.log('Fetched table IDs:', tableIds);
+      const apiResponse = await tableIdsResponse.json();
+      console.log('Fetched API response:', apiResponse);
 
-      // Step 2: Fetch data for each table type
-      const tables = [];
-      for (const tableId of tableIds) {
-        try {
-          const tableDataResponse = await fetch(
-            `https://${RAPIDAPI_HOST}/casino/data?type=${tableId}`,
-            {
-              headers: {
-                'x-rapidapi-key': RAPIDAPI_KEY,
-                'x-rapidapi-host': RAPIDAPI_HOST
-              }
-            }
-          );
-
-          if (tableDataResponse.ok) {
-            const tableData = await tableDataResponse.json();
-            tables.push({
-              id: tableId,
-              name: tableData.gname || tableData.name || tableId,
-              type: tableId,
-              data: tableData,
-              status: 'active',
-              players: 0
-            });
-          }
-        } catch (error) {
-          console.error(`Error fetching data for table ${tableId}:`, error);
-        }
+      // Extract table objects from response
+      const tableObjects = apiResponse?.data?.t1 || [];
+      
+      if (!Array.isArray(tableObjects)) {
+        throw new Error('Invalid API response structure');
       }
+
+      // Transform table objects to our format
+      const tables = tableObjects.map((table: any) => ({
+        id: table.gmid,
+        name: table.gname,
+        type: table.gmid,
+        data: table,
+        status: 'active',
+        players: 0
+      }));
 
       // Update database cache
       for (const table of tables) {
