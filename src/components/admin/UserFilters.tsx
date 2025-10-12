@@ -71,11 +71,6 @@ export const UserFilters = ({ filters, onFiltersChange }: UserFiltersProps) => {
             <SelectItem value="month">This Month</SelectItem>
           </SelectContent>
         </Select>
-
-        <Button variant="outline" className="w-full sm:w-auto">
-          <Filter className="mr-2 h-4 w-4" />
-          More Filters
-        </Button>
       </div>
     </div>
   );
