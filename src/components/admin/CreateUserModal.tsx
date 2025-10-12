@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useCreateUser } from '@/hooks/useCreateUser';
 
@@ -29,6 +29,7 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -217,13 +218,25 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Create a password (min. 6 characters)"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className={`pl-10 ${errors.password ? 'border-destructive' : ''}`}
+                className={`pl-10 pr-10 ${errors.password ? 'border-destructive' : ''}`}
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
             </div>
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password}</p>
