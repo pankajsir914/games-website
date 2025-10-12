@@ -57,7 +57,7 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
           "text-center p-2 cursor-not-allowed",
           type === 'back' ? "bg-blue-100" : "bg-pink-100"
         )}>
-          <span className="text-xs text-red-600 font-semibold">-</span>
+          <span className="text-xs text-destructive font-semibold">-</span>
         </TableCell>
       );
     }
@@ -76,8 +76,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
         onClick={() => !isSuspended && onSelectBet(selection, type, parseFloat(rate.toString()), marketType)}
       >
         <div className="flex flex-col items-center">
-          <span className="font-bold text-base text-gray-900">{parseFloat(rate.toString()).toFixed(2)}</span>
-          {size && <span className="text-xs text-gray-700">{size}</span>}
+          <span className="font-bold text-base text-foreground">{parseFloat(rate.toString()).toFixed(2)}</span>
+          {size && <span className="text-xs text-foreground/80">{size}</span>}
         </div>
       </TableCell>
     );
@@ -97,25 +97,25 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                 <div className="overflow-x-auto">
                   <Table className="border">
                     <TableHeader>
-                      <TableRow className="bg-slate-100">
-                        <TableHead className="font-semibold text-gray-900 min-w-[150px]"></TableHead>
-                        <TableHead className="text-center text-xs text-gray-600 w-12"></TableHead>
-                        <TableHead className="text-center text-xs text-gray-600 w-12"></TableHead>
-                        <TableHead className="text-center text-xs text-gray-600 w-12"></TableHead>
-                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-20">Back</TableHead>
-                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-20">Back</TableHead>
-                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-20">Back</TableHead>
-                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-20">Lay</TableHead>
-                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-20">Lay</TableHead>
-                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-20">Lay</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="font-semibold text-foreground min-w-[150px]"></TableHead>
+                        <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
+                        <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
+                        <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-20">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-20">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-20">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-20">Lay</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-20">Lay</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-20">Lay</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {matchMarkets[0]?.section?.map((team: any, idx: number) => (
-                        <TableRow key={idx} className="hover:bg-slate-50">
-                          <TableCell className="font-medium text-gray-900 p-3">
+                        <TableRow key={idx} className="hover:bg-muted/50">
+                          <TableCell className="font-medium text-foreground p-3">
                             {team.gstatus === 'SUSPENDED' ? (
-                              <span className="text-red-600 font-semibold">SUSPENDED</span>
+                              <span className="text-destructive font-semibold">SUSPENDED</span>
                             ) : (
                               team.nat || `Team ${idx + 1}`
                             )}
@@ -146,18 +146,18 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                 <div className="overflow-x-auto">
                   <Table className="border">
                     <TableHeader>
-                      <TableRow className="bg-slate-100">
-                        <TableHead className="font-semibold text-gray-900 min-w-[150px]"></TableHead>
-                        <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-24">Back</TableHead>
-                        <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-24">Lay</TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="font-semibold text-foreground min-w-[150px]"></TableHead>
+                        <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-24">Back</TableHead>
+                        <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-24">Lay</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {bookmakerMarkets.map((bookmaker: any) => (
-                        <TableRow key={bookmaker.sid} className="hover:bg-slate-50">
-                          <TableCell className="font-medium text-gray-900 p-3">
+                        <TableRow key={bookmaker.sid} className="hover:bg-muted/50">
+                          <TableCell className="font-medium text-foreground p-3">
                             {bookmaker.gstatus === 'SUSPENDED' ? (
-                              <span className="text-red-600 font-semibold">SUSPENDED</span>
+                              <span className="text-destructive font-semibold">SUSPENDED</span>
                             ) : (
                               bookmaker.nat
                             )}
@@ -188,17 +188,17 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                     <div className="overflow-x-auto">
                       <Table className="border">
                         <TableHeader>
-                          <TableRow className="bg-slate-100">
-                            <TableHead className="font-semibold text-gray-900 min-w-[120px]"></TableHead>
-                            <TableHead className="text-center font-semibold bg-pink-100 text-pink-900 w-24">No</TableHead>
-                            <TableHead className="text-center font-semibold bg-blue-100 text-blue-900 w-24">Yes</TableHead>
+                          <TableRow className="bg-muted">
+                            <TableHead className="font-semibold text-foreground min-w-[120px]"></TableHead>
+                            <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-24">No</TableHead>
+                            <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-24">Yes</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          <TableRow className="hover:bg-slate-50">
-                            <TableCell className="font-medium text-gray-900 p-3">
+                          <TableRow className="hover:bg-muted/50">
+                            <TableCell className="font-medium text-foreground p-3">
                               {fancy.gstatus === 'SUSPENDED' ? (
-                                <span className="text-red-600 font-semibold">SUSPENDED</span>
+                                <span className="text-destructive font-semibold">SUSPENDED</span>
                               ) : (
                                 `Line: ${fancy.line || '-'}`
                               )}
