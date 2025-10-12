@@ -101,46 +101,6 @@ export const OverviewDashboard = () => {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Trends</CardTitle>
-            <CardDescription>Profit and loss over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics?.dailyTrends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="profit" stroke="#8884d8" name="Profit" />
-                <Line type="monotone" dataKey="bets" stroke="#82ca9d" name="Bets" />
-                <Line type="monotone" dataKey="winnings" stroke="#ffc658" name="Winnings" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Game Performance</CardTitle>
-            <CardDescription>Revenue by game type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={gameStatsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#8884d8" name="Revenue" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
