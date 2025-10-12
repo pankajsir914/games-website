@@ -123,22 +123,6 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
         </div>
       </div>
 
-      {/* Dashboard Title Section */}
-      <div className="border-t border-border px-3 sm:px-4 md:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">
-              Welcome back, {adminAuth?.user?.email}! Role: {adminAuth?.role}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span>Admin Panel</span>
-          </div>
-        </div>
-      </div>
-
     </header>
   );
 };
