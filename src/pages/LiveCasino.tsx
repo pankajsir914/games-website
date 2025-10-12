@@ -4,10 +4,14 @@ import { TableCard } from "@/components/live-casino/TableCard";
 import { BettingPanel } from "@/components/live-casino/BettingPanel";
 import { OddsDisplay } from "@/components/live-casino/OddsDisplay";
 import { BetHistory } from "@/components/live-casino/BetHistory";
+import { LiveStream } from "@/components/live-casino/LiveStream";
+import { ResultHistory } from "@/components/live-casino/ResultHistory";
+import { CurrentResult } from "@/components/live-casino/CurrentResult";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const LiveCasino = () => {
   const {
@@ -16,19 +20,33 @@ const LiveCasino = () => {
     odds,
     bets,
     loading,
+    streamUrls,
+    resultHistory,
+    currentResult,
     fetchTableDetails,
     fetchOdds,
     placeBet,
-    setSelectedTable
+    setSelectedTable,
+    fetchStreamUrl,
+    fetchCurrentResult,
+    fetchResultHistory
   } = useDiamondCasino();
 
   const [viewMode, setViewMode] = useState<'tables' | 'betting'>('tables');
+  const [streamUrl, setStreamUrl] = useState<string>();
 
   const handleSelectTable = async (table: any) => {
     setSelectedTable(table);
     setViewMode('betting');
-    await fetchTableDetails(table.id);
-    await fetchOdds(table.id);
+    
+    // Fetch all data in parallel
+    await Promise.all([
+      fetchTableDetails(table.id),
+      fetchOdds(table.id),
+      fetchStreamUrl(table.id).then(url => setStreamUrl(url)),
+      fetchCurrentResult(table.id),
+      fetchResultHistory(table.id)
+    ]);
   };
 
   const handleBack = () => {
@@ -101,39 +119,65 @@ const LiveCasino = () => {
 
         {/* Betting View */}
         {viewMode === 'betting' && selectedTable && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main betting area */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Table info */}
-              <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-                <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold mb-2">{selectedTable.name}</h2>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>Players: {selectedTable.players || 0}</span>
-                    {selectedTable.data?.currentRound && (
-                      <span>Round: #{selectedTable.data.currentRound}</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          <Tabs defaultValue="live" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="live">Live Game</TabsTrigger>
+              <TabsTrigger value="results">Results</TabsTrigger>
+              <TabsTrigger value="history">My Bets</TabsTrigger>
+            </TabsList>
 
-              {/* Odds display */}
-              <OddsDisplay odds={odds} />
+            <TabsContent value="live" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main area - Stream + Betting */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Live Stream */}
+                  <LiveStream 
+                    tableId={selectedTable.id} 
+                    streamUrl={streamUrl}
+                    tableName={selectedTable.name}
+                  />
 
-              {/* Betting panel */}
-              <BettingPanel
-                table={selectedTable}
-                odds={odds}
-                onPlaceBet={placeBet}
-                loading={loading}
+                  {/* Current Result */}
+                  {currentResult && (
+                    <CurrentResult 
+                      result={currentResult}
+                      tableName={selectedTable.name}
+                    />
+                  )}
+
+                  {/* Odds Display */}
+                  {odds && <OddsDisplay odds={odds} />}
+
+                  {/* Betting Panel */}
+                  <BettingPanel
+                    table={selectedTable}
+                    odds={odds}
+                    onPlaceBet={placeBet}
+                    loading={loading}
+                  />
+                </div>
+
+                {/* Sidebar - Result History */}
+                <div className="lg:col-span-1">
+                  <ResultHistory 
+                    results={resultHistory}
+                    tableId={selectedTable.id}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="results">
+              <ResultHistory 
+                results={resultHistory}
+                tableId={selectedTable.id}
               />
-            </div>
+            </TabsContent>
 
-            {/* Bet history sidebar */}
-            <div className="lg:col-span-1">
+            <TabsContent value="history">
               <BetHistory bets={bets} />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>

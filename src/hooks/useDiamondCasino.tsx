@@ -28,6 +28,10 @@ export const useDiamondCasino = () => {
   const [bets, setBets] = useState<DiamondBet[]>([]);
   const [loading, setLoading] = useState(false);
   const [odds, setOdds] = useState<any>(null);
+  const [streamUrls, setStreamUrls] = useState<Record<string, string>>({});
+  const [results, setResults] = useState<Record<string, any>>({});
+  const [resultHistory, setResultHistory] = useState<any[]>([]);
+  const [currentResult, setCurrentResult] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch live tables
@@ -204,16 +208,76 @@ export const useDiamondCasino = () => {
     setupSubscription();
   }, []);
 
+  // Fetch stream URL
+  const fetchStreamUrl = async (tableId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
+        body: { action: 'get-stream-url', tableId }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success && data.streamUrl) {
+        setStreamUrls(prev => ({ ...prev, [tableId]: data.streamUrl }));
+        return data.streamUrl;
+      }
+    } catch (error) {
+      console.error('Error fetching stream URL:', error);
+    }
+  };
+
+  // Fetch current result
+  const fetchCurrentResult = async (tableId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
+        body: { action: 'get-result', tableId }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        setCurrentResult(data.data);
+        setResults(prev => ({ ...prev, [tableId]: data.data }));
+      }
+    } catch (error) {
+      console.error('Error fetching result:', error);
+    }
+  };
+
+  // Fetch result history
+  const fetchResultHistory = async (tableId: string, date?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
+        body: { action: 'get-result-history', tableId, date }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        setResultHistory(data.data?.data || data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching result history:', error);
+    }
+  };
+
   return {
     liveTables,
     selectedTable,
     odds,
     bets,
     loading,
+    streamUrls,
+    results,
+    resultHistory,
+    currentResult,
     fetchLiveTables,
     fetchTableDetails,
     fetchOdds,
     placeBet,
-    setSelectedTable
+    setSelectedTable,
+    fetchStreamUrl,
+    fetchCurrentResult,
+    fetchResultHistory
   };
 };

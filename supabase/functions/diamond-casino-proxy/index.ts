@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const RAPIDAPI_KEY = Deno.env.get('DIAMOND_CASINO_RAPIDAPI_KEY');
-    const RAPIDAPI_HOST = 'diamond-casino-68-table.p.rapidapi.com';
+    const RAPIDAPI_HOST = 'diamond-casino-api-no-ggr.p.rapidapi.com';
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -22,51 +22,81 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const { action, path, tableId, betData } = await req.json();
+    const { action, path, tableId, betData, date } = await req.json();
 
     console.log(`Diamond Casino API request: action=${action}, path=${path}`);
 
     // Get live tables
     if (action === 'get-tables') {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/api/tables`, {
+      // Step 1: Get all table IDs
+      const tableIdsResponse = await fetch(`https://${RAPIDAPI_HOST}/casino/tableid`, {
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
           'x-rapidapi-host': RAPIDAPI_HOST
         }
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+      if (!tableIdsResponse.ok) {
+        throw new Error(`Failed to fetch table IDs: ${tableIdsResponse.statusText}`);
       }
 
-      const data = await response.json();
-      
-      // Update our database cache
-      if (data.tables && Array.isArray(data.tables)) {
-        for (const table of data.tables) {
-          await supabase
-            .from('diamond_casino_tables')
-            .upsert({
-              table_id: table.id,
-              table_name: table.name,
-              table_data: table,
-              player_count: table.players || 0,
-              status: table.status || 'active',
-              last_updated: new Date().toISOString()
-            }, {
-              onConflict: 'table_id'
+      const tableIds = await tableIdsResponse.json();
+      console.log('Fetched table IDs:', tableIds);
+
+      // Step 2: Fetch data for each table type
+      const tables = [];
+      for (const tableId of tableIds) {
+        try {
+          const tableDataResponse = await fetch(
+            `https://${RAPIDAPI_HOST}/casino/data?type=${tableId}`,
+            {
+              headers: {
+                'x-rapidapi-key': RAPIDAPI_KEY,
+                'x-rapidapi-host': RAPIDAPI_HOST
+              }
+            }
+          );
+
+          if (tableDataResponse.ok) {
+            const tableData = await tableDataResponse.json();
+            tables.push({
+              id: tableId,
+              name: tableData.gname || tableData.name || tableId,
+              type: tableId,
+              data: tableData,
+              status: 'active',
+              players: 0
             });
+          }
+        } catch (error) {
+          console.error(`Error fetching data for table ${tableId}:`, error);
         }
       }
 
-      return new Response(JSON.stringify({ success: true, data }), {
+      // Update database cache
+      for (const table of tables) {
+        await supabase
+          .from('diamond_casino_tables')
+          .upsert({
+            table_id: table.id,
+            table_name: table.name,
+            table_data: table.data,
+            player_count: table.players,
+            status: table.status,
+            last_updated: new Date().toISOString()
+          }, {
+            onConflict: 'table_id'
+          });
+      }
+
+      return new Response(JSON.stringify({ success: true, data: { tables } }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     // Get specific table details
     if (action === 'get-table' && tableId) {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/api/table/${tableId}`, {
+      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/data?type=${tableId}`, {
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
           'x-rapidapi-host': RAPIDAPI_HOST
@@ -84,9 +114,78 @@ serve(async (req) => {
       });
     }
 
-    // Get table odds
+    // Get live stream URL
+    if (action === 'get-stream-url' && tableId) {
+      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/tv_url?id=${tableId}`, {
+        headers: {
+          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-host': RAPIDAPI_HOST
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stream URL: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        data,
+        streamUrl: data.url || data.tv_url || data.stream_url 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get current result
+    if (action === 'get-result' && tableId) {
+      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/result?type=${tableId}`, {
+        headers: {
+          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-host': RAPIDAPI_HOST
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch result: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get result history
+    if (action === 'get-result-history' && tableId) {
+      const targetDate = date || new Date().toISOString().split('T')[0];
+
+      const response = await fetch(
+        `https://${RAPIDAPI_HOST}/casino/resulthistory?type=${tableId}&date=${targetDate}`,
+        {
+          headers: {
+            'x-rapidapi-key': RAPIDAPI_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch result history: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get table odds (from table data)
     if (action === 'get-odds' && tableId) {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/api/table/${tableId}/odds`, {
+      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/data?type=${tableId}`, {
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
           'x-rapidapi-host': RAPIDAPI_HOST
@@ -99,7 +198,7 @@ serve(async (req) => {
 
       const data = await response.json();
 
-      return new Response(JSON.stringify({ success: true, data }), {
+      return new Response(JSON.stringify({ success: true, data: { bets: data.t1 || [] } }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
