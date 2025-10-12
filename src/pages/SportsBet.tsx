@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
+import { useDiamondSportsData } from '@/hooks/useDiamondSportsData';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import LiveTVSection from '@/components/sports/LiveTVSection';
@@ -21,6 +22,7 @@ const SportsBet: React.FC = () => {
   const navigate = useNavigate();
   const { state } = location;
   const { getPriveteData, callAPI, getBetfairScoreTv } = useDiamondSportsAPI();
+  const { connectOddsWebSocket } = useDiamondSportsData();
   const { wallet } = useWallet();
   const { toast } = useToast();
   
@@ -158,100 +160,78 @@ const SportsBet: React.FC = () => {
     return () => clearInterval(interval);
   }, [matchId, match?.status, callAPI]);
 
-  // Fetch odds from Diamond API with live updates
+  // WebSocket for live odds updates
   useEffect(() => {
-    const fetchOdds = async () => {
-      if (!matchId || matchId === 'undefined') {
-        const errorMsg = 'Invalid match ID. Please select a valid match.';
-        setOddsError(errorMsg);
-        setApiDebugInfo({ error: errorMsg, matchId, sport });
-        return;
-      }
-      
-      setIsLoadingOdds(true);
-      setOddsError(null);
-      
+    if (!matchId || matchId === 'undefined') {
+      const errorMsg = 'Invalid match ID. Please select a valid match.';
+      setOddsError(errorMsg);
+      setApiDebugInfo({ error: errorMsg, matchId, sport });
+      return;
+    }
+    
+    setIsLoadingOdds(true);
+    setOddsError(null);
+    
+    // Initial fetch using REST
+    const fetchInitialOdds = async () => {
       try {
         const sid = getSportSID(sport || 'Cricket');
-        console.log(`Fetching odds: SID=${sid}, GMID=${matchId}, Sport=${sport}`);
-        
-        // Primary: Use the dedicated getPriveteData function
         const response = await getPriveteData(sid, matchId);
         
-        // Store debug info
         setApiDebugInfo({
           endpoint: 'sports/getPriveteData',
           sid,
           gmid: matchId,
           sport,
           success: response?.success,
-          errorCode: response?.errorCode,
-          error: response?.error,
-          dataReceived: !!response?.data,
           timestamp: new Date().toISOString()
         });
-        
-        console.log('Diamond API response:', response);
         
         if (response?.success && response.data) {
           setOdds(response.data);
           setOddsError(null);
-        } else {
-          // Handle specific error cases
-          const errorMsg = response?.error || 'Odds not available for this match';
-          setOddsError(errorMsg);
-          
-          // Show user-friendly toast based on error type
-          if (response?.errorCode === 404) {
-            toast({
-              title: "Odds Not Available",
-              description: "This match doesn't have live odds yet. Check back when the match starts.",
-            });
-          } else if (response?.errorCode === 429) {
-            toast({
-              title: "Too Many Requests",
-              description: "Please wait a moment before refreshing odds.",
-              variant: "destructive"
-            });
-          } else {
-            toast({
-              title: "Loading Odds",
-              description: "Connecting to live odds feed...",
-            });
-          }
         }
       } catch (error: any) {
-        console.error('Failed to fetch odds:', error);
-        const errorMsg = error?.message || 'Failed to load odds';
-        setOddsError(errorMsg);
-        setApiDebugInfo({
-          error: errorMsg,
-          matchId,
-          sport,
-          timestamp: new Date().toISOString()
-        });
-        
-        toast({
-          title: "Connection Error",
-          description: "Unable to fetch odds. Please check your connection.",
-          variant: "destructive"
-        });
+        console.error('Initial odds fetch error:', error);
       } finally {
         setIsLoadingOdds(false);
       }
     };
-
-    fetchOdds();
     
-    // Refresh odds every 10 seconds for live matches
-    const oddsInterval = setInterval(() => {
-      if (match?.status === 'Live') {
-        fetchOdds();
+    fetchInitialOdds();
+    
+    // Connect WebSocket for live updates
+    const ws = connectOddsWebSocket(matchId, (newOdds) => {
+      console.log('Received live odds update via WebSocket');
+      setOdds(newOdds);
+      setOddsError(null);
+      setIsLoadingOdds(false);
+    });
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected for live odds');
+      toast({
+        title: "Live Odds Connected",
+        description: "Receiving real-time odds updates",
+      });
+    };
+    
+    ws.onerror = () => {
+      setOddsError('Live odds connection failed');
+      toast({
+        title: "Connection Issue",
+        description: "Live odds updates unavailable. Showing last known odds.",
+        variant: "destructive"
+      });
+    };
+    
+    return () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+        console.log('WebSocket disconnected');
       }
-    }, 10000);
-
-    return () => clearInterval(oddsInterval);
-  }, [matchId, match?.status, sport, getPriveteData, toast]);
+    };
+  }, [matchId, sport, getPriveteData, connectOddsWebSocket, toast]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({

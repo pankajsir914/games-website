@@ -220,6 +220,31 @@ export function useDiamondSportsData() {
       return null;
     }
   }, [diamondAPI]);
+
+  // WebSocket connection for live odds
+  const connectOddsWebSocket = useCallback((eventId: string, onOddsUpdate: (odds: any) => void) => {
+    const sid = sidConfigs.find(c => c.sport_type === selectedSport?.sport_type)?.sid || '4';
+    const ws = new WebSocket(
+      `wss://foiojihgpeehvpwejeqw.supabase.co/functions/v1/sports-odds-websocket?matchId=${eventId}&sid=${sid}`
+    );
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'odds_update') {
+          onOddsUpdate(message.data);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return ws;
+  }, [selectedSport, sidConfigs]);
   
   // Auto-refresh for live matches
   useEffect(() => {
@@ -276,6 +301,7 @@ export function useDiamondSportsData() {
     fetchMatches,
     fetchSportMatches,
     fetchOdds,
+    connectOddsWebSocket,
     setSelectedSport,
     
     // SID Management

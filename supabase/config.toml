@@ -35,6 +35,9 @@ verify_jwt = true
 [functions.sports-fallback-proxy]
 verify_jwt = true
 
+[functions.sports-odds-websocket]
+verify_jwt = false
+
 [functions.ludo-game-manager]
 verify_jwt = true
 
