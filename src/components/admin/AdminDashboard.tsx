@@ -195,11 +195,11 @@ export const AdminDashboard = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="bets">Bet Logs</TabsTrigger>
-            <TabsTrigger value="wallets">Player Wallets</TabsTrigger>
-            <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="bets" className="text-xs sm:text-sm">Bet Logs</TabsTrigger>
+            <TabsTrigger value="wallets" className="text-xs sm:text-sm">Player Wallets</TabsTrigger>
+            <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
