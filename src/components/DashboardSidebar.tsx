@@ -75,7 +75,7 @@ export function DashboardSidebar() {
       id: 'live-casino', 
       title: 'Live Casino', 
       icon: Users, 
-      path: '/games',
+      path: '/live-casino',
       count: 677,
       color: 'text-purple-500'
     },

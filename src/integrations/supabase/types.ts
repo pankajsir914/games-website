@@ -801,6 +801,84 @@ export type Database = {
         }
         Relationships: []
       }
+      diamond_casino_bets: {
+        Row: {
+          bet_amount: number
+          bet_type: string
+          created_at: string
+          id: string
+          odds: number | null
+          payout_amount: number | null
+          round_id: string | null
+          status: string | null
+          table_id: string
+          table_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          bet_type: string
+          created_at?: string
+          id?: string
+          odds?: number | null
+          payout_amount?: number | null
+          round_id?: string | null
+          status?: string | null
+          table_id: string
+          table_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          bet_type?: string
+          created_at?: string
+          id?: string
+          odds?: number | null
+          payout_amount?: number | null
+          round_id?: string | null
+          status?: string | null
+          table_id?: string
+          table_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      diamond_casino_tables: {
+        Row: {
+          created_at: string
+          id: string
+          last_updated: string
+          player_count: number | null
+          status: string | null
+          table_data: Json | null
+          table_id: string
+          table_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          player_count?: number | null
+          status?: string | null
+          table_data?: Json | null
+          table_id: string
+          table_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          player_count?: number | null
+          status?: string | null
+          table_data?: Json | null
+          table_id?: string
+          table_name?: string | null
+        }
+        Relationships: []
+      }
       diamond_match_results: {
         Row: {
           created_at: string | null

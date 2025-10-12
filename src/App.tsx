@@ -23,6 +23,7 @@ import PokerTable from "./pages/PokerTable";
 import Jackpot from "./pages/Jackpot";
 import TeenPatti from "./pages/TeenPatti";
 import ChickenRun from "./pages/ChickenRun";
+import LiveCasino from "./pages/LiveCasino";
 import Wallet from "./pages/Wallet";
 import Sports from "./pages/Sports";
 import SportsMatches from "./pages/SportsMatches";
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="/jackpot" element={<Jackpot />} />
               <Route path="/teen-patti" element={<TeenPatti />} />
               <Route path="/chicken-run" element={<ChickenRun />} />
+              <Route path="/live-casino" element={<LiveCasino />} />
               <Route path="/wallet" element={<Wallet />} />
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />

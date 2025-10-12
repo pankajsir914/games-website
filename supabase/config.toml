@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.teen-patti-manager]
 verify_jwt = false
+
+[functions.diamond-casino-proxy]
+verify_jwt = true

@@ -115,6 +115,15 @@ export function DashboardContent() {
       image: "/lovable-uploads/cricketposter.jpeg",
       path: "/sports",
       gradient: "from-orange-500 to-red-600"
+    },
+    {
+      title: "🎰 Live Casino",
+      provider: "Diamond Casino",
+      image: "/lovable-uploads/roulette13.jpg",
+      path: "/live-casino",
+      gradient: "from-purple-600 to-pink-600",
+      isNew: true,
+      badge: "LIVE 🔴"
     }
   ];
 
@@ -134,7 +143,11 @@ export function DashboardContent() {
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
               Casino
             </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/live-casino')}
+              className="text-muted-foreground hover:text-foreground"
+            >
               Live-games
             </Button>
             <Button variant="ghost" className="text-primary font-medium">
