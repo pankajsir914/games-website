@@ -37,19 +37,28 @@ const ColorPrediction = () => {
   const [showWinner, setShowWinner] = useState(false);
   const [lastWinningColor, setLastWinningColor] = useState<'red' | 'green' | 'violet' | null>(null);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
+  const [lastProcessedRoundId, setLastProcessedRoundId] = useState<string | null>(null);
 
   // Check for round completion and trigger animation
   useEffect(() => {
-    if (currentRound?.status === 'completed' && currentRound.winning_color && !isSpinning) {
+    // Only trigger if this is a new completed round we haven't processed yet
+    if (
+      currentRound?.status === 'completed' && 
+      currentRound.winning_color && 
+      currentRound.id !== lastProcessedRoundId
+    ) {
+      console.log('🎰 New completed round detected:', currentRound.id, 'Color:', currentRound.winning_color);
+      setLastProcessedRoundId(currentRound.id);
       setIsSpinning(true);
       setLastWinningColor(currentRound.winning_color);
+      setShowWinner(false); // Reset winner display
+      
       setTimeout(() => {
         setIsSpinning(false);
         setShowWinner(true);
-        // Balance will refresh automatically via subscriptions
       }, 4000);
     }
-  }, [currentRound]);
+  }, [currentRound?.id, currentRound?.status, currentRound?.winning_color, lastProcessedRoundId]);
 
   const handlePlaceBet = async () => {
     if (!selectedColor || !currentRound) return;
