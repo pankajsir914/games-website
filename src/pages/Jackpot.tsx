@@ -119,7 +119,7 @@ const Jackpot = () => {
   const canJoin = currentRound?.active && 
                  !currentRound.user_entry && 
                  parseFloat(betAmount) >= 1 && 
-                 walletBalance?.current_balance >= parseFloat(betAmount);
+                 walletBalance >= parseFloat(betAmount);
 
   return (
     <div className="min-h-screen bg-background">
@@ -290,7 +290,7 @@ const Jackpot = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Available Balance</p>
                     <p className="text-2xl font-bold text-green-600">
-                      ₹{walletBalance?.current_balance?.toLocaleString() || '0.00'}
+                      ₹{walletBalance?.toLocaleString() || '0.00'}
                     </p>
                   </div>
                   <Button 

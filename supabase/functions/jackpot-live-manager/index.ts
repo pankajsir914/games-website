@@ -30,40 +30,45 @@ serve(async (req) => {
       .eq('status', 'active')
       .single();
 
-    // If active round exists, check if it's expired
-    if (activeRound && !activeError) {
-      const endTime = new Date(activeRound.end_time);
+  // If active round exists, check if it's expired
+  if (activeRound && !activeError) {
+    const endTime = new Date(activeRound.end_time);
+    
+    if (now > endTime) {
+      console.log(`Completing expired round ${activeRound.id}`);
       
-      if (now > endTime) {
-        console.log(`Completing expired round ${activeRound.id}`);
-        
-        // Complete the round
-        const { data: completedData, error: completeError } = await supabaseClient
-          .rpc('complete_jackpot_round', { p_round_id: activeRound.id });
+      // Complete the round
+      const { data: completedData, error: completeError } = await supabaseClient
+        .rpc('complete_jackpot_round', { p_round_id: activeRound.id });
 
-        if (completeError) {
-          console.error('Error completing round:', completeError);
-        } else {
-          console.log('Round completed:', completedData);
-        }
+      if (completeError) {
+        console.error('Error completing round:', completeError);
+      } else {
+        console.log('Round completed:', completedData);
       }
+    }
 
-      // Get updated round data with entries
-      const { data: roundData } = await supabaseClient
-        .from('jackpot_rounds')
-        .select(`
-          *,
-          entries:jackpot_entries(
-            user_id,
-            amount,
-            win_probability,
-            user:profiles!user_id(full_name)
-          )
-        `)
-        .eq('id', activeRound.id)
-        .single();
+    // Get updated round data with entries
+    const { data: roundData, error: roundDataError } = await supabaseClient
+      .from('jackpot_rounds')
+      .select(`
+        *,
+        entries:jackpot_entries(
+          user_id,
+          amount,
+          win_probability,
+          user:profiles(full_name)
+        )
+      `)
+      .eq('id', activeRound.id)
+      .single();
 
-      const timeRemaining = Math.max(0, (new Date(roundData.end_time).getTime() - now.getTime()) / 1000);
+    if (roundDataError || !roundData) {
+      console.error('Error fetching round data:', roundDataError);
+      throw new Error('Failed to fetch round data');
+    }
+
+    const timeRemaining = Math.max(0, (new Date(roundData.end_time).getTime() - now.getTime()) / 1000);
 
       return new Response(
         JSON.stringify({

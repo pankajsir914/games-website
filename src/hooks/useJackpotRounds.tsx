@@ -78,15 +78,22 @@ export const useJackpotRounds = () => {
   const { data: history, isLoading: historyLoading } = useQuery({
     queryKey: ['jackpot-history'],
     queryFn: async () => {
-      const response = await fetch('/jackpot/history', {
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch history');
-      const data = await response.json();
-      return data.data;
+      const { data: rounds, error } = await supabase
+        .from('jackpot_rounds')
+        .select(`
+          id,
+          total_amount,
+          winner_amount,
+          created_at,
+          updated_at,
+          winner:profiles!winner_id(full_name)
+        `)
+        .eq('status', 'completed')
+        .order('updated_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return rounds || [];
     },
   });
 
@@ -96,15 +103,14 @@ export const useJackpotRounds = () => {
     queryFn: async () => {
       if (!user) return null;
       
-      const response = await fetch('/wallet/balance', {
-        headers: {
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch wallet balance');
-      const data = await response.json();
-      return data.data;
+      const { data: wallet, error } = await supabase
+        .from('wallets')
+        .select('current_balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      return wallet?.current_balance || 0;
     },
     enabled: !!user,
   });
@@ -156,7 +162,7 @@ export const useJackpotRounds = () => {
           amount,
           ticket_start: Math.floor((currentRound.total_amount || 0) * 100) + 1,
           ticket_end: Math.floor(((currentRound.total_amount || 0) + amount) * 100),
-          user_name: profile?.full_name || 'Anonymous'
+          win_probability: 0 // Will be calculated after all entries are in
         });
 
       if (entryError) throw entryError;
@@ -209,17 +215,20 @@ export const useJackpotRounds = () => {
   // Test deposit mutation (for development)
   const testDeposit = useMutation({
     mutationFn: async (amount: number) => {
-      const response = await fetch('/wallet/deposit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({ amount }),
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // Use RPC function to update wallet
+      const { error } = await supabase.rpc('update_wallet_balance', {
+        p_user_id: userData.user.id,
+        p_amount: amount,
+        p_type: 'credit',
+        p_reason: 'Test deposit',
+        p_game_type: 'casino'
       });
-      
-      if (!response.ok) throw new Error('Failed to deposit');
-      return response.json();
+
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet-balance'] });
