@@ -24,8 +24,8 @@ interface WithdrawalFiltersProps {
 
 export const WithdrawalFilters = ({ filters, onFiltersChange }: WithdrawalFiltersProps) => {
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-center">
-      <div className="relative flex-1 max-w-sm">
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+      <div className="relative w-full sm:flex-1 sm:max-w-sm">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search withdrawals..."
@@ -35,41 +35,38 @@ export const WithdrawalFilters = ({ filters, onFiltersChange }: WithdrawalFilter
         />
       </div>
 
-      <Select 
-        value={filters.status} 
-        onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
-      >
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="approved">Approved</SelectItem>
-          <SelectItem value="rejected">Rejected</SelectItem>
-          <SelectItem value="processing">Processing</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+        <Select 
+          value={filters.status} 
+          onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
+        >
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="processing">Processing</SelectItem>
+          </SelectContent>
+        </Select>
 
-      <Select 
-        value={filters.dateRange} 
-        onValueChange={(value) => onFiltersChange({ ...filters, dateRange: value })}
-      >
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="Date Range" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Time</SelectItem>
-          <SelectItem value="today">Today</SelectItem>
-          <SelectItem value="week">This Week</SelectItem>
-          <SelectItem value="month">This Month</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Button variant="outline">
-        <Filter className="mr-2 h-4 w-4" />
-        Advanced
-      </Button>
+        <Select 
+          value={filters.dateRange} 
+          onValueChange={(value) => onFiltersChange({ ...filters, dateRange: value })}
+        >
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Date Range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 };
