@@ -26,9 +26,32 @@ export const useColorPrediction = () => {
         console.error('Error fetching current round:', error);
         return null;
       }
+      console.log('Current round:', data);
       return data as ColorPredictionRound | null;
     },
-    refetchInterval: 2000, // Reduced frequency
+    refetchInterval: 2000,
+  });
+
+  // Fetch last completed round
+  const { data: lastCompletedRound } = useQuery({
+    queryKey: ['color-prediction-last-completed'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('color_prediction_rounds')
+        .select('*')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching last completed round:', error);
+        return null;
+      }
+      console.log('Last completed round:', data);
+      return data as ColorPredictionRound | null;
+    },
+    refetchInterval: 2000,
   });
 
   // Fetch recent rounds for history
@@ -254,6 +277,7 @@ export const useColorPrediction = () => {
 
   return {
     currentRound,
+    lastCompletedRound,
     recentRounds: recentRounds || [],
     userBet,
     userBetHistory: userBetHistory || [],

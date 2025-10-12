@@ -22,6 +22,7 @@ const ColorPrediction = () => {
   
   const {
     currentRound,
+    lastCompletedRound,
     recentRounds,
     userBet,
     userBetHistory,
@@ -35,14 +36,15 @@ const ColorPrediction = () => {
   const [showWinner, setShowWinner] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
 
-  // Show winner celebration when round completes
+  // Show winner celebration when new completed round arrives
   useEffect(() => {
-    if (currentRound?.status === 'completed' && currentRound.winning_color) {
+    if (lastCompletedRound?.winning_color) {
+      console.log('🎉 Showing winner celebration for:', lastCompletedRound.winning_color);
       setShowWinner(true);
       const timer = setTimeout(() => setShowWinner(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [currentRound?.status, currentRound?.winning_color]);
+  }, [lastCompletedRound?.id]);
 
   const handlePlaceBet = async () => {
     if (!selectedColor || !currentRound) return;
@@ -126,18 +128,27 @@ const ColorPrediction = () => {
             {/* Current Result Display */}
             <Card className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
               <div className="text-center space-y-4">
-                <h3 className="text-2xl font-bold text-white">Current Result</h3>
-                {currentRound?.status === 'completed' && currentRound.winning_color ? (
+                <h3 className="text-2xl font-bold text-white">
+                  {lastCompletedRound ? 'Latest Result' : 'Current Round'}
+                </h3>
+                {lastCompletedRound?.winning_color ? (
                   <motion.div
+                    key={lastCompletedRound.id}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className={`mx-auto w-48 h-48 rounded-full flex items-center justify-center text-6xl font-bold text-white shadow-2xl ${
-                      currentRound.winning_color === 'red' ? 'bg-red-500' :
-                      currentRound.winning_color === 'green' ? 'bg-green-500' :
-                      'bg-purple-500'
+                    transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                    className={`mx-auto w-48 h-48 rounded-full flex flex-col items-center justify-center text-white shadow-2xl ${
+                      lastCompletedRound.winning_color === 'red' ? 'bg-gradient-to-br from-red-500 to-red-700' :
+                      lastCompletedRound.winning_color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-700' :
+                      'bg-gradient-to-br from-purple-500 to-purple-700'
                     }`}
                   >
-                    {currentRound.winning_color.toUpperCase()}
+                    <div className="text-5xl font-bold">
+                      {lastCompletedRound.winning_color.toUpperCase()}
+                    </div>
+                    <div className="text-sm mt-2 opacity-80">
+                      Period: {lastCompletedRound.period}
+                    </div>
                   </motion.div>
                 ) : (
                   <div className="mx-auto w-48 h-48 rounded-full bg-gray-700 flex items-center justify-center">
@@ -261,7 +272,7 @@ const ColorPrediction = () => {
       {/* Winner Celebration */}
       <WinnerCelebration
         show={showWinner}
-        winningColor={currentRound?.winning_color || 'red'}
+        winningColor={lastCompletedRound?.winning_color || 'red'}
         amount={userBet?.status === 'won' ? userBet.payout_amount : undefined}
         onClose={() => setShowWinner(false)}
       />
