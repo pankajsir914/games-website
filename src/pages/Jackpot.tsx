@@ -27,6 +27,8 @@ const Jackpot = () => {
     isJoining,
     testDeposit,
     isDepositing,
+    showingResult,
+    lastResult,
   } = useJackpotRounds();
 
   // Real-time notifications for round completion
@@ -159,6 +161,18 @@ const Jackpot = () => {
                     <div className="h-8 bg-white/20 rounded"></div>
                     <div className="h-6 bg-white/20 rounded w-2/3"></div>
                     <div className="h-12 bg-white/20 rounded"></div>
+                  </div>
+                ) : showingResult ? (
+                  <div className="text-center py-8 space-y-4">
+                    <div className="animate-bounce">
+                      <Trophy className="h-24 w-24 text-yellow-400 mx-auto" />
+                    </div>
+                    <h3 className="text-3xl font-bold text-white">🎉 Winner Announced! 🎉</h3>
+                    <div className="space-y-2">
+                      <p className="text-xl text-yellow-300">Prize: ₹{lastResult?.winner_amount?.toLocaleString()}</p>
+                      <p className="text-blue-200">From a pot of ₹{lastResult?.pot?.toLocaleString()}</p>
+                    </div>
+                    <p className="text-white/80 text-sm">Next round starting soon...</p>
                   </div>
                 ) : currentRound?.active ? (
                   <>

@@ -42,22 +42,36 @@ export const useJackpotRounds = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [showingResult, setShowingResult] = useState(false);
+  const [lastResult, setLastResult] = useState<any>(null);
 
-  // Fetch current round
+  // Auto-manage rounds (creates, completes, manages result display)
   const { data: currentRound, isLoading: currentRoundLoading, refetch: refetchCurrentRound } = useQuery({
     queryKey: ['current-jackpot-round'],
-    queryFn: async (): Promise<CurrentRoundData> => {
-      const { data, error } = await supabase.functions.invoke('jackpot-manager', {
+    queryFn: async (): Promise<CurrentRoundData & { showing_result?: boolean; result_time_remaining?: number; last_winner_id?: string; last_winner_amount?: number; last_round_pot?: number }> => {
+      const { data, error } = await supabase.functions.invoke('jackpot-live-manager', {
         body: {},
         headers: { 'Content-Type': 'application/json' }
       });
 
       if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+      
+      // Handle showing result state
+      if (data.action === 'showing_result') {
+        setShowingResult(true);
+        setLastResult({
+          winner_id: data.data.last_winner_id,
+          winner_amount: data.data.last_winner_amount,
+          pot: data.data.last_round_pot
+        });
+      } else {
+        setShowingResult(false);
+      }
       
       return data.data;
     },
-    refetchInterval: 2000, // Refetch every 2 seconds
+    refetchInterval: 2000, // Auto-manage every 2 seconds
   });
 
   // Fetch jackpot history
@@ -98,15 +112,82 @@ export const useJackpotRounds = () => {
   // Join round mutation
   const joinRound = useMutation({
     mutationFn: async (amount: number) => {
-      const { data, error } = await supabase.functions.invoke('jackpot-manager', {
-        body: { amount },
-        headers: { 'Content-Type': 'application/json' }
+      if (!currentRound?.round_id) {
+        throw new Error('No active round');
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // Check wallet balance
+      const { data: wallet } = await supabase
+        .from('wallets')
+        .select('current_balance')
+        .eq('user_id', userData.user.id)
+        .single();
+
+      if (!wallet || wallet.current_balance < amount) {
+        throw new Error('Insufficient balance');
+      }
+
+      // Deduct from wallet
+      const { error: walletError } = await supabase.rpc('update_wallet_balance', {
+        p_user_id: userData.user.id,
+        p_amount: amount,
+        p_type: 'debit',
+        p_reason: `Jackpot entry - Round ${currentRound.round_id}`,
+        p_game_type: 'casino'
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
-      
-      return data.data;
+      if (walletError) throw walletError;
+
+      // Create entry
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userData.user.id)
+        .single();
+
+      const { error: entryError } = await supabase
+        .from('jackpot_entries')
+        .insert({
+          round_id: currentRound.round_id,
+          user_id: userData.user.id,
+          amount,
+          ticket_start: Math.floor((currentRound.total_amount || 0) * 100) + 1,
+          ticket_end: Math.floor(((currentRound.total_amount || 0) + amount) * 100),
+          user_name: profile?.full_name || 'Anonymous'
+        });
+
+      if (entryError) throw entryError;
+
+      // Update round totals
+      const newTotal = (currentRound.total_amount || 0) + amount;
+      const newPlayers = (currentRound.total_players || 0) + 1;
+
+      // Update win probabilities for all entries
+      const { data: allEntries } = await supabase
+        .from('jackpot_entries')
+        .select('id, amount')
+        .eq('round_id', currentRound.round_id);
+
+      for (const entry of allEntries || []) {
+        await supabase
+          .from('jackpot_entries')
+          .update({ win_probability: entry.amount / newTotal })
+          .eq('id', entry.id);
+      }
+
+      // Update round
+      await supabase
+        .from('jackpot_rounds')
+        .update({
+          total_amount: newTotal,
+          total_players: newPlayers
+        })
+        .eq('id', currentRound.round_id);
+
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['current-jackpot-round'] });
@@ -214,5 +295,7 @@ export const useJackpotRounds = () => {
     testDeposit: testDeposit.mutate,
     isDepositing: testDeposit.isPending,
     refetchCurrentRound,
+    showingResult,
+    lastResult,
   };
 };
