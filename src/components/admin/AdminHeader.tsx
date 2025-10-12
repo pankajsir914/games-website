@@ -53,7 +53,7 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
   };
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-4 md:px-6">
       <div className="flex items-center">
         <Button
           variant="ghost"
@@ -69,7 +69,7 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         {/* Role Badge */}
         {adminAuth?.role && (
           <div className="hidden md:flex">
@@ -78,7 +78,7 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
         )}
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative min-h-[44px] min-w-[44px]">
           <Bell className="h-5 w-5" />
           <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
             3
@@ -97,7 +97,7 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuContent className="w-screen sm:w-56 max-w-sm" align="end">
             <div className="px-2 py-1.5">
               <div className="flex items-center gap-2">
                 {getRoleIcon()}

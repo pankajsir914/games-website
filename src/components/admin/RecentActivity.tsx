@@ -53,21 +53,22 @@ export const RecentActivity = () => {
       <CardContent>
         <div className="space-y-4">
           {transactions?.slice(0, 10).map((transaction) => (
-            <div key={transaction.id} className="flex items-center space-x-4">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-sm font-medium">{transaction.avatar}</span>
+            <div key={transaction.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 py-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <span className="text-xs sm:text-sm font-medium">{transaction.avatar}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+              <div className="flex-1 min-w-0 mb-2 sm:mb-0">
+                <p className="text-xs sm:text-sm font-medium text-foreground truncate">
                   {transaction.user}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {transaction.method} • {transaction.timestamp}
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  <span className="hidden sm:inline">{transaction.method} • </span>
+                  {transaction.timestamp}
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 {getTypeBadge(transaction.type)}
-                <span className="text-sm font-medium">₹{transaction.amount.toLocaleString()}</span>
+                <span className="text-sm sm:text-base font-medium whitespace-nowrap">₹{transaction.amount.toLocaleString()}</span>
               </div>
             </div>
           ))}

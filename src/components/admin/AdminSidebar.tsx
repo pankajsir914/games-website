@@ -46,7 +46,8 @@ export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-30 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-30 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:w-64",
+        "w-[280px] sm:w-64",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-border">
