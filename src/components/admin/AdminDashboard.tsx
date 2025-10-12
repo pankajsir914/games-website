@@ -48,20 +48,6 @@ export const AdminDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">
-              Welcome back, {auth.user.email}! Role: {auth.role}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span>Admin Panel</span>
-          </div>
-        </div>
-
         {/* Quick Stats Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <AdminWalletCard />
