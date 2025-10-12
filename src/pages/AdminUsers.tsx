@@ -23,18 +23,18 @@ const AdminUsers = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        <div className="flex justify-between items-center">
+      <div className="space-y-4 sm:space-y-6 md:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">User Management</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               {isMasterAdmin 
                 ? "Manage and monitor user and admin accounts" 
                 : "Manage and monitor user accounts"
               }
             </p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto">
             <UserPlus className="mr-2 h-4 w-4" />
             {buttonText}
           </Button>
