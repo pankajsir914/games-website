@@ -280,35 +280,45 @@ serve(async (req) => {
       if (!activeRounds || activeRounds.length === 0) {
         console.log('No active rounds found, creating new round...');
         
-        const lastRound = await supabaseClient
-          .from('color_prediction_rounds')
-          .select('round_number')
-          .order('round_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        try {
+          const lastRound = await supabaseClient
+            .from('color_prediction_rounds')
+            .select('round_number')
+            .order('round_number', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
-        const now = new Date();
-        const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
-        
-        // Set betting period to 30 seconds from now
-        const betEndTime = new Date(now.getTime() + 30000);
+          const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
+          const now = new Date();
+          const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
+          
+          // Set betting period to 30 seconds from now
+          const betEndTime = new Date(now.getTime() + 30000);
 
-        const { data: newRound, error: createError } = await supabaseClient
-          .from('color_prediction_rounds')
-          .insert({
-            round_number: nextRoundNumber,
-            period: period,
-            bet_end_time: betEndTime.toISOString(),
-          })
-          .select()
-          .single();
+          const { data: newRound, error: createError } = await supabaseClient
+            .from('color_prediction_rounds')
+            .insert({
+              round_number: nextRoundNumber,
+              period: period,
+              bet_end_time: betEndTime.toISOString(),
+            })
+            .select()
+            .single();
 
-        if (createError) {
-          console.error('Error creating new round:', createError);
-          throw createError;
-        } else {
-          console.log('Created new round automatically:', newRound);
+          if (createError) {
+            // Handle duplicate key error gracefully (race condition)
+            if (createError.code === '23505') {
+              console.log('Round already created by another process, skipping...');
+            } else {
+              console.error('Error creating new round:', createError);
+              throw createError;
+            }
+          } else {
+            console.log('Created new round automatically:', newRound);
+          }
+        } catch (error) {
+          console.error('Failed to create new round:', error);
+          // Don't throw - just log and continue
         }
       }
 

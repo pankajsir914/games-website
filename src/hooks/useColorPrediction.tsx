@@ -176,26 +176,38 @@ export const useColorPrediction = () => {
     return () => clearInterval(interval);
   }, [currentRound, queryClient]);
 
-  // Auto-manage rounds - call edge function periodically
+  // Auto-manage rounds - call edge function periodically with debounce
   useEffect(() => {
+    let isManaging = false;
+    
     const autoManage = async () => {
+      // Prevent concurrent calls
+      if (isManaging) return;
+      
+      isManaging = true;
       try {
         const { data: session } = await supabase.auth.getSession();
-        await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/color-prediction-manager?action=auto_manage', {
+        const response = await fetch('https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/color-prediction-manager?action=auto_manage', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${session?.session?.access_token}`,
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaW9qaWhncGVlaHZwd2VqZXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwMjM0NTEsImV4cCI6MjA2ODU5OTQ1MX0.izGAao4U7k8gn4UIb7kgPs-w1ZEg0GzmAhkZ_Ff_Oxk',
           }
         });
+        
+        if (!response.ok) {
+          console.error('Auto-manage error:', await response.text());
+        }
       } catch (error) {
         console.error('Auto-manage error:', error);
+      } finally {
+        isManaging = false;
       }
     };
 
-    // Run immediately and then every 10 seconds
+    // Run immediately and then every 35 seconds (reduced frequency)
     autoManage();
-    const interval = setInterval(autoManage, 10000);
+    const interval = setInterval(autoManage, 35000);
 
     return () => clearInterval(interval);
   }, []);
