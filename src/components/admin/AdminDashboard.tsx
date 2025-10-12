@@ -194,28 +194,30 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Main Dashboard Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="bets" className="text-xs sm:text-sm">Bet Logs</TabsTrigger>
-            <TabsTrigger value="wallets" className="text-xs sm:text-sm">Player Wallets</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="overview" className="space-y-3 sm:space-y-4 md:space-y-6">
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 min-w-min">
+              <TabsTrigger value="overview" className="text-xs sm:text-sm whitespace-nowrap">Overview</TabsTrigger>
+              <TabsTrigger value="bets" className="text-xs sm:text-sm whitespace-nowrap">Bet Logs</TabsTrigger>
+              <TabsTrigger value="wallets" className="text-xs sm:text-sm whitespace-nowrap">Wallets</TabsTrigger>
+              <TabsTrigger value="results" className="text-xs sm:text-sm whitespace-nowrap">Results</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-3 sm:space-y-4 md:space-y-6">
             <OverviewDashboard />
           </TabsContent>
 
 
-          <TabsContent value="bets" className="space-y-6">
+          <TabsContent value="bets" className="space-y-3 sm:space-y-4 md:space-y-6">
             <BetLogsPage />
           </TabsContent>
 
-          <TabsContent value="wallets" className="space-y-6">
+          <TabsContent value="wallets" className="space-y-3 sm:space-y-4 md:space-y-6">
             <PlayerWalletInsights />
           </TabsContent>
 
-          <TabsContent value="results" className="space-y-6">
+          <TabsContent value="results" className="space-y-3 sm:space-y-4 md:space-y-6">
             <ResultManagement />
           </TabsContent>
         </Tabs>
