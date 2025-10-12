@@ -36,8 +36,8 @@ export const UserFilters = ({ filters, onFiltersChange }: UserFiltersProps) => {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-center">
-      <div className="relative flex-1 max-w-sm">
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+      <div className="relative w-full sm:flex-1 sm:max-w-sm">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search users..."
@@ -47,34 +47,36 @@ export const UserFilters = ({ filters, onFiltersChange }: UserFiltersProps) => {
         />
       </div>
 
-      <Select value={filters.status} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="suspended">Suspended</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+        <Select value={filters.status} onValueChange={handleStatusChange}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+          </SelectContent>
+        </Select>
 
-      <Select value={filters.dateRange} onValueChange={handleDateRangeChange}>
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="Date Range" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Time</SelectItem>
-          <SelectItem value="today">Today</SelectItem>
-          <SelectItem value="week">This Week</SelectItem>
-          <SelectItem value="month">This Month</SelectItem>
-        </SelectContent>
-      </Select>
+        <Select value={filters.dateRange} onValueChange={handleDateRangeChange}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Date Range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+          </SelectContent>
+        </Select>
 
-      <Button variant="outline">
-        <Filter className="mr-2 h-4 w-4" />
-        More Filters
-      </Button>
+        <Button variant="outline" className="w-full sm:w-auto">
+          <Filter className="mr-2 h-4 w-4" />
+          More Filters
+        </Button>
+      </div>
     </div>
   );
 };
