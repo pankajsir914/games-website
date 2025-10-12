@@ -278,6 +278,38 @@ serve(async (req) => {
 
       // Create new round if no active rounds exist
       if (!activeRounds || activeRounds.length === 0) {
+        // Check last completed round to ensure result display time
+        const { data: lastCompletedRound } = await supabaseClient
+          .from('color_prediction_rounds')
+          .select('*')
+          .eq('status', 'completed')
+          .order('draw_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Only create new round if last result was shown for at least 5 seconds
+        if (lastCompletedRound?.draw_time) {
+          const timeSinceCompletion = Date.now() - new Date(lastCompletedRound.draw_time).getTime();
+          const minDisplayTime = 5000; // 5 seconds
+          
+          if (timeSinceCompletion < minDisplayTime) {
+            console.log(`Waiting for result display (${Math.floor(timeSinceCompletion / 1000)}s / ${minDisplayTime / 1000}s)`);
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                message: 'Waiting for result display',
+                waiting_time: Math.ceil((minDisplayTime - timeSinceCompletion) / 1000),
+                processed_rounds: expiredRounds?.length || 0,
+                active_rounds: 0
+              }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200 
+              }
+            );
+          }
+        }
+
         console.log('No active rounds found, creating new round...');
         
         try {
