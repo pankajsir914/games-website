@@ -21,7 +21,7 @@ const SportsBet: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = location;
-  const { getPriveteData, callAPI, getBetfairScoreTv } = useDiamondSportsAPI();
+  const { getPriveteData, callAPI, getBetfairScoreTv, getDetailsData } = useDiamondSportsAPI();
   const { connectOddsWebSocket } = useDiamondSportsData();
   const { wallet } = useWallet();
   const { toast } = useToast();
@@ -40,6 +40,8 @@ const SportsBet: React.FC = () => {
 
   const [liveScore, setLiveScore] = useState<any>(null);
   const [liveDetails, setLiveDetails] = useState<any>(null);
+  const [matchDetails, setMatchDetails] = useState<any>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Helper: Get SID from sport type
   const getSportSID = (sportType: string): string => {
@@ -103,6 +105,36 @@ const SportsBet: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [matchId, match?.status, sport, getBetfairScoreTv]);
+
+  // Fetch detailed match data using getDetailsData
+  useEffect(() => {
+    const fetchMatchDetails = async () => {
+      if (!matchId || matchId === 'undefined') return;
+      
+      setIsLoadingDetails(true);
+      try {
+        const sid = getSportSID(sport || 'Cricket');
+        const response = await getDetailsData(sid, matchId);
+        
+        if (response?.success && response.data) {
+          setMatchDetails(response.data);
+          console.log('Match details:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching match details:', error);
+      } finally {
+        setIsLoadingDetails(false);
+      }
+    };
+
+    fetchMatchDetails();
+    
+    // Refresh every 30 seconds for live matches
+    if (match?.status === 'Live') {
+      const interval = setInterval(fetchMatchDetails, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [matchId, match?.status, sport, getDetailsData]);
 
   // Fetch live match details and score
   useEffect(() => {
@@ -752,9 +784,15 @@ const SportsBet: React.FC = () => {
           <TabsContent value="details" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Match Information</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Match Information</span>
+                  {isLoadingDetails && (
+                    <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Basic Match Info */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground mb-2">Home Team</p>
@@ -766,20 +804,98 @@ const SportsBet: React.FC = () => {
                   </div>
                 </div>
 
-                {match.venue && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Venue</p>
-                    <p className="font-semibold">{match.venue}</p>
+                {/* Detailed Match Data from getDetailsData */}
+                {matchDetails && (
+                  <div>
+                    <h3 className="font-semibold text-lg mb-4">Detailed Match Information</h3>
+                    <div className="space-y-4">
+                      {matchDetails.matchName && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Match Name</p>
+                          <p className="font-semibold">{matchDetails.matchName}</p>
+                        </div>
+                      )}
+                      
+                      {matchDetails.series && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Series</p>
+                          <p className="font-semibold">{matchDetails.series}</p>
+                        </div>
+                      )}
+                      
+                      {matchDetails.matchType && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Match Type</p>
+                          <p className="font-semibold">{matchDetails.matchType}</p>
+                        </div>
+                      )}
+
+                      {matchDetails.venue && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Venue</p>
+                          <p className="font-semibold">{matchDetails.venue}</p>
+                        </div>
+                      )}
+
+                      {matchDetails.startDate && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Start Date & Time</p>
+                          <p className="font-semibold">{new Date(matchDetails.startDate).toLocaleString()}</p>
+                        </div>
+                      )}
+
+                      {matchDetails.tossWinner && (
+                        <div className="p-4 bg-primary/10 rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Toss Winner</p>
+                          <p className="font-semibold text-primary">{matchDetails.tossWinner}</p>
+                          {matchDetails.tossDecision && (
+                            <p className="text-sm mt-1">Decision: {matchDetails.tossDecision}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {matchDetails.currentInnings && (
+                        <div className="p-4 bg-primary/10 rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">Current Innings</p>
+                          <p className="font-semibold">{matchDetails.currentInnings}</p>
+                        </div>
+                      )}
+
+                      {/* Raw match details data for debugging */}
+                      {Object.keys(matchDetails).length > 0 && (
+                        <details className="p-4 bg-muted/50 rounded-lg">
+                          <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                            View Raw Data (Debug)
+                          </summary>
+                          <pre className="mt-2 text-xs overflow-auto max-h-64 p-2 bg-background rounded">
+                            {JSON.stringify(matchDetails, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {match.date && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Date & Time</p>
-                    <p className="font-semibold">{new Date(match.date).toLocaleString()}</p>
-                  </div>
+                {/* Fallback match info if no detailed data */}
+                {!matchDetails && !isLoadingDetails && (
+                  <>
+                    {match.venue && (
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-2">Venue</p>
+                        <p className="font-semibold">{match.venue}</p>
+                      </div>
+                    )}
+
+                    {match.date && (
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-2">Date & Time</p>
+                        <p className="font-semibold">{new Date(match.date).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </>
                 )}
 
+                {/* Live Statistics */}
                 {liveDetails && (
                   <div>
                     <h3 className="font-semibold text-lg mb-4">Live Statistics</h3>
@@ -804,9 +920,9 @@ const SportsBet: React.FC = () => {
                   </div>
                 )}
 
-                {!liveDetails && (
+                {!matchDetails && !liveDetails && !isLoadingDetails && (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">Live statistics will appear when the match starts</p>
+                    <p className="text-muted-foreground">Match details will appear when available</p>
                   </div>
                 )}
               </CardContent>

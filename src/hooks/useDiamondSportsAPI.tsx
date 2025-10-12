@@ -125,6 +125,9 @@ export function useDiamondSportsAPI() {
       } 
     }), [callAPI]);
 
+  const getDetailsData = useCallback((sid: string, gmid: string) => 
+    callAPI('sports/getDetailsData', { sid, gmid }), [callAPI]);
+
   return {
     loading,
     error,
@@ -144,6 +147,7 @@ export function useDiamondSportsAPI() {
     getDiamondIframeTV,
     getHlsTv,
     getMatchOdds,
-    getBetfairScoreTv
+    getBetfairScoreTv,
+    getDetailsData
   };
 }
