@@ -4,7 +4,6 @@ import { useWallet } from '@/hooks/useWallet';
 import { useGameManagement } from '@/hooks/useGameManagement';
 import { useColorPrediction } from '@/hooks/useColorPrediction';
 import Navigation from '@/components/Navigation';
-import ColorPredictionWheel from '@/components/colorPrediction/ColorPredictionWheel';
 import BettingCards from '@/components/colorPrediction/BettingCards';
 import GameTimer from '@/components/colorPrediction/GameTimer';
 import ResultsHistory from '@/components/colorPrediction/ResultsHistory';
@@ -33,32 +32,17 @@ const ColorPrediction = () => {
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState(100);
-  const [isSpinning, setIsSpinning] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
-  const [lastWinningColor, setLastWinningColor] = useState<'red' | 'green' | 'violet' | null>(null);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
-  const [lastProcessedRoundId, setLastProcessedRoundId] = useState<string | null>(null);
 
-  // Check for round completion and trigger animation
+  // Show winner celebration when round completes
   useEffect(() => {
-    // Only trigger if this is a new completed round we haven't processed yet
-    if (
-      currentRound?.status === 'completed' && 
-      currentRound.winning_color && 
-      currentRound.id !== lastProcessedRoundId
-    ) {
-      console.log('🎰 New completed round detected:', currentRound.id, 'Color:', currentRound.winning_color);
-      setLastProcessedRoundId(currentRound.id);
-      setIsSpinning(true);
-      setLastWinningColor(currentRound.winning_color);
-      setShowWinner(false); // Reset winner display
-      
-      setTimeout(() => {
-        setIsSpinning(false);
-        setShowWinner(true);
-      }, 4000);
+    if (currentRound?.status === 'completed' && currentRound.winning_color) {
+      setShowWinner(true);
+      const timer = setTimeout(() => setShowWinner(false), 5000);
+      return () => clearTimeout(timer);
     }
-  }, [currentRound?.id, currentRound?.status, currentRound?.winning_color, lastProcessedRoundId]);
+  }, [currentRound?.status, currentRound?.winning_color]);
 
   const handlePlaceBet = async () => {
     if (!selectedColor || !currentRound) return;
@@ -139,13 +123,28 @@ const ColorPrediction = () => {
               totalPlayers={currentRound?.total_players || 0}
             />
 
-            {/* Color Prediction Wheel */}
+            {/* Current Result Display */}
             <Card className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
-              <ColorPredictionWheel
-                isSpinning={isSpinning}
-                winningColor={lastWinningColor || undefined}
-                onSpinComplete={() => setIsSpinning(false)}
-              />
+              <div className="text-center space-y-4">
+                <h3 className="text-2xl font-bold text-white">Current Result</h3>
+                {currentRound?.status === 'completed' && currentRound.winning_color ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className={`mx-auto w-48 h-48 rounded-full flex items-center justify-center text-6xl font-bold text-white shadow-2xl ${
+                      currentRound.winning_color === 'red' ? 'bg-red-500' :
+                      currentRound.winning_color === 'green' ? 'bg-green-500' :
+                      'bg-purple-500'
+                    }`}
+                  >
+                    {currentRound.winning_color.toUpperCase()}
+                  </motion.div>
+                ) : (
+                  <div className="mx-auto w-48 h-48 rounded-full bg-gray-700 flex items-center justify-center">
+                    <p className="text-gray-400">Waiting for result...</p>
+                  </div>
+                )}
+              </div>
             </Card>
 
             {/* Betting Interface */}
@@ -262,7 +261,7 @@ const ColorPrediction = () => {
       {/* Winner Celebration */}
       <WinnerCelebration
         show={showWinner}
-        winningColor={lastWinningColor || 'red'}
+        winningColor={currentRound?.winning_color || 'red'}
         amount={userBet?.status === 'won' ? userBet.payout_amount : undefined}
         onClose={() => setShowWinner(false)}
       />
