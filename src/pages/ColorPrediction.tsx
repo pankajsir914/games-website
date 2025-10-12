@@ -71,7 +71,7 @@ const ColorPrediction = () => {
     }
   };
 
-  const canBet = currentRound?.status === 'betting' && !userBet && timeLeft > 0;
+  const canBet = currentRound?.status === 'betting' && !userBet && timeLeft > 2;
 
   // Calculate user statistics
   const userStats = {
@@ -81,7 +81,7 @@ const ColorPrediction = () => {
       bet.status === 'won' ? sum + (bet.payout_amount || 0) : sum, 0) || 0
   };
 
-  const isGamePaused = colorPredictionSettings?.settings?.is_active === false;
+  const isGamePaused = !colorPredictionSettings?.is_enabled || colorPredictionSettings?.is_paused;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">

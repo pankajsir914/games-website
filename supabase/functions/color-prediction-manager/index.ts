@@ -176,7 +176,7 @@ serve(async (req) => {
         .from('color_prediction_rounds')
         .select('*')
         .eq('status', 'betting')
-        .or(`bet_end_time.lt.${new Date().toISOString()},bet_end_time.lt.${new Date(Date.now() - 120000).toISOString()}`);
+        .lt('bet_end_time', new Date().toISOString());
 
       if (expiredError) {
         console.error('Error fetching expired rounds:', expiredError);
