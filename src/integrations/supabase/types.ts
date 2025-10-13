@@ -3432,6 +3432,7 @@ export type Database = {
       withdrawal_requests: {
         Row: {
           account_holder_name: string | null
+          admin_id: string | null
           admin_notes: string | null
           amount: number
           bank_account_number: string | null
@@ -3449,6 +3450,7 @@ export type Database = {
         }
         Insert: {
           account_holder_name?: string | null
+          admin_id?: string | null
           admin_notes?: string | null
           amount: number
           bank_account_number?: string | null
@@ -3466,6 +3468,7 @@ export type Database = {
         }
         Update: {
           account_holder_name?: string | null
+          admin_id?: string | null
           admin_notes?: string | null
           amount?: number
           bank_account_number?: string | null
