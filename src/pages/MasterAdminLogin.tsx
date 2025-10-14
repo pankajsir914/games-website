@@ -19,17 +19,17 @@ const MasterAdminLogin = () => {
   const { signIn, loading, user, isMasterAdmin } = useMasterAdminAuth();
   const { isMobile, isTablet, isDesktop } = useDeviceDetection();
 
-  // Block access on mobile devices
-  if (isMobile || isTablet) {
-    return <MobileRestriction />;
-  }
-
   // Redirect if already authenticated as master admin
   useEffect(() => {
     if (user && isMasterAdmin && !loading) {
       navigate('/master-admin', { replace: true });
     }
   }, [user, isMasterAdmin, loading, navigate]);
+
+  // Block access on mobile devices (after all hooks)
+  if (isMobile || isTablet) {
+    return <MobileRestriction />;
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
