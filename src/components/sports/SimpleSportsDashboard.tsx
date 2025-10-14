@@ -56,20 +56,34 @@ export const SimpleSportsDashboard: React.FC = () => {
     <Card
       onClick={() => selectSport(sport)}
       className={cn(
-        "p-2 sm:p-3 cursor-pointer transition-all hover:shadow-md active:scale-95",
-        "flex flex-col items-center justify-center min-w-[70px] h-[70px] sm:min-w-[100px] sm:h-[100px]",
+        "relative overflow-hidden cursor-pointer transition-all duration-300 active:scale-95",
+        "flex items-center justify-center min-w-[70px] h-[50px] sm:min-w-[100px] sm:h-[60px]",
+        "group hover:shadow-lg hover:scale-105",
         selectedSport?.id === sport.id ? 
-          "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2" : 
-          "border-border hover:border-primary/50"
+          "border-primary bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 shadow-md" : 
+          "border-border hover:border-primary/50 bg-gradient-to-br from-card to-muted/20"
       )}
     >
-      <span className="text-lg sm:text-2xl mb-1 sm:mb-2">{sport.icon}</span>
+      {/* Animated background gradient on hover */}
+      <div className={cn(
+        "absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/10 to-primary/0 opacity-0",
+        "group-hover:opacity-100 transition-opacity duration-500",
+        "group-hover:animate-pulse"
+      )} />
+      
       <span className={cn(
-        "text-[10px] sm:text-xs font-medium text-center line-clamp-2",
-        selectedSport?.id === sport.id ? "text-primary" : "text-foreground"
+        "text-xs sm:text-sm font-bold text-center px-2 relative z-10 transition-colors duration-300",
+        selectedSport?.id === sport.id ? 
+          "text-primary bg-clip-text" : 
+          "text-foreground group-hover:text-primary"
       )}>
         {sport.label}
       </span>
+      
+      {/* Selected indicator */}
+      {selectedSport?.id === sport.id && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/0 via-primary to-primary/0" />
+      )}
     </Card>
   );
 
