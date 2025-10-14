@@ -4,6 +4,13 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { BannerCarousel } from '@/components/dashboard/BannerCarousel';
 import { 
@@ -15,12 +22,12 @@ import {
 } from "@/components/ui/carousel";
 import { 
   Menu, Bell, User, Wallet, Play, Target, Zap, TrendingUp, Gamepad2, 
-  Crown, Clock, Gift, Dice1, Heart, Trophy, Coins, Users, Star
+  Crown, Clock, Gift, Dice1, Heart, Trophy, Coins, Users, Star, LogOut
 } from 'lucide-react';
 
 export function DashboardContent() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const promotionalImages = [
     {
@@ -185,17 +192,36 @@ export function DashboardContent() {
           <Button variant="outline" size="icon" onClick={() => navigate('/wallet')} className="sm:hidden h-8 w-8">
             <Wallet className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-8 w-8 sm:h-10 sm:w-10"
-            onClick={() => {
-              // TODO: Add user profile functionality
-              console.log('User profile clicked');
-            }}
-          >
-            <User className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
+              >
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                  <AvatarFallback className="text-xs sm:text-sm">
+                    {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-background z-50" align="end" forceMount>
+              <DropdownMenuItem className="flex flex-col items-start cursor-default focus:bg-transparent">
+                <p className="text-sm font-medium">{user?.user_metadata?.full_name || 'User'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/wallet')}>
+                <Wallet className="mr-2 h-4 w-4" />
+                <span>Wallet</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
