@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,62 @@ import {
 export function DashboardContent() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState<'sports' | 'casino' | 'rrb'>('sports');
+
+  // Category banners
+  const categoryBanners = {
+    sports: [
+      {
+        image: "/lovable-uploads/cricketposter.jpeg",
+        alt: "Cricket Betting",
+        title: "Live Cricket"
+      },
+      {
+        image: "/placeholder.svg",
+        alt: "Football Betting",
+        title: "Football Leagues"
+      },
+      {
+        image: "/placeholder.svg",
+        alt: "Sports Promotions",
+        title: "Sports Bonus"
+      }
+    ],
+    casino: [
+      {
+        image: "/lovable-uploads/teen3.jpg",
+        alt: "Teen Patti Live",
+        title: "Teen Patti Live"
+      },
+      {
+        image: "/lovable-uploads/roulette13.jpg",
+        alt: "Roulette Live",
+        title: "Live Roulette"
+      },
+      {
+        image: "/lovable-uploads/andarbaharposter.png",
+        alt: "Andar Bahar Live",
+        title: "Andar Bahar Live"
+      }
+    ],
+    rrb: [
+      {
+        image: "/lovable-uploads/chickenposter.png",
+        alt: "Chicken Run",
+        title: "Chicken Run"
+      },
+      {
+        image: "/lovable-uploads/colorgameposter.jpeg",
+        alt: "Color Prediction",
+        title: "Color Prediction"
+      },
+      {
+        image: "/lovable-uploads/aviatorposter.png",
+        alt: "Aviator",
+        title: "Aviator"
+      }
+    ]
+  };
 
   const promotionalImages = [
     {
@@ -229,6 +285,62 @@ export function DashboardContent() {
       <div className="p-3 sm:p-4 md:p-6 space-y-6 sm:space-y-8">
         {/* Banner Promotions Carousel */}
         <BannerCarousel />
+
+        {/* Category Buttons */}
+        <div className="flex gap-2 sm:gap-4 justify-center">
+          <Button
+            variant={selectedCategory === 'sports' ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory('sports')}
+            className="flex-1 sm:flex-initial sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all"
+          >
+            <Target className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            Sports
+          </Button>
+          <Button
+            variant={selectedCategory === 'casino' ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory('casino')}
+            className="flex-1 sm:flex-initial sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all"
+          >
+            <Crown className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            Live Casino
+          </Button>
+          <Button
+            variant={selectedCategory === 'rrb' ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory('rrb')}
+            className="flex-1 sm:flex-initial sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all"
+          >
+            <Gamepad2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            RRB Games
+          </Button>
+        </div>
+
+        {/* Category Banners */}
+        <div className="animate-fade-in">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {categoryBanners[selectedCategory].map((banner, index) => (
+                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                  <div className="p-1">
+                    <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-0 relative aspect-video">
+                        <img
+                          src={banner.image}
+                          alt={banner.alt}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                          <h3 className="text-white font-bold text-lg">{banner.title}</h3>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+          </Carousel>
+        </div>
 
         {/* Popular Games Section */}
         <div>
