@@ -75,28 +75,28 @@ const Wallet = () => {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
-              {/* Quick Actions - Mobile Optimized with press animations */}
-              <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="grid grid-cols-2 gap-3">
+              {/* Quick Actions - Compact & Polished */}
+              <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-sm">
+                <CardContent className="p-2.5 sm:p-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <Button 
                       onClick={() => setAddMoneyOpen(true)}
-                      className="min-h-[88px] h-20 sm:h-24 flex flex-col gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg active:scale-95 transition-transform"
+                      className="h-16 sm:h-18 flex flex-col gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md active:scale-95 transition-all rounded-xl"
                     >
-                      <div className="bg-white/20 rounded-full p-2 sm:p-2.5">
-                        <ArrowDownRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                      <div className="bg-white/20 rounded-full p-1.5">
+                        <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
-                      <span className="text-sm sm:text-base font-semibold">Add Points</span>
+                      <span className="text-xs sm:text-sm font-semibold">Add Points</span>
                     </Button>
                     <Button 
                       onClick={() => setWithdrawMoneyOpen(true)}
                       variant="outline"
-                      className="min-h-[88px] h-20 sm:h-24 flex flex-col gap-2 border-2 active:scale-95 transition-transform"
+                      className="h-16 sm:h-18 flex flex-col gap-1.5 border-2 hover:bg-muted/50 active:scale-95 transition-all rounded-xl"
                     >
-                      <div className="bg-primary/10 rounded-full p-2 sm:p-2.5">
-                        <ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                      <div className="bg-primary/10 rounded-full p-1.5">
+                        <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
-                      <span className="text-sm sm:text-base font-semibold">Withdraw</span>
+                      <span className="text-xs sm:text-sm font-semibold">Withdraw</span>
                     </Button>
                   </div>
                 </CardContent>
