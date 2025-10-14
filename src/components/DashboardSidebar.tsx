@@ -14,7 +14,7 @@ import {
   useSidebar
 } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
-import { Search, Crown, Gamepad2, Star, Trophy, Zap, Coins, Clock, Users, TrendingUp, Gift, Target, Dice1, Heart, Shield, Sparkles } from 'lucide-react';
+import { Search, Crown, Gamepad2, Star, Trophy, Zap, Coins, Clock, Users, TrendingUp, Gift, Target, Dice1, Heart, Shield, Sparkles, Headphones } from 'lucide-react';
 
 export function DashboardSidebar() {
   const navigate = useNavigate();
@@ -23,6 +23,14 @@ export function DashboardSidebar() {
   const collapsed = state === 'collapsed';
 
   const sidebarItems = [
+    { 
+      id: 'support', 
+      title: 'Support', 
+      icon: Headphones, 
+      path: '/support',
+      count: 0,
+      color: 'text-purple-500'
+    },
     { 
       id: 'heated', 
       title: 'Heated', 

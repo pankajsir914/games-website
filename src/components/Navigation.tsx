@@ -25,6 +25,7 @@ const Navigation = () => {
     { href: "/color-prediction", label: "Color Prediction" },
     { href: "/ludo", label: "Ludo" },
     { href: "/aviator", label: "Aviator" },
+    { href: "/support", label: "Support" },
   ];
 
   const isActive = (href: string) => location.pathname === href;
