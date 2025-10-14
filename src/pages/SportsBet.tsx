@@ -861,16 +861,49 @@ const SportsBet: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Raw match details data for debugging */}
+                      {/* Additional Match Information */}
                       {Object.keys(matchDetails).length > 0 && (
-                        <details className="p-4 bg-muted/50 rounded-lg">
-                          <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                            View Raw Data (Debug)
-                          </summary>
-                          <pre className="mt-2 text-xs overflow-auto max-h-64 p-2 bg-background rounded">
-                            {JSON.stringify(matchDetails, null, 2)}
-                          </pre>
-                        </details>
+                        <div className="p-4 bg-card border rounded-lg space-y-3">
+                          <h4 className="font-semibold text-base mb-3">Additional Information</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {matchDetails.matchType && (
+                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                                <span className="text-sm text-muted-foreground">Match Type</span>
+                                <span className="text-sm font-medium">{matchDetails.matchType}</span>
+                              </div>
+                            )}
+                            {matchDetails.series && (
+                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                                <span className="text-sm text-muted-foreground">Series</span>
+                                <span className="text-sm font-medium">{matchDetails.series}</span>
+                              </div>
+                            )}
+                            {matchDetails.referee && (
+                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                                <span className="text-sm text-muted-foreground">Referee</span>
+                                <span className="text-sm font-medium">{matchDetails.referee}</span>
+                              </div>
+                            )}
+                            {matchDetails.umpires && (
+                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                                <span className="text-sm text-muted-foreground">Umpires</span>
+                                <span className="text-sm font-medium">{matchDetails.umpires}</span>
+                              </div>
+                            )}
+                            {matchDetails.weather && (
+                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                                <span className="text-sm text-muted-foreground">Weather</span>
+                                <span className="text-sm font-medium">{matchDetails.weather}</span>
+                              </div>
+                            )}
+                            {matchDetails.pitch && (
+                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                                <span className="text-sm text-muted-foreground">Pitch Condition</span>
+                                <span className="text-sm font-medium">{matchDetails.pitch}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
