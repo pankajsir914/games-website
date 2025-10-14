@@ -1,75 +1,82 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { useWallet } from '@/hooks/useWallet';
-import { History, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowUpCircle, ArrowDownCircle, XCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TransactionHistoryProps {
   limit?: number;
   compact?: boolean;
 }
 
-export const TransactionHistory = ({ limit, compact = false }: TransactionHistoryProps = {}) => {
+export const TransactionHistory = ({ limit, compact = false }: TransactionHistoryProps) => {
   const { transactions, transactionsLoading } = useWallet();
-  
-  const displayTransactions = transactions && limit ? transactions.slice(0, limit) : transactions;
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  if (transactionsLoading) {
-    if (compact) {
-      return (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}
-        </div>
-      );
-    }
+  // Fetch rejected payment requests
+  const { data: rejectedRequests, isLoading: isLoadingRejected } = useQuery({
+    queryKey: ['rejected-payment-requests', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('payment_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'rejected')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const isLoading = transactionsLoading || isLoadingRejected;
+
+  // Merge and sort transactions and rejected requests
+  const allTransactions = React.useMemo(() => {
+    const merged: any[] = [
+      ...(transactions || []).map(t => ({ ...t, itemType: 'transaction' as const })),
+      ...(rejectedRequests || []).map(r => ({ 
+        ...r, 
+        itemType: 'rejected_deposit' as const,
+        reason: `Deposit Rejected - ₹${r.amount}`,
+      })),
+    ];
     
+    return merged.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ).slice(0, limit);
+  }, [transactions, rejectedRequests, limit]);
+
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Transaction History
-          </CardTitle>
+          <CardTitle>Transaction History</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-lg border">
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-32" />
-              </div>
-              <Skeleton className="h-6 w-16" />
-            </div>
+            <Skeleton key={i} className="h-16 w-full" />
           ))}
         </CardContent>
       </Card>
     );
   }
 
-  if (!displayTransactions || displayTransactions.length === 0) {
-    if (compact) {
-      return (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No recent transactions
-        </p>
-      );
-    }
-    
+  if (!allTransactions || allTransactions.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Transaction History
-          </CardTitle>
+          <CardTitle>Transaction History</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-8">
@@ -82,46 +89,76 @@ export const TransactionHistory = ({ limit, compact = false }: TransactionHistor
 
   if (compact) {
     return (
-      <div className="space-y-2">
-        {displayTransactions.map((transaction) => (
-          <div
-            key={transaction.id}
-            className="flex items-center justify-between py-3 px-2 border-b last:border-0 min-h-[56px] hover:bg-muted/30 rounded-lg transition-colors"
-          >
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              {transaction.type === 'credit' ? (
-                <div className="bg-green-100 dark:bg-green-900/20 rounded-full p-1.5 flex-shrink-0">
-                  <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
-                </div>
-              ) : (
-                <div className="bg-red-100 dark:bg-red-900/20 rounded-full p-1.5 flex-shrink-0">
-                  <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
-                </div>
+      <div className="space-y-3">
+        {allTransactions.map((item: any) => {
+          const isRejected = item.itemType === 'rejected_deposit';
+          const isCredit = item.type === 'credit';
+          
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors",
+                compact && "p-2"
               )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm sm:text-base font-medium truncate">{transaction.reason}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {new Date(transaction.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-2 rounded-full",
+                  isRejected ? "bg-red-100 text-red-600" :
+                  isCredit ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                )}>
+                  {isRejected ? (
+                    <XCircle className={cn("h-4 w-4", compact && "h-3 w-3")} />
+                  ) : isCredit ? (
+                    <ArrowUpCircle className={cn("h-4 w-4", compact && "h-3 w-3")} />
+                  ) : (
+                    <ArrowDownCircle className={cn("h-4 w-4", compact && "h-3 w-3")} />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className={cn(
+                    "font-medium",
+                    compact ? "text-sm" : "text-base"
+                  )}>
+                    {item.reason}
+                  </p>
+                  <p className={cn(
+                    "text-muted-foreground",
+                    compact ? "text-xs" : "text-sm"
+                  )}>
+                    {new Date(item.created_at).toLocaleString()}
+                  </p>
+                  {isRejected && item.admin_notes && (
+                    <p className={cn(
+                      "text-red-600 italic",
+                      compact ? "text-xs" : "text-sm"
+                    )}>
+                      Reason: {item.admin_notes}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className={cn(
+                  "font-semibold",
+                  compact ? "text-base" : "text-lg",
+                  isRejected ? "text-red-600" :
+                  isCredit ? "text-green-600" : "text-red-600"
+                )}>
+                  {isRejected ? '-' : isCredit ? '+' : '-'}₹{item.amount}
                 </p>
               </div>
             </div>
-            <p className={cn(
-              "text-sm sm:text-base font-semibold whitespace-nowrap ml-2",
-              transaction.type === 'credit' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            )}>
-              {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount.toFixed(0)}
-            </p>
-          </div>
-        ))}
-        {limit && transactions && transactions.length > limit && (
+          );
+        })}
+        {limit && allTransactions && allTransactions.length >= limit && (
           <Button
             variant="ghost"
-            className="w-full text-sm text-primary hover:text-primary/90 flex items-center justify-center gap-2 min-h-[44px] mt-2"
-            onClick={() => window.location.hash = '#transactions'}
-            aria-label="View all transactions"
+            className="w-full"
+            onClick={() => navigate('/wallet')}
           >
             View all transactions
-            <ArrowRight className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -129,64 +166,59 @@ export const TransactionHistory = ({ limit, compact = false }: TransactionHistor
   }
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="px-3 sm:px-6">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <div className="bg-primary/10 rounded-full p-2">
-            <History className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-          </div>
-          Transaction History
-        </CardTitle>
+    <Card>
+      <CardHeader>
+        <CardTitle>Transaction History</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 px-3 sm:px-6">
-        <div className="space-y-2">
-          {displayTransactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer group min-h-[72px]"
-            >
-              <div className="space-y-1 flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {transaction.type === 'credit' ? (
-                    <div className="bg-green-100 dark:bg-green-900/20 rounded-full p-1.5 group-hover:scale-110 transition-transform flex-shrink-0">
-                      <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    </div>
-                  ) : (
-                    <div className="bg-red-100 dark:bg-red-900/20 rounded-full p-1.5 group-hover:scale-110 transition-transform flex-shrink-0">
-                      <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    </div>
-                  )}
-                  <span className="font-medium text-sm sm:text-base truncate">{transaction.reason}</span>
-                  {transaction.game_type && (
-                    <Badge variant="secondary" className="text-xs">
-                      {transaction.game_type}
-                    </Badge>
-                  )}
+      <CardContent>
+        <div className="space-y-3">
+          {allTransactions.map((item: any) => {
+            const isRejected = item.itemType === 'rejected_deposit';
+            const isCredit = item.type === 'credit';
+            
+            return (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-2 rounded-full",
+                    isRejected ? "bg-red-100 text-red-600" :
+                    isCredit ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                  )}>
+                    {isRejected ? (
+                      <XCircle className="h-4 w-4" />
+                    ) : isCredit ? (
+                      <ArrowUpCircle className="h-4 w-4" />
+                    ) : (
+                      <ArrowDownCircle className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium">{item.reason}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(item.created_at).toLocaleString()}
+                    </p>
+                    {isRejected && item.admin_notes && (
+                      <p className="text-sm text-red-600 italic">
+                        Reason: {item.admin_notes}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {new Date(transaction.created_at).toLocaleString([], { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Balance: ₹{transaction.balance_after.toFixed(0)}
-                </p>
+                <div className="text-right">
+                  <p className={cn(
+                    "text-lg font-semibold",
+                    isRejected ? "text-red-600" :
+                    isCredit ? "text-green-600" : "text-red-600"
+                  )}>
+                    {isRejected ? '-' : isCredit ? '+' : '-'}₹{item.amount}
+                  </p>
+                </div>
               </div>
-              <div className="text-right ml-2 flex-shrink-0">
-                <p className={cn(
-                  "font-bold text-base sm:text-lg whitespace-nowrap",
-                  transaction.type === 'credit' 
-                    ? 'text-green-600 dark:text-green-400' 
-                    : 'text-red-600 dark:text-red-400'
-                )}>
-                  {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount.toFixed(0)}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

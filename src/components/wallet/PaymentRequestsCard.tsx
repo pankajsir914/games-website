@@ -108,8 +108,13 @@ export const PaymentRequestsCard = () => {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(request.created_at).toLocaleDateString()}
+                    {new Date(request.created_at).toLocaleString()}
                   </p>
+                  {request.admin_notes && request.status === 'rejected' && (
+                    <p className="text-xs text-red-600 italic mt-1">
+                      Reason: {request.admin_notes}
+                    </p>
+                  )}
                   {request.admin_notes && (
                     <p className="text-xs text-muted-foreground italic">
                       Note: {request.admin_notes}

@@ -38,6 +38,7 @@ interface FinancialData {
     status: string;
     created_at: string;
     payment_method: string;
+    screenshot_url?: string;
   }[];
 }
 
@@ -126,7 +127,8 @@ export const useMasterAdminFinance = () => {
           amount: Number(p.amount),
           status: p.status,
           created_at: p.created_at,
-          payment_method: p.payment_method
+          payment_method: p.payment_method,
+          screenshot_url: p.screenshot_url
         })) || []
       } as FinancialData;
     },
@@ -143,25 +145,32 @@ export const useMasterAdminFinance = () => {
       action: 'approve' | 'reject'; 
       notes?: string 
     }) => {
-      const { data, error } = await supabase
+      // Get the payment request first
+      const { data: paymentRequest, error: fetchError } = await supabase
+        .from('payment_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update payment request status with optional admin notes
+      const { error: updateError } = await supabase
         .from('payment_requests')
         .update({ 
           status: action === 'approve' ? 'approved' : 'rejected',
-          admin_notes: notes,
-          processed_by: (await supabase.auth.getUser()).data.user?.id,
+          admin_notes: notes || null,
           processed_at: new Date().toISOString()
         })
-        .eq('id', requestId)
-        .select()
-        .single();
+        .eq('id', requestId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       // If approved, credit the user's wallet
       if (action === 'approve') {
         const { error: walletError } = await supabase.rpc('update_wallet_balance', {
-          p_user_id: data.user_id,
-          p_amount: data.amount,
+          p_user_id: paymentRequest.user_id,
+          p_amount: paymentRequest.amount,
           p_type: 'credit',
           p_reason: 'Deposit approved by admin',
           p_game_type: null,
@@ -171,7 +180,7 @@ export const useMasterAdminFinance = () => {
         if (walletError) throw walletError;
       }
 
-      return data;
+      return paymentRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-admin-finance'] });
