@@ -236,25 +236,25 @@ export function DashboardContent() {
           <Button
             variant="outline"
             onClick={() => navigate('/sports')}
-            className="sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+            className="sm:min-w-[140px] h-8 sm:h-11 text-xs sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap px-3 sm:px-4"
           >
-            <Target className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <Target className="h-3 w-3 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
             Sports
           </Button>
           <Button
             variant="outline"
             onClick={() => navigate('/live-casino')}
-            className="sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+            className="sm:min-w-[140px] h-8 sm:h-11 text-xs sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap px-3 sm:px-4"
           >
-            <Crown className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <Crown className="h-3 w-3 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
             Live Casino
           </Button>
           <Button
             variant="outline"
             onClick={() => navigate('/games')}
-            className="sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+            className="sm:min-w-[140px] h-8 sm:h-11 text-xs sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap px-3 sm:px-4"
           >
-            <Gamepad2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <Gamepad2 className="h-3 w-3 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
             RRB Games
           </Button>
           </div>
