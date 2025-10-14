@@ -135,9 +135,9 @@ export function DashboardContent() {
   ];
 
   return (
-    <main className="flex-1 bg-background">
+    <main className="flex-1 bg-background overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 sm:p-4 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 sm:p-4 flex items-center justify-between max-w-full overflow-x-hidden">
         <div className="flex items-center space-x-2 sm:space-x-4">
           <SidebarTrigger />
           <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
@@ -226,16 +226,17 @@ export function DashboardContent() {
       </header>
 
       {/* Content */}
-      <div className="p-3 sm:p-4 md:p-6 space-y-6 sm:space-y-8">
+      <div className="p-3 sm:p-4 md:p-6 space-y-6 sm:space-y-8 max-w-full overflow-x-hidden">
         {/* Banner Promotions Carousel */}
         <BannerCarousel />
 
         {/* Category Buttons */}
-        <div className="flex gap-2 sm:gap-4 justify-center">
+        <div className="flex gap-2 sm:gap-4 justify-center max-w-full overflow-x-auto scrollbar-hide px-2">
+          <div className="flex gap-2 sm:gap-4 min-w-max mx-auto">
           <Button
             variant="outline"
             onClick={() => navigate('/sports')}
-            className="flex-1 sm:flex-initial sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95"
+            className="sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
           >
             <Target className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Sports
@@ -243,7 +244,7 @@ export function DashboardContent() {
           <Button
             variant="outline"
             onClick={() => navigate('/live-casino')}
-            className="flex-1 sm:flex-initial sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95"
+            className="sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
           >
             <Crown className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Live Casino
@@ -251,11 +252,12 @@ export function DashboardContent() {
           <Button
             variant="outline"
             onClick={() => navigate('/games')}
-            className="flex-1 sm:flex-initial sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95"
+            className="sm:min-w-[140px] h-10 sm:h-11 text-sm sm:text-base transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
           >
             <Gamepad2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             RRB Games
           </Button>
+          </div>
         </div>
 
         {/* Popular Games Section */}
