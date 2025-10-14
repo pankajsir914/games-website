@@ -165,16 +165,10 @@ export const useDiamondCasino = () => {
     }
   };
 
-  // Auto-refresh tables every 3 seconds
+  // Initial load only
   useEffect(() => {
     fetchLiveTables();
     fetchUserBets();
-
-    const interval = setInterval(() => {
-      fetchLiveTables();
-    }, 3000);
-
-    return () => clearInterval(interval);
   }, []);
 
   // Subscribe to real-time bet updates
