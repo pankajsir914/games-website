@@ -203,19 +203,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('session_token');
       
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      
+      // Ignore session missing errors - user is already logged out
+      if (error && error.message !== 'Auth session missing!' && !error.message.includes('session_not_found')) {
+        throw error;
+      }
       
       toast({
         title: "Signed out",
         description: "You've been signed out successfully.",
       });
     } catch (error: any) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error;
+      // Only show error if it's not a session issue
+      if (error.message !== 'Auth session missing!' && !error.message.includes('session_not_found')) {
+        toast({
+          title: "Sign out failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
     } finally {
       setLoading(false);
     }
