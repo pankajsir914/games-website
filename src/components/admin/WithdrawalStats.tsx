@@ -1,43 +1,71 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-
-const withdrawalStats = [
-  {
-    title: 'Pending Approvals',
-    value: '12',
-    amount: '₹1,23,450',
-    icon: Clock,
-    color: 'text-yellow-500'
-  },
-  {
-    title: 'Approved Today',
-    value: '28',
-    amount: '₹4,56,780',
-    icon: CheckCircle,
-    color: 'text-gaming-success'
-  },
-  {
-    title: 'Rejected',
-    value: '3',
-    amount: '₹45,200',
-    icon: XCircle,
-    color: 'text-gaming-danger'
-  },
-  {
-    title: 'Under Review',
-    value: '5',
-    amount: '₹89,340',
-    icon: AlertCircle,
-    color: 'text-blue-500'
-  }
-];
+import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useAdminWithdrawals } from '@/hooks/useAdminWithdrawals';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const WithdrawalStats = () => {
+  const { data: withdrawals, isLoading } = useAdminWithdrawals();
+
+  const stats = useMemo(() => {
+    if (!withdrawals) return null;
+
+    const pending = withdrawals.filter(w => w.status === 'pending');
+    const approved = withdrawals.filter(w => w.status === 'approved');
+    const rejected = withdrawals.filter(w => w.status === 'rejected');
+
+    const pendingAmount = pending.reduce((sum, w) => sum + w.amount, 0);
+    const approvedAmount = approved.reduce((sum, w) => sum + w.amount, 0);
+    const rejectedAmount = rejected.reduce((sum, w) => sum + w.amount, 0);
+
+    return [
+      {
+        title: 'Pending Approvals',
+        value: pending.length.toString(),
+        amount: `₹${pendingAmount.toLocaleString()}`,
+        icon: Clock,
+        color: 'text-yellow-500'
+      },
+      {
+        title: 'Approved Today',
+        value: approved.length.toString(),
+        amount: `₹${approvedAmount.toLocaleString()}`,
+        icon: CheckCircle,
+        color: 'text-gaming-success'
+      },
+      {
+        title: 'Rejected',
+        value: rejected.length.toString(),
+        amount: `₹${rejectedAmount.toLocaleString()}`,
+        icon: XCircle,
+        color: 'text-gaming-danger'
+      }
+    ];
+  }, [withdrawals]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-4 rounded-full" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 mb-2" />
+              <Skeleton className="h-4 w-24" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      {withdrawalStats.map((stat) => (
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      {stats?.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
