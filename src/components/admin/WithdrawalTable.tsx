@@ -161,10 +161,22 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
                     </div>
                   )}
                   {withdrawal.status === 'approved' && (
-                    <Button size="sm" variant="outline" disabled>
+                    <Badge variant="outline" className="text-blue-600">
+                      <Clock className="mr-1 h-3 w-3" />
+                      Completed
+                    </Badge>
+                  )}
+                  {withdrawal.status === 'processing' && (
+                    <Badge variant="outline" className="text-blue-600">
                       <Clock className="mr-1 h-3 w-3" />
                       Processing
-                    </Button>
+                    </Badge>
+                  )}
+                  {withdrawal.status === 'rejected' && (
+                    <Badge variant="destructive">
+                      <XCircle className="mr-1 h-3 w-3" />
+                      Rejected
+                    </Badge>
                   )}
                 </TableCell>
               </TableRow>
