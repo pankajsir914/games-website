@@ -27,11 +27,11 @@ export const useAdminWithdrawals = () => {
 
       if (error) throw error;
 
-      // Get user profiles for the withdrawals
+      // Get user profiles with phone as fallback
       const userIds = [...new Set(withdrawals.map(w => w.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, phone')
         .in('id', userIds);
 
       // Create a map of user profiles
@@ -42,15 +42,18 @@ export const useAdminWithdrawals = () => {
           ? `UPI: ${withdrawal.upi_id || 'N/A'}` 
           : `${withdrawal.bank_account_number?.slice(-4) || '••••'} (${withdrawal.ifsc_code || 'N/A'})`;
         
+        const profile = profileMap.get(withdrawal.user_id);
+        const userName = profile?.full_name || profile?.phone || `User ${withdrawal.user_id.slice(0, 8)}`;
+        
         return {
           id: withdrawal.id,
-          user: profileMap.get(withdrawal.user_id)?.full_name || 'Unknown User',
+          user: userName,
           amount: Number(withdrawal.amount),
           method: withdrawal.payment_method_type === 'upi' ? 'UPI' : 'Bank Transfer',
           accountDetails,
           status: withdrawal.status,
           requestTime: new Date(withdrawal.created_at).toLocaleString(),
-          avatar: withdrawal.user_id.slice(0, 2).toUpperCase(),
+          avatar: userName.slice(0, 2).toUpperCase(),
         };
       });
     },
