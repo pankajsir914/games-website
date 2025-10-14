@@ -13,18 +13,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Minus, History, CreditCard, Banknote, ArrowUpRight, ArrowDownRight, Receipt, Wallet2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Wallet = () => {
   const [addMoneyOpen, setAddMoneyOpen] = useState(false);
   const [withdrawMoneyOpen, setWithdrawMoneyOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Navigation />
       
-      {/* Mobile Sticky Header with Balance */}
-      <div className="lg:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b">
-        <div className="px-4 py-3">
+      {/* Mobile Sticky Header with Balance - Dynamic positioning */}
+      <div className="lg:hidden sticky top-14 sm:top-16 z-40 bg-background/98 backdrop-blur-md border-b shadow-sm">
+        <div className="px-3 sm:px-4 py-3">
           <WalletCard variant="compact" />
         </div>
       </div>
@@ -38,51 +40,63 @@ const Wallet = () => {
           </p>
         </div>
 
-        {/* Mobile View with Tabs */}
+        {/* Mobile View with Tabs - Enhanced touch targets */}
         <div className="lg:hidden">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
-              <TabsTrigger value="overview" className="text-xs">
-                <Wallet2 className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Overview</span>
+            <TabsList className="grid w-full grid-cols-4 mb-4 h-auto p-1">
+              <TabsTrigger 
+                value="overview" 
+                className="min-h-[44px] text-xs sm:text-sm px-2 py-2 flex-col sm:flex-row gap-0.5 sm:gap-1 data-[state=active]:bg-primary/10"
+              >
+                <Wallet2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-[10px] sm:text-sm">Overview</span>
               </TabsTrigger>
-              <TabsTrigger value="transactions" className="text-xs">
-                <History className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">History</span>
+              <TabsTrigger 
+                value="transactions" 
+                className="min-h-[44px] text-xs sm:text-sm px-2 py-2 flex-col sm:flex-row gap-0.5 sm:gap-1 data-[state=active]:bg-primary/10"
+              >
+                <History className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-[10px] sm:text-sm">History</span>
               </TabsTrigger>
-              <TabsTrigger value="methods" className="text-xs">
-                <CreditCard className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Methods</span>
+              <TabsTrigger 
+                value="methods" 
+                className="min-h-[44px] text-xs sm:text-sm px-2 py-2 flex-col sm:flex-row gap-0.5 sm:gap-1 data-[state=active]:bg-primary/10"
+              >
+                <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-[10px] sm:text-sm">Methods</span>
               </TabsTrigger>
-              <TabsTrigger value="requests" className="text-xs">
-                <Receipt className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Requests</span>
+              <TabsTrigger 
+                value="requests" 
+                className="min-h-[44px] text-xs sm:text-sm px-2 py-2 flex-col sm:flex-row gap-0.5 sm:gap-1 data-[state=active]:bg-primary/10"
+              >
+                <Receipt className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="text-[10px] sm:text-sm">Requests</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
-              {/* Quick Actions - Mobile Optimized */}
+              {/* Quick Actions - Mobile Optimized with press animations */}
               <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
                       onClick={() => setAddMoneyOpen(true)}
-                      className="h-20 flex flex-col gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                      className="min-h-[88px] h-20 sm:h-24 flex flex-col gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg active:scale-95 transition-transform"
                     >
-                      <div className="bg-white/20 rounded-full p-2">
-                        <ArrowDownRight className="h-6 w-6" />
+                      <div className="bg-white/20 rounded-full p-2 sm:p-2.5">
+                        <ArrowDownRight className="h-5 w-5 sm:h-6 sm:w-6" />
                       </div>
-                      <span className="text-sm font-semibold">Add Points</span>
+                      <span className="text-sm sm:text-base font-semibold">Add Points</span>
                     </Button>
                     <Button 
                       onClick={() => setWithdrawMoneyOpen(true)}
                       variant="outline"
-                      className="h-20 flex flex-col gap-2 border-2"
+                      className="min-h-[88px] h-20 sm:h-24 flex flex-col gap-2 border-2 active:scale-95 transition-transform"
                     >
-                      <div className="bg-primary/10 rounded-full p-2">
-                        <ArrowUpRight className="h-6 w-6" />
+                      <div className="bg-primary/10 rounded-full p-2 sm:p-2.5">
+                        <ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6" />
                       </div>
-                      <span className="text-sm font-semibold">Withdraw</span>
+                      <span className="text-sm sm:text-base font-semibold">Withdraw</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -90,10 +104,10 @@ const Wallet = () => {
 
               {/* Recent Activity Summary */}
               <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Recent Activity</CardTitle>
+                <CardHeader className="pb-3 px-3 sm:px-6">
+                  <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 sm:px-6">
                   <TransactionHistory limit={3} compact />
                 </CardContent>
               </Card>
@@ -165,20 +179,22 @@ const Wallet = () => {
         </div>
       </div>
 
-      {/* Mobile Floating Action Buttons */}
-      <div className="lg:hidden fixed bottom-20 right-4 z-50 flex flex-col gap-2">
+      {/* Mobile Floating Action Buttons - Enhanced with animations */}
+      <div className="lg:hidden fixed bottom-24 right-4 z-50 flex flex-col gap-3">
         <Button
           onClick={() => setWithdrawMoneyOpen(true)}
           size="icon"
           variant="outline"
-          className="h-12 w-12 rounded-full shadow-lg bg-background border-2"
+          className="h-12 w-12 rounded-full shadow-lg bg-background/95 backdrop-blur-sm border-2 hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200"
+          aria-label="Withdraw money"
         >
           <ArrowUpRight className="h-5 w-5" />
         </Button>
         <Button
           onClick={() => setAddMoneyOpen(true)}
           size="icon"
-          className="h-14 w-14 rounded-full shadow-xl"
+          className="h-14 w-14 rounded-full shadow-2xl hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-200"
+          aria-label="Add money"
         >
           <Plus className="h-6 w-6" />
         </Button>

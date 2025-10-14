@@ -89,22 +89,29 @@ export const PaymentMethodsCard = () => {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+        <CardHeader className="flex flex-row items-center justify-between px-3 sm:px-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
             Payment Methods
           </CardTitle>
-          <Button size="sm" onClick={() => setAddModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Method
+          <Button 
+            size="sm" 
+            onClick={() => setAddModalOpen(true)}
+            className="min-h-[36px] px-3"
+          >
+            <Plus className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Add Method</span>
           </Button>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 px-3 sm:px-6">
           {paymentMethods.length === 0 ? (
             <div className="text-center py-8">
               <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground mb-4">No payment methods added yet</p>
-              <Button onClick={() => setAddModalOpen(true)}>
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">No payment methods added yet</p>
+              <Button 
+                onClick={() => setAddModalOpen(true)}
+                className="min-h-[44px]"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Payment Method
               </Button>
@@ -113,34 +120,34 @@ export const PaymentMethodsCard = () => {
             paymentMethods.map((method) => (
               <div
                 key={method.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+                className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-accent/5 transition-colors min-h-[80px]"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                   {method.method_type === 'upi' ? (
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Smartphone className="h-5 w-5 text-purple-600" />
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex-shrink-0">
+                      <Smartphone className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
                     </div>
                   ) : (
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <CreditCard className="h-5 w-5 text-blue-600" />
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex-shrink-0">
+                      <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                   )}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <p className="font-medium text-sm sm:text-base truncate">
                         {method.nickname || 
                           (method.method_type === 'upi' ? 'UPI' : method.bank_name)}
                       </p>
                       {method.is_primary && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs flex-shrink-0">
                           Primary
                         </Badge>
                       )}
                       {method.is_verified && (
-                        <Shield className="h-3 w-3 text-green-600" />
+                        <Shield className="h-3 w-3 text-green-600 dark:text-green-400 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {method.method_type === 'upi' 
                         ? maskUpiId(method.upi_id!) 
                         : `${method.account_holder_name} • ${maskAccountNumber(method.account_number!)}`}
@@ -155,13 +162,21 @@ export const PaymentMethodsCard = () => {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="min-h-[44px] min-w-[44px] flex-shrink-0"
+                      aria-label="Payment method options"
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="bg-background z-50">
                     {!method.is_primary && (
-                      <DropdownMenuItem onClick={() => handleSetPrimary(method.id)}>
+                      <DropdownMenuItem 
+                        onClick={() => handleSetPrimary(method.id)}
+                        className="min-h-[44px] cursor-pointer"
+                      >
                         <Check className="h-4 w-4 mr-2" />
                         Set as Primary
                       </DropdownMenuItem>
@@ -171,7 +186,7 @@ export const PaymentMethodsCard = () => {
                         setSelectedMethodId(method.id);
                         setDeleteDialogOpen(true);
                       }}
-                      className="text-destructive"
+                      className="text-destructive min-h-[44px] cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete

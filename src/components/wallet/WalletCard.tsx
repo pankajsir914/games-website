@@ -64,21 +64,21 @@ export const WalletCard = ({ variant = 'default' }: WalletCardProps) => {
 
   if (variant === 'compact') {
     return (
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/10 rounded-full p-2">
-            <Coins className="h-4 w-4 text-primary" />
+      <div className="flex items-center justify-between animate-fade-in">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="bg-primary/10 rounded-full p-2 sm:p-2.5">
+            <Coins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Balance</p>
-            <p className="text-lg font-bold text-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">Balance</p>
+            <p className="text-lg sm:text-xl font-bold text-foreground">
               ₹{Math.floor(wallet.current_balance).toLocaleString()}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-green-600">
-          <TrendingUp className="h-4 w-4" />
-          <span className="text-xs font-medium">+12%</span>
+        <div className="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
+          <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="text-xs sm:text-sm font-medium">+12%</span>
         </div>
       </div>
     );
