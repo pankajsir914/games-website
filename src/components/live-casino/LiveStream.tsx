@@ -12,14 +12,14 @@ export const LiveStream = ({ tableId, streamUrl, tableName }: LiveStreamProps) =
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PlayCircle className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5" />
             Live Stream - {tableName}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-            <p className="text-white/60">Stream not available</p>
+            <p className="text-white/60 text-xs sm:text-sm">Stream not available</p>
           </div>
         </CardContent>
       </Card>
@@ -29,7 +29,7 @@ export const LiveStream = ({ tableId, streamUrl, tableName }: LiveStreamProps) =
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>

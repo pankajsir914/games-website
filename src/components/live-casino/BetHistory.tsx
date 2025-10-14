@@ -24,7 +24,7 @@ export const BetHistory = ({ bets }: BetHistoryProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Your Bets</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Your Bets</CardTitle>
       </CardHeader>
       <CardContent>
         {bets.length === 0 ? (
@@ -32,16 +32,16 @@ export const BetHistory = ({ bets }: BetHistoryProps) => {
             No bets yet. Place your first bet!
           </p>
         ) : (
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-3">
+          <ScrollArea className="h-[300px] sm:h-[400px] pr-4">
+            <div className="space-y-2 sm:space-y-3">
               {bets.map((bet) => (
                 <div
                   key={bet.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors"
+                  className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">{bet.table_name}</span>
+                      <span className="text-xs sm:text-sm font-semibold">{bet.table_name}</span>
                       <Badge variant={getStatusColor(bet.status)} className="text-xs">
                         {bet.status}
                       </Badge>

@@ -47,22 +47,22 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Place Your Bet</CardTitle>
+        <CardTitle className="text-base sm:text-lg">Place Your Bet</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4">
         {/* Quick amounts */}
         <div>
           <Label className="text-sm text-muted-foreground mb-2 block">
             Quick Amount
           </Label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
             {quickAmounts.map((amt) => (
               <Button
                 key={amt}
                 variant={amount === amt.toString() ? "default" : "outline"}
                 size="sm"
                 onClick={() => setAmount(amt.toString())}
-                className="h-10"
+                className="h-8 sm:h-10 text-xs sm:text-sm"
               >
                 ₹{amt}
               </Button>
@@ -91,16 +91,16 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
           <Label className="text-sm text-muted-foreground mb-2 block">
             Select Bet
           </Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
             {betTypes.map((bet: any) => (
               <Button
                 key={bet.type}
                 variant={selectedBet === bet.type ? "default" : "outline"}
                 onClick={() => setSelectedBet(bet.type)}
-                className="h-auto py-3 flex flex-col items-center gap-1"
+                className="h-auto py-2 sm:py-3 flex flex-col items-center gap-1"
               >
-                <span className="font-semibold">{bet.type}</span>
-                <Badge variant="secondary" className="mt-1">
+                <span className="font-semibold text-sm sm:text-base">{bet.type}</span>
+                <Badge variant="secondary" className="mt-1 text-xs">
                   {bet.odds}x
                 </Badge>
               </Button>
@@ -112,7 +112,7 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
         <Button
           onClick={handlePlaceBet}
           disabled={!selectedBet || !amount || loading}
-          className="w-full h-12 text-lg font-bold"
+          className="w-full h-10 sm:h-12 text-base sm:text-lg font-bold"
           size="lg"
         >
           {loading ? (

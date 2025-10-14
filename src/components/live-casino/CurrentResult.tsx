@@ -14,8 +14,8 @@ export const CurrentResult = ({ result, tableName }: CurrentResultProps) => {
   return (
     <Card className="border-yellow-500/50 bg-gradient-to-r from-yellow-500/10 to-amber-500/10">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
           Latest Result - {tableName}
         </CardTitle>
       </CardHeader>
@@ -25,7 +25,7 @@ export const CurrentResult = ({ result, tableName }: CurrentResultProps) => {
             <p className="text-sm text-muted-foreground">
               Round #{result.mid || result.roundId || 'Current'}
             </p>
-            <p className="text-2xl font-bold mt-1">
+            <p className="text-xl sm:text-2xl font-bold mt-1">
               {result.result || result.winner || result.nat || 'In Progress'}
             </p>
           </div>

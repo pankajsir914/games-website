@@ -55,12 +55,12 @@ const LiveCasino = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 overflow-x-hidden">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8 mt-16">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 mt-12 sm:mt-16">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-4 sm:mb-8">
           {viewMode === 'betting' && (
             <Button
               variant="ghost"
@@ -74,10 +74,10 @@ const LiveCasino = () => {
           
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 🎰 Live Casino
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Powered by Diamond Casino • Real-time gaming tables
               </p>
             </div>
@@ -106,7 +106,7 @@ const LiveCasino = () => {
         )}
 
         {viewMode === 'tables' && liveTables.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {liveTables.map((table) => (
               <TableCard
                 key={table.id}
@@ -120,16 +120,16 @@ const LiveCasino = () => {
         {/* Betting View */}
         {viewMode === 'betting' && selectedTable && (
           <Tabs defaultValue="live" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="live">Live Game</TabsTrigger>
-              <TabsTrigger value="results">Results</TabsTrigger>
-              <TabsTrigger value="history">My Bets</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6 h-8 sm:h-10 md:h-12">
+              <TabsTrigger value="live" className="text-xs sm:text-sm">Live Game</TabsTrigger>
+              <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
+              <TabsTrigger value="history" className="text-xs sm:text-sm">My Bets</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="live" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <TabsContent value="live" className="space-y-3 sm:space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
                 {/* Main area - Stream + Betting */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-3 sm:space-y-6">
                   {/* Live Stream */}
                   <LiveStream 
                     tableId={selectedTable.id} 
