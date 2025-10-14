@@ -47,6 +47,5 @@ export const useAdminStats = () => {
         recentTransactions: recentTransactions || 0,
       };
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
   });
 };
