@@ -3736,6 +3736,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      get_user_details_for_admin: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_user_highest_role: {
         Args: { _user_id: string }
         Returns: string

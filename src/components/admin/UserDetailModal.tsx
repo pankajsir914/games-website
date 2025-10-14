@@ -20,34 +20,43 @@ interface UserDetailModalProps {
   userId: string | null;
 }
 
+interface UserDetailsData {
+  id: string;
+  email: string;
+  phone: string;
+  full_name: string;
+  avatar_url: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  current_balance: number;
+  status: string;
+}
+
 export const UserDetailModal = ({ open, onOpenChange, userId }: UserDetailModalProps) => {
   const { data: userDetails, isLoading } = useQuery({
     queryKey: ['user-details', userId],
     queryFn: async () => {
       if (!userId) return null;
 
-      // Get profile data
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.rpc('get_user_details_for_admin', {
+        p_user_id: userId
+      });
 
-      // Get wallet data
-      const { data: wallet } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      if (error) throw error;
+      if (!data) return null;
+
+      const userData = data as unknown as UserDetailsData;
 
       return {
-        id: userId,
-        full_name: profile?.full_name || 'N/A',
-        phone: profile?.phone || 'N/A',
-        email: userId.slice(0, 13) + '...', // Show partial ID as we can't fetch email directly
-        current_balance: Number(wallet?.current_balance || 0),
-        created_at: profile?.created_at,
-        avatar: profile?.full_name?.slice(0, 2).toUpperCase() || 'U',
+        id: userData.id,
+        full_name: userData.full_name || 'N/A',
+        phone: userData.phone || 'N/A',
+        email: userData.email || 'N/A',
+        current_balance: Number(userData.current_balance || 0),
+        created_at: userData.created_at,
+        status: userData.status,
+        avatar: userData.full_name?.slice(0, 2).toUpperCase() || 'U',
       };
     },
     enabled: !!userId && open,
