@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info, Trophy, Users, Cloud } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
 import { useDiamondSportsData } from '@/hooks/useDiamondSportsData';
 import { useWallet } from '@/hooks/useWallet';
@@ -107,31 +108,31 @@ const SportsBet: React.FC = () => {
   }, [matchId, match?.status, sport, getBetfairScoreTv]);
 
   // Fetch detailed match data using getDetailsData
-  useEffect(() => {
-    const fetchMatchDetails = async () => {
-      if (!matchId || matchId === 'undefined') return;
+  const fetchMatchDetailsData = async () => {
+    if (!matchId || matchId === 'undefined') return;
+    
+    setIsLoadingDetails(true);
+    try {
+      const sid = getSportSID(sport || 'Cricket');
+      const response = await getDetailsData(sid, matchId);
       
-      setIsLoadingDetails(true);
-      try {
-        const sid = getSportSID(sport || 'Cricket');
-        const response = await getDetailsData(sid, matchId);
-        
-        if (response?.success && response.data) {
-          setMatchDetails(response.data);
-          console.log('Match details:', response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching match details:', error);
-      } finally {
-        setIsLoadingDetails(false);
+      if (response?.success && response.data) {
+        setMatchDetails(response.data);
+        console.log('Match details:', response.data);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching match details:', error);
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
 
-    fetchMatchDetails();
+  useEffect(() => {
+    fetchMatchDetailsData();
     
     // Refresh every 30 seconds for live matches
     if (match?.status === 'Live') {
-      const interval = setInterval(fetchMatchDetails, 30000);
+      const interval = setInterval(fetchMatchDetailsData, 30000);
       return () => clearInterval(interval);
     }
   }, [matchId, match?.status, sport, getDetailsData]);
@@ -786,126 +787,171 @@ const SportsBet: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Match Information</span>
-                  {isLoadingDetails && (
-                    <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchMatchDetailsData}
+                    disabled={isLoadingDetails}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingDetails ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Basic Match Info */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Home Team</p>
-                    <p className="text-2xl font-bold">{match.team1}</p>
+                {/* Loading State */}
+                {isLoadingDetails && (
+                  <div className="space-y-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-32 w-full" />
                   </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Away Team</p>
-                    <p className="text-2xl font-bold">{match.team2}</p>
-                  </div>
-                </div>
+                )}
 
-                {/* Detailed Match Data from getDetailsData */}
-                {matchDetails && (
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Detailed Match Information</h3>
-                    <div className="space-y-4">
-                      {matchDetails.matchName && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Match Name</p>
-                          <p className="font-semibold">{matchDetails.matchName}</p>
-                        </div>
-                      )}
-                      
-                      {matchDetails.series && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Series</p>
-                          <p className="font-semibold">{matchDetails.series}</p>
-                        </div>
-                      )}
-                      
-                      {matchDetails.matchType && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Match Type</p>
-                          <p className="font-semibold">{matchDetails.matchType}</p>
-                        </div>
-                      )}
+                {/* Match Details Content */}
+                {!isLoadingDetails && matchDetails && Object.keys(matchDetails).length > 0 && (
+                  <div className="space-y-6">
+                    {/* Basic Info Section */}
+                    <div>
+                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                        <Info className="h-5 w-5 text-primary" />
+                        Basic Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {matchDetails.matchName && (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Match Name</p>
+                            <p className="font-semibold">{matchDetails.matchName}</p>
+                          </div>
+                        )}
+                        {matchDetails.series && (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Series</p>
+                            <p className="font-semibold">{matchDetails.series}</p>
+                          </div>
+                        )}
+                        {matchDetails.matchType && (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Match Type</p>
+                            <p className="font-semibold">{matchDetails.matchType}</p>
+                          </div>
+                        )}
+                        {matchDetails.venue && (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Venue</p>
+                            <p className="font-semibold">{matchDetails.venue}</p>
+                          </div>
+                        )}
+                        {matchDetails.startDate && (
+                          <div className="p-4 bg-muted rounded-lg col-span-full">
+                            <p className="text-sm text-muted-foreground mb-1">Start Date & Time</p>
+                            <p className="font-semibold">{new Date(matchDetails.startDate).toLocaleString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                      {matchDetails.venue && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Venue</p>
-                          <p className="font-semibold">{matchDetails.venue}</p>
-                        </div>
-                      )}
-
-                      {matchDetails.startDate && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Start Date & Time</p>
-                          <p className="font-semibold">{new Date(matchDetails.startDate).toLocaleString()}</p>
-                        </div>
-                      )}
-
-                      {matchDetails.tossWinner && (
-                        <div className="p-4 bg-primary/10 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Toss Winner</p>
-                          <p className="font-semibold text-primary">{matchDetails.tossWinner}</p>
-                          {matchDetails.tossDecision && (
-                            <p className="text-sm mt-1">Decision: {matchDetails.tossDecision}</p>
+                    {/* Match Status Section */}
+                    {(matchDetails.tossWinner || matchDetails.currentInnings || matchDetails.status) && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <Trophy className="h-5 w-5 text-primary" />
+                          Match Status
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {matchDetails.tossWinner && (
+                            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                              <p className="text-sm text-muted-foreground mb-1">Toss Winner</p>
+                              <p className="font-semibold text-primary">{matchDetails.tossWinner}</p>
+                              {matchDetails.tossDecision && (
+                                <p className="text-sm mt-1">Decision: <span className="font-medium">{matchDetails.tossDecision}</span></p>
+                              )}
+                            </div>
+                          )}
+                          {matchDetails.currentInnings && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Current Innings</p>
+                              <p className="font-semibold">{matchDetails.currentInnings}</p>
+                            </div>
+                          )}
+                          {matchDetails.status && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Status</p>
+                              <p className="font-semibold">{matchDetails.status}</p>
+                            </div>
                           )}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {matchDetails.currentInnings && (
-                        <div className="p-4 bg-primary/10 rounded-lg">
-                          <p className="text-sm text-muted-foreground mb-1">Current Innings</p>
-                          <p className="font-semibold">{matchDetails.currentInnings}</p>
+                    {/* Officials Section */}
+                    {(matchDetails.referee || matchDetails.umpires) && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <Users className="h-5 w-5 text-primary" />
+                          Match Officials
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {matchDetails.referee && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Referee</p>
+                              <p className="font-semibold">{matchDetails.referee}</p>
+                            </div>
+                          )}
+                          {matchDetails.umpires && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Umpires</p>
+                              <p className="font-semibold">{matchDetails.umpires}</p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Additional Match Information */}
-                      {Object.keys(matchDetails).length > 0 && (
-                        <div className="p-4 bg-card border rounded-lg space-y-3">
-                          <h4 className="font-semibold text-base mb-3">Additional Information</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {matchDetails.matchType && (
-                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                                <span className="text-sm text-muted-foreground">Match Type</span>
-                                <span className="text-sm font-medium">{matchDetails.matchType}</span>
-                              </div>
-                            )}
-                            {matchDetails.series && (
-                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                                <span className="text-sm text-muted-foreground">Series</span>
-                                <span className="text-sm font-medium">{matchDetails.series}</span>
-                              </div>
-                            )}
-                            {matchDetails.referee && (
-                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                                <span className="text-sm text-muted-foreground">Referee</span>
-                                <span className="text-sm font-medium">{matchDetails.referee}</span>
-                              </div>
-                            )}
-                            {matchDetails.umpires && (
-                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                                <span className="text-sm text-muted-foreground">Umpires</span>
-                                <span className="text-sm font-medium">{matchDetails.umpires}</span>
-                              </div>
-                            )}
-                            {matchDetails.weather && (
-                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                                <span className="text-sm text-muted-foreground">Weather</span>
-                                <span className="text-sm font-medium">{matchDetails.weather}</span>
-                              </div>
-                            )}
-                            {matchDetails.pitch && (
-                              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                                <span className="text-sm text-muted-foreground">Pitch Condition</span>
-                                <span className="text-sm font-medium">{matchDetails.pitch}</span>
-                              </div>
-                            )}
-                          </div>
+                    {/* Conditions Section */}
+                    {(matchDetails.weather || matchDetails.pitch) && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <Cloud className="h-5 w-5 text-primary" />
+                          Match Conditions
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {matchDetails.weather && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Weather</p>
+                              <p className="font-semibold">{matchDetails.weather}</p>
+                            </div>
+                          )}
+                          {matchDetails.pitch && (
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Pitch Condition</p>
+                              <p className="font-semibold">{matchDetails.pitch}</p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    )}
+
+                    {/* Last Updated */}
+                    <div className="text-center text-sm text-muted-foreground pt-2 border-t">
+                      Last updated: {new Date().toLocaleTimeString()}
                     </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {!isLoadingDetails && (!matchDetails || Object.keys(matchDetails).length === 0) && (
+                  <div className="text-center py-12">
+                    <Info className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="font-semibold text-lg mb-2">No Details Available</h3>
+                    <p className="text-muted-foreground mb-4">Match details are not available at this moment.</p>
+                    <Button
+                      variant="outline"
+                      onClick={fetchMatchDetailsData}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
                   </div>
                 )}
 
