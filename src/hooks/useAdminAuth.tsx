@@ -57,20 +57,23 @@ export const useAdminAuth = () => {
 
   const logout = async () => {
     try {
+      // Clear local state first
+      queryClient.clear();
+      localStorage.removeItem('adminRole');
+      
       const { error } = await supabase.auth.signOut();
+      
       // Ignore session missing errors - user is already logged out
       if (error && error.message !== 'Auth session missing!' && !error.message.includes('session_not_found')) {
         console.error('Logout error:', error);
       }
-      queryClient.clear();
-      window.location.href = '/admin/login';
     } catch (error: any) {
       // Only log error if it's not a session issue
       if (error?.message !== 'Auth session missing!' && !error?.message?.includes('session_not_found')) {
         console.error('Logout error:', error);
       }
-      // Always redirect even if logout fails
-      queryClient.clear();
+    } finally {
+      // Always redirect regardless of success/failure
       window.location.href = '/admin/login';
     }
   };
