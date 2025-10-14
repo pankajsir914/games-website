@@ -167,7 +167,15 @@ export function DashboardContent() {
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 sm:h-10 sm:w-10"
+            onClick={() => {
+              // TODO: Add notification functionality
+              console.log('Notifications clicked');
+            }}
+          >
             <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="hidden sm:flex">
@@ -177,7 +185,15 @@ export function DashboardContent() {
           <Button variant="outline" size="icon" onClick={() => navigate('/wallet')} className="sm:hidden h-8 w-8">
             <Wallet className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-8 w-8 sm:h-10 sm:w-10"
+            onClick={() => {
+              // TODO: Add user profile functionality
+              console.log('User profile clicked');
+            }}
+          >
             <User className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
