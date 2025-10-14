@@ -130,94 +130,104 @@ export function DashboardContent() {
   return (
     <main className="flex-1 bg-background">
       {/* Header */}
-      <header className="bg-background border-b border-border p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <SidebarTrigger className="lg:hidden" />
-          <div className="hidden lg:flex items-center space-x-6">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 sm:p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <SidebarTrigger />
+          <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Home
             </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Sports
             </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Casino
             </Button>
             <Button 
               variant="ghost" 
+              size="sm"
               onClick={() => navigate('/live-casino')}
               className="text-muted-foreground hover:text-foreground"
             >
               Live-games
             </Button>
-            <Button variant="ghost" className="text-primary font-medium">
+            <Button variant="ghost" size="sm" className="text-primary font-medium">
               RRB Games
             </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Trading
             </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Poker
             </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               More
             </Button>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <Button variant="outline" onClick={() => navigate('/wallet')}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="hidden sm:flex">
             <Wallet className="h-4 w-4 mr-2" />
             Wallet
           </Button>
-          <Button variant="outline" size="icon">
-            <User className="h-5 w-5" />
+          <Button variant="outline" size="icon" onClick={() => navigate('/wallet')} className="sm:hidden h-8 w-8">
+            <Wallet className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+            <User className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </header>
 
       {/* Content */}
-      <div className="p-6 space-y-8">
+      <div className="p-3 sm:p-4 md:p-6 space-y-6 sm:space-y-8">
         {/* Banner Promotions Carousel */}
         <BannerCarousel />
 
         {/* Popular Games Section */}
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-6">Popular</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6">Popular</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {popularGames.map((game, index) => (
               <Card 
                 key={index}
-                className="group cursor-pointer hover:shadow-lg transition-all duration-300 bg-card border-border relative"
+                className="group cursor-pointer hover:shadow-lg active:scale-95 transition-all duration-300 bg-card border-border relative"
                 onClick={() => navigate(game.path)}
               >
                 {game.isNew && (
-                  <Badge className="absolute top-2 right-2 z-10 bg-red-500 text-white">
+                  <Badge className="absolute top-1 right-1 sm:top-2 sm:right-2 z-10 bg-red-500 text-white text-xs px-1.5 sm:px-2">
                     NEW
+                  </Badge>
+                )}
+                {game.badge && (
+                  <Badge className="absolute top-1 left-1 sm:top-2 sm:left-2 z-10 bg-red-500 text-white text-xs px-1.5 sm:px-2">
+                    {game.badge}
                   </Badge>
                 )}
                 <CardContent className="p-0">
                   <div className="relative overflow-hidden rounded-lg">
                     {game.image && game.image !== "/placeholder.svg" ? (
-                      <div className="relative h-40">
+                      <div className="relative h-28 sm:h-32 md:h-36 lg:h-40">
                         <img 
                           src={game.image} 
                           alt={game.title}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     ) : (
-                      <div className={`h-40 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
-                        <div className="text-white font-bold text-lg text-center px-2">
+                      <div className={`h-28 sm:h-32 md:h-36 lg:h-40 bg-gradient-to-br ${game.gradient} flex items-center justify-center`}>
+                        <div className="text-white font-bold text-sm sm:text-base lg:text-lg text-center px-2">
                           {game.title}
                         </div>
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                      <Play className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Play className="h-6 w-6 sm:h-8 sm:w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </div>
                 </CardContent>

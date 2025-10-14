@@ -150,55 +150,54 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+      <SidebarHeader className="p-3 sm:p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="bg-gradient-primary rounded-lg p-2">
-              <Crown className="h-6 w-6 text-primary-foreground" />
+            <div className="bg-gradient-primary rounded-lg p-1.5 sm:p-2">
+              <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
             </div>
             {!collapsed && (
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              <span className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 GameZone
               </span>
             )}
           </div>
-          <SidebarTrigger className="h-8 w-8" />
         </div>
         {!collapsed && (
-          <div className="relative mt-4">
+          <div className="relative mt-3 sm:mt-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search..." 
-              className="pl-9 bg-sidebar-accent border-sidebar-border"
+              className="pl-9 bg-sidebar-accent border-sidebar-border text-sm"
             />
           </div>
         )}
       </SidebarHeader>
 
-      <SidebarContent className="p-2">
+      <SidebarContent className="p-1.5 sm:p-2">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs text-muted-foreground uppercase tracking-wider px-3 mb-2">
+          <SidebarGroupLabel className="text-xs text-muted-foreground uppercase tracking-wider px-2 sm:px-3 mb-2">
             CATEGORIES
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-0.5 sm:space-y-1">
               {sidebarItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton 
                     asChild
                     className={`
-                      w-full justify-between p-3 rounded-lg transition-all
+                      w-full justify-between p-2.5 sm:p-3 rounded-lg transition-all min-h-[44px]
                       ${isActive(item.path) 
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                        : 'hover:bg-sidebar-accent/50'
+                        : 'hover:bg-sidebar-accent/50 active:bg-sidebar-accent/70'
                       }
                     `}
                   >
                     <button onClick={() => navigate(item.path)}>
-                      <div className="flex items-center space-x-3">
-                        <item.icon className={`h-5 w-5 ${item.color}`} />
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <item.icon className={`h-5 w-5 flex-shrink-0 ${item.color}`} />
                         {!collapsed && (
-                          <span className="text-sm font-medium">{item.title}</span>
+                          <span className="text-sm font-medium truncate">{item.title}</span>
                         )}
                       </div>
                     </button>
