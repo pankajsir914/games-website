@@ -99,15 +99,9 @@ export const WalletCard = ({ variant = 'default' }: WalletCardProps) => {
       <CardContent className="space-y-6">
         <div>
           <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
-          <div className="flex items-baseline justify-between">
-            <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              ₹{Math.floor(wallet.current_balance).toLocaleString()}
-            </p>
-            <div className="flex items-center gap-1 text-green-600 text-sm">
-              <TrendingUp className="h-4 w-4" />
-              <span className="font-medium">+12% today</span>
-            </div>
-          </div>
+          <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            ₹{Math.floor(wallet.current_balance).toLocaleString()}
+          </p>
         </div>
 
 
