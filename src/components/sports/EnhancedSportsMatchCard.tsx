@@ -63,32 +63,32 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
       <Card 
         onClick={handleClick}
         className={cn(
-          "overflow-hidden cursor-pointer transition-all duration-300",
+          "overflow-hidden cursor-pointer transition-all duration-300 active:scale-95",
           "hover:shadow-xl hover:scale-[1.02] hover:border-primary/50",
           "bg-gradient-to-br from-card via-card to-card/95",
           isLive && "border-destructive/50 animate-pulse-slow"
         )}
       >
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <div className="flex items-center justify-between mb-2">
             {isLive && (
-              <Badge variant="destructive" className="animate-pulse">
+              <Badge variant="destructive" className="animate-pulse text-[10px] sm:text-xs px-1.5 sm:px-2">
                 <span className="mr-1">●</span> LIVE
               </Badge>
             )}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[10px] sm:text-xs text-muted-foreground truncate ml-2">
               {match.league || sport.toUpperCase()}
             </span>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="font-medium truncate">{match.team1}</span>
-              {scores && <span className="font-bold text-primary">{scores.home}</span>}
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-medium text-sm sm:text-base truncate max-w-[140px] sm:max-w-none">{match.team1}</span>
+              {scores && <span className="font-bold text-primary text-lg sm:text-xl shrink-0">{scores.home}</span>}
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-medium truncate">{match.team2}</span>
-              {scores && <span className="font-bold text-primary">{scores.away}</span>}
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-medium text-sm sm:text-base truncate max-w-[140px] sm:max-w-none">{match.team2}</span>
+              {scores && <span className="font-bold text-primary text-lg sm:text-xl shrink-0">{scores.away}</span>}
             </div>
           </div>
         </div>
@@ -110,28 +110,29 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
     >
       {/* Header Section */}
       <div className={cn(
-        "relative px-4 py-3 border-b border-border/50",
+        "relative px-3 sm:px-4 py-2 sm:py-3 border-b border-border/50",
         "bg-gradient-to-r from-primary/5 to-accent/5",
         isLive && "bg-gradient-to-r from-destructive/10 to-orange-500/10"
       )}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-primary opacity-60" />
-            <span className="text-xs font-medium text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+            <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-primary opacity-60 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">
               {match.league || sport.toUpperCase()}
             </span>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {isLive ? (
-              <Badge variant="destructive" className="animate-pulse text-xs">
-                <Activity className="h-3 w-3 mr-1" />
+              <Badge variant="destructive" className="animate-pulse text-[10px] sm:text-xs px-1.5 sm:px-2">
+                <Activity className="h-3 w-3 mr-0.5 sm:mr-1" />
                 LIVE
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-xs">
-                <Clock className="h-3 w-3 mr-1" />
-                {match.status || 'UPCOMING'}
+              <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 sm:px-2">
+                <Clock className="h-3 w-3 mr-0.5 sm:mr-1" />
+                <span className="hidden sm:inline">{match.status || 'UPCOMING'}</span>
+                <span className="sm:hidden">UP</span>
               </Badge>
             )}
           </div>
@@ -143,21 +144,21 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
         )}
       </div>
 
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
         {/* Teams Section */}
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {/* Home Team */}
-          <div className="flex items-center justify-between group/team">
-            <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center justify-between group/team gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <div className={cn(
-                "w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10",
-                "flex items-center justify-center font-bold text-sm",
+                "w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 shrink-0",
+                "flex items-center justify-center font-bold text-xs sm:text-sm",
                 "group-hover/team:scale-110 transition-transform"
               )}>
                 {match.team1.charAt(0)}
               </div>
-              <div className="flex-1">
-                <p className="font-semibold text-foreground group-hover/team:text-primary transition-colors">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm sm:text-base text-foreground group-hover/team:text-primary transition-colors truncate">
                   {match.team1}
                 </p>
                 {match.team1Form && (
@@ -166,7 +167,7 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
               </div>
             </div>
             <div className={cn(
-              "text-3xl font-bold",
+              "text-2xl sm:text-3xl font-bold shrink-0",
               scores ? "text-primary animate-fade-in" : "text-muted-foreground/20"
             )}>
               {scores ? scores.home : "0"}
@@ -176,23 +177,23 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
           {/* VS Divider with Score Separator */}
           <div className="flex items-center justify-center relative">
             <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            <span className="bg-card px-3 py-1 text-xs text-muted-foreground font-medium relative">
+            <span className="bg-card px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs text-muted-foreground font-medium relative">
               {scores ? `${scores.home} - ${scores.away}` : "VS"}
             </span>
           </div>
 
           {/* Away Team */}
-          <div className="flex items-center justify-between group/team">
-            <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center justify-between group/team gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <div className={cn(
-                "w-10 h-10 rounded-full bg-gradient-to-br from-accent/20 to-accent/10",
-                "flex items-center justify-center font-bold text-sm",
+                "w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-accent/20 to-accent/10 shrink-0",
+                "flex items-center justify-center font-bold text-xs sm:text-sm",
                 "group-hover/team:scale-110 transition-transform"
               )}>
                 {match.team2.charAt(0)}
               </div>
-              <div className="flex-1">
-                <p className="font-semibold text-foreground group-hover/team:text-primary transition-colors">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm sm:text-base text-foreground group-hover/team:text-primary transition-colors truncate">
                   {match.team2}
                 </p>
                 {match.team2Form && (
@@ -201,7 +202,7 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
               </div>
             </div>
             <div className={cn(
-              "text-3xl font-bold",
+              "text-2xl sm:text-3xl font-bold shrink-0",
               scores ? "text-primary animate-fade-in" : "text-muted-foreground/20"
             )}>
               {scores ? scores.away : "0"}
@@ -212,29 +213,29 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
 
         {/* Match Info */}
         <div className={cn(
-          "flex items-center justify-between text-xs pt-2 border-t border-border/30",
+          "flex items-center justify-between text-[10px] sm:text-xs pt-2 border-t border-border/30",
           isLive ? "text-foreground font-medium" : "text-muted-foreground"
         )}>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {!isLive && (
               <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{new Date(match.date).toLocaleDateString()}</span>
+                <Calendar className="h-3 w-3 shrink-0" />
+                <span className="truncate">{new Date(match.date).toLocaleDateString()}</span>
               </div>
             )}
             {match.time && !isLive && (
               <div className="flex items-center gap-1">
-                <Timer className="h-3 w-3" />
+                <Timer className="h-3 w-3 shrink-0" />
                 <span>{match.time}</span>
               </div>
             )}
             {match.venue && (
               <div className={cn(
-                "flex items-center gap-1",
-                isLive && "bg-primary/10 px-2 py-1 rounded"
+                "flex items-center gap-1 min-w-0",
+                isLive && "bg-primary/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded"
               )}>
-                <MapPin className={cn("h-3 w-3", isLive && "text-primary")} />
-                <span className="truncate max-w-[150px]">{match.venue}</span>
+                <MapPin className={cn("h-3 w-3 shrink-0", isLive && "text-primary")} />
+                <span className="truncate max-w-[100px] sm:max-w-[150px]">{match.venue}</span>
               </div>
             )}
           </div>

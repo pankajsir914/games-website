@@ -8,7 +8,7 @@ const Sports: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <Navigation />
       </header>

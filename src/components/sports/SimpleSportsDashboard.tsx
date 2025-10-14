@@ -56,16 +56,16 @@ export const SimpleSportsDashboard: React.FC = () => {
     <Card
       onClick={() => selectSport(sport)}
       className={cn(
-        "p-3 cursor-pointer transition-all hover:shadow-md",
-        "flex flex-col items-center justify-center min-w-[80px] h-[80px] sm:min-w-[100px] sm:h-[100px]",
+        "p-2 sm:p-3 cursor-pointer transition-all hover:shadow-md active:scale-95",
+        "flex flex-col items-center justify-center min-w-[70px] h-[70px] sm:min-w-[100px] sm:h-[100px]",
         selectedSport?.id === sport.id ? 
           "border-primary bg-primary/5 ring-2 ring-primary ring-offset-2" : 
           "border-border hover:border-primary/50"
       )}
     >
-      <span className="text-xl sm:text-2xl mb-1 sm:mb-2">{sport.icon}</span>
+      <span className="text-lg sm:text-2xl mb-1 sm:mb-2">{sport.icon}</span>
       <span className={cn(
-        "text-xs sm:text-sm font-medium text-center line-clamp-2",
+        "text-[10px] sm:text-xs font-medium text-center line-clamp-2",
         selectedSport?.id === sport.id ? "text-primary" : "text-foreground"
       )}>
         {sport.label}
@@ -74,17 +74,17 @@ export const SimpleSportsDashboard: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="container mx-auto p-2 sm:p-4 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-foreground">Sports Matches</h1>
-        <div className="flex items-center gap-2">
-          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'list')}>
+      <div className="flex justify-between items-center gap-2">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Sports Matches</h1>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'list')} className="hidden sm:flex">
             <ToggleGroupItem value="grid" aria-label="Grid view" size="sm">
-              <Grid2x2 className="h-4 w-4" />
+              <Grid2x2 className="h-3 w-3 sm:h-4 sm:w-4" />
             </ToggleGroupItem>
             <ToggleGroupItem value="list" aria-label="List view" size="sm">
-              <List className="h-4 w-4" />
+              <List className="h-3 w-3 sm:h-4 sm:w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
           <Button
@@ -92,18 +92,19 @@ export const SimpleSportsDashboard: React.FC = () => {
             disabled={loading}
             variant="outline"
             size="sm"
+            className="h-8 px-2 sm:px-4"
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-            Refresh
+            <RefreshCw className={cn("h-3 w-3 sm:h-4 sm:w-4 sm:mr-2", loading && "animate-spin")} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>
 
       {/* Sports Selection with Categories */}
-      <Card className="p-6">
+      <Card className="p-3 sm:p-6">
         <Tabs value={activeCategory} onValueChange={setActiveCategory}>
           <ScrollArea className="w-full">
-            <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-max">
+            <TabsList className="inline-flex h-8 sm:h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-max">
               <TabsTrigger value="popular" className="text-xs px-2 sm:px-3">
                 <TrendingUp className="h-3 w-3 mr-1" />
                 <span className="hidden sm:inline">Popular</span>
@@ -190,7 +191,7 @@ export const SimpleSportsDashboard: React.FC = () => {
 
           <TabsContent value="all" className="mt-4">
             <ScrollArea className="h-[300px] sm:h-[400px] w-full rounded-md border">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3 p-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 p-2">
                 {sports.map((sport) => (
                   <SportButton key={sport.id} sport={sport} />
                 ))}
@@ -247,7 +248,7 @@ export const SimpleSportsDashboard: React.FC = () => {
           {/* Live Matches */}
           {liveMatches.length > 0 && (
             <div>
-              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive/60 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
@@ -256,7 +257,7 @@ export const SimpleSportsDashboard: React.FC = () => {
               </h3>
               <div className={cn(
                 viewMode === 'grid' 
-                  ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                   : "space-y-3"
               )}>
                 {liveMatches.map((match) => (
@@ -275,13 +276,13 @@ export const SimpleSportsDashboard: React.FC = () => {
           {/* Upcoming Matches */}
           {upcomingMatches.length > 0 && (
             <div>
-              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 Upcoming Matches
               </h3>
               <div className={cn(
                 viewMode === 'grid' 
-                  ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                   : "space-y-3"
               )}>
                 {upcomingMatches.map((match) => (
