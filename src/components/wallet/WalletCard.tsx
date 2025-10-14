@@ -110,20 +110,6 @@ export const WalletCard = ({ variant = 'default' }: WalletCardProps) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-muted/50 rounded-lg p-3">
-            <p className="text-xs text-muted-foreground mb-1">Today's Earnings</p>
-            <p className="text-lg font-semibold text-green-600">
-              +₹{Math.floor(Math.random() * 500 + 100)}
-            </p>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3">
-            <p className="text-xs text-muted-foreground mb-1">Pending</p>
-            <p className="text-lg font-semibold text-orange-600">
-              ₹{Math.floor(Math.random() * 200)}
-            </p>
-          </div>
-        </div>
 
         <div className="text-xs text-muted-foreground flex items-center justify-between pt-2 border-t">
           <p>Last updated: {new Date(wallet.updated_at).toLocaleTimeString()}</p>
