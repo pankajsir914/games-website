@@ -1,6 +1,7 @@
 import { SupportHeader } from "@/components/support/SupportHeader";
 import { ContactCard } from "@/components/support/ContactCard";
 import { FAQSection } from "@/components/support/FAQSection";
+import { RegistrationForm } from "@/components/support/RegistrationForm";
 import Navigation from "@/components/Navigation";
 import { MessageCircle, Phone, Mail } from "lucide-react";
 
@@ -46,6 +47,15 @@ const Support = () => {
             isOnline={false}
             responseTime="~24 hours"
           />
+        </div>
+
+        {/* Registration Form */}
+        <div className="mb-8 sm:mb-12">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">New User? Register Here</h2>
+            <p className="text-muted-foreground">Get your gaming ID in minutes</p>
+          </div>
+          <RegistrationForm />
         </div>
 
         {/* FAQ Section */}
