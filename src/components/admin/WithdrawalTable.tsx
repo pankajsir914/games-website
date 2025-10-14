@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAdminWithdrawals } from '@/hooks/useAdminWithdrawals';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UserDetailModal } from '@/components/admin/UserDetailModal';
 
 interface WithdrawalFilters {
   search: string;
@@ -28,6 +29,13 @@ interface WithdrawalTableProps {
 
 export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
   const { data: withdrawals, isLoading, processWithdrawal, isProcessing } = useAdminWithdrawals();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userModalOpen, setUserModalOpen] = useState(false);
+
+  const handleUserClick = (userId: string) => {
+    setSelectedUserId(userId);
+    setUserModalOpen(true);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -108,7 +116,10 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
                   <span className="font-mono text-sm">{withdrawal.id.slice(0, 8)}</span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center space-x-3">
+                  <div 
+                    className="flex items-center space-x-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-1 rounded-md transition-colors"
+                    onClick={() => handleUserClick(withdrawal.user_id)}
+                  >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>{withdrawal.avatar}</AvatarFallback>
                     </Avatar>
@@ -161,6 +172,12 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
           </TableBody>
         </Table>
       </CardContent>
+      
+      <UserDetailModal 
+        open={userModalOpen}
+        onOpenChange={setUserModalOpen}
+        userId={selectedUserId}
+      />
     </Card>
   );
 };

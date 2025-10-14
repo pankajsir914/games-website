@@ -47,6 +47,7 @@ export const useAdminWithdrawals = () => {
         
         return {
           id: withdrawal.id,
+          user_id: withdrawal.user_id,
           user: userName,
           amount: Number(withdrawal.amount),
           method: withdrawal.payment_method_type === 'upi' ? 'UPI' : 'Bank Transfer',
