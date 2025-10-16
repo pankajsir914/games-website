@@ -120,7 +120,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      // Handle invalid refresh token
+      if (error) {
+        console.error('Session error:', error);
+        localStorage.removeItem('session_token');
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -135,6 +145,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh failed - clearing session');
+          localStorage.removeItem('session_token');
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        
+        // Handle signed out event
+        if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('session_token');
+          setSession(null);
+          setUser(null);
+          setRequiresPasswordChange(false);
+          setLoading(false);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
