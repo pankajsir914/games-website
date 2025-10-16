@@ -99,12 +99,6 @@ const SportsBet: React.FC = () => {
     };
 
     fetchLiveTv();
-    
-    // Refresh TV URL every 30 seconds for live matches
-    if (match?.status === 'Live') {
-      const interval = setInterval(fetchLiveTv, 30000);
-      return () => clearInterval(interval);
-    }
   }, [matchId, match?.status, sport, getBetfairScoreTv]);
 
   // Fetch detailed match data using getDetailsData
@@ -129,13 +123,7 @@ const SportsBet: React.FC = () => {
 
   useEffect(() => {
     fetchMatchDetailsData();
-    
-    // Refresh every 30 seconds for live matches
-    if (match?.status === 'Live') {
-      const interval = setInterval(fetchMatchDetailsData, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [matchId, match?.status, sport, getDetailsData]);
+  }, [matchId, sport, getDetailsData]);
 
   // Fetch live match details and score
   useEffect(() => {
@@ -180,18 +168,9 @@ const SportsBet: React.FC = () => {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only, no auto-refresh
     fetchLiveMatchData();
-
-    // Set up interval for live updates (every 5 seconds for live matches)
-    const interval = setInterval(() => {
-      if (match?.status === 'Live') {
-        fetchLiveMatchData();
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [matchId, match?.status, callAPI]);
+  }, [matchId, callAPI]);
 
   // WebSocket for live odds updates
   useEffect(() => {
