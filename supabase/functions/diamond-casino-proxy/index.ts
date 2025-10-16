@@ -57,7 +57,8 @@ serve(async (req) => {
         type: table.gmid,
         data: table,
         status: 'active',
-        players: 0
+        players: 0,
+        imageUrl: table.img || table.image || table.thumbnail || table.icon || null
       }));
 
       // Update database cache

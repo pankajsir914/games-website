@@ -8,6 +8,7 @@ interface DiamondTable {
   status: string;
   players: number;
   data: any;
+  imageUrl?: string;
 }
 
 interface DiamondBet {
