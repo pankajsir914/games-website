@@ -35,8 +35,7 @@ serve(async (req) => {
           
           const imageResponse = await fetch(imageUrl, {
             headers: {
-              'x-rapidapi-key': RAPIDAPI_KEY,
-              'x-rapidapi-host': RAPIDAPI_HOST
+              'User-Agent': 'Mozilla/5.0'
             }
           });
 
