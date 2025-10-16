@@ -25,45 +25,77 @@ serve(async (req) => {
     
     // Handle image proxy requests (GET requests with image path)
     if (req.method === 'GET') {
+      console.log('=== GET REQUEST RECEIVED ===');
+      console.log('Full URL:', req.url);
+      
       const url = new URL(req.url);
       const imagePath = url.searchParams.get('image');
+      console.log('Image path parameter:', imagePath);
       
       if (imagePath) {
-        try {
-          const imageUrl = `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${imagePath}`;
-          console.log(`Proxying image: ${imageUrl}`);
-          
-          const imageResponse = await fetch(imageUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0'
-            }
-          });
+        // Try multiple CloudFront URL variations
+        const urlVariations = [
+          `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${imagePath}`,
+          `https://dzm0kbaskt4pv.cloudfront.net/images/games/${imagePath}`,
+          `https://dzm0kbaskt4pv.cloudfront.net/games/${imagePath}`,
+          `https://dzm0kbaskt4pv.cloudfront.net/${imagePath}`
+        ];
 
-          if (imageResponse.ok) {
-            const imageBlob = await imageResponse.blob();
-            const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        for (const imageUrl of urlVariations) {
+          try {
+            console.log(`=== ATTEMPTING URL ${urlVariations.indexOf(imageUrl) + 1}/${urlVariations.length} ===`);
+            console.log('Trying:', imageUrl);
             
-            return new Response(imageBlob, {
+            const imageResponse = await fetch(imageUrl, {
               headers: {
-                ...corsHeaders,
-                'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=86400'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Referer': 'https://dzm0kbaskt4pv.cloudfront.net/'
               }
             });
-          } else {
-            console.error(`Image fetch failed: ${imageResponse.status}`);
-            return new Response(null, {
-              status: 404,
-              headers: corsHeaders
-            });
+
+            console.log('Response status:', imageResponse.status);
+            console.log('Response statusText:', imageResponse.statusText);
+            console.log('Response headers:', Object.fromEntries(imageResponse.headers.entries()));
+
+            if (imageResponse.ok) {
+              console.log('✅ SUCCESS - Image fetched successfully from:', imageUrl);
+              const imageBlob = await imageResponse.blob();
+              const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+              console.log('Content-Type:', contentType, 'Blob size:', imageBlob.size);
+              
+              return new Response(imageBlob, {
+                headers: {
+                  ...corsHeaders,
+                  'Content-Type': contentType,
+                  'Cache-Control': 'public, max-age=86400'
+                }
+              });
+            } else {
+              const errorText = await imageResponse.text();
+              console.error(`❌ HTTP ${imageResponse.status} for ${imageUrl}`);
+              console.error('Error body:', errorText.substring(0, 200));
+              // Continue to next URL variation
+            }
+          } catch (error) {
+            console.error(`❌ Fetch error for ${imageUrl}:`, error.message);
+            // Continue to next URL variation
           }
-        } catch (error) {
-          console.error('Image proxy error:', error);
-          return new Response(null, {
-            status: 500,
-            headers: corsHeaders
-          });
         }
+
+        // All variations failed
+        console.error('=== ALL URL VARIATIONS FAILED ===');
+        console.error('Image path:', imagePath);
+        return new Response(JSON.stringify({ 
+          error: 'Image not found', 
+          path: imagePath,
+          tried: urlVariations 
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
       
       // If GET request without image param, return error
