@@ -52,7 +52,6 @@ serve(async (req) => {
             });
           } else {
             console.error(`Image fetch failed: ${imageResponse.status}`);
-            // Return a placeholder or error
             return new Response(null, {
               status: 404,
               headers: corsHeaders
@@ -66,8 +65,15 @@ serve(async (req) => {
           });
         }
       }
+      
+      // If GET request without image param, return error
+      return new Response(JSON.stringify({ error: 'Missing image parameter' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
     
+    // Handle POST requests for API actions
     const { action, path, tableId, betData, date } = await req.json();
 
     console.log(`Diamond Casino API request: action=${action}, path=${path}`);
