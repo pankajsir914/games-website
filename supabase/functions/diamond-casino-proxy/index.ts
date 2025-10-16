@@ -52,10 +52,21 @@ serve(async (req) => {
 
       // Transform table objects to our format
       const tables = tableObjects.map((table: any) => {
-        // Construct full image URL from imgpath
-        const imageUrl = table.imgpath 
-          ? `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${table.imgpath}`
-          : null;
+        // Map game IDs to local uploaded images
+        const imageMap: Record<string, string> = {
+          'ab20': '/lovable-uploads/ab20.jpg',
+          'teen': '/lovable-uploads/teenpattiposter.jpeg',
+          'teen20': '/lovable-uploads/teen3.jpg',
+          'teen3': '/lovable-uploads/teen3.jpg',
+          'poker': '/lovable-uploads/pokerposter.jpeg',
+          'roulette13': '/lovable-uploads/roulette13.jpg',
+          'roulette': '/lovable-uploads/rouletteposter.png',
+          'cricket': '/lovable-uploads/cricketposter.jpeg',
+        };
+        
+        // Use local image if available, otherwise try CDN
+        const imageUrl = imageMap[table.gmid] || 
+          (table.imgpath ? `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${table.imgpath}` : null);
         
         return {
           id: table.gmid,
