@@ -29,9 +29,7 @@ export const TableCard = ({ table, onClick }: TableCardProps) => {
             src={table.imageUrl} 
             alt={table.name}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
+            loading="lazy"
           />
           {isLive && (
             <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
