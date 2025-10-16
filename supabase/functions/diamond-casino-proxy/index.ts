@@ -22,6 +22,53 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+    // Handle image proxy requests (GET requests with image path)
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      const imagePath = url.searchParams.get('image');
+      
+      if (imagePath) {
+        try {
+          const imageUrl = `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${imagePath}`;
+          console.log(`Proxying image: ${imageUrl}`);
+          
+          const imageResponse = await fetch(imageUrl, {
+            headers: {
+              'x-rapidapi-key': RAPIDAPI_KEY,
+              'x-rapidapi-host': RAPIDAPI_HOST
+            }
+          });
+
+          if (imageResponse.ok) {
+            const imageBlob = await imageResponse.blob();
+            const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+            
+            return new Response(imageBlob, {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': contentType,
+                'Cache-Control': 'public, max-age=86400'
+              }
+            });
+          } else {
+            console.error(`Image fetch failed: ${imageResponse.status}`);
+            // Return a placeholder or error
+            return new Response(null, {
+              status: 404,
+              headers: corsHeaders
+            });
+          }
+        } catch (error) {
+          console.error('Image proxy error:', error);
+          return new Response(null, {
+            status: 500,
+            headers: corsHeaders
+          });
+        }
+      }
+    }
+    
     const { action, path, tableId, betData, date } = await req.json();
 
     console.log(`Diamond Casino API request: action=${action}, path=${path}`);
@@ -52,9 +99,9 @@ serve(async (req) => {
 
       // Transform table objects to our format
       const tables = tableObjects.map((table: any) => {
-        // Use CDN image URL from API response
+        // Use proxied image URL through our edge function
         const imageUrl = table.imgpath 
-          ? `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${table.imgpath}`
+          ? `${SUPABASE_URL}/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(table.imgpath)}`
           : null;
         
         return {
