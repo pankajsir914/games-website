@@ -51,15 +51,22 @@ serve(async (req) => {
       }
 
       // Transform table objects to our format
-      const tables = tableObjects.map((table: any) => ({
-        id: table.gmid,
-        name: table.gname,
-        type: table.gmid,
-        data: table,
-        status: 'active',
-        players: 0,
-        imageUrl: table.img || table.image || table.thumbnail || table.icon || null
-      }));
+      const tables = tableObjects.map((table: any) => {
+        // Construct full image URL from imgpath
+        const imageUrl = table.imgpath 
+          ? `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${table.imgpath}`
+          : null;
+        
+        return {
+          id: table.gmid,
+          name: table.gname,
+          type: table.gmid,
+          data: table,
+          status: 'active',
+          players: 0,
+          imageUrl
+        };
+      });
 
       // Update database cache
       for (const table of tables) {
