@@ -172,7 +172,7 @@ const SportsBet: React.FC = () => {
     fetchLiveMatchData();
   }, [matchId, callAPI]);
 
-  // WebSocket for live odds updates
+  // Fetch odds once on mount (no auto-refresh or WebSocket)
   useEffect(() => {
     if (!matchId || matchId === 'undefined') {
       const errorMsg = 'Invalid match ID. Please select a valid match.';
@@ -184,7 +184,7 @@ const SportsBet: React.FC = () => {
     setIsLoadingOdds(true);
     setOddsError(null);
     
-    // Initial fetch using REST
+    // Initial fetch using REST - no WebSocket, no auto-refresh
     const fetchInitialOdds = async () => {
       try {
         const sid = getSportSID(sport || 'Cricket');
@@ -211,39 +211,7 @@ const SportsBet: React.FC = () => {
     };
     
     fetchInitialOdds();
-    
-    // Connect WebSocket for live updates
-    const ws = connectOddsWebSocket(matchId, (newOdds) => {
-      console.log('Received live odds update via WebSocket');
-      setOdds(newOdds);
-      setOddsError(null);
-      setIsLoadingOdds(false);
-    });
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected for live odds');
-      toast({
-        title: "Live Odds Connected",
-        description: "Receiving real-time odds updates",
-      });
-    };
-    
-    ws.onerror = () => {
-      setOddsError('Live odds connection failed');
-      toast({
-        title: "Connection Issue",
-        description: "Live odds updates unavailable. Showing last known odds.",
-        variant: "destructive"
-      });
-    };
-    
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
-        console.log('WebSocket disconnected');
-      }
-    };
-  }, [matchId, sport, getPriveteData, connectOddsWebSocket, toast]);
+  }, [matchId, sport, getPriveteData]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({
