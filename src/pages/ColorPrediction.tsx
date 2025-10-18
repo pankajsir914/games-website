@@ -87,23 +87,23 @@ const ColorPrediction = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">Color Prediction</h1>
-              <p className="text-gray-400 text-sm">Predict the winning color and win big!</p>
+              <h1 className="text-xl md:text-2xl font-bold text-white">Color Prediction</h1>
+              <p className="text-gray-400 text-xs sm:text-sm">Predict the winning color and win big!</p>
             </div>
             {user && (
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded-xl px-4 py-2"
               >
-                <Wallet className="w-5 h-5 text-yellow-400" />
-                <span className="text-yellow-400 font-bold text-lg">₹{(wallet?.current_balance || 0).toLocaleString()}</span>
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+                <span className="text-yellow-400 font-bold text-base md:text-lg">₹{(wallet?.current_balance || 0).toLocaleString()}</span>
               </motion.div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-8">
         {isGamePaused && (
           <Alert className="mb-6 border-yellow-500/50 bg-yellow-500/10">
             <AlertCircle className="h-4 w-4 text-yellow-500" />
@@ -126,9 +126,9 @@ const ColorPrediction = () => {
             />
 
             {/* Current Result Display */}
-            <Card className="p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+            <Card className="p-4 sm:p-6 md:p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
               <div className="text-center space-y-4">
-                <h3 className="text-2xl font-bold text-white">
+                <h3 className="text-xl sm:text-2xl font-bold text-white">
                   {lastCompletedRound ? 'Latest Result' : 'Current Round'}
                 </h3>
                 {lastCompletedRound?.winning_color ? (
@@ -137,22 +137,22 @@ const ColorPrediction = () => {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                    className={`mx-auto w-48 h-48 rounded-full flex flex-col items-center justify-center text-white shadow-2xl ${
+                    className={`mx-auto w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full flex flex-col items-center justify-center text-white shadow-2xl ${
                       lastCompletedRound.winning_color === 'red' ? 'bg-gradient-to-br from-red-500 to-red-700' :
                       lastCompletedRound.winning_color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-700' :
                       'bg-gradient-to-br from-purple-500 to-purple-700'
                     }`}
                   >
-                    <div className="text-5xl font-bold">
+                    <div className="text-3xl sm:text-4xl md:text-5xl font-bold">
                       {lastCompletedRound.winning_color.toUpperCase()}
                     </div>
-                    <div className="text-sm mt-2 opacity-80">
+                    <div className="text-xs sm:text-sm mt-2 opacity-80">
                       Period: {lastCompletedRound.period}
                     </div>
                   </motion.div>
                 ) : (
-                  <div className="mx-auto w-48 h-48 rounded-full bg-gray-700 flex items-center justify-center">
-                    <p className="text-gray-400">Waiting for result...</p>
+                  <div className="mx-auto w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full bg-gray-700 flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">Waiting for result...</p>
                   </div>
                 )}
               </div>
@@ -180,9 +180,9 @@ const ColorPrediction = () => {
 
             {/* User Statistics */}
             {user && (
-              <Card className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-400" />
+              <Card className="p-4 sm:p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+                <h3 className="text-base sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
                   Your Statistics
                 </h3>
                 <div className="space-y-3">
@@ -217,9 +217,9 @@ const ColorPrediction = () => {
             )}
 
             {/* Top Winners */}
-            <Card className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" />
+            <Card className="p-4 sm:p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                 Top Winners Today
               </h3>
               <div className="space-y-3">
@@ -245,23 +245,23 @@ const ColorPrediction = () => {
             </Card>
 
             {/* Live Stats */}
-            <Card className="p-6 bg-gradient-to-br from-purple-900/30 via-gray-800 to-gray-900 border-purple-500/30">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
+            <Card className="p-4 sm:p-6 bg-gradient-to-br from-purple-900/30 via-gray-800 to-gray-900 border-purple-500/30">
+              <h3 className="text-base sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                 Live Statistics
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-emerald-400">
+                  <p className="text-2xl sm:text-3xl font-bold text-emerald-400">
                     {currentRound?.total_players || 0}
                   </p>
-                  <p className="text-gray-400 text-sm">Active Players</p>
+                  <p className="text-gray-400 text-xs sm:text-sm">Active Players</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-yellow-400">
+                  <p className="text-2xl sm:text-3xl font-bold text-yellow-400">
                     ₹{(currentRound?.total_bets_amount || 0).toLocaleString()}
                   </p>
-                  <p className="text-gray-400 text-sm">Prize Pool</p>
+                  <p className="text-gray-400 text-xs sm:text-sm">Prize Pool</p>
                 </div>
               </div>
             </Card>

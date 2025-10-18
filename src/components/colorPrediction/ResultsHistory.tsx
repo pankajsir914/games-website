@@ -53,10 +53,10 @@ const ResultsHistory: React.FC<ResultsHistoryProps> = ({ rounds }) => {
 
   return (
     <Card className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header with Statistics */}
         <div>
-          <h3 className="text-xl font-bold text-white mb-4">Results History</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Results History</h3>
           
           {/* Color Statistics */}
           <div className="grid grid-cols-3 gap-2 mb-4">
@@ -67,7 +67,7 @@ const ResultsHistory: React.FC<ResultsHistoryProps> = ({ rounds }) => {
                   key={color}
                   whileHover={{ scale: 1.05 }}
                   className={cn(
-                    "relative p-3 rounded-lg text-center",
+                    "relative p-2 sm:p-3 rounded-lg text-center",
                     getColorStyles(color),
                     "shadow-lg"
                   )}
@@ -85,7 +85,7 @@ const ResultsHistory: React.FC<ResultsHistoryProps> = ({ rounds }) => {
                   )}
                   
                   <p className="text-xs opacity-90 uppercase">{color}</p>
-                  <p className="text-2xl font-bold">{count}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{count}</p>
                   <p className="text-xs opacity-75">
                     {rounds.length > 0 ? `${((count / rounds.length) * 100).toFixed(0)}%` : '0%'}
                   </p>
@@ -102,7 +102,7 @@ const ResultsHistory: React.FC<ResultsHistoryProps> = ({ rounds }) => {
             <Activity className="w-4 h-4 text-gray-500" />
           </div>
           
-          <div className="grid grid-cols-10 gap-1">
+          <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1">
             {rounds.slice(0, 20).map((round, index) => (
               <motion.div
                 key={round.id}

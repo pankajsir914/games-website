@@ -91,9 +91,9 @@ const ColorPredictionWheel: React.FC<ColorPredictionWheelProps> = ({
             })}
             
             {/* Center Hub */}
-            <div className="absolute top-1/2 left-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute top-1/2 left-1/2 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 -translate-x-1/2 -translate-y-1/2">
               <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-inner flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 shadow-lg animate-pulse" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 shadow-lg animate-pulse" />
               </div>
             </div>
           </motion.div>
@@ -133,8 +133,8 @@ const ColorPredictionWheel: React.FC<ColorPredictionWheelProps> = ({
               exit={{ opacity: 0, scale: 0.8 }}
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
             >
-              <div className="bg-black/80 backdrop-blur-sm rounded-2xl px-6 py-3">
-                <p className="text-white font-bold text-lg animate-pulse">SPINNING...</p>
+              <div className="bg-black/80 backdrop-blur-sm rounded-2xl px-4 sm:px-6 py-2 sm:py-3">
+                <p className="text-white font-bold text-base sm:text-lg animate-pulse">SPINNING...</p>
               </div>
             </motion.div>
           )}

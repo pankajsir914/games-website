@@ -104,7 +104,7 @@ const WinnerCelebration: React.FC<WinnerCelebrationProps> = ({
             transition={{ type: "spring", duration: 0.8 }}
             className="relative"
           >
-            <div className={`bg-gradient-to-br ${getColorStyles()} p-12 rounded-3xl shadow-2xl`}>
+            <div className={`bg-gradient-to-br ${getColorStyles()} p-6 sm:p-8 md:p-12 rounded-3xl shadow-2xl`}>
               {/* Trophy Icon */}
               <motion.div
                 animate={{
@@ -112,16 +112,16 @@ const WinnerCelebration: React.FC<WinnerCelebrationProps> = ({
                   scale: [1, 1.1, 1]
                 }}
                 transition={{ duration: 1, repeat: Infinity }}
-                className="flex justify-center mb-6"
+                className="flex justify-center mb-4 sm:mb-6"
               >
-                <Trophy className="w-24 h-24 text-yellow-400 drop-shadow-lg" />
+                <Trophy className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-yellow-400 drop-shadow-lg" />
               </motion.div>
 
               {/* Winner Text */}
               <motion.h1
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
-                className="text-5xl font-bold text-white text-center mb-4 uppercase tracking-wider"
+                className="text-3xl sm:text-4xl md:text-5xl font-bold text-white text-center mb-3 sm:mb-4 uppercase tracking-wider"
               >
                 {winningColor} WINS!
               </motion.h1>
@@ -133,8 +133,8 @@ const WinnerCelebration: React.FC<WinnerCelebrationProps> = ({
                   transition={{ delay: 0.5 }}
                   className="text-center"
                 >
-                  <p className="text-white/80 text-lg mb-2">You Won</p>
-                  <p className="text-4xl font-bold text-yellow-400">₹{amount}</p>
+                  <p className="text-white/80 text-base sm:text-lg mb-2">You Won</p>
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-400">₹{amount}</p>
                 </motion.div>
               )}
 

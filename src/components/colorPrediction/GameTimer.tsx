@@ -46,11 +46,11 @@ const GameTimer: React.FC<GameTimerProps> = ({
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] bg-repeat" />
       </div>
 
-      <div className="relative z-10 p-6">
+      <div className="relative z-10 p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Round #{roundNumber}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Round #{roundNumber}</h2>
             <Badge 
               variant="outline" 
               className={cn(
@@ -66,15 +66,15 @@ const GameTimer: React.FC<GameTimerProps> = ({
           </div>
           
           <div className="text-right">
-            <p className="text-sm text-gray-400">Total Bets</p>
-            <p className="text-xl font-bold text-white">₹{totalBets.toLocaleString()}</p>
+            <p className="text-xs sm:text-sm text-gray-400">Total Bets</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold text-white">₹{totalBets.toLocaleString()}</p>
             <p className="text-xs text-gray-500">{totalPlayers} players</p>
           </div>
         </div>
 
         {/* Timer Circle */}
-        <div className="relative w-48 h-48 mx-auto mb-6">
-          <svg className="absolute inset-0 w-full h-full -rotate-90">
+        <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 mx-auto mb-4 sm:mb-6">
+          <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 192 192">
             {/* Background Circle */}
             <circle
               cx="96"
@@ -109,11 +109,11 @@ const GameTimer: React.FC<GameTimerProps> = ({
                 <motion.div
                   animate={timeLeft <= 5 ? { scale: [1, 1.1, 1] } : {}}
                   transition={{ duration: 1, repeat: Infinity }}
-                  className={cn("text-5xl font-bold", getTimerColor())}
+                  className={cn("text-3xl sm:text-4xl md:text-5xl font-bold", getTimerColor())}
                 >
                   {timeLeft}
                 </motion.div>
-                <p className="text-gray-400 text-sm mt-1">seconds</p>
+                <p className="text-gray-400 text-xs sm:text-sm mt-1">seconds</p>
                 {timeLeft <= 5 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -131,7 +131,7 @@ const GameTimer: React.FC<GameTimerProps> = ({
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
-                  <Clock className="w-12 h-12 text-yellow-400 mx-auto mb-2" />
+                  <Clock className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-400 mx-auto mb-2" />
                 </motion.div>
                 <p className="text-yellow-400 font-semibold">Drawing...</p>
               </div>
