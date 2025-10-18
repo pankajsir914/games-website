@@ -334,7 +334,7 @@ const Aviator = () => {
     <div className="min-h-screen bg-gaming-dark">
       <Navigation />
       
-      <div className="container mx-auto p-4 pt-20">
+      <div className="container mx-auto px-2 py-3 pt-16 sm:px-4 sm:py-4 sm:pt-20">
         {gameIsPaused && (
           <Alert className="mb-4 bg-yellow-500/10 border-yellow-500/50">
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
@@ -344,9 +344,9 @@ const Aviator = () => {
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-3 sm:gap-4">
           {/* Left Panel - Live Bets & Stats */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="hidden md:block md:col-span-2 lg:col-span-2 space-y-3 sm:space-y-4">
             <LiveBetsPanel 
               liveBets={liveBets}
               totalPlayers={connectedUsers}
@@ -373,7 +373,7 @@ const Aviator = () => {
           </div>
 
           {/* Center - Game Interface */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="md:col-span-6 lg:col-span-8 space-y-3 sm:space-y-4">
             <EnhancedGameInterface
               gameData={gameData}
               bettingCountdown={bettingCountdown}
@@ -393,7 +393,7 @@ const Aviator = () => {
           </div>
 
           {/* Right Panel - Live Chat */}
-          <div className="lg:col-span-2">
+          <div className="hidden lg:block lg:col-span-2">
             <LiveChat
               messages={messages}
               onSendMessage={sendMessage}
@@ -402,7 +402,7 @@ const Aviator = () => {
         </div>
 
         {/* Bottom Stats Bar */}
-        <div className="mt-6">
+        <div className="mt-3 sm:mt-4 md:mt-6">
           <GameStats
             gameData={gameData}
           />

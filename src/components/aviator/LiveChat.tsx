@@ -165,7 +165,7 @@ const LiveChat = ({ messages, onSendMessage }: LiveChatProps) => {
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="border-t border-slate-700/50 p-4">
+        <div className="border-t border-slate-700/50 p-3 sm:p-4">
           {user ? (
             <div className="flex gap-2">
               <Input

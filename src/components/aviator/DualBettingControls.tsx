@@ -54,7 +54,7 @@ const DualBettingControls = ({
   };
 
   const renderBetPanel = (betIndex: number, amount: number, setAmount: (value: number) => void, autoCashout: number | null, setAutoCashout: (value: number | null) => void) => (
-    <div className="flex-1 space-y-3">
+    <div className="flex-1 space-y-2 sm:space-y-3">
       {/* Bet Amount Input */}
       <div className="relative">
         <div className="flex items-center border border-slate-600 rounded-lg bg-slate-800">
@@ -63,16 +63,16 @@ const DualBettingControls = ({
             size="sm"
             onClick={() => adjustAmount(betIndex, -10)}
             disabled={!canBet || amount <= 10}
-            className="h-12 px-3 border-0 rounded-l-lg hover:bg-slate-700"
+            className="h-10 sm:h-12 px-2 sm:px-3 border-0 rounded-l-lg hover:bg-slate-700"
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
           
           <Input
             type="number"
             value={amount}
             onChange={(e) => setAmount(Math.max(10, Math.min(10000, Number(e.target.value) || 10)))}
-            className="border-0 text-center bg-transparent h-12 text-lg font-bold"
+            className="border-0 text-center bg-transparent h-10 sm:h-12 text-base sm:text-lg font-bold"
             disabled={!canBet}
           />
           
@@ -81,9 +81,9 @@ const DualBettingControls = ({
             size="sm"
             onClick={() => adjustAmount(betIndex, 10)}
             disabled={!canBet || amount >= 10000}
-            className="h-12 px-3 border-0 rounded-r-lg hover:bg-slate-700"
+            className="h-10 sm:h-12 px-2 sm:px-3 border-0 rounded-r-lg hover:bg-slate-700"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </div>
@@ -97,7 +97,7 @@ const DualBettingControls = ({
             size="sm"
             onClick={() => setQuickAmount(betIndex, quickAmount)}
             disabled={!canBet}
-            className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600"
+            className="text-xs bg-slate-700 border-slate-600 hover:bg-slate-600 h-7 sm:h-8"
           >
             {quickAmount}
           </Button>
@@ -131,20 +131,20 @@ const DualBettingControls = ({
       <Button
         onClick={() => handlePlaceBet(betIndex)}
         disabled={!canBet || amount > gameData.balance || isPlacingBet}
-        className="w-full bg-gaming-success hover:bg-gaming-success/90 text-gaming-success-foreground font-bold py-6 text-lg"
+        className="w-full bg-gaming-success hover:bg-gaming-success/90 text-gaming-success-foreground font-bold py-4 sm:py-5 md:py-6 text-base sm:text-lg"
         style={{
           boxShadow: '0 0 20px hsl(var(--gaming-success))'
         }}
       >
         {isPlacingBet ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
             Betting...
           </>
         ) : (
           <>
             Bet
-            <div className="ml-2 text-sm">₹{amount}</div>
+            <div className="ml-2 text-xs sm:text-sm">₹{amount}</div>
           </>
         )}
       </Button>
@@ -161,30 +161,30 @@ const DualBettingControls = ({
 
   return (
     <Card className="bg-slate-900/95 border-slate-700/50">
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         {/* Balance and Status */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-sm">
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <div className="text-xs sm:text-sm">
             <span className="text-muted-foreground">Balance: </span>
             <span className="font-bold text-gaming-gold">₹{gameData.balance.toFixed(2)}</span>
           </div>
           {bettingCountdown > 0 && (
-            <Badge variant="secondary" className="animate-pulse">
+            <Badge variant="secondary" className="animate-pulse text-xs">
               {bettingCountdown}s left
             </Badge>
           )}
         </div>
 
         {/* Dual Betting Panels */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           {renderBetPanel(1, bet1Amount, setBet1Amount, bet1AutoCashout, setBet1AutoCashout)}
           {renderBetPanel(2, bet2Amount, setBet2Amount, bet2AutoCashout, setBet2AutoCashout)}
         </div>
 
         {/* Active Bets Display */}
         {gameData.hasBet && (
-          <div className="mt-4 p-3 bg-primary/20 rounded-lg border border-primary/30">
-            <div className="text-center text-primary font-medium">
+          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-primary/20 rounded-lg border border-primary/30">
+            <div className="text-center text-primary font-medium text-sm sm:text-base">
               Active Bet: ₹{gameData.currentBet}
               {gameData.autoCashOut && (
                 <span className="block text-xs text-muted-foreground">

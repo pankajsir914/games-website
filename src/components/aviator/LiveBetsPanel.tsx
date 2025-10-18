@@ -20,23 +20,23 @@ interface LiveBetsPanelProps {
 
 const LiveBetsPanel = ({ liveBets, totalPlayers, totalBetsAmount }: LiveBetsPanelProps) => {
   return (
-    <Card className="bg-slate-900/90 border-slate-700/50 p-4 h-full backdrop-blur-sm">
-      <div className="space-y-4">
+    <Card className="bg-slate-900/90 border-slate-700/50 p-3 sm:p-4 h-full backdrop-blur-sm">
+      <div className="space-y-3 sm:space-y-4">
         {/* Stats Header */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+          <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">Players</span>
             </div>
-            <div className="text-lg font-bold text-foreground mt-1">{totalPlayers}</div>
+            <div className="text-base sm:text-lg font-bold text-foreground mt-1">{totalPlayers}</div>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+          <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
             <div className="flex items-center space-x-2">
               <DollarSign className="h-4 w-4 text-gaming-gold" />
               <span className="text-xs text-muted-foreground">Total Pot</span>
             </div>
-            <div className="text-lg font-bold text-gaming-gold mt-1">₹{totalBetsAmount.toFixed(0)}</div>
+            <div className="text-base sm:text-lg font-bold text-gaming-gold mt-1">₹{totalBetsAmount.toFixed(0)}</div>
           </div>
         </div>
 
@@ -50,7 +50,7 @@ const LiveBetsPanel = ({ liveBets, totalPlayers, totalBetsAmount }: LiveBetsPane
             Live Bets
           </h3>
           
-          <div className="space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="space-y-1 max-h-[250px] sm:max-h-[300px] md:max-h-[400px] overflow-y-auto custom-scrollbar">
             {liveBets.map((bet) => (
               <div
                 key={bet.id}
@@ -64,7 +64,7 @@ const LiveBetsPanel = ({ liveBets, totalPlayers, totalBetsAmount }: LiveBetsPane
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-1">
-                      <span className="text-xs font-medium text-foreground truncate max-w-[80px]">
+                      <span className="text-xs font-medium text-foreground truncate max-w-[60px] sm:max-w-[80px]">
                         {bet.username}
                       </span>
                       {bet.status === 'cashed_out' && (

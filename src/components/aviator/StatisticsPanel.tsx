@@ -40,14 +40,14 @@ const StatisticsPanel = ({ recentRounds, userStats, liveStats }: StatisticsPanel
   return (
     <Card className="bg-slate-900/90 border-slate-700/50 backdrop-blur-sm h-full">
       <Tabs defaultValue="history" className="h-full">
-        <TabsList className="grid w-full grid-cols-3 bg-slate-800/50">
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="personal">My Stats</TabsTrigger>
-          <TabsTrigger value="analysis">Analysis</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 text-xs sm:text-sm">
+          <TabsTrigger value="history" className="text-xs sm:text-sm">History</TabsTrigger>
+          <TabsTrigger value="personal" className="text-xs sm:text-sm">My Stats</TabsTrigger>
+          <TabsTrigger value="analysis" className="text-xs sm:text-sm">Analysis</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="history" className="p-4 space-y-4">
-          <div className="h-[200px]">
+        <TabsContent value="history" className="p-2 sm:p-3 md:p-4 space-y-3 sm:space-y-4">
+          <div className="h-[150px] sm:h-[180px] md:h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={roundsData}>
                 <defs>
@@ -78,21 +78,21 @@ const StatisticsPanel = ({ recentRounds, userStats, liveStats }: StatisticsPanel
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+            <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Avg Multiplier</span>
                 <Activity className="h-3 w-3 text-primary" />
               </div>
-              <div className="text-xl font-bold text-foreground mt-1">
+              <div className="text-lg sm:text-xl font-bold text-foreground mt-1">
                 {averageMultiplier.toFixed(2)}x
               </div>
             </div>
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+            <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Round #</span>
                 <Hash className="h-3 w-3 text-primary" />
               </div>
-              <div className="text-xl font-bold text-foreground mt-1">
+              <div className="text-lg sm:text-xl font-bold text-foreground mt-1">
                 {liveStats.currentRoundNumber}
               </div>
             </div>
@@ -120,40 +120,40 @@ const StatisticsPanel = ({ recentRounds, userStats, liveStats }: StatisticsPanel
           </div>
         </TabsContent>
 
-        <TabsContent value="personal" className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+        <TabsContent value="personal" className="p-2 sm:p-3 md:p-4 space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Total Bets</span>
                 <Target className="h-3 w-3 text-primary" />
               </div>
-              <div className="text-xl font-bold text-foreground mt-1">{userStats.totalBets}</div>
+              <div className="text-lg sm:text-xl font-bold text-foreground mt-1">{userStats.totalBets}</div>
             </div>
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+            <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Win Rate</span>
                 <TrendingUp className="h-3 w-3 text-gaming-success" />
               </div>
-              <div className="text-xl font-bold text-gaming-success mt-1">
+              <div className="text-lg sm:text-xl font-bold text-gaming-success mt-1">
                 {userStats.totalBets > 0 
                   ? `${((userStats.totalWins / userStats.totalBets) * 100).toFixed(1)}%`
                   : '0%'
                 }
               </div>
             </div>
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+            <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Biggest Win</span>
                 <Award className="h-3 w-3 text-gaming-gold" />
               </div>
-              <div className="text-xl font-bold text-gaming-gold mt-1">₹{userStats.biggestWin}</div>
+              <div className="text-lg sm:text-xl font-bold text-gaming-gold mt-1">₹{userStats.biggestWin}</div>
             </div>
-            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/30">
+            <div className="bg-slate-800/50 rounded-lg p-2 sm:p-3 border border-slate-700/30">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Best Multi</span>
                 <TrendingUp className="h-3 w-3 text-primary" />
               </div>
-              <div className="text-xl font-bold text-primary mt-1">{userStats.biggestMultiplier}x</div>
+              <div className="text-lg sm:text-xl font-bold text-primary mt-1">{userStats.biggestMultiplier}x</div>
             </div>
           </div>
 
@@ -181,7 +181,7 @@ const StatisticsPanel = ({ recentRounds, userStats, liveStats }: StatisticsPanel
           </div>
         </TabsContent>
 
-        <TabsContent value="analysis" className="p-4 space-y-4">
+        <TabsContent value="analysis" className="p-2 sm:p-3 md:p-4 space-y-3 sm:space-y-4">
           <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/30">
             <h4 className="text-sm font-semibold text-muted-foreground mb-3">Hot & Cold Analysis</h4>
             <div className="space-y-3">

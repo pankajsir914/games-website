@@ -25,7 +25,7 @@ const GameStats = ({ gameData }: GameStatsProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
       {/* Crash History */}
       <Card className="bg-gradient-card border-border">
         <CardHeader className="pb-3">

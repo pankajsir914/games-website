@@ -112,7 +112,7 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
   const altitude = Math.round((gameData.multiplier - 1) * 1000);
 
   return (
-    <Card className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50 min-h-[600px] relative overflow-hidden shadow-2xl backdrop-blur-sm">
+    <Card className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50 min-h-[400px] sm:min-h-[450px] md:min-h-[500px] lg:min-h-[600px] relative overflow-hidden shadow-2xl backdrop-blur-sm">
       {/* Dynamic Sky Gradient */}
       <div 
         className="absolute inset-0 transition-all duration-1000"
@@ -197,34 +197,34 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
         </div>
       )}
 
-      <div className="relative h-full p-8 flex flex-col">
+      <div className="relative h-full p-3 sm:p-4 md:p-6 lg:p-8 flex flex-col">
         {/* Betting Phase Overlay */}
         {gameData.gameState === 'betting' && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90 backdrop-blur-md z-10 rounded-lg">
             <div className="text-center">
-              <div className="relative mb-8">
-                <div className="w-40 h-40 rounded-full border-4 border-primary/30 flex items-center justify-center mx-auto">
+              <div className="relative mb-4 sm:mb-6 md:mb-8">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 border-primary/30 flex items-center justify-center mx-auto">
                   <div className="absolute inset-0 rounded-full border-4 border-primary animate-ping" />
-                  <div className="text-6xl font-bold text-primary tabular-nums">
+                  <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary tabular-nums">
                     {bettingCountdown}
                   </div>
                 </div>
               </div>
-              <h2 className="text-4xl font-bold text-primary mb-4 animate-pulse">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary mb-2 sm:mb-4 animate-pulse">
                 Place Your Bets!
               </h2>
               <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-                <Clock className="h-5 w-5 animate-spin" />
-                <span className="text-xl">Round starting soon...</span>
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                <span className="text-base sm:text-lg md:text-xl">Round starting soon...</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Enhanced Multiplier Display */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4 sm:mb-6 md:mb-8">
           <div className={cn(
-            "text-8xl font-bold transition-all duration-300 tabular-nums relative",
+            "text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold transition-all duration-300 tabular-nums relative",
             gameData.gameState === 'flying' && "animate-pulse",
             gameData.gameState === 'crashed' && "text-red-500 animate-shake",
             gameData.gameState === 'cashed_out' && "text-green-500"
@@ -242,14 +242,14 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
           
           {/* Speed and Altitude Indicators */}
           {gameData.gameState === 'flying' && (
-            <div className="flex items-center justify-center space-x-6 mt-4">
-              <div className="flex items-center space-x-2 bg-black/30 px-4 py-2 rounded-full backdrop-blur">
-                <Gauge className="h-5 w-5 text-yellow-400" />
-                <span className="text-yellow-400 font-bold">{speed} km/h</span>
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 md:space-x-6 mt-2 sm:mt-4">
+              <div className="flex items-center space-x-2 bg-black/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full backdrop-blur">
+                <Gauge className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+                <span className="text-yellow-400 font-bold text-sm sm:text-base">{speed} km/h</span>
               </div>
-              <div className="flex items-center space-x-2 bg-black/30 px-4 py-2 rounded-full backdrop-blur">
-                <Activity className="h-5 w-5 text-blue-400" />
-                <span className="text-blue-400 font-bold">{altitude}m</span>
+              <div className="flex items-center space-x-2 bg-black/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full backdrop-blur">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                <span className="text-blue-400 font-bold text-sm sm:text-base">{altitude}m</span>
               </div>
             </div>
           )}
@@ -276,12 +276,12 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
                 
                 {/* Plane Body */}
                 <div className={cn(
-                  "relative p-4 rounded-full bg-gradient-to-br transition-all duration-300",
+                  "relative p-2 sm:p-3 md:p-4 rounded-full bg-gradient-to-br transition-all duration-300",
                   gameData.gameState === 'crashed' 
                     ? "from-red-500 to-red-700" 
                     : "from-yellow-400 to-orange-500"
                 )}>
-                  <Plane className="h-10 w-10 text-white" />
+                  <Plane className="h-6 w-6 sm:h-8 sm:h-8 md:h-10 md:w-10 text-white" />
                 </div>
                 
                 {/* Engine Fire Effect */}
@@ -322,15 +322,15 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
             <Button 
               onClick={onCashOut}
               size="lg"
-              className="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-16 py-8 text-3xl font-bold shadow-2xl transition-all duration-300 hover:scale-105 group"
+              className="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-8 py-4 sm:px-12 sm:py-6 md:px-16 md:py-8 text-xl sm:text-2xl md:text-3xl font-bold shadow-2xl transition-all duration-300 hover:scale-105 group"
             >
               <div className="absolute inset-0 bg-white/20 rounded-lg animate-pulse" />
               <div className="relative flex flex-col items-center">
                 <span className="flex items-center space-x-2">
-                  <Zap className="h-8 w-8 animate-bounce" />
+                  <Zap className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 animate-bounce" />
                   <span>CASH OUT</span>
                 </span>
-                <span className="text-2xl font-bold mt-1">
+                <span className="text-lg sm:text-xl md:text-2xl font-bold mt-1">
                   ₹{(gameData.currentBet * gameData.multiplier).toFixed(2)}
                 </span>
               </div>

@@ -38,15 +38,15 @@ const BettingHistory = ({ bets, currentRoundBets = [] }: BettingHistoryProps) =>
 
   return (
     <Card className="bg-slate-900/95 border-slate-700/50 h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+      <CardHeader className="pb-2 sm:pb-3">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
           <div className="w-2 h-2 bg-primary rounded-full"></div>
           Live Bets
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[500px]">
-          <div className="space-y-1 px-4 pb-4">
+        <ScrollArea className="h-[300px] sm:h-[400px] md:h-[500px]">
+          <div className="space-y-1 px-2 sm:px-4 pb-2 sm:pb-4">
             {/* Current Round Header */}
             {currentRoundBets.length > 0 && (
               <div className="text-xs text-primary font-medium mb-2 px-2">
