@@ -54,32 +54,6 @@ const GameStats = ({ gameData }: GameStatsProps) => {
         </CardContent>
       </Card>
 
-      {/* Live Players */}
-      <Card className="bg-gradient-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-primary" />
-            <span>Live Players</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {liveUsers.map((user, index) => (
-              <div key={index} className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-gaming-success rounded-full animate-pulse"></div>
-                  <span className="text-muted-foreground">{user.name}</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-gaming-success font-semibold">{user.cashOut}</div>
-                  <div className="text-xs text-muted-foreground">{user.amount}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Leaderboard */}
       <Card className="bg-gradient-card border-border">
         <CardHeader className="pb-3">
