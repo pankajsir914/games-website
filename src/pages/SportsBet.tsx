@@ -388,8 +388,22 @@ const SportsBet: React.FC = () => {
                       <p className="text-3xl font-bold">{match.score}</p>
                       <p className="text-sm text-muted-foreground mt-1">Current Score</p>
                     </>
+                  ) : matchDetails?.status === 'Live' ? (
+                    <div className="text-center">
+                      <p className="text-lg font-semibold text-primary">Match In Progress</p>
+                      <p className="text-xs text-muted-foreground mt-1">Live score updating soon</p>
+                    </div>
+                  ) : matchDetails?.startDate ? (
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Starts at</p>
+                      <p className="text-lg font-bold">{new Date(matchDetails.startDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{new Date(matchDetails.startDate).toLocaleDateString('en-IN')}</p>
+                    </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Score will appear here</p>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Score not available</p>
+                      <p className="text-xs text-muted-foreground mt-1">Check back later</p>
+                    </div>
                   )}
                 </div>
               </div>
