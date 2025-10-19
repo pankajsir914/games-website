@@ -15,6 +15,9 @@ interface GameInterfaceProps {
 const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameInterfaceProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
+  const startTimeRef = useRef<number>(Date.now());
+  const prevRotationRef = useRef(0);
+  
   const { 
     playJetEngine, 
     playCountdown, 
@@ -25,48 +28,166 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
     playFlyingLoop,
     stopFlyingLoop
   } = useAviatorSounds();
+  
   const [particles, setParticles] = useState<Array<{x: number, y: number, vx: number, vy: number, life: number}>>([]);
   const [showCrashEffect, setShowCrashEffect] = useState(false);
-
-  const prevRotationRef = useRef(0);
+  const [multiplierHistory, setMultiplierHistory] = useState<Array<{time: number, multiplier: number}>>([]);
   
-  // Easing function for smooth acceleration
-  const easeOutCubic = (t: number): number => {
-    return 1 - Math.pow(1 - t, 3);
+  // Graph Grid Component
+  const GraphGrid = () => (
+    <svg className="absolute inset-0 w-full h-full opacity-20">
+      {[...Array(10)].map((_, i) => (
+        <line
+          key={`h-${i}`}
+          x1="0"
+          y1={`${i * 10}%`}
+          x2="100%"
+          y2={`${i * 10}%`}
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="1"
+        />
+      ))}
+      {[...Array(10)].map((_, i) => (
+        <line
+          key={`v-${i}`}
+          x1={`${i * 10}%`}
+          y1="0"
+          x2={`${i * 10}%`}
+          y2="100%"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="1"
+        />
+      ))}
+    </svg>
+  );
+
+  // Axis Labels Component
+  const AxisLabels = () => {
+    const maxMultiplier = Math.max(gameData.multiplier, 5);
+    const multiplierSteps = [1, 2, 3, 5, 10, 20, 50, 100].filter(m => m <= maxMultiplier * 1.2);
+    const maxTime = multiplierHistory.length > 0 ? multiplierHistory[multiplierHistory.length - 1].time : 20;
+    
+    return (
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Y-axis labels */}
+        <div className="absolute left-1 top-0 bottom-0 flex flex-col justify-between py-4">
+          {multiplierSteps.reverse().map(mult => (
+            <span key={mult} className="text-xs text-white/50 font-mono">{mult}x</span>
+          ))}
+        </div>
+        
+        {/* X-axis labels */}
+        <div className="absolute bottom-1 left-0 right-0 flex justify-between px-8 text-xs text-white/50 font-mono">
+          {[0, Math.floor(maxTime / 4), Math.floor(maxTime / 2), Math.floor(maxTime * 3 / 4), Math.floor(maxTime)].map((sec, idx) => (
+            <span key={idx}>{sec}s</span>
+          ))}
+        </div>
+      </div>
+    );
   };
 
-  // Calculate plane position with improved physics
-  const getPlanePosition = () => {
-    if (gameData.gameState === 'betting') {
+  // Calculate plane position from graph curve
+  const getPlanePositionFromGraph = () => {
+    if (gameData.gameState === 'betting' || multiplierHistory.length < 2) {
       prevRotationRef.current = 0;
-      return { x: 10, y: 85, rotation: 0, scale: 1 };
+      return { x: 5, y: 85, rotation: 0, scale: 1 };
     }
     
-    // Natural progression with easing
-    const rawProgress = Math.min((gameData.multiplier - 1) * 4, 100);
-    const t = rawProgress / 100;
-    const easedT = easeOutCubic(t);
+    const lastPoint = multiplierHistory[multiplierHistory.length - 1];
+    const prevPoint = multiplierHistory[multiplierHistory.length - 2];
     
-    // 4-point cubic bezier curve for natural flight path
-    const cubicBezier = (t: number, p0: number, p1: number, p2: number, p3: number) => {
-      const u = 1 - t;
-      return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
-    };
+    // Map time to X-axis (5% to 95%)
+    const maxTime = Math.max(lastPoint.time, 10);
+    const x = (lastPoint.time / maxTime) * 85 + 5;
     
-    const x = cubicBezier(easedT, 10, 25, 55, 85);
-    const y = cubicBezier(easedT, 85, 65, 45, 25);
+    // Map multiplier to Y-axis with logarithmic scale
+    const maxMultiplier = Math.max(lastPoint.multiplier, 5);
+    const y = 85 - (Math.log(lastPoint.multiplier) / Math.log(maxMultiplier)) * 70;
     
-    // Smooth rotation with momentum (not instant)
-    const targetRotation = Math.min(easedT * 35, 35);
-    const rotationDiff = targetRotation - prevRotationRef.current;
-    const currentRotation = prevRotationRef.current + (rotationDiff * 0.15); // Smooth interpolation
+    // Calculate rotation based on curve tangent
+    const dx = lastPoint.time - prevPoint.time;
+    const dy = Math.log(lastPoint.multiplier) - Math.log(prevPoint.multiplier);
+    const angle = Math.atan2(-dy * 30, dx) * (180 / Math.PI);
+    
+    // Smooth rotation interpolation
+    const targetRotation = -angle;
+    const currentRotation = prevRotationRef.current + (targetRotation - prevRotationRef.current) * 0.2;
     prevRotationRef.current = currentRotation;
     
-    // Gradual scale increase
-    const scale = 1 + (easedT * 0.4);
+    const scale = 1 + Math.min(lastPoint.multiplier / 15, 0.5);
     
     return { x, y, rotation: currentRotation, scale };
   };
+
+  // Track multiplier history for graph
+  useEffect(() => {
+    if (gameData.gameState === 'flying') {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      setMultiplierHistory(prev => {
+        const newHistory = [...prev, { time: elapsed, multiplier: gameData.multiplier }];
+        return newHistory.slice(-150); // Keep last 150 points
+      });
+    } else if (gameData.gameState === 'betting') {
+      setMultiplierHistory([]);
+      startTimeRef.current = Date.now();
+    }
+  }, [gameData.multiplier, gameData.gameState]);
+
+  // Draw graph curve on canvas
+  useEffect(() => {
+    if (!canvasRef.current || multiplierHistory.length < 2) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2; // Retina display
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
+    
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    
+    const maxTime = Math.max(multiplierHistory[multiplierHistory.length - 1].time, 10);
+    const maxMultiplier = Math.max(...multiplierHistory.map(p => p.multiplier), 5);
+    
+    // Draw curve
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = 'rgba(34, 197, 94, 0.6)';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    multiplierHistory.forEach((point, i) => {
+      const x = (point.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
+      const y = rect.height * 0.85 - (Math.log(point.multiplier) / Math.log(maxMultiplier)) * rect.height * 0.7;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    
+    ctx.stroke();
+    
+    // Fill area under curve
+    const lastPoint = multiplierHistory[multiplierHistory.length - 1];
+    const lastX = (lastPoint.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
+    ctx.lineTo(lastX, rect.height * 0.85);
+    ctx.lineTo(rect.width * 0.05, rect.height * 0.85);
+    ctx.closePath();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
+    gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+    gradient.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
+    ctx.fillStyle = gradient;
+    ctx.shadowBlur = 0;
+    ctx.fill();
+    
+  }, [multiplierHistory]);
 
   // Sound effects management
   useEffect(() => {
@@ -103,7 +224,7 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
   useEffect(() => {
     if (gameData.gameState === 'flying') {
       const interval = setInterval(() => {
-        const pos = getPlanePosition();
+        const pos = getPlanePositionFromGraph();
         setParticles(prev => {
           const newParticles = prev.filter(p => p.life > 0).map(p => ({
             ...p,
@@ -134,7 +255,7 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
     }
   }, [gameData.gameState]);
 
-  const position = getPlanePosition();
+  const position = getPlanePositionFromGraph();
 
   // Calculate speed and altitude
   const speed = Math.round((gameData.multiplier - 1) * 500);
@@ -286,6 +407,19 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
 
         {/* Game Area */}
         <div className="flex-1 relative min-h-[200px] sm:min-h-[250px] md:min-h-[300px]">
+          {/* Graph Grid Background */}
+          {gameData.gameState === 'flying' && <GraphGrid />}
+          
+          {/* Axis Labels */}
+          {gameData.gameState === 'flying' && <AxisLabels />}
+          
+          {/* Canvas for graph curve */}
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full"
+            style={{ pointerEvents: 'none' }}
+          />
+          
           {/* Enhanced Plane */}
           {(gameData.gameState === 'flying' || gameData.gameState === 'crashed') && (
             <div 
@@ -321,27 +455,6 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
                 )}
               </div>
             </div>
-          )}
-
-          {/* Live Multiplier Path Visualization */}
-          {gameData.gameState === 'flying' && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              <defs>
-                <linearGradient id="pathGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2"/>
-                  <stop offset="50%" stopColor="hsl(var(--gaming-gold))" stopOpacity="0.5"/>
-                  <stop offset="100%" stopColor="hsl(var(--gaming-success))" stopOpacity="0.8"/>
-                </linearGradient>
-              </defs>
-              <path
-                d={`M ${10},${100 - 85} Q ${position.x * 0.7},${100 - (position.y + 10)} ${position.x},${100 - position.y}`}
-                stroke="url(#pathGradient)"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray="5,5"
-                className="animate-dash"
-              />
-            </svg>
           )}
         </div>
 
