@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plane, TrendingUp, Clock, Zap, Activity, Gauge } from 'lucide-react';
 import { GameData } from '@/pages/Aviator';
-import { useGameSounds } from '@/hooks/useGameSounds';
+import { useAviatorSounds } from '@/hooks/useAviatorSounds';
 import { cn } from '@/lib/utils';
 
 interface GameInterfaceProps {
@@ -21,41 +21,67 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
     playCrash, 
     playCashOut,
     playTakeoff,
-    stopJetEngine 
-  } = useGameSounds();
+    stopJetEngine,
+    playFlyingLoop,
+    stopFlyingLoop
+  } = useAviatorSounds();
   const [particles, setParticles] = useState<Array<{x: number, y: number, vx: number, vy: number, life: number}>>([]);
   const [showCrashEffect, setShowCrashEffect] = useState(false);
 
-  // Calculate plane position with bezier curve
+  const prevRotationRef = useRef(0);
+  
+  // Easing function for smooth acceleration
+  const easeOutCubic = (t: number): number => {
+    return 1 - Math.pow(1 - t, 3);
+  };
+
+  // Calculate plane position with improved physics
   const getPlanePosition = () => {
     if (gameData.gameState === 'betting') {
+      prevRotationRef.current = 0;
       return { x: 10, y: 85, rotation: 0, scale: 1 };
     }
     
-    const progress = Math.min((gameData.multiplier - 1) * 5, 80);
-    const t = progress / 100;
+    // Natural progression with easing
+    const rawProgress = Math.min((gameData.multiplier - 1) * 4, 100);
+    const t = rawProgress / 100;
+    const easedT = easeOutCubic(t);
     
-    // Bezier curve for smooth trajectory
-    const x = 10 + (progress * 1.2);
-    const y = 85 - (progress * 0.8) - (Math.sin(t * Math.PI * 2) * 5);
-    const rotation = Math.min(progress * 0.8, 45) + (Math.sin(t * Math.PI * 4) * 2);
-    const scale = 1 + (progress / 200);
+    // 4-point cubic bezier curve for natural flight path
+    const cubicBezier = (t: number, p0: number, p1: number, p2: number, p3: number) => {
+      const u = 1 - t;
+      return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+    };
     
-    return { x, y, rotation, scale };
+    const x = cubicBezier(easedT, 10, 25, 55, 85);
+    const y = cubicBezier(easedT, 85, 65, 45, 25);
+    
+    // Smooth rotation with momentum (not instant)
+    const targetRotation = Math.min(easedT * 35, 35);
+    const rotationDiff = targetRotation - prevRotationRef.current;
+    const currentRotation = prevRotationRef.current + (rotationDiff * 0.15); // Smooth interpolation
+    prevRotationRef.current = currentRotation;
+    
+    // Gradual scale increase
+    const scale = 1 + (easedT * 0.4);
+    
+    return { x, y, rotation: currentRotation, scale };
   };
 
   // Sound effects management
   useEffect(() => {
     if (gameData.gameState === 'flying') {
-      playJetEngine();
       if (gameData.multiplier === 1.0) {
         playTakeoff();
+        setTimeout(() => playFlyingLoop(), 800);
       }
     } else {
+      stopFlyingLoop();
       stopJetEngine();
     }
 
     if (gameData.gameState === 'crashed') {
+      stopFlyingLoop();
       playCrash();
       setShowCrashEffect(true);
       setTimeout(() => setShowCrashEffect(false), 2000);
@@ -64,11 +90,14 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
     if (gameData.gameState === 'cashed_out') {
       playCashOut();
     }
+  }, [gameData.gameState, gameData.multiplier, playTakeoff, playFlyingLoop, stopFlyingLoop, stopJetEngine, playCrash, playCashOut]);
 
+  // Countdown beep
+  useEffect(() => {
     if (bettingCountdown > 0 && bettingCountdown <= 3) {
       playCountdown();
     }
-  }, [gameData.gameState, gameData.multiplier, bettingCountdown]);
+  }, [bettingCountdown, playCountdown]);
 
   // Particle system for trail effect
   useEffect(() => {
