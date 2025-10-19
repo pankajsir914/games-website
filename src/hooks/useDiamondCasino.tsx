@@ -69,8 +69,15 @@ export const useDiamondCasino = () => {
 
       if (error) throw error;
 
-      if (data?.success) {
-        setSelectedTable(data.data);
+      if (data?.success && data?.data?.data) {
+        // Update selected table with detailed info
+        setSelectedTable(prev => prev ? {
+          ...prev,
+          data: {
+            ...prev.data,
+            ...data.data.data
+          }
+        } : prev);
       }
     } catch (error) {
       console.error('Error fetching table details:', error);
@@ -81,13 +88,26 @@ export const useDiamondCasino = () => {
   const fetchOdds = async (tableId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
-        body: { action: 'get-odds', tableId }
+        body: { action: 'get-table', tableId }
       });
 
       if (error) throw error;
 
-      if (data?.success) {
-        setOdds(data.data);
+      if (data?.success && data?.data?.data?.sub) {
+        // Transform the API response to our format
+        const bets = data.data.data.sub.map((bet: any) => ({
+          type: bet.nat,
+          odds: bet.b,
+          status: bet.gstatus,
+          min: bet.min,
+          max: bet.max,
+          sid: bet.sid
+        }));
+        
+        setOdds({ 
+          bets,
+          rawData: data.data.data 
+        });
       }
     } catch (error) {
       console.error('Error fetching odds:', error);
@@ -212,9 +232,10 @@ export const useDiamondCasino = () => {
       
       if (error) throw error;
       
-      if (data?.success && data.streamUrl) {
-        setStreamUrls(prev => ({ ...prev, [tableId]: data.streamUrl }));
-        return data.streamUrl;
+      if (data?.success && data?.data?.data?.tv_url) {
+        const streamUrl = data.data.data.tv_url;
+        setStreamUrls(prev => ({ ...prev, [tableId]: streamUrl }));
+        return streamUrl;
       }
     } catch (error) {
       console.error('Error fetching stream URL:', error);
@@ -230,9 +251,14 @@ export const useDiamondCasino = () => {
       
       if (error) throw error;
       
-      if (data?.success) {
-        setCurrentResult(data.data);
-        setResults(prev => ({ ...prev, [tableId]: data.data }));
+      if (data?.success && data?.data?.data) {
+        const resultData = {
+          tableName: data.data.data.res1?.cname || '',
+          latestResult: data.data.data.res?.[0] || null,
+          results: data.data.data.res || []
+        };
+        setCurrentResult(resultData);
+        setResults(prev => ({ ...prev, [tableId]: resultData }));
       }
     } catch (error) {
       console.error('Error fetching result:', error);
@@ -248,8 +274,8 @@ export const useDiamondCasino = () => {
       
       if (error) throw error;
       
-      if (data?.success) {
-        setResultHistory(data.data?.data || data.data || []);
+      if (data?.success && data?.data?.data?.res) {
+        setResultHistory(data.data.data.res || []);
       }
     } catch (error) {
       console.error('Error fetching result history:', error);
