@@ -111,9 +111,35 @@ const SportsBet: React.FC = () => {
       const sid = getSportSID(sport || 'Cricket');
       const response = await getDetailsData(sid, matchId);
       
-      if (response?.success && response.data) {
-        setMatchDetails(response.data);
-        console.log('Match details:', response.data);
+      console.log('Match details raw response:', response);
+      
+      if (response?.success && response.data?.data) {
+        // Extract the first match from the array and map fields
+        const rawMatch = Array.isArray(response.data.data) 
+          ? response.data.data[0] 
+          : response.data.data;
+        
+        if (rawMatch) {
+          // Map Diamond API fields to expected UI fields
+          const mappedDetails = {
+            matchName: rawMatch.ename || `Match #${rawMatch.gmid}`,
+            series: rawMatch.cname || 'N/A',
+            matchType: rawMatch.gtype || 'match',
+            startDate: rawMatch.stime || null,
+            status: rawMatch.iplay ? 'Live' : 'Scheduled',
+            matchId: rawMatch.gmid,
+            eventId: rawMatch.etid,
+            competitionId: rawMatch.cid,
+            // Additional flags
+            hasTv: rawMatch.tv || false,
+            hasBookmaker: rawMatch.bm || false,
+            hasFancy: rawMatch.f || false,
+            hasScorecard: rawMatch.scard === 1
+          };
+          
+          setMatchDetails(mappedDetails);
+          console.log('Mapped match details:', mappedDetails);
+        }
       }
     } catch (error) {
       console.error('Error fetching match details:', error);
