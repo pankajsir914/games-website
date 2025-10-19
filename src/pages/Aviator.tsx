@@ -334,9 +334,9 @@ const Aviator = () => {
     <div className="min-h-screen bg-gaming-dark">
       <Navigation />
       
-      <div className="container mx-auto px-2 py-3 pt-16 sm:px-4 sm:py-4 sm:pt-20">
+      <div className="container mx-auto px-2 py-2 pt-16 sm:px-4 sm:pt-20 max-w-7xl">
         {gameIsPaused && (
-          <Alert className="mb-4 bg-yellow-500/10 border-yellow-500/50">
+          <Alert className="mb-3 bg-yellow-500/10 border-yellow-500/50">
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
             <AlertDescription className="text-yellow-500">
               Game is currently paused by admin
@@ -344,65 +344,25 @@ const Aviator = () => {
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-3 sm:gap-4">
-          {/* Left Panel - Live Bets & Stats */}
-          <div className="hidden md:block md:col-span-2 lg:col-span-2 space-y-3 sm:space-y-4">
-            <LiveBetsPanel 
-              liveBets={liveBets}
-              totalPlayers={connectedUsers}
-              totalBetsAmount={liveBets.filter(b => b.status === 'active').reduce((sum, b) => sum + b.bet_amount, 0)}
-            />
-            <StatisticsPanel
-              recentRounds={recentRounds?.map(r => ({ multiplier: r.crash_multiplier, id: r.id })) || []}
-              userStats={{
-                totalBets: 0,
-                totalWins: 0,
-                totalLosses: 0,
-                biggestWin: 0,
-                biggestMultiplier: 0,
-                averageCashout: 0,
-                currentStreak: 0,
-                bestStreak: 0
-              }}
-              liveStats={{
-                last24hVolume: 0,
-                last24hPlayers: connectedUsers,
-                currentRoundNumber: currentRound?.round_number || 0
-              }}
-            />
-          </div>
-
-          {/* Center - Game Interface */}
-          <div className="md:col-span-6 lg:col-span-8 space-y-3 sm:space-y-4">
-            <EnhancedGameInterface
-              gameData={gameData}
-              bettingCountdown={bettingCountdown}
-              onCashOut={handleCashOut}
-            />
-            
-            <DualBettingControls
-              gameData={gameData}
-              setGameData={setGameData}
-              onPlaceBet={handlePlaceBet}
-              bettingCountdown={bettingCountdown}
-              isPlacingBet={false}
-              disabled={gameData.gameState !== 'betting'}
-            />
-            
-            <BettingHistory bets={[]} />
-          </div>
-
-          {/* Right Panel - Live Chat */}
-          <div className="hidden lg:block lg:col-span-2">
-            <LiveChat
-              messages={messages}
-              onSendMessage={sendMessage}
-            />
-          </div>
-        </div>
-
-        {/* Bottom Stats Bar */}
-        <div className="mt-3 sm:mt-4 md:mt-6">
+        <div className="space-y-3">
+          {/* Game Interface - Full Width */}
+          <EnhancedGameInterface
+            gameData={gameData}
+            bettingCountdown={bettingCountdown}
+            onCashOut={handleCashOut}
+          />
+          
+          {/* Betting Controls - Full Width */}
+          <DualBettingControls
+            gameData={gameData}
+            setGameData={setGameData}
+            onPlaceBet={handlePlaceBet}
+            bettingCountdown={bettingCountdown}
+            isPlacingBet={false}
+            disabled={gameData.gameState !== 'betting'}
+          />
+          
+          {/* Stats Bar */}
           <GameStats
             gameData={gameData}
           />

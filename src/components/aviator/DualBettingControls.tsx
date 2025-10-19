@@ -131,7 +131,7 @@ const DualBettingControls = ({
       <Button
         onClick={() => handlePlaceBet(betIndex)}
         disabled={!canBet || amount > gameData.balance || isPlacingBet}
-        className="w-full bg-gaming-success hover:bg-gaming-success/90 text-gaming-success-foreground font-bold py-4 sm:py-5 md:py-6 text-base sm:text-lg"
+        className="w-full bg-gaming-success hover:bg-gaming-success/90 text-gaming-success-foreground font-bold py-3 sm:py-4 text-sm sm:text-base"
         style={{
           boxShadow: '0 0 20px hsl(var(--gaming-success))'
         }}
