@@ -75,7 +75,8 @@ const SportsBet: React.FC = () => {
         if (response?.success && response.data) {
           // Check for various TV URL formats in the response
           const tvData = response.data.data || response.data;
-          const iframeUrl = tvData?.tv_url || 
+          const iframeUrl = tvData?.tv_url_three ||
+                           tvData?.tv_url || 
                            tvData?.iframeUrl || 
                            tvData?.url || 
                            tvData?.liveUrl ||
