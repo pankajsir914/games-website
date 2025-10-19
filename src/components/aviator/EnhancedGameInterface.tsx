@@ -119,74 +119,88 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
     return { x, y, rotation: currentRotation, scale };
   };
 
-  // Track multiplier history for graph
+  // Initialize history with starting points
   useEffect(() => {
-    if (gameData.gameState === 'flying') {
-      const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      setMultiplierHistory(prev => {
-        const newHistory = [...prev, { time: elapsed, multiplier: gameData.multiplier }];
-        return newHistory.slice(-150); // Keep last 150 points
-      });
+    if (gameData.gameState === 'flying' && multiplierHistory.length === 0) {
+      setMultiplierHistory([
+        { time: 0, multiplier: 1.0 },
+        { time: 0.1, multiplier: 1.01 }
+      ]);
+      startTimeRef.current = Date.now();
     } else if (gameData.gameState === 'betting') {
       setMultiplierHistory([]);
       startTimeRef.current = Date.now();
     }
+  }, [gameData.gameState]);
+
+  // Update multiplier history
+  useEffect(() => {
+    if (gameData.gameState === 'flying' && gameData.multiplier > 1.0) {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      setMultiplierHistory(prev => {
+        const newHistory = [...prev, { time: elapsed, multiplier: gameData.multiplier }];
+        return newHistory.slice(-150);
+      });
+    }
   }, [gameData.multiplier, gameData.gameState]);
 
-  // Draw graph curve on canvas
+  // Draw graph curve on canvas with error handling
   useEffect(() => {
     if (!canvasRef.current || multiplierHistory.length < 2) return;
     
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * 2; // Retina display
-    canvas.height = rect.height * 2;
-    ctx.scale(2, 2);
-    
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    
-    const maxTime = Math.max(multiplierHistory[multiplierHistory.length - 1].time, 10);
-    const maxMultiplier = Math.max(...multiplierHistory.map(p => p.multiplier), 5);
-    
-    // Draw curve
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = 'rgba(34, 197, 94, 0.6)';
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    multiplierHistory.forEach((point, i) => {
-      const x = (point.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
-      const y = rect.height * 0.85 - (Math.log(point.multiplier) / Math.log(maxMultiplier)) * rect.height * 0.7;
+    try {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
       
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    
-    ctx.stroke();
-    
-    // Fill area under curve
-    const lastPoint = multiplierHistory[multiplierHistory.length - 1];
-    const lastX = (lastPoint.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
-    ctx.lineTo(lastX, rect.height * 0.85);
-    ctx.lineTo(rect.width * 0.05, rect.height * 0.85);
-    ctx.closePath();
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
-    gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
-    gradient.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
-    ctx.fillStyle = gradient;
-    ctx.shadowBlur = 0;
-    ctx.fill();
-    
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * 2; // Retina display
+      canvas.height = rect.height * 2;
+      ctx.scale(2, 2);
+      
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      
+      const maxTime = Math.max(multiplierHistory[multiplierHistory.length - 1].time, 10);
+      const maxMultiplier = Math.max(...multiplierHistory.map(p => p.multiplier), 5);
+      
+      // Draw curve
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = 'rgba(34, 197, 94, 0.6)';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      multiplierHistory.forEach((point, i) => {
+        const x = (point.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
+        const y = rect.height * 0.85 - (Math.log(point.multiplier) / Math.log(maxMultiplier)) * rect.height * 0.7;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      ctx.stroke();
+      
+      // Fill area under curve
+      const lastPoint = multiplierHistory[multiplierHistory.length - 1];
+      const lastX = (lastPoint.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
+      ctx.lineTo(lastX, rect.height * 0.85);
+      ctx.lineTo(rect.width * 0.05, rect.height * 0.85);
+      ctx.closePath();
+      
+      const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
+      gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+      gradient.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
+      ctx.fillStyle = gradient;
+      ctx.shadowBlur = 0;
+      ctx.fill();
+    } catch (error) {
+      console.error('Canvas drawing error:', error);
+    }
   }, [multiplierHistory]);
 
   // Sound effects management

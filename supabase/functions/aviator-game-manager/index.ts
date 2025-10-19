@@ -227,22 +227,30 @@ serve(async (req) => {
         }
       }
 
-      // Check for rounds that have been flying for more than 30 seconds (auto-crash them)
+      // Check for rounds that should crash based on their multiplier
+      // Formula: flightDuration = (crash_multiplier - 1) / 0.1 seconds
       const { data: flyingRounds, error: flyingError } = await supabaseClient
         .from('aviator_rounds')
         .select('*')
-        .eq('status', 'flying')
-        .lt('bet_end_time', new Date(Date.now() - 30000).toISOString());
+        .eq('status', 'flying');
 
       if (flyingError) {
         console.error('Error fetching flying rounds:', flyingError);
         throw flyingError;
       }
 
-      console.log(`Found ${flyingRounds?.length || 0} rounds ready to crash`);
+      // Filter rounds that should crash based on calculated flight duration
+      const roundsTocrashes = (flyingRounds || []).filter(round => {
+        const betEndTime = new Date(round.bet_end_time).getTime();
+        const flightDuration = ((round.crash_multiplier - 1) / 0.1) * 1000; // milliseconds
+        const shouldCrashAt = betEndTime + flightDuration;
+        return Date.now() >= shouldCrashAt;
+      });
 
-      // Auto-crash flying rounds that have exceeded their time
-      for (const round of flyingRounds || []) {
+      console.log(`Found ${roundsTocrashes.length} rounds ready to crash`);
+
+      // Auto-crash flying rounds that have reached their crash point
+      for (const round of roundsTocrashes) {
         try {
           console.log(`Auto-crashing round ${round.id} at multiplier ${round.crash_multiplier}`);
           

@@ -10,6 +10,15 @@ function_name = "andar-bahar-game-manager"
 cron = "*/10 * * * * *"  # Every 10 seconds
 query_parameters = { action = "auto_manage" }
 
+[[cron.aviator-auto-manage]]
+function_name = "aviator-game-manager"
+cron = "* * * * * *"  # Every second
+query_parameters = { action = "auto_manage" }
+
+[[cron.aviator-multiplier-broadcast]]
+function_name = "aviator-multiplier-broadcaster"
+cron = "*/1 * * * * *"  # Every second
+
 [functions.create-admin-user]
 verify_jwt = true
 
@@ -43,6 +52,9 @@ verify_jwt = true
 
 # Game manager functions
 [functions.aviator-game-manager]
+verify_jwt = false
+
+[functions.aviator-multiplier-broadcaster]
 verify_jwt = false
 
 [functions.color-prediction-manager]
