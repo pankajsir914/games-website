@@ -25,7 +25,7 @@ export const ResultHistory = ({ results, tableId }: ResultHistoryProps) => {
               </p>
             ) : (
               results.map((result: any, index: number) => {
-                const winnerDisplay = result.win === "1" ? "Player A" : result.win === "2" ? "Player B" : `Winner ${result.win}`;
+                const winnerDisplay = result.nat || result.win || 'N/A';
                 
                 return (
                   <div 
@@ -41,7 +41,11 @@ export const ResultHistory = ({ results, tableId }: ResultHistoryProps) => {
                       </span>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-base sm:text-lg text-primary">
+                      <div className={`font-bold text-base sm:text-lg ${
+                        winnerDisplay === 'Player A' ? 'text-blue-500' : 
+                        winnerDisplay === 'Player B' ? 'text-red-500' : 
+                        'text-primary'
+                      }`}>
                         {winnerDisplay}
                       </div>
                     </div>

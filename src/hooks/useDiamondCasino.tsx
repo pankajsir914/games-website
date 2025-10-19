@@ -274,8 +274,8 @@ export const useDiamondCasino = () => {
       
       if (error) throw error;
       
-      if (data?.success && data?.data?.data?.res) {
-        setResultHistory(data.data.data.res || []);
+      if (data?.success && data?.data?.data) {
+        setResultHistory(data.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching result history:', error);
