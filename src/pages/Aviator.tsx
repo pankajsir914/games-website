@@ -7,6 +7,7 @@ import BettingHistory from '@/components/aviator/BettingHistory';
 import LiveChat from '@/components/aviator/LiveChat';
 import DualBettingControls from '@/components/aviator/DualBettingControls';
 import GameStats from '@/components/aviator/GameStats';
+import MyBetHistory from '@/components/aviator/MyBetHistory';
 import { useAviator } from '@/hooks/useAviator';
 import { useAviatorRealtime } from '@/hooks/useAviatorRealtime';
 import { useGameManagement } from '@/hooks/useGameManagement';
@@ -361,6 +362,9 @@ const Aviator = () => {
             isPlacingBet={false}
             disabled={gameData.gameState !== 'betting'}
           />
+          
+          {/* My Bet History */}
+          <MyBetHistory />
           
           {/* Stats Bar */}
           <GameStats
