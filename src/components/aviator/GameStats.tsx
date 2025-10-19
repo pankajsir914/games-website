@@ -54,52 +54,6 @@ const GameStats = ({ gameData }: GameStatsProps) => {
         </CardContent>
       </Card>
 
-      {/* Leaderboard */}
-      <Card className="bg-gradient-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center space-x-2">
-            <Trophy className="h-5 w-5 text-gaming-gold" />
-            <span>Top Winners</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-gaming-gold/10 text-gaming-gold">1</Badge>
-                <span>AviatorPro</span>
-              </div>
-              <div className="text-right">
-                <div className="text-gaming-success font-semibold">45.67x</div>
-                <div className="text-xs text-muted-foreground">₹45,670</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-muted text-muted-foreground">2</Badge>
-                <span>SkyWalker</span>
-              </div>
-              <div className="text-right">
-                <div className="text-gaming-success font-semibold">23.45x</div>
-                <div className="text-xs text-muted-foreground">₹23,450</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-muted text-muted-foreground">3</Badge>
-                <span>FlightMaster</span>
-              </div>
-              <div className="text-right">
-                <div className="text-gaming-success font-semibold">12.89x</div>
-                <div className="text-xs text-muted-foreground">₹12,890</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Game Tips */}
       <Card className="bg-gradient-card border-border">
         <CardHeader className="pb-3">
