@@ -13,7 +13,7 @@ import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
 import { useDiamondSportsData } from '@/hooks/useDiamondSportsData';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
-import LiveTVSection from '@/components/sports/LiveTVSection';
+import EnhancedLiveTVSection from '@/components/sports/EnhancedLiveTVSection';
 import EnhancedOddsDisplay from '@/components/sports/EnhancedOddsDisplay';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -38,6 +38,21 @@ const SportsBet: React.FC = () => {
   const [oddsError, setOddsError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [apiDebugInfo, setApiDebugInfo] = useState<any>(null);
+  const [betfairData, setBetfairData] = useState<{
+    tv: string | null;
+    scorecard: string | null;
+    commentary: string | null;
+    statistics: string | null;
+    highlights: string | null;
+    alternateStreams: string[];
+  }>({
+    tv: null,
+    scorecard: null,
+    commentary: null,
+    statistics: null,
+    highlights: null,
+    alternateStreams: []
+  });
 
   const [liveScore, setLiveScore] = useState<any>(null);
   const [liveDetails, setLiveDetails] = useState<any>(null);
@@ -55,7 +70,7 @@ const SportsBet: React.FC = () => {
     return sidMap[sportType] || '4'; // Default to cricket
   };
 
-  // Fetch live TV URL using Betfair Score TV endpoint
+  // Fetch all Betfair Score TV data (TV, Scorecard, Commentary, Statistics, Highlights)
   useEffect(() => {
     const fetchLiveTv = async () => {
       if (!matchId || matchId === 'undefined') return;
@@ -63,37 +78,37 @@ const SportsBet: React.FC = () => {
       setIsLoadingTv(true);
       try {
         const sportSid = getSportSID(sport || 'Cricket');
+        const response = await getBetfairScoreTv(matchId, sportSid);
         
-        // Use the new getBetfairScoreTv endpoint
-        const response = await getBetfairScoreTv(
-          matchId, // diamondeventid
-          sportSid  // diamondsportsid
-        );
-        
-        console.log('Betfair Score TV Response:', response);
+        console.log('Betfair Score TV Full Response:', response);
         
         if (response?.success && response.data) {
-          // Check for various TV URL formats in the response
           const tvData = response.data.data || response.data;
-          const iframeUrl = tvData?.tv_url_three ||
-                           tvData?.tv_url || 
-                           tvData?.iframeUrl || 
-                           tvData?.url || 
-                           tvData?.liveUrl ||
-                           tvData?.hlsUrl ||
-                           tvData?.streamUrl ||
-                           tvData?.m3u8 ||
-                           tvData?.stream_url;
           
-          if (iframeUrl) {
-            console.log('Found TV URL:', iframeUrl);
-            setLiveTvUrl(iframeUrl);
-          } else {
-            console.log('No TV URL found in response');
-          }
+          // Extract ALL available URLs
+          const extractedData = {
+            tv: tvData?.tv_url_three || tvData?.tv_url || tvData?.iframeUrl || tvData?.url || tvData?.liveUrl,
+            scorecard: tvData?.scorecard_url || tvData?.scorecardUrl || tvData?.scorecard,
+            commentary: tvData?.commentary_url || tvData?.commentaryUrl || tvData?.commentary,
+            statistics: tvData?.statistics_url || tvData?.statsUrl || tvData?.statistics || tvData?.stats,
+            highlights: tvData?.highlights_url || tvData?.highlightsUrl || tvData?.highlights,
+            alternateStreams: [
+              tvData?.tv_url,
+              tvData?.tv_url_two,
+              tvData?.liveUrl,
+              tvData?.hlsUrl,
+              tvData?.streamUrl,
+              tvData?.m3u8,
+              tvData?.stream_url
+            ].filter(Boolean) // Remove null/undefined
+          };
+          
+          console.log('Extracted Betfair Data:', extractedData);
+          setBetfairData(extractedData);
+          setLiveTvUrl(extractedData.tv); // Keep for backward compatibility
         }
       } catch (error) {
-        console.error('Error fetching live TV:', error);
+        console.error('Error fetching Betfair data:', error);
       } finally {
         setIsLoadingTv(false);
       }
@@ -692,81 +707,12 @@ const SportsBet: React.FC = () => {
 
           {/* Live TV Tab */}
           <TabsContent value="livetv" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tv className="h-5 w-5" />
-                  Live Match Stream
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsLoadingTv(true);
-                      const sportSid = getSportSID(sport || 'Cricket');
-                      getBetfairScoreTv(matchId!, sportSid).then((response) => {
-                        console.log('Manual refresh response:', response);
-                        if (response?.success && response.data) {
-                          const tvData = response.data.data || response.data;
-                          const iframeUrl = tvData?.tv_url || tvData?.iframeUrl || tvData?.url;
-                          if (iframeUrl) {
-                            setLiveTvUrl(iframeUrl);
-                            toast({ title: 'Stream refreshed successfully' });
-                          } else {
-                            toast({ 
-                              title: 'No stream available', 
-                              description: 'Live stream URL not found in response',
-                              variant: 'destructive' 
-                            });
-                          }
-                        } else {
-                          toast({ 
-                            title: 'Failed to load stream', 
-                            description: response?.error || 'Unknown error',
-                            variant: 'destructive' 
-                          });
-                        }
-                        setIsLoadingTv(false);
-                      });
-                    }}
-                    disabled={isLoadingTv}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isLoadingTv ? 'animate-spin' : ''}`} />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingTv ? (
-                  <div className="bg-muted rounded-lg p-12 text-center">
-                    <div className="animate-pulse">
-                      <Tv className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">Loading live stream...</p>
-                    </div>
-                  </div>
-                ) : liveTvUrl ? (
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                    <iframe
-                      src={liveTvUrl}
-                      className="absolute top-0 left-0 w-full h-full rounded-lg"
-                      allowFullScreen
-                      frameBorder="0"
-                      title="Live Match Stream"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    />
-                  </div>
-                ) : (
-                  <div className="bg-muted rounded-lg p-12 text-center">
-                    <Tv className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Live stream not available</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {match?.status === 'Live' ? 'Stream will start soon' : 'Check back when the match starts'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-4">
-                      Match ID: {matchId} | Sport SID: {getSportSID(sport || 'Cricket')}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <EnhancedLiveTVSection
+              matchId={matchId!}
+              match={match}
+              isLive={match?.status === 'Live'}
+              betfairData={betfairData}
+            />
           </TabsContent>
 
           {/* Match Details Tab */}
