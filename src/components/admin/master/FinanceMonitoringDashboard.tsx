@@ -205,7 +205,8 @@ export const FinanceMonitoringDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
+                <TableHead>User Name</TableHead>
+                <TableHead>User ID</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead>Status</TableHead>
@@ -216,7 +217,7 @@ export const FinanceMonitoringDashboard = () => {
             <TableBody>
               {filteredWithdrawals.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     No withdrawal requests found
                   </TableCell>
                 </TableRow>
@@ -224,6 +225,7 @@ export const FinanceMonitoringDashboard = () => {
                 filteredWithdrawals.map((request) => (
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">{request.full_name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{request.user_id.slice(0, 8)}...</TableCell>
                     <TableCell>₹{request.amount.toLocaleString()}</TableCell>
                     <TableCell>{request.upi_id ? 'UPI' : 'Bank Transfer'}</TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
@@ -257,7 +259,8 @@ export const FinanceMonitoringDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
+                <TableHead>User Name</TableHead>
+                <TableHead>User ID</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead>Status</TableHead>
@@ -268,7 +271,7 @@ export const FinanceMonitoringDashboard = () => {
             <TableBody>
               {filteredPayments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     No payment requests found
                   </TableCell>
                 </TableRow>
@@ -276,6 +279,7 @@ export const FinanceMonitoringDashboard = () => {
                 filteredPayments.map((request) => (
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">{request.full_name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{request.user_id.slice(0, 8)}...</TableCell>
                     <TableCell>₹{request.amount.toLocaleString()}</TableCell>
                     <TableCell>{request.payment_method}</TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
@@ -309,7 +313,8 @@ export const FinanceMonitoringDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
+                <TableHead>User Name</TableHead>
+                <TableHead>User ID</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Time</TableHead>
@@ -318,7 +323,7 @@ export const FinanceMonitoringDashboard = () => {
             <TableBody>
               {filteredTransactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     No transactions found
                   </TableCell>
                 </TableRow>
@@ -326,6 +331,7 @@ export const FinanceMonitoringDashboard = () => {
                 filteredTransactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell className="font-medium">{transaction.full_name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{transaction.user_id.slice(0, 8)}...</TableCell>
                     <TableCell className={transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}>
                       {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
                     </TableCell>
@@ -379,8 +385,12 @@ export const FinanceMonitoringDashboard = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">User</p>
+                  <p className="text-sm text-muted-foreground">User Name</p>
                   <p className="font-medium">{selectedRequest.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">User ID</p>
+                  <p className="font-medium text-xs font-mono">{selectedRequest.user_id}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
