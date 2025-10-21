@@ -32,7 +32,7 @@ import { SecurityCenter } from '@/components/admin/master/SecurityCenter';
 import { PlatformSettings } from '@/components/admin/master/PlatformSettings';
 import { GameManagement } from '@/components/admin/master/GameManagement';
 import { UserManagement } from '@/components/admin/master/UserManagement';
-import { WalletFinanceControl } from '@/components/admin/master/WalletFinanceControl';
+import { FinanceMonitoringDashboard } from '@/components/admin/master/FinanceMonitoringDashboard';
 import { TransactionsReports } from '@/components/admin/master/TransactionsReports';
 import { AnalyticsDashboard } from '@/components/admin/master/AnalyticsDashboard';
 import { PromotionsNotifications } from '@/components/admin/master/PromotionsNotifications';
@@ -258,7 +258,7 @@ const AdminMaster = () => {
           </TabsContent>
 
           <TabsContent value="wallet" className="space-y-6">
-            <WalletFinanceControl />
+            <FinanceMonitoringDashboard />
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-6">
