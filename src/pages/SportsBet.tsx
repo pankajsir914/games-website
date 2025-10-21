@@ -442,6 +442,29 @@ const SportsBet: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Live Scorecard Embed */}
+              {betfairData.scorecard && (
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Live Scorecard
+                    </h3>
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600/30">
+                      Ball-by-Ball
+                    </Badge>
+                  </div>
+                  <div className="relative w-full bg-background rounded-lg overflow-hidden border" style={{ height: '400px' }}>
+                    <iframe
+                      src={betfairData.scorecard}
+                      className="w-full h-full"
+                      title="Live Scorecard"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+                    />
+                  </div>
+                </div>
+              )}
             </CardHeader>
           </Card>
         </div>
