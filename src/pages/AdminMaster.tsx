@@ -28,7 +28,6 @@ import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import { useMasterAdminAnalytics } from '@/hooks/useMasterAdminAnalytics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminRoleManagement } from '@/components/admin/master/AdminRoleManagement';
-import { SystemMonitoring } from '@/components/admin/master/SystemMonitoring';
 import { SecurityCenter } from '@/components/admin/master/SecurityCenter';
 import { PlatformSettings } from '@/components/admin/master/PlatformSettings';
 import { GameManagement } from '@/components/admin/master/GameManagement';
@@ -37,7 +36,6 @@ import { WalletFinanceControl } from '@/components/admin/master/WalletFinanceCon
 import { TransactionsReports } from '@/components/admin/master/TransactionsReports';
 import { AnalyticsDashboard } from '@/components/admin/master/AnalyticsDashboard';
 import { PromotionsNotifications } from '@/components/admin/master/PromotionsNotifications';
-import { ContentManagement } from '@/components/admin/master/ContentManagement';
 import { TeamManagement } from '@/components/admin/master/TeamManagement';
 import { EnhancedLiveSportsIntegration } from '@/components/admin/master/sports/EnhancedLiveSportsIntegration';
 
@@ -204,7 +202,7 @@ const AdminMaster = () => {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-2 h-auto p-2">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-10 gap-2 h-auto p-2">
             <TabsTrigger value="dashboard" className="flex items-center gap-2 text-xs p-2">
               <BarChart3 className="h-3 w-3" />
               <span className="hidden lg:inline">Analytics</span>
@@ -229,10 +227,6 @@ const AdminMaster = () => {
               <Bell className="h-3 w-3" />
               <span className="hidden lg:inline">Promo</span>
             </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center gap-2 text-xs p-2">
-              <FileText className="h-3 w-3" />
-              <span className="hidden lg:inline">CMS</span>
-            </TabsTrigger>
             <TabsTrigger value="roles" className="flex items-center gap-2 text-xs p-2">
               <UserCog className="h-3 w-3" />
               <span className="hidden lg:inline">Team</span>
@@ -244,10 +238,6 @@ const AdminMaster = () => {
             <TabsTrigger value="settings" className="flex items-center gap-2 text-xs p-2">
               <Settings className="h-3 w-3" />
               <span className="hidden lg:inline">System</span>
-            </TabsTrigger>
-            <TabsTrigger value="monitoring" className="flex items-center gap-2 text-xs p-2">
-              <Activity className="h-3 w-3" />
-              <span className="hidden lg:inline">Monitor</span>
             </TabsTrigger>
             <TabsTrigger value="sports" className="flex items-center gap-2 text-xs p-2">
               <Trophy className="h-3 w-3" />
@@ -279,10 +269,6 @@ const AdminMaster = () => {
             <PromotionsNotifications />
           </TabsContent>
 
-          <TabsContent value="content" className="space-y-6">
-            <ContentManagement />
-          </TabsContent>
-
           <TabsContent value="roles" className="space-y-6">
             <TeamManagement />
           </TabsContent>
@@ -293,10 +279,6 @@ const AdminMaster = () => {
 
           <TabsContent value="settings" className="space-y-6">
             <PlatformSettings />
-          </TabsContent>
-
-          <TabsContent value="monitoring" className="space-y-6">
-            <SystemMonitoring />
           </TabsContent>
 
           <TabsContent value="sports" className="space-y-6">
