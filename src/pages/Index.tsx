@@ -349,7 +349,7 @@ const Index = () => {
                 <Crown className="h-6 w-6 text-gaming-gold-foreground" />
               </div>
               <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                GameZone
+                RRBExchange
               </span>
             </div>
             <p className="text-muted-foreground text-sm">
