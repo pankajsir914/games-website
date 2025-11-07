@@ -36,7 +36,7 @@ const Navigation = () => {
             <div className="flex items-center space-x-8">
               <Link to="/" className="flex-shrink-0 flex items-center">
                 <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  GameZone
+                  RRB Xchange
                 </span>
               </Link>
               
