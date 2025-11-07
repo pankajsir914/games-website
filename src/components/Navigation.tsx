@@ -74,7 +74,7 @@ const Navigation = () => {
                   <nav className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
-                        GameZone
+                        RRB Xchange
                       </span>
                     </div>
                     <div className="flex flex-col space-y-3 mt-6">
