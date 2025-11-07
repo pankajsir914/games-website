@@ -7,16 +7,6 @@ import { Sparkles, Trophy, Zap, Crown } from 'lucide-react';
 const Games = () => {
   const games = [
     {
-      title: 'Teen Patti',
-      description: 'Classic Indian poker with 3 cards',
-      icon: '🃏',
-      poster: '/lovable-uploads/teenpattiposter.jpeg',
-      path: '/teen-patti',
-      gradient: 'from-yellow-600 to-orange-700',
-      prize: '₹50K Pool',
-      trending: true
-    },
-    {
       title: 'Ludo',
       description: 'Classic board game with real money betting',
       icon: '🎲',
@@ -41,52 +31,6 @@ const Games = () => {
       poster: '/lovable-uploads/colorgameposter.jpeg',
       path: '/color-prediction',
       gradient: 'from-purple-500 to-pink-600'
-    },
-    {
-      title: 'Andar Bahar',
-      description: 'Traditional Indian card game',
-      icon: '♠️',
-      poster: '/lovable-uploads/andarbaharposter.png',
-      path: '/andar-bahar',
-      gradient: 'from-red-500 to-orange-600',
-      prize: '₹10K Bonus'
-    },
-    {
-      title: 'Roulette',
-      description: 'Classic casino wheel game with multiple betting options',
-      icon: '🎰',
-      poster: '/lovable-uploads/rouletteposter.png',
-      path: '/roulette',
-      gradient: 'from-purple-600 to-indigo-700',
-      trending: true
-    },
-    {
-      title: 'Rummy',
-      description: 'Skill-based card game tournaments',
-      icon: '🎯',
-      poster: '/lovable-uploads/rummyposter.png',
-      path: '/rummy',
-      gradient: 'from-yellow-500 to-amber-600',
-      prize: '₹1L Tournament'
-    },
-    {
-      title: 'Poker',
-      description: 'Texas Hold\'em poker tables',
-      icon: '♥️',
-      poster: '/lovable-uploads/pokerposter.jpeg',
-      path: '/poker',
-      gradient: 'from-gray-700 to-gray-900',
-      prize: '₹75K Tables'
-    },
-    {
-      title: 'Jackpot',
-      description: 'Progressive jackpot lottery game',
-      icon: '💰',
-      poster: '/lovable-uploads/jackpotposter.png',
-      path: '/jackpot',
-      gradient: 'from-yellow-400 to-yellow-600',
-      prize: '₹10L+ Prize',
-      trending: true
     },
     {
       title: 'Chicken Run',

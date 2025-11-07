@@ -54,20 +54,6 @@ export function DashboardContent() {
       isNew: true
     },
     {
-      title: "Teen Patti",
-      provider: "RRB Games",
-      image: "/lovable-uploads/teenpattiposter.jpeg",
-      path: "/teen-patti",
-      gradient: "from-yellow-600 to-orange-700"
-    },
-    {
-      title: "Super Andar Bahar",
-      provider: "Evolution",
-      image: "/lovable-uploads/andarbaharposter.png", 
-      path: "/andar-bahar",
-      gradient: "from-red-600 to-red-800"
-    },
-    {
       title: "Aviator",
       provider: "Spribe",
       image: "/lovable-uploads/aviatorposter.png",
@@ -82,39 +68,11 @@ export function DashboardContent() {
       gradient: "from-green-500 to-emerald-600"
     },
     {
-      title: "Jackpot",
-      provider: "RRB Games",
-      image: "/lovable-uploads/jackpotposter.png",
-      path: "/jackpot",
-      gradient: "from-purple-600 to-pink-600"
-    },
-    {
-      title: "Roulette",
-      provider: "RRB Games",
-      image: "/lovable-uploads/rouletteposter.png",
-      path: "/roulette",
-      gradient: "from-red-500 to-rose-600"
-    },
-    {
-      title: "Poker",
-      provider: "RRB Games", 
-      image: "/lovable-uploads/pokerposter.jpeg",
-      path: "/poker",
-      gradient: "from-blue-600 to-indigo-700"
-    },
-    {
       title: "Ludo Multiplayer",
       provider: "RRB Games",
       image: "/lovable-uploads/ludoposter.png",
       path: "/ludo-game",
       gradient: "from-cyan-500 to-blue-600"
-    },
-    {
-      title: "Rummy",
-      provider: "RRB Games",
-      image: "/lovable-uploads/rummyposter.png",
-      path: "/rummy",
-      gradient: "from-green-600 to-teal-600"
     },
     {
       title: "Sports Betting",
