@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface CreateUserData {
-  email: string;
+  username: string;
   password: string;
   fullName: string;
   phone?: string;
@@ -24,18 +24,21 @@ export const useCreateUser = () => {
     
     try {
       // Validate input
-      if (!userData.email || !userData.password || !userData.fullName) {
-        throw new Error('Email, password, and full name are required');
+      if (!userData.username || !userData.password || !userData.fullName) {
+        throw new Error('Username, password, and full name are required');
       }
 
       if (userData.password.length < 6) {
         throw new Error('Password must be at least 6 characters long');
       }
 
+      // Generate email from username
+      const generatedEmail = `${userData.username.toLowerCase()}@rrbgames.com`;
+
       // Call Edge Function directly (handles permissions)
       const { data: fnData, error: fnError } = await supabase.functions.invoke('create-user', {
         body: {
-          email: userData.email,
+          email: generatedEmail,
           password: userData.password,
           fullName: userData.fullName,
           phone: userData.phone || null,

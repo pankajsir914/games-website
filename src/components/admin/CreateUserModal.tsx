@@ -21,7 +21,7 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   const { createUser, isLoading } = useCreateUser();
   
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
     fullName: '',
     phone: '',
@@ -33,7 +33,7 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
 
   const resetForm = () => {
     setFormData({
-      email: '',
+      username: '',
       password: '',
       fullName: '',
       phone: '',
@@ -45,10 +45,12 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters long';
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      newErrors.username = 'Username can only contain letters, numbers, and underscores';
     }
 
     if (!formData.password) {
@@ -77,7 +79,7 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
     }
 
     const result = await createUser({
-      email: formData.email.trim(),
+      username: formData.username.trim(),
       password: formData.password,
       fullName: formData.fullName.trim(),
       phone: formData.phone.trim() || undefined,
@@ -175,22 +177,25 @@ export const CreateUserModal = ({ open, onOpenChange, onUserCreated }: CreateUse
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
+            <Label htmlFor="username">Username *</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter email address"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
+                id="username"
+                type="text"
+                placeholder="Enter username (letters, numbers, underscore)"
+                value={formData.username}
+                onChange={(e) => handleInputChange('username', e.target.value)}
+                className={`pl-10 ${errors.username ? 'border-destructive' : ''}`}
                 disabled={isLoading}
               />
             </div>
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email}</p>
+            {errors.username && (
+              <p className="text-sm text-destructive">{errors.username}</p>
             )}
+            <p className="text-xs text-muted-foreground">
+              Email will be auto-generated as: {formData.username || 'username'}@rrbgames.com
+            </p>
           </div>
 
           <div className="space-y-2">
