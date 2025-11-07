@@ -165,8 +165,8 @@ export function DashboardSidebar() {
               <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
             </div>
             {!collapsed && (
-              <span className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                GameZone
+              <span className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent text-[#dbe9f6]">
+                RRB Xchange
               </span>
             )}
           </div>
