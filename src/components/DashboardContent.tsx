@@ -119,14 +119,13 @@ export function DashboardContent() {
             <Button variant="ghost" size="sm" className="text-primary font-medium">
               RRB Games
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              Trading
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              Poker
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-              More
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/support')}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Support
             </Button>
           </div>
         </div>
