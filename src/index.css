@@ -151,11 +151,11 @@ All colors MUST be HSL.
     --input: 240 3.7% 15.9%;
     --ring: 47 96% 53%;
     --sidebar-background: 203 89% 76%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-foreground: 224 39% 13%;
+    --sidebar-primary: 224 39% 13%;
     --sidebar-primary-foreground: 224 39% 13%;
     --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 224 39% 13%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
