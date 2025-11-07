@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "dist")));
 
 // Fallback to index.html for SPA routes
-app.get('/*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+app.get('/:path(*)', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 8080;
