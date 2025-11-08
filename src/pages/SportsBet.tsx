@@ -73,6 +73,9 @@ const SportsBet: React.FC = () => {
     const fetchLiveTv = async () => {
       if (!matchId || matchId === 'undefined') return;
       
+      // Delay this request to avoid simultaneous API calls
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setIsLoadingTv(true);
       try {
         const sportSid = getSportSID(sport || 'Cricket');
@@ -159,10 +162,13 @@ const SportsBet: React.FC = () => {
     fetchMatchDetailsData();
   }, [matchId, sport, getDetailsData]);
 
-  // Fetch live match details and score
+  // Fetch live match details and score (lower priority, delayed)
   useEffect(() => {
     const fetchLiveMatchData = async () => {
       if (!matchId || matchId === 'undefined') return;
+
+      // Delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       try {
         // Fetch match details, score and other live data
@@ -215,16 +221,24 @@ const SportsBet: React.FC = () => {
     setIsLoadingOdds(true);
     setOddsError(null);
     
-    // Initial fetch using REST - no WebSocket, no auto-refresh
-    const fetchInitialOdds = async () => {
+    // Sequential fetch to avoid rate limiting
+    const fetchDataSequentially = async () => {
       try {
+        // 1. Fetch odds first (highest priority)
         const sid = getSportSID(sport || 'Cricket');
-        const response = await getPriveteData(sid, matchId);
+        const oddsResponse = await getPriveteData(sid, matchId);
         
-        if (response?.success && response.data) {
-          setOdds(response.data);
+        if (oddsResponse?.success && oddsResponse.data) {
+          setOdds(oddsResponse.data);
           setOddsError(null);
         }
+        
+        // 2. Wait a bit before next request
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 3. Fetch match details
+        await fetchMatchDetailsData();
+        
       } catch (error: any) {
         // Error handling without logging
       } finally {
@@ -232,7 +246,7 @@ const SportsBet: React.FC = () => {
       }
     };
     
-    fetchInitialOdds();
+    fetchDataSequentially();
   }, [matchId, sport, getPriveteData]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {

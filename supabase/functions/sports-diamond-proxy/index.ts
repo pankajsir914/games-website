@@ -21,9 +21,49 @@ const LIVE_TTL_MS = 60 * 1000; // 1 minute for live matches
 
 // Rate limiting with exponential backoff
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests
+const MIN_REQUEST_INTERVAL = 1500; // 1.5 seconds between requests
 let rateLimitBackoff = 0;
 let consecutiveRateLimits = 0;
+
+// Request queue to handle concurrent requests
+interface QueuedRequest {
+  resolve: (value: Response) => void;
+  reject: (error: any) => void;
+  execute: () => Promise<Response>;
+}
+const requestQueue: QueuedRequest[] = [];
+let isProcessingQueue = false;
+
+async function processQueue() {
+  if (isProcessingQueue || requestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  
+  while (requestQueue.length > 0) {
+    const request = requestQueue.shift();
+    if (!request) break;
+    
+    try {
+      const response = await request.execute();
+      request.resolve(response);
+    } catch (error) {
+      request.reject(error);
+    }
+    
+    // Wait between requests to avoid rate limiting
+    const waitTime = MIN_REQUEST_INTERVAL + rateLimitBackoff;
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  
+  isProcessingQueue = false;
+}
+
+function enqueueRequest(execute: () => Promise<Response>): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    requestQueue.push({ resolve, reject, execute });
+    processQueue();
+  });
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -133,172 +173,167 @@ serve(async (req) => {
       });
     }
 
-    // Enhanced rate limiting with exponential backoff
-    const timeSinceLastRequest = now - lastRequestTime;
-    const currentInterval = MIN_REQUEST_INTERVAL + rateLimitBackoff;
-    
-    if (timeSinceLastRequest < currentInterval) {
-      const waitTime = currentInterval - timeSinceLastRequest;
-      console.log(`Rate limiting: waiting ${waitTime}ms before next request`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-    }
-    lastRequestTime = Date.now();
+    // Enqueue the request to prevent simultaneous API calls
+    return enqueueRequest(async () => {
+      const requestTime = Date.now();
+      lastRequestTime = requestTime;
 
-    const headers: Record<string, string> = {
-      'X-RapidAPI-Key': RAPIDAPI_KEY,
-      'X-RapidAPI-Host': DIAMOND_HOST,
-    };
-    if (method !== 'GET') headers['Content-Type'] = 'application/json';
+      const headers: Record<string, string> = {
+        'X-RapidAPI-Key': RAPIDAPI_KEY,
+        'X-RapidAPI-Host': DIAMOND_HOST,
+      };
+      if (method !== 'GET') headers['Content-Type'] = 'application/json';
 
-    console.log('Making request to Diamond API:', targetUrl);
-    const res = await fetch(targetUrl, {
-      method,
-      headers,
-      body: method === 'POST' && payload ? JSON.stringify(payload) : undefined,
-    });
+      console.log('Making request to Diamond API:', targetUrl);
+      const res = await fetch(targetUrl, {
+        method,
+        headers,
+        body: method === 'POST' && payload ? JSON.stringify(payload) : undefined,
+      });
 
-    console.log('Diamond API response status:', res.status, res.statusText);
-    const text = await res.text();
-    let json: any;
-    try {
-      json = JSON.parse(text);
-    } catch (_) {
-      json = { raw: text };
-    }
+      console.log('Diamond API response status:', res.status, res.statusText);
+      const text = await res.text();
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch (_) {
+        json = { raw: text };
+      }
 
-    if (!res.ok) {
-      // Handle different error types with specific messages
-      if (res.status === 429) {
-        consecutiveRateLimits++;
-        rateLimitBackoff = Math.min(30000, MIN_REQUEST_INTERVAL * Math.pow(2, consecutiveRateLimits));
-        console.log(`Rate limited (429). Increasing backoff to ${rateLimitBackoff}ms`);
+      if (!res.ok) {
+        // Handle different error types with specific messages
+        if (res.status === 429) {
+          consecutiveRateLimits++;
+          rateLimitBackoff = Math.min(30000, MIN_REQUEST_INTERVAL * Math.pow(2, consecutiveRateLimits));
+          console.log(`Rate limited (429). Increasing backoff to ${rateLimitBackoff}ms`);
+          
+          cache.set(cacheKey, { 
+            data: { error: 'Rate limited. Please try again later.', status: 429 }, 
+            ts: now,
+            retryAfter: rateLimitBackoff 
+          });
+          
+          return new Response(JSON.stringify({ 
+            success: false, 
+            provider: 'diamond', 
+            error: 'Rate limited. Please try again in a moment.',
+            errorCode: 429,
+            data: [] 
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } else if (res.status === 404) {
+          console.log(`Resource not found (404) for: ${targetUrl}`);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            provider: 'diamond', 
+            error: 'Odds not available for this match. The match may not have started yet or has ended.',
+            errorCode: 404,
+            debug: {
+              path,
+              sid,
+              gmid,
+              targetUrl
+            },
+            data: [] 
+          }), {
+            status: 200, // Return 200 so frontend doesn't treat as error
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
         
-        cache.set(cacheKey, { 
-          data: { error: 'Rate limited. Please try again later.', status: 429 }, 
-          ts: now,
-          retryAfter: rateLimitBackoff 
-        });
+        console.error(`Diamond API error ${res.status}: ${res.statusText} for ${targetUrl}`);
+        console.error(`Response body: ${text}`);
         
         return new Response(JSON.stringify({ 
           success: false, 
           provider: 'diamond', 
-          error: 'Rate limited. Please try again in a moment.',
-          errorCode: 429,
-          data: [] 
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } else if (res.status === 404) {
-        console.log(`Resource not found (404) for: ${targetUrl}`);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          provider: 'diamond', 
-          error: 'Odds not available for this match. The match may not have started yet or has ended.',
-          errorCode: 404,
+          error: `API error: ${res.statusText}`,
+          errorCode: res.status,
           debug: {
             path,
             sid,
             gmid,
-            targetUrl
+            targetUrl,
+            response: text.substring(0, 200)
           },
           data: [] 
         }), {
-          status: 200, // Return 200 so frontend doesn't treat as error
+          status: res.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       
-      console.error(`Diamond API error ${res.status}: ${res.statusText} for ${targetUrl}`);
-      console.error(`Response body: ${text}`);
-      
-      return new Response(JSON.stringify({ 
-        success: false, 
-        provider: 'diamond', 
-        error: `API error: ${res.statusText}`,
-        errorCode: res.status,
-        debug: {
-          path,
-          sid,
-          gmid,
-          targetUrl,
-          response: text.substring(0, 200)
-        },
-        data: [] 
-      }), {
-        status: res.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Reset rate limit counters on successful request
-    consecutiveRateLimits = 0;
-    rateLimitBackoff = 0;
+      // Reset rate limit counters on successful request
+      consecutiveRateLimits = 0;
+      rateLimitBackoff = 0;
 
-    // Normalize the response structure for consistency
-    let normalizedData = json;
-    
-    // Transform getPriveteData response to t1/t2/t3 format
-    if (path === 'sports/getPriveteData' && json?.data) {
-      console.log('Transforming Diamond API getPriveteData response');
+      // Normalize the response structure for consistency
+      let normalizedData = json;
       
-      const markets = Array.isArray(json.data) ? json.data : [];
-      const transformed: any = { t1: [], t2: [], t3: [] };
-      
-      markets.forEach((market: any) => {
-        const mname = market.mname?.toUpperCase() || '';
+      // Transform getPriveteData response to t1/t2/t3 format
+      if (path === 'sports/getPriveteData' && json?.data) {
+        console.log('Transforming Diamond API getPriveteData response');
         
-        // Transform section array: convert odds[] to b1/l1 format
-        const transformedSection = (market.section || []).map((team: any) => {
-          const backOdds = (team.odds || []).filter((o: any) => o.otype === 'back');
-          const layOdds = (team.odds || []).filter((o: any) => o.otype === 'lay');
+        const markets = Array.isArray(json.data) ? json.data : [];
+        const transformed: any = { t1: [], t2: [], t3: [] };
+        
+        markets.forEach((market: any) => {
+          const mname = market.mname?.toUpperCase() || '';
           
-          return {
-            sid: team.sid,
-            nat: team.nat,
-            gstatus: team.gstatus || 'ACTIVE',
-            b1: backOdds[0]?.odds || null,
-            bs1: backOdds[0]?.size || null,
-            b2: backOdds[1]?.odds || null,
-            bs2: backOdds[1]?.size || null,
-            b3: backOdds[2]?.odds || null,
-            bs3: backOdds[2]?.size || null,
-            l1: layOdds[0]?.odds || null,
-            ls1: layOdds[0]?.size || null,
-            l2: layOdds[1]?.odds || null,
-            ls2: layOdds[1]?.size || null,
-            l3: layOdds[2]?.odds || null,
-            ls3: layOdds[2]?.size || null,
+          // Transform section array: convert odds[] to b1/l1 format
+          const transformedSection = (market.section || []).map((team: any) => {
+            const backOdds = (team.odds || []).filter((o: any) => o.otype === 'back');
+            const layOdds = (team.odds || []).filter((o: any) => o.otype === 'lay');
+            
+            return {
+              sid: team.sid,
+              nat: team.nat,
+              gstatus: team.gstatus || 'ACTIVE',
+              b1: backOdds[0]?.odds || null,
+              bs1: backOdds[0]?.size || null,
+              b2: backOdds[1]?.odds || null,
+              bs2: backOdds[1]?.size || null,
+              b3: backOdds[2]?.odds || null,
+              bs3: backOdds[2]?.size || null,
+              l1: layOdds[0]?.odds || null,
+              ls1: layOdds[0]?.size || null,
+              l2: layOdds[1]?.odds || null,
+              ls2: layOdds[1]?.size || null,
+              l3: layOdds[2]?.odds || null,
+              ls3: layOdds[2]?.size || null,
+            };
+          });
+          
+          const transformedMarket = {
+            ...market,
+            section: transformedSection
           };
+          
+          // Categorize by market type
+          if (mname.includes('MATCH') || mname === 'ODDS') {
+            transformed.t1.push(transformedMarket);
+          } else if (mname.includes('BOOKMAKER')) {
+            transformed.t3.push(transformedMarket);
+          } else {
+            transformed.t2.push(transformedMarket); // Fancy markets
+          }
         });
         
-        const transformedMarket = {
-          ...market,
-          section: transformedSection
-        };
-        
-        // Categorize by market type
-        if (mname.includes('MATCH') || mname === 'ODDS') {
-          transformed.t1.push(transformedMarket);
-        } else if (mname.includes('BOOKMAKER')) {
-          transformed.t3.push(transformedMarket);
-        } else {
-          transformed.t2.push(transformedMarket); // Fancy markets
-        }
-      });
+        normalizedData = transformed;
+        console.log('Transformed structure:', { 
+          matchMarkets: transformed.t1.length, 
+          fancyMarkets: transformed.t2.length,
+          bookmakerMarkets: transformed.t3.length 
+        });
+      }
       
-      normalizedData = transformed;
-      console.log('Transformed structure:', { 
-        matchMarkets: transformed.t1.length, 
-        fancyMarkets: transformed.t2.length,
-        bookmakerMarkets: transformed.t3.length 
-      });
-    }
-    
-    if (method === 'GET') cache.set(cacheKey, { data: normalizedData, ts: now });
+      if (method === 'GET') cache.set(cacheKey, { data: normalizedData, ts: now });
 
-    return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: false, data: normalizedData }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: false, data: normalizedData }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     });
   } catch (e: any) {
     console.error('sports-diamond-proxy error:', e);
