@@ -73,8 +73,8 @@ const SportsBet: React.FC = () => {
     const fetchLiveTv = async () => {
       if (!matchId || matchId === 'undefined') return;
       
-      // Delay this request to avoid simultaneous API calls
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Delay this request significantly to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 6000));
       
       setIsLoadingTv(true);
       try {
@@ -167,16 +167,18 @@ const SportsBet: React.FC = () => {
     const fetchLiveMatchData = async () => {
       if (!matchId || matchId === 'undefined') return;
 
-      // Delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Delay significantly to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 12000));
 
       try {
-        // Fetch match details, score and other live data
-        const [scoreResponse, detailsResponse, matchResponse] = await Promise.all([
-          callAPI(`sports/sportsScore`, { params: { eventId: matchId } }),
-          callAPI(`sports/allGameDetails`, { params: { eventId: matchId } }),
-          callAPI(`sports/esid`, { sid: '4' }) // Cricket SID
-        ]);
+        // Fetch one at a time with delays between each
+        const scoreResponse = await callAPI(`sports/sportsScore`, { params: { eventId: matchId } });
+        await new Promise(resolve => setTimeout(resolve, 6000));
+        
+        const detailsResponse = await callAPI(`sports/allGameDetails`, { params: { eventId: matchId } });
+        await new Promise(resolve => setTimeout(resolve, 6000));
+        
+        const matchResponse = await callAPI(`sports/esid`, { sid: '4' });
 
         if (scoreResponse?.success) {
           setLiveScore(scoreResponse.data);
@@ -233,8 +235,8 @@ const SportsBet: React.FC = () => {
           setOddsError(null);
         }
         
-        // 2. Wait a bit before next request
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 2. Wait before next request to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 6000));
         
         // 3. Fetch match details
         await fetchMatchDetailsData();
@@ -487,10 +489,13 @@ const SportsBet: React.FC = () => {
           <TabsContent value="odds" className="space-y-6">
             {/* Error Alert with Refresh */}
             {oddsError && (
-              <Alert variant="destructive">
+              <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>{oddsError}</span>
+                  <div className="flex-1">
+                    <p className="font-semibold mb-1">{oddsError}</p>
+                    <p className="text-xs text-muted-foreground">The API has rate limits. Please wait a moment before refreshing.</p>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"

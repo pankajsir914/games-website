@@ -15,55 +15,63 @@ if (!RAPIDAPI_KEY) {
 }
 
 // Simple in-memory cache with longer TTL
-const cache = new Map<string, { data: any; ts: number; retryAfter?: number }>();
+const cache = new Map<string, { data: any; ts: number }>();
 const TTL_MS = 5 * 60 * 1000; // 5 minutes for general data
 const LIVE_TTL_MS = 60 * 1000; // 1 minute for live matches
 
-// Rate limiting with exponential backoff
-let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1500; // 1.5 seconds between requests
-let rateLimitBackoff = 0;
-let consecutiveRateLimits = 0;
-
-// Request queue to handle concurrent requests
-interface QueuedRequest {
-  resolve: (value: Response) => void;
-  reject: (error: any) => void;
-  execute: () => Promise<Response>;
-}
-const requestQueue: QueuedRequest[] = [];
-let isProcessingQueue = false;
-
-async function processQueue() {
-  if (isProcessingQueue || requestQueue.length === 0) return;
+// Mutex-based rate limiter with queue
+class RequestMutex {
+  private locked = false;
+  private queue: Array<() => void> = [];
+  private lastRequestTime = 0;
+  private minInterval = 5000; // 5 seconds between requests (very conservative)
+  private backoffMultiplier = 1;
   
-  isProcessingQueue = true;
-  
-  while (requestQueue.length > 0) {
-    const request = requestQueue.shift();
-    if (!request) break;
-    
-    try {
-      const response = await request.execute();
-      request.resolve(response);
-    } catch (error) {
-      request.reject(error);
-    }
-    
-    // Wait between requests to avoid rate limiting
-    const waitTime = MIN_REQUEST_INTERVAL + rateLimitBackoff;
-    await new Promise(resolve => setTimeout(resolve, waitTime));
+  async acquire(): Promise<void> {
+    return new Promise((resolve) => {
+      const tryAcquire = async () => {
+        if (!this.locked) {
+          // Check if enough time has passed since last request
+          const now = Date.now();
+          const timeSinceLastRequest = now - this.lastRequestTime;
+          const requiredInterval = this.minInterval * this.backoffMultiplier;
+          
+          if (timeSinceLastRequest < requiredInterval) {
+            const waitTime = requiredInterval - timeSinceLastRequest;
+            console.log(`Rate limiter: waiting ${waitTime}ms before next request`);
+            await new Promise(r => setTimeout(r, waitTime));
+          }
+          
+          this.locked = true;
+          this.lastRequestTime = Date.now();
+          resolve();
+        } else {
+          this.queue.push(tryAcquire);
+        }
+      };
+      tryAcquire();
+    });
   }
   
-  isProcessingQueue = false;
+  release(): void {
+    this.locked = false;
+    const next = this.queue.shift();
+    if (next) {
+      next();
+    }
+  }
+  
+  increaseBackoff(): void {
+    this.backoffMultiplier = Math.min(this.backoffMultiplier * 2, 8); // Max 40 seconds
+    console.log(`Rate limit backoff increased to ${this.minInterval * this.backoffMultiplier}ms`);
+  }
+  
+  resetBackoff(): void {
+    this.backoffMultiplier = 1;
+  }
 }
 
-function enqueueRequest(execute: () => Promise<Response>): Promise<Response> {
-  return new Promise((resolve, reject) => {
-    requestQueue.push({ resolve, reject, execute });
-    processQueue();
-  });
-}
+const requestMutex = new RequestMutex();
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -168,16 +176,16 @@ serve(async (req) => {
     const effectiveTTL = isLiveEndpoint ? LIVE_TTL_MS : TTL_MS;
     
     if (method === 'GET' && hit && now - hit.ts < effectiveTTL) {
+      console.log('Serving from cache:', cacheKey);
       return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: true, data: hit.data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Enqueue the request to prevent simultaneous API calls
-    return enqueueRequest(async () => {
-      const requestTime = Date.now();
-      lastRequestTime = requestTime;
-
+    // Acquire mutex lock before making request
+    await requestMutex.acquire();
+    
+    try {
       const headers: Record<string, string> = {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
         'X-RapidAPI-Host': DIAMOND_HOST,
@@ -203,24 +211,16 @@ serve(async (req) => {
       if (!res.ok) {
         // Handle different error types with specific messages
         if (res.status === 429) {
-          consecutiveRateLimits++;
-          rateLimitBackoff = Math.min(30000, MIN_REQUEST_INTERVAL * Math.pow(2, consecutiveRateLimits));
-          console.log(`Rate limited (429). Increasing backoff to ${rateLimitBackoff}ms`);
-          
-          cache.set(cacheKey, { 
-            data: { error: 'Rate limited. Please try again later.', status: 429 }, 
-            ts: now,
-            retryAfter: rateLimitBackoff 
-          });
+          requestMutex.increaseBackoff();
           
           return new Response(JSON.stringify({ 
             success: false, 
             provider: 'diamond', 
-            error: 'Rate limited. Please try again in a moment.',
+            error: 'Rate limited. Please wait a moment and try again.',
             errorCode: 429,
             data: [] 
           }), {
-            status: 429,
+            status: 200, // Return 200 so frontend can show friendly message
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         } else if (res.status === 404) {
@@ -228,54 +228,37 @@ serve(async (req) => {
           return new Response(JSON.stringify({ 
             success: false, 
             provider: 'diamond', 
-            error: 'Odds not available for this match. The match may not have started yet or has ended.',
+            error: 'Data not available for this match.',
             errorCode: 404,
-            debug: {
-              path,
-              sid,
-              gmid,
-              targetUrl
-            },
             data: [] 
           }), {
-            status: 200, // Return 200 so frontend doesn't treat as error
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
         
-        console.error(`Diamond API error ${res.status}: ${res.statusText} for ${targetUrl}`);
-        console.error(`Response body: ${text}`);
+        console.error(`Diamond API error ${res.status}: ${res.statusText}`);
         
         return new Response(JSON.stringify({ 
           success: false, 
           provider: 'diamond', 
           error: `API error: ${res.statusText}`,
           errorCode: res.status,
-          debug: {
-            path,
-            sid,
-            gmid,
-            targetUrl,
-            response: text.substring(0, 200)
-          },
           data: [] 
         }), {
-          status: res.status,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       
-      // Reset rate limit counters on successful request
-      consecutiveRateLimits = 0;
-      rateLimitBackoff = 0;
+      // Reset backoff on successful request
+      requestMutex.resetBackoff();
 
       // Normalize the response structure for consistency
       let normalizedData = json;
       
       // Transform getPriveteData response to t1/t2/t3 format
       if (path === 'sports/getPriveteData' && json?.data) {
-        console.log('Transforming Diamond API getPriveteData response');
-        
         const markets = Array.isArray(json.data) ? json.data : [];
         const transformed: any = { t1: [], t2: [], t3: [] };
         
@@ -322,11 +305,6 @@ serve(async (req) => {
         });
         
         normalizedData = transformed;
-        console.log('Transformed structure:', { 
-          matchMarkets: transformed.t1.length, 
-          fancyMarkets: transformed.t2.length,
-          bookmakerMarkets: transformed.t3.length 
-        });
       }
       
       if (method === 'GET') cache.set(cacheKey, { data: normalizedData, ts: now });
@@ -334,7 +312,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, provider: 'diamond', cached: false, data: normalizedData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    });
+    } finally {
+      // Always release the mutex
+      requestMutex.release();
+    }
   } catch (e: any) {
     console.error('sports-diamond-proxy error:', e);
     return new Response(JSON.stringify({ success: false, provider: 'diamond', error: e.message || String(e), data: [] }), {
