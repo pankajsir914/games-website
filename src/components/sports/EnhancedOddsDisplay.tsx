@@ -38,9 +38,17 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
   }
 
   // Organize markets by type - handle both direct and nested formats
-  const matchMarkets = odds.t1 || odds.data?.t1 || odds.markets || [];
-  const fancyMarkets = odds.t2 || odds.data?.t2 || [];
-  const bookmakerMarkets = odds.t3 || odds.data?.t3 || [];
+  const oddsData = odds.data || odds;
+  const matchMarkets = oddsData.t1 || [];
+  const fancyMarkets = oddsData.t2 || [];
+  const bookmakerMarkets = oddsData.t3 || [];
+  
+  console.log('All Odds Data:', {
+    full: odds,
+    matchMarkets,
+    fancyMarkets,
+    bookmakerMarkets
+  });
 
   // Render odds cell with proper styling
   const renderOddsCell = (
@@ -89,16 +97,17 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
         <ScrollArea className="w-full">
           <div className="space-y-6">
             {/* Match Odds Section */}
-            {matchMarkets.length > 0 && (
-              <div className="space-y-2">
-                <div className="bg-slate-700 text-white px-4 py-2 rounded-t font-semibold">
-                  Match Odds
+            {matchMarkets.length > 0 && matchMarkets.map((market: any, marketIdx: number) => (
+              <div key={marketIdx} className="space-y-2">
+                <div className="bg-slate-700 text-white px-4 py-2 rounded-t font-semibold flex items-center justify-between">
+                  <span>Match Odds {market.mname ? `- ${market.mname}` : ''}</span>
+                  {market.mid && <span className="text-xs opacity-80">Market ID: {market.mid}</span>}
                 </div>
                 <div className="overflow-x-auto">
                   <Table className="border">
                     <TableHeader>
                       <TableRow className="bg-muted">
-                        <TableHead className="font-semibold text-foreground min-w-[150px]"></TableHead>
+                        <TableHead className="font-semibold text-foreground min-w-[150px]">Selection</TableHead>
                         <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
                         <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
                         <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
@@ -111,66 +120,73 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {matchMarkets[0]?.section?.map((team: any, idx: number) => (
+                      {(market.section || []).map((team: any, idx: number) => (
                         <TableRow key={idx} className="hover:bg-muted/50">
                           <TableCell className="font-medium text-foreground p-3">
                             {team.gstatus === 'SUSPENDED' ? (
                               <span className="text-destructive font-semibold">SUSPENDED</span>
                             ) : (
-                              team.nat || `Team ${idx + 1}`
+                              team.nat || team.name || `Team ${idx + 1}`
                             )}
+                            {team.sid && <span className="text-xs text-muted-foreground ml-2">(ID: {team.sid})</span>}
                           </TableCell>
                           <TableCell className="bg-slate-50"></TableCell>
                           <TableCell className="bg-slate-50"></TableCell>
                           <TableCell className="bg-slate-50"></TableCell>
-                          {renderOddsCell(team.nat, 'back', team.b1, team.bs1, 'match', team.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(team.nat, 'back', team.b2, team.bs2, 'match', team.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(team.nat, 'back', team.b3, team.bs3, 'match', team.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(team.nat, 'lay', team.l1, team.ls1, 'match', team.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(team.nat, 'lay', team.l2, team.ls2, 'match', team.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(team.nat, 'lay', team.l3, team.ls3, 'match', team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'back', team.b1, team.bs1, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'back', team.b2, team.bs2, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'back', team.b3, team.bs3, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'lay', team.l1, team.ls1, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'lay', team.l2, team.ls2, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'lay', team.l3, team.ls3, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               </div>
-            )}
+            ))}
 
             {/* Bookmaker Section */}
-            {bookmakerMarkets.length > 0 && (
-              <div className="space-y-2">
-                <div className="bg-slate-700 text-white px-4 py-2 font-semibold">
-                  Bookmaker
+            {bookmakerMarkets.length > 0 && bookmakerMarkets.map((bookmakerGroup: any, groupIdx: number) => (
+              <div key={groupIdx} className="space-y-2">
+                <div className="bg-slate-700 text-white px-4 py-2 font-semibold flex items-center justify-between">
+                  <span>Bookmaker {bookmakerGroup.mname ? `- ${bookmakerGroup.mname}` : ''}</span>
+                  {bookmakerGroup.mid && <span className="text-xs opacity-80">Market ID: {bookmakerGroup.mid}</span>}
                 </div>
                 <div className="overflow-x-auto">
                   <Table className="border">
                     <TableHeader>
                       <TableRow className="bg-muted">
-                        <TableHead className="font-semibold text-foreground min-w-[150px]"></TableHead>
+                        <TableHead className="font-semibold text-foreground min-w-[150px]">Selection</TableHead>
                         <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-24">Back</TableHead>
                         <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-24">Lay</TableHead>
+                        <TableHead className="text-center text-xs text-muted-foreground w-20">Min/Max</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {bookmakerMarkets.map((bookmaker: any) => (
-                        <TableRow key={bookmaker.sid} className="hover:bg-muted/50">
+                      {(bookmakerGroup.section || (Array.isArray(bookmakerGroup) ? bookmakerGroup : [bookmakerGroup])).map((bookmaker: any, idx: number) => (
+                        <TableRow key={idx} className="hover:bg-muted/50">
                           <TableCell className="font-medium text-foreground p-3">
                             {bookmaker.gstatus === 'SUSPENDED' ? (
                               <span className="text-destructive font-semibold">SUSPENDED</span>
                             ) : (
-                              bookmaker.nat
+                              bookmaker.nat || bookmaker.name || `Selection ${idx + 1}`
                             )}
+                            {bookmaker.sid && <span className="text-xs text-muted-foreground ml-2">(ID: {bookmaker.sid})</span>}
                           </TableCell>
-                          {renderOddsCell(bookmaker.nat, 'back', bookmaker.b1, bookmaker.bs1, 'bookmaker', bookmaker.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(bookmaker.nat, 'lay', bookmaker.l1, bookmaker.ls1, 'bookmaker', bookmaker.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(bookmaker.nat || bookmaker.name, 'back', bookmaker.b1, bookmaker.bs1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(bookmaker.nat || bookmaker.name, 'lay', bookmaker.l1, bookmaker.ls1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED')}
+                          <TableCell className="text-center text-xs text-muted-foreground">
+                            {bookmaker.min && bookmaker.max ? `${bookmaker.min}-${bookmaker.max}` : '-'}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               </div>
-            )}
+            ))}
 
             {/* Fancy Markets Section */}
             {fancyMarkets.length > 0 && (
@@ -179,38 +195,58 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                   Fancy Markets
                 </div>
                 
-                {/* Group fancy markets by type */}
-                {fancyMarkets.map((fancy: any) => (
-                  <div key={fancy.sid} className="space-y-2">
-                    <div className="bg-slate-600 text-white px-4 py-1.5 text-sm font-medium">
-                      {fancy.nat}
+                {/* Display all fancy markets with full details */}
+                {fancyMarkets.map((fancyGroup: any, groupIdx: number) => {
+                  // Check if it's a group with sections or individual fancy
+                  const fancyItems = fancyGroup.section || [fancyGroup];
+                  
+                  return (
+                    <div key={groupIdx} className="space-y-2">
+                      {fancyGroup.mname && (
+                        <div className="bg-slate-600 text-white px-4 py-1.5 text-sm font-medium flex items-center justify-between">
+                          <span>{fancyGroup.mname}</span>
+                          {fancyGroup.mid && <span className="text-xs opacity-80">Market ID: {fancyGroup.mid}</span>}
+                        </div>
+                      )}
+                      
+                      <div className="overflow-x-auto">
+                        <Table className="border">
+                          <TableHeader>
+                            <TableRow className="bg-muted">
+                              <TableHead className="font-semibold text-foreground min-w-[180px]">Selection</TableHead>
+                              <TableHead className="text-center text-xs text-muted-foreground w-20">Line</TableHead>
+                              <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-24">No</TableHead>
+                              <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-24">Yes</TableHead>
+                              <TableHead className="text-center text-xs text-muted-foreground w-20">Min/Max</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {fancyItems.map((fancy: any, idx: number) => (
+                              <TableRow key={idx} className="hover:bg-muted/50">
+                                <TableCell className="font-medium text-foreground p-3">
+                                  {fancy.gstatus === 'SUSPENDED' ? (
+                                    <span className="text-destructive font-semibold">SUSPENDED</span>
+                                  ) : (
+                                    fancy.nat || fancy.name || `Fancy ${idx + 1}`
+                                  )}
+                                  {fancy.sid && <span className="text-xs text-muted-foreground ml-2">(ID: {fancy.sid})</span>}
+                                </TableCell>
+                                <TableCell className="text-center text-sm font-semibold text-foreground">
+                                  {fancy.line || '-'}
+                                </TableCell>
+                                {renderOddsCell(fancy.nat || fancy.name, 'lay', fancy.l1, fancy.ls1, `fancy-${groupIdx}-${idx}`, fancy.gstatus === 'SUSPENDED')}
+                                {renderOddsCell(fancy.nat || fancy.name, 'back', fancy.b1, fancy.bs1, `fancy-${groupIdx}-${idx}`, fancy.gstatus === 'SUSPENDED')}
+                                <TableCell className="text-center text-xs text-muted-foreground">
+                                  {fancy.min && fancy.max ? `${fancy.min}-${fancy.max}` : '-'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
-                    <div className="overflow-x-auto">
-                      <Table className="border">
-                        <TableHeader>
-                          <TableRow className="bg-muted">
-                            <TableHead className="font-semibold text-foreground min-w-[120px]"></TableHead>
-                            <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-24">No</TableHead>
-                            <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-24">Yes</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          <TableRow className="hover:bg-muted/50">
-                            <TableCell className="font-medium text-foreground p-3">
-                              {fancy.gstatus === 'SUSPENDED' ? (
-                                <span className="text-destructive font-semibold">SUSPENDED</span>
-                              ) : (
-                                `Line: ${fancy.line || '-'}`
-                              )}
-                            </TableCell>
-                            {renderOddsCell(fancy.nat, 'lay', fancy.l1, fancy.ls1, 'fancy', fancy.gstatus === 'SUSPENDED')}
-                            {renderOddsCell(fancy.nat, 'back', fancy.b1, fancy.bs1, 'fancy', fancy.gstatus === 'SUSPENDED')}
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
