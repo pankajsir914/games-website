@@ -42,13 +42,6 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
   const matchMarkets = oddsData.t1 || [];
   const fancyMarkets = oddsData.t2 || [];
   const bookmakerMarkets = oddsData.t3 || [];
-  
-  console.log('All Odds Data:', {
-    full: odds,
-    matchMarkets,
-    fancyMarkets,
-    bookmakerMarkets
-  });
 
   // Render odds cell with proper styling
   const renderOddsCell = (

@@ -36,8 +36,6 @@ const SportsBet: React.FC = () => {
   const [liveTvUrl, setLiveTvUrl] = useState<string | null>(null);
   const [isLoadingTv, setIsLoadingTv] = useState(false);
   const [oddsError, setOddsError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [apiDebugInfo, setApiDebugInfo] = useState<any>(null);
   const [betfairData, setBetfairData] = useState<{
     tv: string | null;
     scorecard: string | null;
@@ -80,8 +78,6 @@ const SportsBet: React.FC = () => {
         const sportSid = getSportSID(sport || 'Cricket');
         const response = await getBetfairScoreTv(matchId, sportSid);
         
-        console.log('Betfair Score TV Full Response:', response);
-        
         if (response?.success && response.data) {
           const tvData = response.data.data || response.data;
           
@@ -103,7 +99,6 @@ const SportsBet: React.FC = () => {
             ].filter(Boolean) // Remove null/undefined
           };
           
-          console.log('Extracted Betfair Data:', extractedData);
           setBetfairData(extractedData);
           setLiveTvUrl(extractedData.tv); // Keep for backward compatibility
         }
@@ -125,8 +120,6 @@ const SportsBet: React.FC = () => {
     try {
       const sid = getSportSID(sport || 'Cricket');
       const response = await getDetailsData(sid, matchId);
-      
-      console.log('Match details raw response:', response);
       
       if (response?.success && response.data?.data) {
         // Extract the first match from the array and map fields
@@ -153,7 +146,6 @@ const SportsBet: React.FC = () => {
           };
           
           setMatchDetails(mappedDetails);
-          console.log('Mapped match details:', mappedDetails);
         }
       }
     } catch (error) {
@@ -182,12 +174,10 @@ const SportsBet: React.FC = () => {
 
         if (scoreResponse?.success) {
           setLiveScore(scoreResponse.data);
-          console.log('Live score:', scoreResponse.data);
         }
 
         if (detailsResponse?.success) {
           setLiveDetails(detailsResponse.data);
-          console.log('Live details:', detailsResponse.data);
         }
 
         // Update match info if available
@@ -219,7 +209,6 @@ const SportsBet: React.FC = () => {
     if (!matchId || matchId === 'undefined') {
       const errorMsg = 'Invalid match ID. Please select a valid match.';
       setOddsError(errorMsg);
-      setApiDebugInfo({ error: errorMsg, matchId, sport });
       return;
     }
     
@@ -232,21 +221,12 @@ const SportsBet: React.FC = () => {
         const sid = getSportSID(sport || 'Cricket');
         const response = await getPriveteData(sid, matchId);
         
-        setApiDebugInfo({
-          endpoint: 'sports/getPriveteData',
-          sid,
-          gmid: matchId,
-          sport,
-          success: response?.success,
-          timestamp: new Date().toISOString()
-        });
-        
         if (response?.success && response.data) {
           setOdds(response.data);
           setOddsError(null);
         }
       } catch (error: any) {
-        console.error('Initial odds fetch error:', error);
+        // Error handling without logging
       } finally {
         setIsLoadingOdds(false);
       }
@@ -508,34 +488,6 @@ const SportsBet: React.FC = () => {
                   </Button>
                 </AlertDescription>
               </Alert>
-            )}
-
-            {/* Debug Panel (Dev Mode) */}
-            {apiDebugInfo && (
-              <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-                <CardHeader className="cursor-pointer" onClick={() => setShowDebug(!showDebug)}>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      API Diagnostic Info
-                    </CardTitle>
-                    {showDebug ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </div>
-                </CardHeader>
-                {showDebug && (
-                  <CardContent className="text-xs font-mono space-y-1">
-                    <div><strong>Match ID (gmid):</strong> {apiDebugInfo.gmid || matchId}</div>
-                    <div><strong>Sport ID (sid):</strong> {apiDebugInfo.sid || getSportSID(sport || 'Cricket')}</div>
-                    <div><strong>Sport Type:</strong> {apiDebugInfo.sport || sport}</div>
-                    <div><strong>Endpoint:</strong> {apiDebugInfo.endpoint || 'sports/getPriveteData'}</div>
-                    <div><strong>Success:</strong> {apiDebugInfo.success ? '✅ Yes' : '❌ No'}</div>
-                    {apiDebugInfo.errorCode && <div><strong>Error Code:</strong> {apiDebugInfo.errorCode}</div>}
-                    {apiDebugInfo.error && <div><strong>Error:</strong> {apiDebugInfo.error}</div>}
-                    <div><strong>Data Received:</strong> {apiDebugInfo.dataReceived ? '✅ Yes' : '❌ No'}</div>
-                    <div><strong>Timestamp:</strong> {apiDebugInfo.timestamp || new Date().toISOString()}</div>
-                  </CardContent>
-                )}
-              </Card>
             )}
 
             <div className="grid lg:grid-cols-3 gap-6">
