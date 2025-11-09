@@ -46,7 +46,14 @@ export const useDiamondCasino = () => {
       if (error) throw error;
 
       if (data?.success && data?.data?.tables) {
-        setLiveTables(data.data.tables);
+        // Process image URLs through proxy
+        const tablesWithProxyImages = data.data.tables.map((table: any) => ({
+          ...table,
+          imageUrl: table.imageUrl ? 
+            `https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(table.imageUrl)}` 
+            : undefined
+        }));
+        setLiveTables(tablesWithProxyImages);
       }
     } catch (error) {
       console.error('Error fetching live tables:', error);
