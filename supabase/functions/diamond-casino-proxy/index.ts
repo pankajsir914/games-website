@@ -1,10 +1,40 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { connect } from "https://deno.land/x/redis@v0.31.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Redis connection singleton
+let redisClient: any = null;
+
+async function getRedisClient() {
+  if (!redisClient) {
+    const REDIS_HOST = Deno.env.get('REDIS_HOST');
+    const REDIS_PORT = Deno.env.get('REDIS_PORT') || '6379';
+    const REDIS_PASSWORD = Deno.env.get('REDIS_PASSWORD');
+    
+    if (!REDIS_HOST) {
+      console.warn('Redis not configured, proceeding without cache');
+      return null;
+    }
+    
+    try {
+      redisClient = await connect({
+        hostname: REDIS_HOST,
+        port: parseInt(REDIS_PORT),
+        password: REDIS_PASSWORD || undefined,
+      });
+      console.log('✅ Redis connected successfully');
+    } catch (error) {
+      console.error('❌ Redis connection failed:', error);
+      return null;
+    }
+  }
+  return redisClient;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,27 +42,43 @@ serve(async (req) => {
   }
 
   try {
-    const RAPIDAPI_KEY = Deno.env.get('DIAMOND_CASINO_RAPIDAPI_KEY');
-    const RAPIDAPI_HOST = 'diamond-casino-api-no-ggr.p.rapidapi.com';
+    const CASINO_API_URL = Deno.env.get('DIAMOND_CASINO_API_URL');
+    const CASINO_API_KEY = Deno.env.get('DIAMOND_CASINO_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!RAPIDAPI_KEY) {
-      throw new Error('DIAMOND_CASINO_RAPIDAPI_KEY not configured');
+    if (!CASINO_API_URL || !CASINO_API_KEY) {
+      throw new Error('Casino API credentials not configured');
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const redis = await getRedisClient();
     
     // Handle image proxy requests (GET requests with image path)
     if (req.method === 'GET') {
-      console.log('=== GET REQUEST RECEIVED ===');
-      console.log('Full URL:', req.url);
-      
       const url = new URL(req.url);
       const imagePath = url.searchParams.get('image');
-      console.log('Image path parameter:', imagePath);
       
       if (imagePath) {
+        // Try Redis cache first
+        if (redis) {
+          try {
+            const cached = await redis.get(`image:${imagePath}`);
+            if (cached) {
+              console.log('✅ Image cache hit:', imagePath);
+              return new Response(cached, {
+                headers: {
+                  ...corsHeaders,
+                  'Content-Type': 'image/jpeg',
+                  'Cache-Control': 'public, max-age=86400'
+                }
+              });
+            }
+          } catch (error) {
+            console.error('Redis get error:', error);
+          }
+        }
+
         // Try multiple CloudFront URL variations
         const urlVariations = [
           `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${imagePath}`,
@@ -43,28 +89,26 @@ serve(async (req) => {
 
         for (const imageUrl of urlVariations) {
           try {
-            console.log(`=== ATTEMPTING URL ${urlVariations.indexOf(imageUrl) + 1}/${urlVariations.length} ===`);
-            console.log('Trying:', imageUrl);
-            
             const imageResponse = await fetch(imageUrl, {
               headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Cache-Control': 'no-cache',
-                'Referer': 'https://dzm0kbaskt4pv.cloudfront.net/'
               }
             });
 
-            console.log('Response status:', imageResponse.status);
-            console.log('Response statusText:', imageResponse.statusText);
-            console.log('Response headers:', Object.fromEntries(imageResponse.headers.entries()));
-
             if (imageResponse.ok) {
-              console.log('✅ SUCCESS - Image fetched successfully from:', imageUrl);
               const imageBlob = await imageResponse.blob();
               const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-              console.log('Content-Type:', contentType, 'Blob size:', imageBlob.size);
+              
+              // Cache in Redis
+              if (redis) {
+                try {
+                  const arrayBuffer = await imageBlob.arrayBuffer();
+                  await redis.setex(`image:${imagePath}`, 86400, new Uint8Array(arrayBuffer));
+                } catch (error) {
+                  console.error('Redis cache error:', error);
+                }
+              }
               
               return new Response(imageBlob, {
                 headers: {
@@ -73,32 +117,21 @@ serve(async (req) => {
                   'Cache-Control': 'public, max-age=86400'
                 }
               });
-            } else {
-              const errorText = await imageResponse.text();
-              console.error(`❌ HTTP ${imageResponse.status} for ${imageUrl}`);
-              console.error('Error body:', errorText.substring(0, 200));
-              // Continue to next URL variation
             }
           } catch (error) {
-            console.error(`❌ Fetch error for ${imageUrl}:`, error.message);
-            // Continue to next URL variation
+            console.error(`Fetch error for ${imageUrl}:`, error);
           }
         }
 
-        // All variations failed
-        console.error('=== ALL URL VARIATIONS FAILED ===');
-        console.error('Image path:', imagePath);
         return new Response(JSON.stringify({ 
           error: 'Image not found', 
-          path: imagePath,
-          tried: urlVariations 
+          path: imagePath 
         }), {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       
-      // If GET request without image param, return error
       return new Response(JSON.stringify({ error: 'Missing image parameter' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -107,50 +140,50 @@ serve(async (req) => {
     
     // Handle POST requests for API actions
     const { action, path, tableId, betData, date } = await req.json();
+    const cacheKey = `casino:${action}:${tableId || 'all'}:${date || 'today'}`;
 
-    console.log(`Diamond Casino API request: action=${action}, path=${path}`);
+    console.log(`Casino API request: action=${action}, tableId=${tableId}`);
+
+    // Try Redis cache for GET operations
+    if (redis && ['get-tables', 'get-odds', 'get-result-history'].includes(action)) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          console.log(`✅ Cache hit for ${action}`);
+          return new Response(cached, {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      } catch (error) {
+        console.error('Redis get error:', error);
+      }
+    }
+
+    let result;
 
     // Get live tables
     if (action === 'get-tables') {
-      // Step 1: Get all table IDs
-      const tableIdsResponse = await fetch(`https://${RAPIDAPI_HOST}/casino/tableid`, {
+      const response = await fetch(`${CASINO_API_URL}/tables`, {
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
         }
       });
 
-      if (!tableIdsResponse.ok) {
-        throw new Error(`Failed to fetch table IDs: ${tableIdsResponse.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tables: ${response.statusText}`);
       }
 
-      const apiResponse = await tableIdsResponse.json();
-      console.log('Fetched API response:', apiResponse);
-
-      // Extract table objects from response
-      const tableObjects = apiResponse?.data?.t1 || [];
-      
-      if (!Array.isArray(tableObjects)) {
-        throw new Error('Invalid API response structure');
-      }
-
-      // Transform table objects to our format
-      const tables = tableObjects.map((table: any) => {
-        // Use proxied image URL through our edge function
-        const imageUrl = table.imgpath 
-          ? `${SUPABASE_URL}/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(table.imgpath)}`
-          : null;
-        
-        return {
-          id: table.gmid,
-          name: table.gname,
-          type: table.gmid,
-          data: table,
-          status: 'active',
-          players: 0,
-          imageUrl
-        };
-      });
+      const apiData = await response.json();
+      const tables = (apiData.tables || apiData.data || []).map((table: any) => ({
+        id: table.id || table.gmid,
+        name: table.name || table.gname,
+        type: table.type || table.gmid,
+        data: table,
+        status: table.status || 'active',
+        players: table.players || 0,
+        imageUrl: table.imageUrl || table.imgpath
+      }));
 
       // Update database cache
       for (const table of tables) {
@@ -168,37 +201,32 @@ serve(async (req) => {
           });
       }
 
-      return new Response(JSON.stringify({ success: true, data: { tables } }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      result = { success: true, data: { tables } };
     }
 
     // Get specific table details
-    if (action === 'get-table' && tableId) {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/data?type=${tableId}`, {
+    else if (action === 'get-table' && tableId) {
+      const response = await fetch(`${CASINO_API_URL}/table/${tableId}`, {
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
         }
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        throw new Error(`Failed to fetch table: ${response.statusText}`);
       }
 
       const data = await response.json();
-
-      return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      result = { success: true, data };
     }
 
     // Get live stream URL
-    if (action === 'get-stream-url' && tableId) {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/tv_url?id=${tableId}`, {
+    else if (action === 'get-stream-url' && tableId) {
+      const response = await fetch(`${CASINO_API_URL}/stream/${tableId}`, {
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
         }
       });
 
@@ -207,22 +235,19 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-
-      return new Response(JSON.stringify({ 
+      result = { 
         success: true, 
         data,
         streamUrl: data.url || data.tv_url || data.stream_url 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      };
     }
 
     // Get current result
-    if (action === 'get-result' && tableId) {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/result?type=${tableId}`, {
+    else if (action === 'get-result' && tableId) {
+      const response = await fetch(`${CASINO_API_URL}/result/${tableId}`, {
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
         }
       });
 
@@ -231,59 +256,46 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-
-      return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      result = { success: true, data };
     }
 
     // Get result history
-    if (action === 'get-result-history' && tableId) {
+    else if (action === 'get-result-history' && tableId) {
       const targetDate = date || new Date().toISOString().split('T')[0];
-
-      const response = await fetch(
-        `https://${RAPIDAPI_HOST}/casino/resulthistory?type=${tableId}&date=${targetDate}`,
-        {
-          headers: {
-            'x-rapidapi-key': RAPIDAPI_KEY,
-            'x-rapidapi-host': RAPIDAPI_HOST
-          }
+      const response = await fetch(`${CASINO_API_URL}/history/${tableId}?date=${targetDate}`, {
+        headers: {
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
         }
-      );
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch result history: ${response.statusText}`);
       }
 
       const data = await response.json();
-
-      return new Response(JSON.stringify({ success: true, data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      result = { success: true, data };
     }
 
-    // Get table odds (from table data)
-    if (action === 'get-odds' && tableId) {
-      const response = await fetch(`https://${RAPIDAPI_HOST}/casino/data?type=${tableId}`, {
+    // Get table odds
+    else if (action === 'get-odds' && tableId) {
+      const response = await fetch(`${CASINO_API_URL}/odds/${tableId}`, {
         headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
         }
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        throw new Error(`Failed to fetch odds: ${response.statusText}`);
       }
 
       const data = await response.json();
-
-      return new Response(JSON.stringify({ success: true, data: { bets: data.t1 || [] } }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      result = { success: true, data };
     }
 
     // Place bet
-    if (action === 'place-bet' && betData) {
+    else if (action === 'place-bet' && betData) {
       const authHeader = req.headers.get('authorization');
       if (!authHeader) {
         throw new Error('No authorization header');
@@ -320,6 +332,36 @@ serve(async (req) => {
         throw new Error(`Wallet update failed: ${walletError.message}`);
       }
 
+      // Place bet with casino API
+      const betResponse = await fetch(`${CASINO_API_URL}/place-bet`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tableId: betData.tableId,
+          amount: betData.amount,
+          betType: betData.betType,
+          roundId: betData.roundId,
+          userId: user.id,
+        })
+      });
+
+      if (!betResponse.ok) {
+        // Refund on bet failure
+        await supabase.rpc('update_wallet_balance', {
+          p_user_id: user.id,
+          p_amount: betData.amount,
+          p_type: 'credit',
+          p_reason: 'Bet refund - API error',
+          p_game_type: 'live_casino'
+        });
+        throw new Error(`Bet placement failed: ${betResponse.statusText}`);
+      }
+
+      const betResult = await betResponse.json();
+
       // Record bet
       const { data: bet, error: betError } = await supabase
         .from('diamond_casino_bets')
@@ -331,7 +373,8 @@ serve(async (req) => {
           bet_type: betData.betType,
           odds: betData.odds,
           round_id: betData.roundId,
-          status: 'pending'
+          status: 'pending',
+          external_bet_id: betResult.betId || betResult.id
         })
         .select()
         .single();
@@ -348,21 +391,36 @@ serve(async (req) => {
         throw new Error(`Bet recording failed: ${betError.message}`);
       }
 
-      console.log(`Bet placed successfully: ${bet.id}`);
+      console.log(`✅ Bet placed successfully: ${bet.id}`);
 
-      return new Response(JSON.stringify({ 
+      result = { 
         success: true, 
         bet,
         message: 'Bet placed successfully' 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      };
     }
 
-    throw new Error('Invalid action');
+    else {
+      throw new Error('Invalid action');
+    }
+
+    // Cache successful responses in Redis
+    if (redis && result?.success && ['get-tables', 'get-odds', 'get-result-history'].includes(action)) {
+      try {
+        const ttl = action === 'get-tables' ? 300 : 60; // 5 min for tables, 1 min for others
+        await redis.setex(cacheKey, ttl, JSON.stringify(result));
+        console.log(`✅ Cached ${action} for ${ttl}s`);
+      } catch (error) {
+        console.error('Redis cache error:', error);
+      }
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
-    console.error('Diamond Casino API error:', error);
+    console.error('❌ Diamond Casino API error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message 
