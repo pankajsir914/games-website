@@ -65,9 +65,6 @@ export const AdminDashboard = () => {
                   stats?.totalUsers?.toLocaleString() || '0'
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                +{stats?.usersGrowth || 0}% from last month
-              </p>
             </CardContent>
           </Card>
 
@@ -84,9 +81,6 @@ export const AdminDashboard = () => {
                   `₹${stats?.totalPointsDistributed?.toLocaleString() || '0'}`
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                +{stats?.pointsGrowth || 0}% from last month
-              </p>
             </CardContent>
           </Card>
 
