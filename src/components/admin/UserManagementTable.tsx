@@ -22,6 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { PointsCreditModal } from '@/components/admin/PointsCreditModal';
 import { BetLimitModal } from '@/components/admin/BetLimitModal';
+import { UserCompleteDetailsModal } from '@/components/admin/UserCompleteDetailsModal';
 import { useMasterAdminUsers } from '@/hooks/useMasterAdminUsers';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
@@ -40,6 +41,7 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
   const { users: usersResponse, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
   const [limitsModalUser, setLimitsModalUser] = useState<{ id: string; name?: string } | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const users = usersResponse?.users || [];
   const isMasterAdmin = adminAuth?.role === 'master_admin';
 
@@ -158,7 +160,16 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
           </TableHeader>
           <TableBody>
             {filteredUsers && filteredUsers.length > 0 ? filteredUsers.map((user) => (
-              <TableRow key={user.id}>
+              <TableRow 
+                key={user.id}
+                onClick={(e) => {
+                  // Prevent opening modal when clicking dropdown or buttons
+                  if (!(e.target as HTMLElement).closest('button')) {
+                    setSelectedUserId(user.id);
+                  }
+                }}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+              >
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
@@ -267,6 +278,11 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
           userId={limitsModalUser?.id || ''}
           userName={limitsModalUser?.name}
           onOpenChange={(open) => { if (!open) setLimitsModalUser(null); }}
+        />
+        <UserCompleteDetailsModal
+          open={!!selectedUserId}
+          userId={selectedUserId}
+          onOpenChange={(open) => { if (!open) setSelectedUserId(null); }}
         />
       </CardContent>
     </Card>
