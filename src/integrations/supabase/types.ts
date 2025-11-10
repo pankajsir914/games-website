@@ -21,7 +21,7 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           target_id: string | null
           target_type: string | null
           user_agent: string | null
@@ -32,7 +32,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           target_id?: string | null
           target_type?: string | null
           user_agent?: string | null
@@ -43,7 +43,7 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           target_id?: string | null
           target_type?: string | null
           user_agent?: string | null
@@ -170,6 +170,45 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          notification_type: string
+          sender_id: string | null
+          target_admin_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          notification_type?: string
+          sender_id?: string | null
+          target_admin_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          sender_id?: string | null
+          target_admin_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       admin_payment_methods: {
         Row: {
           account_holder_name: string | null
@@ -254,7 +293,7 @@ export type Database = {
           created_at: string | null
           expires_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_active: boolean | null
           last_activity: string | null
           session_token: string
@@ -265,7 +304,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string | null
           session_token: string
@@ -276,7 +315,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string | null
           session_token?: string
@@ -974,21 +1013,21 @@ export type Database = {
           attempted_at: string | null
           email: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
         }
         Insert: {
           attempted_at?: string | null
           email: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
         }
         Update: {
           attempted_at?: string | null
           email?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
         }
         Relationships: []
@@ -2449,7 +2488,7 @@ export type Database = {
           endpoint: string
           first_attempt_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           last_attempt_at: string | null
           user_id: string | null
         }
@@ -2460,7 +2499,7 @@ export type Database = {
           endpoint: string
           first_attempt_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           last_attempt_at?: string | null
           user_id?: string | null
         }
@@ -2471,7 +2510,7 @@ export type Database = {
           endpoint?: string
           first_attempt_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           last_attempt_at?: string | null
           user_id?: string | null
         }
@@ -2482,7 +2521,7 @@ export type Database = {
           created_at: string | null
           endpoint: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           request_count: number | null
           user_id: string | null
           window_start: string | null
@@ -2491,7 +2530,7 @@ export type Database = {
           created_at?: string | null
           endpoint: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_count?: number | null
           user_id?: string | null
           window_start?: string | null
@@ -2500,7 +2539,7 @@ export type Database = {
           created_at?: string | null
           endpoint?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_count?: number | null
           user_id?: string | null
           window_start?: string | null
@@ -2737,7 +2776,7 @@ export type Database = {
           action: string
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           request_data: Json | null
           resource_id: string | null
           resource_type: string | null
@@ -2749,7 +2788,7 @@ export type Database = {
           action: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_data?: Json | null
           resource_id?: string | null
           resource_type?: string | null
@@ -2761,7 +2800,7 @@ export type Database = {
           action?: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           request_data?: Json | null
           resource_id?: string | null
           resource_type?: string | null
@@ -3333,7 +3372,7 @@ export type Database = {
           device_info: Json | null
           expires_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_active: boolean | null
           last_activity: string | null
           session_token: string
@@ -3345,7 +3384,7 @@ export type Database = {
           device_info?: Json | null
           expires_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string | null
           session_token: string
@@ -3357,7 +3396,7 @@ export type Database = {
           device_info?: Json | null
           expires_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string | null
           session_token?: string
@@ -3561,10 +3600,7 @@ export type Database = {
         Args: { p_admin_id: string; p_amount: number; p_notes?: string }
         Returns: Json
       }
-      auto_manage_roulette_rounds: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      auto_manage_roulette_rounds: { Args: never; Returns: Json }
       buy_jackpot_tickets: {
         Args: { p_game_id: string; p_ticket_count: number }
         Returns: Json
@@ -3573,18 +3609,9 @@ export type Database = {
         Args: { p_bet_id: string; p_current_multiplier: number }
         Returns: Json
       }
-      cashout_chicken_run_bet: {
-        Args: { p_bet_id: string }
-        Returns: Json
-      }
-      check_admin_ip_whitelist: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      check_chat_rate_limit: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
+      cashout_chicken_run_bet: { Args: { p_bet_id: string }; Returns: Json }
+      check_admin_ip_whitelist: { Args: never; Returns: boolean }
+      check_chat_rate_limit: { Args: { p_user_id: string }; Returns: boolean }
       check_enhanced_rate_limit: {
         Args: {
           p_endpoint: string
@@ -3594,42 +3621,30 @@ export type Database = {
         }
         Returns: boolean
       }
-      check_ip_whitelist: {
-        Args: { p_ip_address: unknown }
-        Returns: boolean
-      }
-      check_rate_limit: {
-        Args:
-          | {
+      check_ip_whitelist: { Args: { p_ip_address: unknown }; Returns: boolean }
+      check_rate_limit:
+        | {
+            Args: {
               p_endpoint: string
               p_max_attempts?: number
               p_window_minutes?: number
             }
-          | {
+            Returns: boolean
+          }
+        | {
+            Args: {
               p_endpoint?: string
               p_ip_address?: unknown
               p_max_requests?: number
               p_user_id?: string
               p_window_minutes?: number
             }
-        Returns: boolean
-      }
-      cleanup_inactive_poker_players: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_security_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      complete_jackpot_game: {
-        Args: { p_game_id: string }
-        Returns: Json
-      }
-      complete_jackpot_round: {
-        Args: { p_round_id: string }
-        Returns: Json
-      }
+            Returns: boolean
+          }
+      cleanup_inactive_poker_players: { Args: never; Returns: undefined }
+      cleanup_old_security_data: { Args: never; Returns: undefined }
+      complete_jackpot_game: { Args: { p_game_id: string }; Returns: Json }
+      complete_jackpot_round: { Args: { p_round_id: string }; Returns: Json }
       complete_ludo_game: {
         Args: { p_room_id: string; p_winner_id: string }
         Returns: Json
@@ -3644,15 +3659,9 @@ export type Database = {
         }
         Returns: string
       }
-      create_aviator_chat_message: {
-        Args:
-          | {
-              p_amount?: number
-              p_message: string
-              p_message_type?: string
-              p_multiplier?: number
-            }
-          | {
+      create_aviator_chat_message:
+        | {
+            Args: {
               p_amount?: number
               p_message: string
               p_message_type?: string
@@ -3660,8 +3669,17 @@ export type Database = {
               p_user_id: string
               p_username: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_amount?: number
+              p_message: string
+              p_message_type?: string
+              p_multiplier?: number
+            }
+            Returns: string
+          }
       create_ludo_room: {
         Args: { p_entry_fee: number; p_max_players: number }
         Returns: Json
@@ -3676,10 +3694,9 @@ export type Database = {
         }
         Returns: Json
       }
-      delete_diamond_sports_sid: {
-        Args: { p_id: string } | { p_sport_type: string }
-        Returns: Json
-      }
+      delete_diamond_sports_sid:
+        | { Args: { p_id: string }; Returns: Json }
+        | { Args: { p_sport_type: string }; Returns: Json }
       enforce_single_device_login: {
         Args: {
           p_device_info?: Json
@@ -3692,58 +3709,28 @@ export type Database = {
         Args: { _admin_id?: string }
         Returns: number
       }
-      get_admin_payment_methods_for_user: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_all_users_for_master_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_current_jackpot_round: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_diamond_sids: {
-        Args: { p_sport_type?: string }
-        Returns: Json
-      }
+      get_admin_payment_methods_for_user: { Args: never; Returns: Json }
+      get_all_users_for_master_admin: { Args: never; Returns: Json }
+      get_current_jackpot_round: { Args: never; Returns: Json }
+      get_diamond_sids: { Args: { p_sport_type?: string }; Returns: Json }
       get_financial_management_data: {
         Args: { p_timeframe?: string }
         Returns: Json
       }
-      get_games_management_data: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_games_management_data: { Args: never; Returns: Json }
       get_match_betting_settings: {
         Args: { p_sport_type?: string }
         Returns: Json
       }
-      get_platform_analytics: {
-        Args: { p_timeframe?: string }
-        Returns: Json
-      }
+      get_platform_analytics: { Args: { p_timeframe?: string }; Returns: Json }
       get_poker_hand_strength: {
         Args: { community_cards: Json; hole_cards: Json }
         Returns: number
       }
-      get_security_monitoring_data: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_user_bet_limits: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
-      get_user_details_for_admin: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
-      get_user_highest_role: {
-        Args: { _user_id: string }
-        Returns: string
-      }
+      get_security_monitoring_data: { Args: never; Returns: Json }
+      get_user_bet_limits: { Args: { p_user_id: string }; Returns: Json }
+      get_user_details_for_admin: { Args: { p_user_id: string }; Returns: Json }
+      get_user_highest_role: { Args: { _user_id: string }; Returns: string }
       get_users_management_data: {
         Args: {
           p_limit?: number
@@ -3760,26 +3747,11 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin_user: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      is_master_admin_user: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      is_session_valid: {
-        Args: { p_session_token: string }
-        Returns: boolean
-      }
-      join_jackpot_round: {
-        Args: { p_amount: number }
-        Returns: Json
-      }
-      join_ludo_room: {
-        Args: { p_room_id: string }
-        Returns: Json
-      }
+      is_admin_user: { Args: { _user_id: string }; Returns: boolean }
+      is_master_admin_user: { Args: { _user_id: string }; Returns: boolean }
+      is_session_valid: { Args: { p_session_token: string }; Returns: boolean }
+      join_jackpot_round: { Args: { p_amount: number }; Returns: Json }
+      join_ludo_room: { Args: { p_room_id: string }; Returns: Json }
       join_poker_table: {
         Args: {
           p_buy_in_amount: number
@@ -3788,14 +3760,8 @@ export type Database = {
         }
         Returns: Json
       }
-      join_rummy_session: {
-        Args: { p_session_id: string }
-        Returns: Json
-      }
-      leave_poker_table: {
-        Args: { p_table_id: string }
-        Returns: Json
-      }
+      join_rummy_session: { Args: { p_session_id: string }; Returns: Json }
+      leave_poker_table: { Args: { p_table_id: string }; Returns: Json }
       lock_wallet_balance: {
         Args: { p_amount: number; p_lock?: boolean; p_user_id: string }
         Returns: Json
@@ -3830,9 +3796,9 @@ export type Database = {
         }
         Returns: undefined
       }
-      manage_diamond_sports_sid: {
-        Args:
-          | {
+      manage_diamond_sports_sid:
+        | {
+            Args: {
               p_auto_sync?: boolean
               p_is_active?: boolean
               p_is_default?: boolean
@@ -3841,15 +3807,18 @@ export type Database = {
               p_sport_type: string
               p_sync_interval?: number
             }
-          | {
+            Returns: Json
+          }
+        | {
+            Args: {
               p_auto_sync?: boolean
               p_is_active?: boolean
               p_sid?: string
               p_sport_type: string
               p_sync_interval?: number
             }
-        Returns: Json
-      }
+            Returns: Json
+          }
       place_andar_bahar_bet: {
         Args: { p_bet_amount: number; p_bet_side: string; p_round_id: string }
         Returns: Json
@@ -3938,14 +3907,8 @@ export type Database = {
         Args: { full_name: string; phone?: string; user_email: string }
         Returns: Json
       }
-      setup_master_admin: {
-        Args: { user_email: string }
-        Returns: undefined
-      }
-      start_rummy_game: {
-        Args: { p_session_id: string }
-        Returns: Json
-      }
+      setup_master_admin: { Args: { user_email: string }; Returns: undefined }
+      start_rummy_game: { Args: { p_session_id: string }; Returns: Json }
       toggle_match_betting: {
         Args: {
           p_enabled: boolean
@@ -3963,14 +3926,8 @@ export type Database = {
         Args: { p_amount: number; p_notes?: string; p_user_id: string }
         Returns: Json
       }
-      update_platform_settings: {
-        Args: { p_settings: Json }
-        Returns: Json
-      }
-      update_roulette_presence: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      update_platform_settings: { Args: { p_settings: Json }; Returns: Json }
+      update_roulette_presence: { Args: never; Returns: undefined }
       update_user_status: {
         Args: { p_action: string; p_reason?: string; p_user_id: string }
         Returns: Json
@@ -3990,10 +3947,7 @@ export type Database = {
         Args: { p_input: string; p_input_type?: string; p_max_length?: number }
         Returns: string
       }
-      validate_admin_session: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      validate_admin_session: { Args: never; Returns: boolean }
       validate_and_sanitize_input: {
         Args: { p_allow_html?: boolean; p_input: string; p_max_length?: number }
         Returns: string

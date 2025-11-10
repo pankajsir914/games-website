@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Menu, User, LogOut, Shield } from 'lucide-react';
+import { Menu, User, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
+import { AdminNotifications } from './AdminNotifications';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -76,12 +77,7 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
           )}
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative min-h-[44px] min-w-[44px]">
-            <Bell className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-              3
-            </Badge>
-          </Button>
+          <AdminNotifications />
 
           {/* User menu */}
           <DropdownMenu>

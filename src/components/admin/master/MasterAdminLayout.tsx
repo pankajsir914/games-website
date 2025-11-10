@@ -12,6 +12,7 @@ import {
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { SendNotificationModal } from './SendNotificationModal';
 
 interface MasterAdminLayoutProps {
   children: React.ReactNode;
@@ -63,6 +64,8 @@ export const MasterAdminLayout = ({ children }: MasterAdminLayoutProps) => {
           </div>
 
           <div className="ml-auto flex items-center space-x-4">
+            <SendNotificationModal />
+            
             <Badge variant="secondary" className="bg-primary/10 text-primary">
               <Crown className="h-3 w-3 mr-1" />
               Master Admin
