@@ -42,7 +42,7 @@ serve(async (req) => {
   }
 
   try {
-    const CASINO_API_URL = Deno.env.get('DIAMOND_CASINO_API_URL');
+    const CASINO_API_URL = Deno.env.get('DIAMOND_CASINO_API_URL')?.replace(/\/$/, ''); // Remove trailing slash
     const CASINO_API_KEY = Deno.env.get('DIAMOND_CASINO_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
