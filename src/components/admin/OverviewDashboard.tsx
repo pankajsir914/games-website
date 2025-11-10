@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
-import { Users, GamepadIcon, TrendingUp, DollarSign, Trophy, Activity } from 'lucide-react';
+import { Users, GamepadIcon, TrendingUp, Activity } from 'lucide-react';
 
 export const OverviewDashboard = () => {
   const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const { data: analytics, isLoading } = useAdminAnalytics(timeframe);
-
-  const pieColors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff', '#00ffff', '#ffff00'];
 
   if (isLoading) {
     return (
@@ -26,12 +24,6 @@ export const OverviewDashboard = () => {
       </div>
     );
   }
-
-  const gameStatsData = Object.entries(analytics?.gameTypeStats || {}).map(([game, stats]: [string, any]) => ({
-    name: game.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-    games: stats.games,
-    revenue: stats.revenue
-  }));
 
   return (
     <div className="space-y-6">
@@ -102,64 +94,34 @@ export const OverviewDashboard = () => {
       </div>
 
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Games Distribution</CardTitle>
-            <CardDescription>Number of games by type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={gameStatsData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="games"
-                >
-                  {gameStatsData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>System Health</CardTitle>
-            <CardDescription>Current system status</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span>Total Player Balance</span>
-              <span className="font-bold">₹{analytics?.totalBalance.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Average Bet Size</span>
-              <span className="font-bold">
-                ₹{analytics?.totalBets ? Math.round(analytics.totalBetAmount / analytics.totalBets) : 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>House Edge</span>
-              <span className="font-bold text-green-600">
-                {analytics?.totalBetAmount ? ((analytics.netProfit / analytics.totalBetAmount) * 100).toFixed(2) : 0}%
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Active Games</span>
-              <span className="font-bold">{Object.keys(analytics?.gameTypeStats || {}).length}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>System Health</CardTitle>
+          <CardDescription>Current system status</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-between items-center">
+            <span>Total Player Balance</span>
+            <span className="font-bold">₹{analytics?.totalBalance.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>Average Bet Size</span>
+            <span className="font-bold">
+              ₹{analytics?.totalBets ? Math.round(analytics.totalBetAmount / analytics.totalBets) : 0}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>House Edge</span>
+            <span className="font-bold text-green-600">
+              {analytics?.totalBetAmount ? ((analytics.netProfit / analytics.totalBetAmount) * 100).toFixed(2) : 0}%
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>Active Games</span>
+            <span className="font-bold">{Object.keys(analytics?.gameTypeStats || {}).length}</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
