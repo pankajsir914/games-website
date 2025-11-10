@@ -81,7 +81,7 @@ const Wallet = () => {
                   <div className="grid grid-cols-2 gap-2.5">
                     <Button 
                       onClick={() => setAddMoneyOpen(true)}
-                      className="h-16 sm:h-18 flex flex-col gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md active:scale-95 transition-all rounded-xl"
+                      className="h-14 sm:h-16 flex flex-col gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md active:scale-95 transition-all rounded-xl"
                     >
                       <div className="bg-white/20 rounded-full p-1.5">
                         <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -91,7 +91,7 @@ const Wallet = () => {
                     <Button 
                       onClick={() => setWithdrawMoneyOpen(true)}
                       variant="outline"
-                      className="h-16 sm:h-18 flex flex-col gap-1.5 border-2 hover:bg-muted/50 active:scale-95 transition-all rounded-xl"
+                      className="h-14 sm:h-16 flex flex-col gap-1 border-2 hover:bg-muted/50 active:scale-95 transition-all rounded-xl"
                     >
                       <div className="bg-primary/10 rounded-full p-1.5">
                         <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
