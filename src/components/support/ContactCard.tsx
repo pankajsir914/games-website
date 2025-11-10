@@ -30,11 +30,11 @@ export const ContactCard = ({
     <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 animate-fade-in">
       <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-5 group-hover:opacity-10 transition-opacity`} />
       
-      <CardContent className="p-6 relative">
-        <div className="flex flex-col items-center text-center space-y-4">
+      <CardContent className="p-4 sm:p-6 relative">
+        <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
           {/* Icon */}
-          <div className={`relative p-4 rounded-2xl bg-gradient-to-br ${color} group-hover:scale-110 transition-transform duration-300`}>
-            <Icon className="h-8 w-8 text-white" />
+          <div className={`relative p-3 sm:p-4 rounded-2xl bg-gradient-to-br ${color} group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
             {isOnline && (
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-card animate-pulse" />
             )}
@@ -42,7 +42,7 @@ export const ContactCard = ({
           
           {/* Content */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">{title}</h3>
+            <h3 className="text-base sm:text-lg font-semibold">{title}</h3>
             <p className="text-sm text-muted-foreground min-h-[40px]">
               {description}
             </p>
@@ -58,7 +58,7 @@ export const ContactCard = ({
           {/* Action Button */}
           <Button
             onClick={handleClick}
-            className={`w-full bg-gradient-to-r ${color} hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all duration-300 min-h-[44px]`}
+            className={`w-full bg-gradient-to-r ${color} hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all duration-300 min-h-[48px] sm:min-h-[44px]`}
           >
             Contact Now
           </Button>

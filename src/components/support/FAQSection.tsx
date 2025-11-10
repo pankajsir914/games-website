@@ -45,9 +45,9 @@ const faqs = [
 export const FAQSection = () => {
   return (
     <Card className="animate-fade-in">
-      <CardHeader className="text-center pb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full mb-4 mx-auto">
-          <HelpCircle className="h-6 w-6 text-primary" />
+      <CardHeader className="text-center px-4 sm:px-6 pb-4 sm:pb-6 pt-6">
+        <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full mb-4 mx-auto">
+          <HelpCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
         </div>
         <CardTitle className="text-2xl sm:text-3xl">Frequently Asked Questions</CardTitle>
         <CardDescription className="text-base">
@@ -69,7 +69,7 @@ export const FAQSection = () => {
           ))}
         </Accordion>
         
-        <div className="mt-8 p-6 bg-accent/50 rounded-lg text-center">
+        <div className="mt-8 p-4 sm:p-6 bg-accent/50 rounded-lg text-center">
           <p className="text-sm sm:text-base font-medium mb-2">Still need help?</p>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Contact our support team via Telegram or WhatsApp for personalized assistance
