@@ -52,7 +52,10 @@ export const useAdminAuth = () => {
       }
     },
     retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 30000, // 30 seconds instead of 5 minutes
+    refetchOnMount: 'always', // Always check on mount
+    refetchOnWindowFocus: true, // Recheck when tab focused
+    refetchInterval: 60000, // Recheck every minute
   });
 
   const logout = async () => {

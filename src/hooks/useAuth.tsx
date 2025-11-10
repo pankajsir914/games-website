@@ -99,15 +99,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return true; // Allow on error
       }
 
-      // If session is not valid, force logout
+      // If session is not valid, show warning and logout after delay
       if (!data) {
         toast({
           title: "Session Expired",
-          description: "You have been logged in on another device.",
+          description: "You have been logged in on another device. Logging out in 3 seconds...",
           variant: "destructive",
+          duration: 5000,
         });
         
-        await signOut();
+        // Delay logout to give user time to see message
+        setTimeout(async () => {
+          await signOut();
+        }, 3000);
+        
         return false;
       }
 
@@ -281,17 +286,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRequiresPasswordChange(false);
   };
 
-  // Periodic session validation (every 30 seconds)
+  // Periodic session validation (reduced frequency to avoid aggressive checking)
   useEffect(() => {
     if (!session) return;
 
-    // Validate session immediately
-    validateSession();
-
-    // Set up periodic validation
+    // Set up periodic validation every 2 minutes instead of 30 seconds
     const intervalId = setInterval(() => {
       validateSession();
-    }, 30000); // 30 seconds
+    }, 120000); // 2 minutes
 
     return () => clearInterval(intervalId);
   }, [session, validateSession]);

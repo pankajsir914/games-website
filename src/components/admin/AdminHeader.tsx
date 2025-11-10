@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
 import { AdminNotifications } from './AdminNotifications';
+import { SessionStatusIndicator } from './SessionStatusIndicator';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -69,6 +70,9 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Session Status Indicator */}
+          <SessionStatusIndicator />
+          
           {/* Role Badge */}
           {adminAuth?.role && (
             <div className="hidden md:flex">

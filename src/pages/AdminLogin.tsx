@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,8 @@ const AdminLogin = () => {
   
   const { signIn } = useAuth();
   const { data: adminAuth, isLoading: isCheckingAuth } = useAdminAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Redirect if already authenticated as admin
   useEffect(() => {
@@ -50,15 +53,19 @@ const AdminLogin = () => {
     try {
       await signIn(email, password);
       
-      // Wait for auth state to update, then redirect
-      setTimeout(() => {
-        window.location.href = '/admin';
-      }, 1000);
+      // Invalidate and refetch admin auth
+      await queryClient.invalidateQueries({ queryKey: ['admin-auth'] });
+      
+      // Wait for new auth state
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       toast({
         title: "Login successful",
         description: "Welcome to the admin panel!",
       });
+      
+      // Navigate using React Router
+      navigate('/admin', { replace: true });
     } catch (err: any) {
       console.error('Admin login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');

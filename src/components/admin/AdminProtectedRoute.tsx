@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -12,6 +15,33 @@ interface AdminProtectedRouteProps {
 
 export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: AdminProtectedRouteProps) => {
   const { data: adminAuth, isLoading, error } = useAdminAuth();
+  const queryClient = useQueryClient();
+
+  // Listen for auth state changes to detect session expiry
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          toast({
+            title: "Session Ended",
+            description: "Your session has ended. Please log in again.",
+            variant: "destructive",
+          });
+          // Invalidate query to force recheck
+          queryClient.invalidateQueries({ queryKey: ['admin-auth'] });
+        } else if (event === 'TOKEN_REFRESHED' && !session) {
+          toast({
+            title: "Session Expired",
+            description: "Your session could not be refreshed. Please log in again.",
+            variant: "destructive",
+          });
+          queryClient.invalidateQueries({ queryKey: ['admin-auth'] });
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
