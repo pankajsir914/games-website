@@ -34,13 +34,13 @@ export const GameSessionsTab = ({ data }: GameSessionsTabProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Created At</TableHead>
-                <TableHead>Game Type</TableHead>
-                <TableHead>Entry Fee</TableHead>
-                <TableHead>Players</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Started At</TableHead>
-                <TableHead>Completed At</TableHead>
+                <TableHead className="whitespace-nowrap">Created</TableHead>
+                <TableHead className="whitespace-nowrap">Game</TableHead>
+                <TableHead className="whitespace-nowrap">Fee</TableHead>
+                <TableHead className="whitespace-nowrap">Players</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="hidden sm:table-cell whitespace-nowrap">Started</TableHead>
+                <TableHead className="hidden sm:table-cell whitespace-nowrap">Completed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -53,29 +53,29 @@ export const GameSessionsTab = ({ data }: GameSessionsTabProps) => {
               ) : (
                 gameSessions.map((session) => (
                   <TableRow key={session.id}>
-                    <TableCell className="font-mono text-sm">
-                      {format(new Date(session.created_at), 'dd/MM/yyyy HH:mm')}
+                    <TableCell className="font-mono text-xs sm:text-sm whitespace-nowrap">
+                      {format(new Date(session.created_at), 'dd/MM/yy HH:mm')}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">
+                      <Badge variant="outline" className="capitalize text-xs">
                         {session.game_type?.replace('_', ' ')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-semibold">
+                    <TableCell className="font-semibold text-sm whitespace-nowrap">
                       ₹{Number(session.entry_fee || 0).toLocaleString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm">
                       {session.current_players || 0}/{session.max_players || 0}
                     </TableCell>
                     <TableCell>{getStatusBadge(session.status)}</TableCell>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="hidden sm:table-cell font-mono text-xs sm:text-sm whitespace-nowrap">
                       {session.started_at 
-                        ? format(new Date(session.started_at), 'dd/MM/yyyy HH:mm')
+                        ? format(new Date(session.started_at), 'dd/MM/yy HH:mm')
                         : '-'}
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="hidden sm:table-cell font-mono text-xs sm:text-sm whitespace-nowrap">
                       {session.completed_at 
-                        ? format(new Date(session.completed_at), 'dd/MM/yyyy HH:mm')
+                        ? format(new Date(session.completed_at), 'dd/MM/yy HH:mm')
                         : '-'}
                     </TableCell>
                   </TableRow>

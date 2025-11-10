@@ -24,9 +24,9 @@ export const UserCompleteDetailsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto w-[95vw] p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>User Complete Details</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">User Complete Details</DialogTitle>
         </DialogHeader>
 
         {isLoading && (
@@ -47,26 +47,26 @@ export const UserCompleteDetailsModal = ({
 
         {data && (
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="betting">Betting History</TabsTrigger>
-              <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              <TabsTrigger value="sessions">Game Sessions</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+              <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+              <TabsTrigger value="betting" className="text-xs sm:text-sm">Betting</TabsTrigger>
+              <TabsTrigger value="transactions" className="text-xs sm:text-sm">Transactions</TabsTrigger>
+              <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="mt-6">
+            <TabsContent value="overview" className="mt-4 sm:mt-6">
               <UserOverviewTab data={data} />
             </TabsContent>
 
-            <TabsContent value="betting" className="mt-6">
+            <TabsContent value="betting" className="mt-4 sm:mt-6">
               <BettingHistoryTab data={data} />
             </TabsContent>
 
-            <TabsContent value="transactions" className="mt-6">
+            <TabsContent value="transactions" className="mt-4 sm:mt-6">
               <TransactionHistoryTab data={data} />
             </TabsContent>
 
-            <TabsContent value="sessions" className="mt-6">
+            <TabsContent value="sessions" className="mt-4 sm:mt-6">
               <GameSessionsTab data={data} />
             </TabsContent>
           </Tabs>

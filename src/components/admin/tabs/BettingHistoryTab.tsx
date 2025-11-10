@@ -50,10 +50,10 @@ export const BettingHistoryTab = ({ data }: BettingHistoryTabProps) => {
     <div className="space-y-4">
       {/* Filter */}
       <Card className="p-4">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-foreground">Filter by Game:</label>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <label className="text-sm font-medium text-foreground">Filter:</label>
           <Select value={selectedGame} onValueChange={setSelectedGame}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -67,7 +67,7 @@ export const BettingHistoryTab = ({ data }: BettingHistoryTabProps) => {
               <SelectItem value="jackpot">Jackpot</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground ml-auto">
+          <span className="text-xs sm:text-sm text-muted-foreground sm:ml-auto">
             Total: {filteredBets.length} bets
           </span>
         </div>
@@ -79,12 +79,12 @@ export const BettingHistoryTab = ({ data }: BettingHistoryTabProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Game</TableHead>
-                <TableHead>Bet Amount</TableHead>
-                <TableHead>Multiplier/Type</TableHead>
-                <TableHead>Payout</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="whitespace-nowrap">Date</TableHead>
+                <TableHead className="whitespace-nowrap">Game</TableHead>
+                <TableHead className="whitespace-nowrap">Bet</TableHead>
+                <TableHead className="whitespace-nowrap">Type</TableHead>
+                <TableHead className="whitespace-nowrap">Payout</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -97,21 +97,21 @@ export const BettingHistoryTab = ({ data }: BettingHistoryTabProps) => {
               ) : (
                 filteredBets.map((bet) => (
                   <TableRow key={bet.id}>
-                    <TableCell className="font-mono text-sm">
-                      {format(new Date(bet.created_at), 'dd/MM/yyyy HH:mm')}
+                    <TableCell className="font-mono text-xs sm:text-sm whitespace-nowrap">
+                      {format(new Date(bet.created_at), 'dd/MM/yy HH:mm')}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{bet.game}</Badge>
+                      <Badge variant="outline" className="text-xs">{bet.game}</Badge>
                     </TableCell>
-                    <TableCell className="font-semibold">
+                    <TableCell className="font-semibold text-sm whitespace-nowrap">
                       ₹{Number(bet.bet_amount || bet.amount || 0).toLocaleString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs sm:text-sm">
                       {bet.cashout_multiplier 
                         ? `${Number(bet.cashout_multiplier).toFixed(2)}x`
                         : bet.bet_type || bet.color || bet.hand_type || bet.side || '-'}
                     </TableCell>
-                    <TableCell className="font-semibold text-green-500">
+                    <TableCell className="font-semibold text-sm text-green-500 whitespace-nowrap">
                       {bet.payout_amount ? `₹${Number(bet.payout_amount).toLocaleString()}` : '-'}
                     </TableCell>
                     <TableCell>{getStatusBadge(bet.status)}</TableCell>
