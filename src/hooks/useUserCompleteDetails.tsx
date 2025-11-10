@@ -45,6 +45,7 @@ export const useUserCompleteDetails = (userId: string | null) => {
       // Fetch all data in parallel
       const [
         profileData,
+        userData,
         transactionsData,
         aviatorBets,
         rouletteBets,
@@ -60,6 +61,14 @@ export const useUserCompleteDetails = (userId: string | null) => {
           .select('*')
           .eq('id', userId)
           .maybeSingle(),
+
+        // Get user data from RPC as fallback
+        supabase.rpc('get_users_management_data', {
+          p_limit: 1,
+          p_offset: 0,
+          p_search: userId,
+          p_status: 'all'
+        }),
 
         // Recent Transactions
         supabase
@@ -126,8 +135,9 @@ export const useUserCompleteDetails = (userId: string | null) => {
           .limit(50),
       ]);
 
-      if (profileData.error) throw profileData.error;
-      if (!profileData.data) throw new Error('User not found');
+      // Use profile data if available, otherwise use data from RPC
+      const userFromRpc = (userData.data as any)?.users?.[0];
+      if (!profileData.data && !userFromRpc) throw new Error('User not found');
 
       // Calculate stats
       const calculateBetStats = (bets: any[]) => {
@@ -162,25 +172,21 @@ export const useUserCompleteDetails = (userId: string | null) => {
       const deposits = transactions.filter((t) => t.type === 'credit');
       const withdrawals = transactions.filter((t) => t.type === 'debit');
 
-      const profileInfo = profileData.data;
-      
-      // Get email from auth context if available
-      const { data: { user } } = await supabase.auth.getUser();
-      const userEmail = user?.id === userId ? user.email : 'N/A';
+      const profileInfo = profileData.data as any;
       
       return {
         profile: {
-          id: profileInfo.id,
-          email: userEmail || 'N/A',
-          full_name: profileInfo.full_name || '',
-          phone: profileInfo.phone || '',
-          avatar_url: profileInfo.avatar_url,
-          created_at: profileInfo.created_at,
-          status: 'active',
-          created_by: profileInfo.created_by,
-          created_by_name: undefined,
+          id: userId,
+          email: userFromRpc?.email || 'N/A',
+          full_name: profileInfo?.full_name || userFromRpc?.full_name || '',
+          phone: profileInfo?.phone || userFromRpc?.phone || '',
+          avatar_url: profileInfo?.avatar_url,
+          created_at: profileInfo?.created_at || userFromRpc?.created_at || new Date().toISOString(),
+          status: userFromRpc?.status || 'offline',
+          created_by: profileInfo?.created_by || userFromRpc?.created_by,
+          created_by_name: userFromRpc?.creator_name,
         },
-        wallet: { balance: 0 },
+        wallet: { balance: userFromRpc?.current_balance || 0 },
         stats: {
           total_bets: betStats.total,
           total_won: betStats.totalWon,
