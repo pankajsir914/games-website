@@ -7,13 +7,23 @@ import { useChickenRun } from '@/hooks/useChickenRun';
 import { useWallet } from '@/hooks/useWallet';
 import { useChickenRunSounds } from '@/hooks/useChickenRunSounds';
 import { toast } from '@/hooks/use-toast';
-import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX, Coins, ArrowLeft } from 'lucide-react';
+import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX, Coins, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const ChickenRoadGame: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +47,35 @@ export const ChickenRoadGame: React.FC = () => {
   const [gameStatus, setGameStatus] = useState<'idle' | 'playing' | 'won' | 'lost'>('idle');
   const [selectedLanes, setSelectedLanes] = useState<number[]>([]);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+
+  const handleBackClick = () => {
+    // Check if there's an active game
+    if (activeBet && activeBet.status === 'active' && gameStatus === 'playing') {
+      setShowExitDialog(true);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const handleConfirmExit = async () => {
+    // User loses the game if they exit during active play
+    if (activeBet && activeBet.status === 'active') {
+      try {
+        // Force end the game as lost
+        await queryClient.invalidateQueries({ queryKey: ['chicken-run-active-bet'] });
+        toast({
+          title: "Game Ended",
+          description: "You left the game and lost your bet",
+          variant: "destructive",
+        });
+      } catch (error) {
+        console.error('Error ending game:', error);
+      }
+    }
+    setShowExitDialog(false);
+    navigate(-1);
+  };
 
   const handlePlaceBet = () => {
     const difficultyMap = {
@@ -141,7 +180,7 @@ export const ChickenRoadGame: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => navigate(-1)}
+                  onClick={handleBackClick}
                   className="text-muted-foreground hover:text-chicken-gold"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -330,6 +369,33 @@ export const ChickenRoadGame: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent className="bg-chicken-dark border-chicken-gold/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-chicken-gold">
+              <AlertTriangle className="h-5 w-5" />
+              Game in Progress!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              You have an active game running. If you leave now, you will lose your bet of ₹{activeBet?.bet_amount}. 
+              Are you sure you want to exit?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-chicken-lane hover:bg-chicken-road/20">
+              Stay in Game
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmExit}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Exit & Lose Bet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
