@@ -7,7 +7,7 @@ import { useChickenRun } from '@/hooks/useChickenRun';
 import { useWallet } from '@/hooks/useWallet';
 import { useChickenRunSounds } from '@/hooks/useChickenRunSounds';
 import { toast } from '@/hooks/use-toast';
-import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX } from 'lucide-react';
+import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -139,7 +139,7 @@ export const ChickenRoadGame: React.FC = () => {
                 🐓 Chicken Road
               </h1>
               <div className="flex items-center space-x-1.5 sm:space-x-2 bg-chicken-road/50 px-2 sm:px-3 py-1 rounded-lg">
-                <span className="text-xs sm:text-sm text-muted-foreground">Balance:</span>
+                <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-chicken-gold" />
                 <span className="text-sm sm:text-base md:text-lg font-bold text-chicken-gold">
                   ₹{wallet?.current_balance || 0}
                 </span>
