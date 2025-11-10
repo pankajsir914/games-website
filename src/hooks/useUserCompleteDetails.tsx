@@ -45,8 +45,6 @@ export const useUserCompleteDetails = (userId: string | null) => {
       // Fetch all data in parallel
       const [
         profileData,
-        authData,
-        walletData,
         transactionsData,
         aviatorBets,
         rouletteBets,
@@ -54,28 +52,14 @@ export const useUserCompleteDetails = (userId: string | null) => {
         andarBaharBets,
         colorBets,
         casinoBets,
-        jackpotTickets,
         gameSessions,
       ] = await Promise.all([
         // Profile
         supabase
           .from('profiles')
-          .select(`
-            *,
-            created_by_profile:profiles!profiles_created_by_fkey(full_name)
-          `)
+          .select('*')
           .eq('id', userId)
-          .single(),
-
-        // Auth user data for email
-        supabase.auth.admin.getUserById(userId),
-
-        // Wallet
-        supabase
-          .from('wallets')
-          .select('balance')
-          .eq('user_id', userId)
-          .single(),
+          .maybeSingle(),
 
         // Recent Transactions
         supabase
@@ -133,14 +117,6 @@ export const useUserCompleteDetails = (userId: string | null) => {
           .order('created_at', { ascending: false })
           .limit(100),
 
-        // Jackpot Tickets
-        supabase
-          .from('jackpot_tickets')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(100),
-
         // Game Sessions
         supabase
           .from('game_sessions')
@@ -151,6 +127,7 @@ export const useUserCompleteDetails = (userId: string | null) => {
       ]);
 
       if (profileData.error) throw profileData.error;
+      if (!profileData.data) throw new Error('User not found');
 
       // Calculate stats
       const calculateBetStats = (bets: any[]) => {
@@ -187,19 +164,23 @@ export const useUserCompleteDetails = (userId: string | null) => {
 
       const profileInfo = profileData.data;
       
+      // Get email from auth context if available
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.id === userId ? user.email : 'N/A';
+      
       return {
         profile: {
           id: profileInfo.id,
-          email: authData.data?.user?.email || 'N/A',
+          email: userEmail || 'N/A',
           full_name: profileInfo.full_name || '',
           phone: profileInfo.phone || '',
           avatar_url: profileInfo.avatar_url,
           created_at: profileInfo.created_at,
           status: 'active',
           created_by: profileInfo.created_by,
-          created_by_name: profileInfo.created_by_profile?.full_name,
+          created_by_name: undefined,
         },
-        wallet: walletData.data || { balance: 0 },
+        wallet: { balance: 0 },
         stats: {
           total_bets: betStats.total,
           total_won: betStats.totalWon,
@@ -215,7 +196,7 @@ export const useUserCompleteDetails = (userId: string | null) => {
           andarBahar: andarBaharBets.data || [],
           colorPrediction: colorBets.data || [],
           casino: casinoBets.data || [],
-          jackpot: jackpotTickets.data || [],
+          jackpot: [],
         },
         gameSessions: gameSessions.data || [],
       } as UserCompleteDetails;
