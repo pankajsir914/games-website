@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { OverviewDashboard } from './OverviewDashboard';
 
 import { PlayerWalletInsights } from './PlayerWalletInsights';
-import { ResultManagement } from './ResultManagement';
 import { AdminLayout } from './AdminLayout';
 import { AdminWalletCard } from './AdminWalletCard';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -188,10 +187,9 @@ export const AdminDashboard = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 gap-2">
+          <TabsList className="grid w-full grid-cols-2 gap-2">
             <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
             <TabsTrigger value="wallets" className="text-xs sm:text-sm">Player Wallets</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -200,10 +198,6 @@ export const AdminDashboard = () => {
 
           <TabsContent value="wallets" className="space-y-6">
             <PlayerWalletInsights />
-          </TabsContent>
-
-          <TabsContent value="results" className="space-y-6">
-            <ResultManagement />
           </TabsContent>
         </Tabs>
       </div>
