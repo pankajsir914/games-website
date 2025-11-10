@@ -92,36 +92,6 @@ export const OverviewDashboard = () => {
           </CardContent>
         </Card>
       </div>
-
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>System Health</CardTitle>
-          <CardDescription>Current system status</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span>Total Player Balance</span>
-            <span className="font-bold">₹{analytics?.totalBalance.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span>Average Bet Size</span>
-            <span className="font-bold">
-              ₹{analytics?.totalBets ? Math.round(analytics.totalBetAmount / analytics.totalBets) : 0}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span>House Edge</span>
-            <span className="font-bold text-green-600">
-              {analytics?.totalBetAmount ? ((analytics.netProfit / analytics.totalBetAmount) * 100).toFixed(2) : 0}%
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span>Active Games</span>
-            <span className="font-bold">{Object.keys(analytics?.gameTypeStats || {}).length}</span>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
