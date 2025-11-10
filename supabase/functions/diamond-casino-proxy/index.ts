@@ -163,7 +163,10 @@ serve(async (req) => {
 
     // Get live tables
     if (action === 'get-tables') {
-      const response = await fetch(`${CASINO_API_URL}/tables`, {
+      const apiUrl = `${CASINO_API_URL}/tables`;
+      console.log(`📡 Fetching tables from: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${CASINO_API_KEY}`,
           'Content-Type': 'application/json',
