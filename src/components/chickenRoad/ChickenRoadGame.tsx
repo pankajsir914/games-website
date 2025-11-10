@@ -50,15 +50,17 @@ export const ChickenRoadGame: React.FC = () => {
   const [showExitDialog, setShowExitDialog] = useState(false);
 
   const handleBackClick = () => {
+    console.log('Back button clicked', { activeBet, gameStatus });
     // Check if there's an active game
     if (activeBet && activeBet.status === 'active' && gameStatus === 'playing') {
       setShowExitDialog(true);
     } else {
-      navigate(-1);
+      navigate('/dashboard');
     }
   };
 
   const handleConfirmExit = async () => {
+    console.log('Confirming exit from active game');
     // User loses the game if they exit during active play
     if (activeBet && activeBet.status === 'active') {
       try {
@@ -74,7 +76,7 @@ export const ChickenRoadGame: React.FC = () => {
       }
     }
     setShowExitDialog(false);
-    navigate(-1);
+    navigate('/dashboard');
   };
 
   const handlePlaceBet = () => {
