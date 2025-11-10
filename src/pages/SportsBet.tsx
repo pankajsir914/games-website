@@ -469,52 +469,59 @@ const SportsBet: React.FC = () => {
           
           <Card>
             <CardHeader className="p-3 sm:p-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-lg sm:text-xl md:text-2xl">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                <div className="flex-1 w-full">
+                  <CardTitle className="text-base sm:text-lg md:text-xl lg:text-2xl break-words">
                     {match.team1} vs {match.team2}
                   </CardTitle>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <Badge variant={match.status === 'Live' ? 'destructive' : 'secondary'} className={match.status === 'Live' ? 'animate-pulse' : ''}>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
+                    <Badge 
+                      variant={match.status === 'Live' ? 'destructive' : 'secondary'} 
+                      className={`text-xs sm:text-sm ${match.status === 'Live' ? 'animate-pulse' : ''}`}
+                    >
                       {match.status || 'Upcoming'}
                     </Badge>
-                    <Badge variant="outline">{sport}</Badge>
-                    {match.league && <Badge variant="outline" className="hidden sm:inline-flex">{match.league}</Badge>}
+                    <Badge variant="outline" className="text-xs sm:text-sm">{sport}</Badge>
+                    {match.league && <Badge variant="outline" className="hidden sm:inline-flex text-xs sm:text-sm">{match.league}</Badge>}
                     {match.status === 'Live' && (
-                      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600/30">
+                      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600/30 text-xs sm:text-sm">
                         🔴 LIVE
                       </Badge>
                     )}
                   </div>
                 </div>
-                <div className="text-right w-full sm:w-auto">
+                <div className="text-left sm:text-right w-full sm:w-auto flex-shrink-0">
                   {liveScore ? (
-                    <>
-                      <p className="text-3xl font-bold">
+                    <div>
+                      <p className="text-2xl sm:text-3xl font-bold">
                         {liveScore.runs}/{liveScore.wickets}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                         Overs: {liveScore.overs} | RR: {liveScore.runRate}
                       </p>
-                    </>
+                    </div>
                   ) : match.score ? (
-                    <>
-                      <p className="text-3xl font-bold">{match.score}</p>
-                      <p className="text-sm text-muted-foreground mt-1">Current Score</p>
-                    </>
+                    <div>
+                      <p className="text-2xl sm:text-3xl font-bold">{match.score}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">Current Score</p>
+                    </div>
                   ) : matchDetails?.status === 'Live' ? (
-                    <div className="text-center">
-                      <p className="text-sm sm:text-lg font-semibold text-primary">Match In Progress</p>
-                      <p className="text-xs text-muted-foreground mt-1">Live score updating soon</p>
+                    <div className="bg-primary/10 rounded-lg p-2 sm:p-3">
+                      <p className="text-sm sm:text-base font-semibold text-primary">Match In Progress</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Live score updating soon</p>
                     </div>
                   ) : matchDetails?.startDate ? (
-                    <div className="text-center">
-                      <p className="text-xs sm:text-sm font-medium">Starts at</p>
-                      <p className="text-base sm:text-lg font-bold">{new Date(matchDetails.startDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{new Date(matchDetails.startDate).toLocaleDateString('en-IN')}</p>
+                    <div className="bg-muted rounded-lg p-2 sm:p-3 min-w-[140px] sm:min-w-[160px]">
+                      <p className="text-xs font-medium text-muted-foreground">Starts at</p>
+                      <p className="text-sm sm:text-base font-bold mt-0.5">
+                        {new Date(matchDetails.startDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(matchDetails.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
                     </div>
                   ) : (
-                    <div className="text-center">
+                    <div className="text-center sm:text-right">
                       <p className="text-xs sm:text-sm text-muted-foreground">Score not available</p>
                       <p className="text-xs text-muted-foreground mt-1">Check back later</p>
                     </div>
