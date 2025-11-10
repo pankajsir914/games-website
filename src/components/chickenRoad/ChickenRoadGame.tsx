@@ -7,14 +7,16 @@ import { useChickenRun } from '@/hooks/useChickenRun';
 import { useWallet } from '@/hooks/useWallet';
 import { useChickenRunSounds } from '@/hooks/useChickenRunSounds';
 import { toast } from '@/hooks/use-toast';
-import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX, Coins } from 'lucide-react';
+import { HelpCircle, Settings, Trophy, TrendingUp, Volume2, VolumeX, Coins, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 export const ChickenRoadGame: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { wallet } = useWallet();
   const {
@@ -135,9 +137,19 @@ export const ChickenRoadGame: React.FC = () => {
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
             <div className="flex items-center justify-between w-full sm:w-auto sm:space-x-4">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-chicken-gold">
-                🐓 Chicken Road
-              </h1>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate(-1)}
+                  className="text-muted-foreground hover:text-chicken-gold"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-chicken-gold">
+                  🐓 Chicken Road
+                </h1>
+              </div>
               <div className="flex items-center space-x-1.5 sm:space-x-2 bg-chicken-road/50 px-2 sm:px-3 py-1 rounded-lg">
                 <Coins className="h-3 w-3 sm:h-4 sm:w-4 text-chicken-gold" />
                 <span className="text-sm sm:text-base md:text-lg font-bold text-chicken-gold">
