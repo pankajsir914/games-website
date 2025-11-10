@@ -23,15 +23,25 @@ export const useAdminDashboardStats = () => {
     queryFn: async () => {
       console.log('Fetching admin dashboard stats...');
 
-      // Get total users count
-      const { count: totalUsers, error: usersError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      // Get current admin user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Get total users count created by this admin
+      const { data: usersData, error: usersError } = await supabase
+        .rpc('get_users_management_data', {
+          p_limit: 10000,
+          p_offset: 0,
+          p_search: null,
+          p_status: 'all'
+        });
 
       if (usersError) {
         console.error('Error fetching users count:', usersError);
         throw usersError;
       }
+
+      const totalUsers = (usersData as any)?.total_count || 0;
 
       // Get total points distributed (admin credit transactions)
       const { data: pointsData, error: pointsError } = await supabase

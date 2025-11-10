@@ -19,15 +19,29 @@ export const useAdminAnalytics = (timeframe: 'daily' | 'weekly' | 'monthly' = 'd
           dateFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       }
 
+      // Get current admin user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Get users created by this admin
+      const { data: usersData, error: usersError } = await supabase
+        .rpc('get_users_management_data', {
+          p_limit: 10000,
+          p_offset: 0,
+          p_search: null,
+          p_status: 'all'
+        });
+
+      if (usersError) throw usersError;
+      const totalPlayers = (usersData as any)?.total_count || 0;
+
       // Get total stats
       const [
-        { count: totalPlayers },
         { count: totalGames },
         { data: walletData },
         { data: transactionData },
         { data: gameStats }
       ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('game_sessions').select('*', { count: 'exact', head: true }),
         supabase.from('wallets').select('current_balance'),
         supabase.from('wallet_transactions')
