@@ -137,7 +137,7 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="text-center"
+              className="text-center px-4"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", duration: 0.5 }}
@@ -146,10 +146,10 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               >
-                <Star className="w-24 h-24 text-yellow-300 mx-auto mb-4" />
+                <Star className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-yellow-300 mx-auto mb-2 sm:mb-4" />
               </motion.div>
-              <h2 className="text-5xl font-bold text-white mb-2">WINNER!</h2>
-              <p className="text-2xl text-yellow-200">Chicken crossed safely!</p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2">WINNER!</h2>
+              <p className="text-lg sm:text-xl md:text-2xl text-yellow-200">Chicken crossed safely!</p>
             </motion.div>
           </motion.div>
         )}
@@ -162,50 +162,50 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="text-center"
+              className="text-center px-4"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", duration: 0.5 }}
             >
               <FireTrap isActive={true} />
-              <h2 className="text-5xl font-bold text-white mt-4">ROASTED!</h2>
-              <p className="text-2xl text-orange-200">Your chicken got cooked!</p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mt-2 sm:mt-4">ROASTED!</h2>
+              <p className="text-lg sm:text-xl md:text-2xl text-orange-200">Your chicken got cooked!</p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Game Board */}
-      <div className="relative p-8">
+      <div className="relative p-4 sm:p-6 md:p-8">
         {/* Start and End Points */}
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20">
+        <div className="absolute left-1 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 z-20">
           <motion.div
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <span className="text-5xl">🏠</span>
+            <span className="text-3xl sm:text-4xl md:text-5xl">🏠</span>
           </motion.div>
         </div>
 
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
+        <div className="absolute right-1 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 z-20">
           <motion.div
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 2, repeat: Infinity, delay: 1 }}
           >
-            <span className="text-5xl">🏰</span>
+            <span className="text-3xl sm:text-4xl md:text-5xl">🏰</span>
           </motion.div>
         </div>
 
         {/* Chicken Character */}
         {chickenPosition.checkpoint === 0 && (
-          <div className="absolute left-16 top-1/2 -translate-y-1/2 z-25">
+          <div className="absolute left-8 sm:left-12 md:left-16 top-1/2 -translate-y-1/2 z-25">
             <AnimatedChicken state={chickenState} />
           </div>
         )}
 
         {/* Road Grid */}
-        <div className="relative mx-24">
-          <div className="grid grid-cols-5 gap-6">
+        <div className="relative mx-4 sm:mx-12 md:mx-24">
+          <div className="grid grid-cols-5 gap-2 sm:gap-4 md:gap-6">
             {Array.from({ length: checkpoints }, (_, checkpointIdx) => {
               const checkpoint = checkpointIdx + 1;
               const isCurrentStep = checkpoint === currentCheckpoint + 1;
@@ -214,12 +214,12 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
               return (
                 <div key={checkpoint} className="relative">
                   {/* Checkpoint Header */}
-                  <div className="text-center mb-3">
+                  <div className="text-center mb-1 sm:mb-2 md:mb-3">
                     <motion.div
                       className={cn(
-                        "text-sm font-bold transition-all",
+                        "text-xs sm:text-sm font-bold transition-all",
                         isPassed && "text-green-400 scale-110",
-                        isCurrentStep && "text-yellow-400 text-lg",
+                        isCurrentStep && "text-yellow-400 sm:text-base md:text-lg",
                         !isPassed && !isCurrentStep && "text-muted-foreground/50"
                       )}
                       animate={isCurrentStep ? { scale: [1, 1.1, 1] } : {}}
@@ -230,7 +230,7 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
                   </div>
 
                   {/* Lanes */}
-                  <div className="space-y-2">
+                  <div className="space-y-1 sm:space-y-1.5 md:space-y-2">
                     {Array.from({ length: lanes }, (_, laneIdx) => {
                       const lane = laneIdx + 1;
                       const tileState = getTileState(checkpoint, lane);
@@ -245,7 +245,7 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
                           whileHover={isClickable ? { scale: 1.05 } : {}}
                           whileTap={isClickable ? { scale: 0.95 } : {}}
                           className={cn(
-                            "relative w-full h-16 rounded-xl border-2 transition-all",
+                            "relative w-full h-12 sm:h-14 md:h-16 rounded-lg sm:rounded-xl border sm:border-2 transition-all",
                             "flex items-center justify-center overflow-hidden",
                             // Base states
                             tileState === 'hidden' && isClickable && [
@@ -276,7 +276,7 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
                               animate={{ opacity: [0.5, 1, 0.5] }}
                               transition={{ duration: 2, repeat: Infinity }}
                             >
-                              <span className="text-blue-300 text-2xl">?</span>
+                              <span className="text-blue-300 text-lg sm:text-xl md:text-2xl">?</span>
                             </motion.div>
                           )}
 
@@ -286,10 +286,10 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
                               initial={{ scale: 0 }}
                               animate={{ scale: 1, rotate: 360 }}
                               transition={{ type: "spring" }}
-                              className="flex items-center gap-2"
+                              className="flex items-center gap-1 sm:gap-2"
                             >
-                              <Gem className="w-6 h-6 text-green-400" />
-                              <span className="text-green-400 font-bold">SAFE!</span>
+                              <Gem className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-400" />
+                              <span className="text-green-400 font-bold text-xs sm:text-sm md:text-base">SAFE!</span>
                             </motion.div>
                           )}
 
@@ -317,9 +317,9 @@ export const EnhancedRoadPath: React.FC<EnhancedRoadPathProps> = ({
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-8 mx-8">
+        <div className="mt-4 sm:mt-6 md:mt-8 mx-4 sm:mx-6 md:mx-8">
           <div className="relative">
-            <div className="h-4 bg-gray-800/50 rounded-full overflow-hidden backdrop-blur-sm">
+            <div className="h-3 sm:h-4 bg-gray-800/50 rounded-full overflow-hidden backdrop-blur-sm">
               <motion.div
                 className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-green-400"
                 animate={{ width: `${(currentCheckpoint / checkpoints) * 100}%` }}

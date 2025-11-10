@@ -132,21 +132,21 @@ export const ChickenRoadGame: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-chicken-dark to-background">
       {/* Top Bar */}
       <div className="bg-chicken-dark/50 backdrop-blur-lg border-b border-chicken-lane/20">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-chicken-gold">
-                🐓 Chicken Road India
+        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="flex items-center justify-between w-full sm:w-auto sm:space-x-4">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-chicken-gold">
+                🐓 Chicken Road
               </h1>
-              <div className="flex items-center space-x-2 bg-chicken-road/50 px-3 py-1 rounded-lg">
-                <span className="text-sm text-muted-foreground">Balance:</span>
-                <span className="text-lg font-bold text-chicken-gold">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 bg-chicken-road/50 px-2 sm:px-3 py-1 rounded-lg">
+                <span className="text-xs sm:text-sm text-muted-foreground">Balance:</span>
+                <span className="text-sm sm:text-base md:text-lg font-bold text-chicken-gold">
                   ₹{wallet?.current_balance || 0}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="hidden sm:flex items-center space-x-2">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-chicken-gold">
                 <HelpCircle className="h-5 w-5" />
               </Button>
@@ -159,43 +159,43 @@ export const ChickenRoadGame: React.FC = () => {
       </div>
 
       {/* Main Game Area */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4 md:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {/* Stats Card */}
           <Card className="bg-chicken-road/30 border-chicken-lane/30 backdrop-blur-sm">
-            <div className="p-6 space-y-4">
+            <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
               <div className="flex items-center space-x-2 text-chicken-gold">
-                <TrendingUp className="h-5 w-5" />
-                <h3 className="font-bold">Your Stats</h3>
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                <h3 className="font-bold text-sm sm:text-base">Your Stats</h3>
               </div>
 
               {userStats ? (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Games</span>
-                    <span className="font-semibold">{userStats.total_games}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Total Games</span>
+                    <span className="font-semibold text-xs sm:text-sm">{userStats.total_games}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Wins</span>
-                    <span className="font-semibold text-chicken-success">{userStats.total_won}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Wins</span>
+                    <span className="font-semibold text-xs sm:text-sm text-chicken-success">{userStats.total_won}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Best Multiplier</span>
-                    <span className="font-semibold text-chicken-gold">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Best Multiplier</span>
+                    <span className="font-semibold text-xs sm:text-sm text-chicken-gold">
                       {userStats.highest_multiplier?.toFixed(2)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Winnings</span>
-                    <span className="font-semibold text-chicken-gold">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Total Winnings</span>
+                    <span className="font-semibold text-xs sm:text-sm text-chicken-gold">
                       ₹{userStats.total_winnings?.toFixed(2)}
                     </span>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-6 w-full" />
+                    <Skeleton key={i} className="h-5 sm:h-6 w-full" />
                   ))}
                 </div>
               )}
@@ -203,7 +203,7 @@ export const ChickenRoadGame: React.FC = () => {
           </Card>
 
           {/* Game Area */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
             {/* Multiplier Display */}
             <div className="relative">
               <MultiplierDisplay
@@ -225,17 +225,17 @@ export const ChickenRoadGame: React.FC = () => {
               {/* Reset Countdown */}
               {resetCountdown !== null && (
                 <motion.div
-                  className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none"
+                  className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none px-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <div className="bg-background/90 backdrop-blur-lg rounded-2xl p-8 border-2 border-chicken-gold/50">
-                    <h3 className="text-2xl font-bold text-center mb-2">
+                  <div className="bg-background/90 backdrop-blur-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border-2 border-chicken-gold/50">
+                    <h3 className="text-base sm:text-xl md:text-2xl font-bold text-center mb-1 sm:mb-2">
                       New Game Starting In...
                     </h3>
                     <motion.div
-                      className="text-6xl font-bold text-chicken-gold text-center"
+                      className="text-4xl sm:text-5xl md:text-6xl font-bold text-chicken-gold text-center"
                       key={resetCountdown}
                       initial={{ scale: 1.5 }}
                       animate={{ scale: 1 }}
@@ -265,29 +265,29 @@ export const ChickenRoadGame: React.FC = () => {
         </div>
 
         {/* Leaderboard */}
-        <Card className="mt-6 bg-chicken-road/30 border-chicken-lane/30 backdrop-blur-sm">
-          <div className="p-6">
-            <div className="flex items-center space-x-2 text-chicken-gold mb-4">
-              <Trophy className="h-5 w-5" />
-              <h3 className="font-bold text-lg">Top Players</h3>
+        <Card className="mt-3 sm:mt-4 md:mt-6 bg-chicken-road/30 border-chicken-lane/30 backdrop-blur-sm">
+          <div className="p-3 sm:p-4 md:p-6">
+            <div className="flex items-center space-x-2 text-chicken-gold mb-3 sm:mb-4">
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5" />
+              <h3 className="font-bold text-sm sm:text-base md:text-lg">Top Players</h3>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+              <table className="w-full min-w-[500px] sm:min-w-0">
                 <thead>
                   <tr className="border-b border-chicken-lane/30">
-                    <th className="text-left py-2 text-sm text-muted-foreground">Rank</th>
-                    <th className="text-left py-2 text-sm text-muted-foreground">Player</th>
-                    <th className="text-right py-2 text-sm text-muted-foreground">Best Multiplier</th>
-                    <th className="text-right py-2 text-sm text-muted-foreground">Total Winnings</th>
+                    <th className="text-left py-2 text-xs sm:text-sm text-muted-foreground">Rank</th>
+                    <th className="text-left py-2 text-xs sm:text-sm text-muted-foreground">Player</th>
+                    <th className="text-right py-2 text-xs sm:text-sm text-muted-foreground">Best Multiplier</th>
+                    <th className="text-right py-2 text-xs sm:text-sm text-muted-foreground">Total Winnings</th>
                   </tr>
                 </thead>
                 <tbody>
                   {leaderboard?.slice(0, 5).map((player, index) => (
                     <tr key={player.id} className="border-b border-chicken-lane/10">
-                      <td className="py-3">
+                      <td className="py-2 sm:py-3">
                         <span className={cn(
-                          "font-bold",
+                          "font-bold text-xs sm:text-sm",
                           index === 0 && "text-chicken-gold",
                           index === 1 && "text-gray-400",
                           index === 2 && "text-orange-600"
@@ -295,18 +295,18 @@ export const ChickenRoadGame: React.FC = () => {
                           #{index + 1}
                         </span>
                       </td>
-                      <td className="py-3">
-                        <span className="font-medium">
+                      <td className="py-2 sm:py-3">
+                        <span className="font-medium text-xs sm:text-sm">
                           {player.profiles?.full_name || 'Anonymous'}
                         </span>
                       </td>
-                      <td className="py-3 text-right">
-                        <span className="font-semibold text-chicken-gold">
+                      <td className="py-2 sm:py-3 text-right">
+                        <span className="font-semibold text-xs sm:text-sm text-chicken-gold">
                           {player.highest_multiplier?.toFixed(2)}x
                         </span>
                       </td>
-                      <td className="py-3 text-right">
-                        <span className="font-semibold">
+                      <td className="py-2 sm:py-3 text-right">
+                        <span className="font-semibold text-xs sm:text-sm">
                           ₹{player.total_winnings?.toFixed(2)}
                         </span>
                       </td>

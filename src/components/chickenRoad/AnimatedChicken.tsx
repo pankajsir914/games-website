@@ -89,7 +89,7 @@ export const AnimatedChicken: React.FC<AnimatedChickenProps> = ({
         initial={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0, opacity: 0 }}
       >
-        <div className="relative w-16 h-16">
+        <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16">
           {/* Main Chicken Body */}
           <motion.div
             className="absolute inset-0"
@@ -99,7 +99,7 @@ export const AnimatedChicken: React.FC<AnimatedChickenProps> = ({
             {/* Chicken Emoji with Effects */}
             <div className="relative">
               <span className={cn(
-                "text-5xl block",
+                "text-3xl sm:text-4xl md:text-5xl block",
                 state === 'burning' && "filter brightness-50 contrast-150"
               )}>
                 🐓
@@ -143,7 +143,7 @@ export const AnimatedChicken: React.FC<AnimatedChickenProps> = ({
                   animate={{ scale: [1, 1.5, 2], opacity: [1, 0.8, 0] }}
                   transition={{ duration: 0.5, repeat: Infinity }}
                 >
-                  <span className="text-4xl">🔥</span>
+                  <span className="text-2xl sm:text-3xl md:text-4xl">🔥</span>
                 </motion.div>
               )}
             </div>
