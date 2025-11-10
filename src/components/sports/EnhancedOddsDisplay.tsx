@@ -75,16 +75,16 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
         className={cn(
           "text-center cursor-pointer transition-opacity min-h-[44px]",
           isMobile ? "p-1.5 min-w-[60px] active:opacity-70" : "p-2 min-w-[80px] hover:opacity-80",
-          type === 'back' ? "bg-blue-200 hover:bg-blue-300" : "bg-pink-200 hover:bg-pink-300",
-          isSelected && "ring-2 ring-primary ring-inset"
+          type === 'back' ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-pink-500 hover:bg-pink-600 text-white",
+          isSelected && "ring-2 ring-yellow-400 ring-inset"
         )}
         onClick={() => !isSuspended && onSelectBet(selection, type, parseFloat(rate.toString()), marketType)}
       >
         <div className="flex flex-col items-center">
-          <span className={cn("font-bold text-foreground", isMobile ? "text-sm" : "text-base")}>
+          <span className={cn("font-bold", isMobile ? "text-sm" : "text-base")}>
             {parseFloat(rate.toString()).toFixed(2)}
           </span>
-          {size && !isMobile && <span className="text-xs text-foreground/80">{size}</span>}
+          {size && !isMobile && <span className="text-xs opacity-80">{size}</span>}
         </div>
       </TableCell>
     );
@@ -122,18 +122,18 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                             <TableHead className="text-center text-xs text-muted-foreground w-12"></TableHead>
                           </>
                         )}
-                        <TableHead className={cn("text-center font-semibold bg-blue-100 text-foreground", isMobile ? "text-xs w-16" : "text-sm w-20")}>Back</TableHead>
+                        <TableHead className={cn("text-center font-semibold bg-blue-600 text-white", isMobile ? "text-xs w-16" : "text-sm w-20")}>Back</TableHead>
                         {!isMobile && (
                           <>
-                            <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-20">Back</TableHead>
-                            <TableHead className="text-center font-semibold bg-blue-100 text-foreground w-20">Back</TableHead>
+                            <TableHead className="text-center font-semibold bg-blue-600 text-white w-20">Back</TableHead>
+                            <TableHead className="text-center font-semibold bg-blue-600 text-white w-20">Back</TableHead>
                           </>
                         )}
-                        <TableHead className={cn("text-center font-semibold bg-pink-100 text-foreground", isMobile ? "text-xs w-16" : "text-sm w-20")}>Lay</TableHead>
+                        <TableHead className={cn("text-center font-semibold bg-pink-600 text-white", isMobile ? "text-xs w-16" : "text-sm w-20")}>Lay</TableHead>
                         {!isMobile && (
                           <>
-                            <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-20">Lay</TableHead>
-                            <TableHead className="text-center font-semibold bg-pink-100 text-foreground w-20">Lay</TableHead>
+                            <TableHead className="text-center font-semibold bg-pink-600 text-white w-20">Lay</TableHead>
+                            <TableHead className="text-center font-semibold bg-pink-600 text-white w-20">Lay</TableHead>
                           </>
                         )}
                       </TableRow>
@@ -201,8 +201,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                         )}>
                           Selection
                         </TableHead>
-                        <TableHead className={cn("text-center font-semibold bg-blue-100 text-foreground", isMobile ? "text-xs w-20" : "text-sm w-24")}>Back</TableHead>
-                        <TableHead className={cn("text-center font-semibold bg-pink-100 text-foreground", isMobile ? "text-xs w-20" : "text-sm w-24")}>Lay</TableHead>
+                        <TableHead className={cn("text-center font-semibold bg-blue-600 text-white", isMobile ? "text-xs w-20" : "text-sm w-24")}>Back</TableHead>
+                        <TableHead className={cn("text-center font-semibold bg-pink-600 text-white", isMobile ? "text-xs w-20" : "text-sm w-24")}>Lay</TableHead>
                         {!isMobile && <TableHead className="text-center text-xs text-muted-foreground w-20">Min/Max</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -273,8 +273,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                                 Selection
                               </TableHead>
                               {!isMobile && <TableHead className="text-center text-xs text-muted-foreground w-20">Line</TableHead>}
-                              <TableHead className={cn("text-center font-semibold bg-pink-100 text-foreground", isMobile ? "text-xs w-16" : "text-sm w-24")}>No</TableHead>
-                              <TableHead className={cn("text-center font-semibold bg-blue-100 text-foreground", isMobile ? "text-xs w-16" : "text-sm w-24")}>Yes</TableHead>
+                              <TableHead className={cn("text-center font-semibold bg-pink-600 text-white", isMobile ? "text-xs w-16" : "text-sm w-24")}>No</TableHead>
+                              <TableHead className={cn("text-center font-semibold bg-blue-600 text-white", isMobile ? "text-xs w-16" : "text-sm w-24")}>Yes</TableHead>
                               {!isMobile && <TableHead className="text-center text-xs text-muted-foreground w-20">Min/Max</TableHead>}
                             </TableRow>
                           </TableHeader>
