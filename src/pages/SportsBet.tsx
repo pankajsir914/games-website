@@ -460,11 +460,11 @@ const SportsBet: React.FC = () => {
         <div className="mb-4 sm:mb-6">
           <Button
             variant="ghost"
+            size="icon"
             onClick={() => navigate('/sports')}
-            className="mb-4 h-10 sm:h-auto"
+            className="mb-4 h-10 w-10"
           >
-            <ArrowLeft className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
-            <span className="text-sm sm:text-base">Back to Sports</span>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           
           <Card>
