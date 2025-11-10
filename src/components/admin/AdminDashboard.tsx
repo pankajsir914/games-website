@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { OverviewDashboard } from './OverviewDashboard';
 
-import { BetLogsPage } from './BetLogsPage';
 import { PlayerWalletInsights } from './PlayerWalletInsights';
 import { ResultManagement } from './ResultManagement';
 import { AdminLayout } from './AdminLayout';
@@ -189,20 +188,14 @@ export const AdminDashboard = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+          <TabsList className="grid w-full grid-cols-3 gap-2">
             <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="bets" className="text-xs sm:text-sm">Bet Logs</TabsTrigger>
             <TabsTrigger value="wallets" className="text-xs sm:text-sm">Player Wallets</TabsTrigger>
             <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <OverviewDashboard />
-          </TabsContent>
-
-
-          <TabsContent value="bets" className="space-y-6">
-            <BetLogsPage />
           </TabsContent>
 
           <TabsContent value="wallets" className="space-y-6">
