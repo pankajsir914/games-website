@@ -68,22 +68,22 @@ const Index = () => {
         }}></div>
       </div>
       
-      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 text-center">
-        <div className="space-y-6 sm:space-y-8">
-          <div className="space-y-3 sm:space-y-4">
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-foreground">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-8 sm:py-12">
+        <div className="space-y-8 sm:space-y-12">
+          <div className="space-y-4 sm:space-y-6">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
               Win Real <span className="bg-gradient-primary bg-clip-text text-transparent">Money</span>
             </h1>
-            <p className="text-base sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-base sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto px-4 leading-relaxed">
               Play your favorite games and compete with millions of players worldwide. 
               Experience the thrill of real money gaming!
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
             <Button 
               size="lg" 
-              className="text-base sm:text-lg px-6 py-4 sm:px-8 sm:py-6 shadow-gaming w-full sm:w-auto"
+              className="text-base sm:text-lg px-8 py-5 sm:px-10 sm:py-7 shadow-gaming w-full sm:w-auto min-w-[200px]"
               onClick={() => navigate('/games')}
             >
               <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
@@ -92,7 +92,7 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="lg" 
-              className="text-base sm:text-lg px-6 py-4 sm:px-8 sm:py-6 w-full sm:w-auto"
+              className="text-base sm:text-lg px-8 py-5 sm:px-10 sm:py-7 w-full sm:w-auto min-w-[200px]"
               onClick={() => navigate('/games')}
             >
               <Trophy className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
@@ -100,21 +100,21 @@ const Index = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 pt-6 sm:pt-8">
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary">10M+</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-10 pt-8 sm:pt-12 px-4">
+            <div className="text-center space-y-2">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">10M+</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Active Players</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary">₹500M+</div>
+            <div className="text-center space-y-2">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">₹500M+</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Prize Money</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary">100+</div>
+            <div className="text-center space-y-2">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">100+</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Game Variants</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary">24/7</div>
+            <div className="text-center space-y-2">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">24/7</div>
               <div className="text-xs sm:text-sm text-muted-foreground">Support</div>
             </div>
           </div>
