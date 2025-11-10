@@ -641,55 +641,90 @@ const SportsBet: React.FC = () => {
           </TabsContent>
 
           {/* Match Bet Tab */}
-          <TabsContent value="matchbet" className="space-y-6">
+          <TabsContent value="matchbet" className={isMobile ? "space-y-4" : "space-y-6"}>
             <Card>
-              <CardHeader>
-                <CardTitle>Place Your Bet</CardTitle>
+              <CardHeader className={isMobile ? "p-4" : ""}>
+                <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Place Your Bet</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? "p-4" : ""}>
                 {selectedBet ? (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="font-semibold text-lg">{selectedBet.matchName}</p>
-                      <p className="text-muted-foreground">{selectedBet.selection}</p>
-                      <div className="flex justify-between mt-3">
-                        <Badge variant={selectedBet.type === 'back' ? 'default' : 'destructive'} className="text-base">
+                  <div className={isMobile ? "space-y-3" : "space-y-4"}>
+                    <div className={isMobile ? "p-3 bg-muted rounded-lg" : "p-4 bg-muted rounded-lg"}>
+                      <p className={isMobile ? "font-semibold text-sm" : "font-semibold text-lg"}>
+                        {selectedBet.matchName}
+                      </p>
+                      <p className={isMobile ? "text-xs text-muted-foreground mt-1" : "text-sm text-muted-foreground mt-1"}>
+                        {selectedBet.selection}
+                      </p>
+                      <div className="flex justify-between items-center mt-3">
+                        <Badge 
+                          variant={selectedBet.type === 'back' ? 'default' : 'destructive'} 
+                          className={isMobile ? "text-xs" : "text-base"}
+                        >
                           {selectedBet.type.toUpperCase()}
                         </Badge>
-                        <span className="font-bold text-xl">{selectedBet.rate}</span>
+                        <span className={isMobile ? "font-bold text-lg" : "font-bold text-xl"}>
+                          {selectedBet.rate}
+                        </span>
                       </div>
                     </div>
                     
                     <div>
-                      <Label htmlFor="bet-amount-main">Stake Amount (₹)</Label>
+                      <Label 
+                        htmlFor="bet-amount-main" 
+                        className={isMobile ? "text-xs" : "text-sm"}
+                      >
+                        Stake Amount (₹)
+                      </Label>
                       <Input
                         id="bet-amount-main"
                         type="number"
                         placeholder="Enter amount"
                         value={betAmount}
                         onChange={(e) => setBetAmount(e.target.value)}
-                        className="mt-2 text-lg p-6"
+                        className={isMobile ? "mt-1.5 h-12 text-base" : "mt-2 text-lg p-6"}
                       />
+                      
+                      {/* Quick Amount Buttons for Mobile */}
+                      {isMobile && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {[100, 500, 1000, 5000].map((amount) => (
+                            <Button
+                              key={amount}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setBetAmount(amount.toString())}
+                              className="h-9 text-xs"
+                            >
+                              ₹{amount}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-primary/10 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Potential Win</p>
-                        <p className="text-2xl font-bold text-primary">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className={isMobile ? "p-3 bg-primary/10 rounded-lg" : "p-4 bg-primary/10 rounded-lg"}>
+                        <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
+                          Potential Win
+                        </p>
+                        <p className={isMobile ? "text-lg font-bold text-primary mt-1" : "text-2xl font-bold text-primary mt-1"}>
                           ₹{calculatePotentialWin().toFixed(2)}
                         </p>
                       </div>
-                      <div className="p-4 bg-destructive/10 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Liability</p>
-                        <p className="text-2xl font-bold text-destructive">
+                      <div className={isMobile ? "p-3 bg-destructive/10 rounded-lg" : "p-4 bg-destructive/10 rounded-lg"}>
+                        <p className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
+                          Liability
+                        </p>
+                        <p className={isMobile ? "text-lg font-bold text-destructive mt-1" : "text-2xl font-bold text-destructive mt-1"}>
                           ₹{calculateLiability().toFixed(2)}
                         </p>
                       </div>
                     </div>
                     
-                    <div className="space-y-3">
+                    <div className={isMobile ? "space-y-2 pt-2" : "space-y-3"}>
                       <Button
-                        className="w-full text-lg py-6"
+                        className={isMobile ? "w-full h-12 text-base" : "w-full text-lg py-6"}
                         onClick={handlePlaceBet}
                         disabled={!betAmount || parseFloat(betAmount) <= 0 || isPlacingBet}
                       >
@@ -697,7 +732,7 @@ const SportsBet: React.FC = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full"
+                        className={isMobile ? "w-full h-10 text-sm" : "w-full"}
                         onClick={() => {
                           setSelectedBet(null);
                           setBetAmount('');
@@ -707,16 +742,22 @@ const SportsBet: React.FC = () => {
                       </Button>
                     </div>
                     
-                    <div className="mt-6 pt-4 border-t">
+                    <div className={isMobile ? "mt-4 pt-3 border-t" : "mt-6 pt-4 border-t"}>
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Wallet Balance:</span>
-                        <span className="font-bold text-xl">₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}</span>
+                        <span className={isMobile ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
+                          Wallet Balance:
+                        </span>
+                        <span className={isMobile ? "font-bold text-base" : "font-bold text-xl"}>
+                          ₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}
+                        </span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground text-lg mb-4">No bet selected</p>
+                  <div className={isMobile ? "text-center py-8" : "text-center py-12"}>
+                    <p className={isMobile ? "text-muted-foreground text-base mb-3" : "text-muted-foreground text-lg mb-4"}>
+                      No bet selected
+                    </p>
                     <p className="text-sm text-muted-foreground">Go to ODDS tab to select a bet</p>
                   </div>
                 )}
