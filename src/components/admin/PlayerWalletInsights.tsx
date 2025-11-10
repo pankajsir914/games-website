@@ -90,20 +90,20 @@ export const PlayerWalletInsights = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Player Wallet Insights</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold">Player Wallet Insights</h2>
+          <p className="text-sm text-muted-foreground">
             {filteredUsers ? `${filteredUsers.length} players found` : 'Loading...'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <Input
             placeholder="Search players..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
+            className="w-full sm:w-64"
           />
         </div>
       </div>
