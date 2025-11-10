@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { useMasterAdminFinance } from '@/hooks/useMasterAdminFinance';
-import { CreditCard, TrendingUp, Clock, CheckCircle, Settings, Receipt } from 'lucide-react';
+import { CreditCard, TrendingUp, Clock, CheckCircle, Settings, Receipt, Filter } from 'lucide-react';
 
 const AdminPayments = () => {
   const { financeData } = useMasterAdminFinance();
@@ -86,8 +88,8 @@ const AdminPayments = () => {
               ))}
             </div>
 
-            {/* Filters */}
-            <Card>
+            {/* Filters - Desktop */}
+            <Card className="hidden md:block">
               <CardHeader>
                 <CardTitle>Filters</CardTitle>
                 <CardDescription>Filter payment requests by status and search criteria</CardDescription>
@@ -133,6 +135,62 @@ const AdminPayments = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Floating Filter Button - Mobile */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button 
+                  size="lg"
+                  className="fixed bottom-6 right-6 md:hidden z-50 rounded-full h-14 w-14 shadow-lg"
+                >
+                  <Filter className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[80vh]">
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>Filter payment requests by status and search criteria</SheetDescription>
+                </SheetHeader>
+                <div className="grid gap-4 mt-4">
+                  <div>
+                    <label className="text-sm font-medium">Search</label>
+                    <Input
+                      placeholder="Search by user or request ID..."
+                      value={filters.search}
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Date Range</label>
+                    <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All time</SelectItem>
+                        <SelectItem value="today">Today</SelectItem>
+                        <SelectItem value="week">This week</SelectItem>
+                        <SelectItem value="month">This month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
 
             <PaymentRequestsTable filters={filters} />
           </TabsContent>
