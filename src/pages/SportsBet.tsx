@@ -455,19 +455,6 @@ const SportsBet: React.FC = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <Navigation />
-      {/* Back Button in Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-2 sm:px-4 py-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/sports')}
-            className="h-9 w-9"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
       
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         {/* Header */}
