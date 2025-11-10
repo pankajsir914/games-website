@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info, Trophy, Users, Cloud } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info, Trophy, Users, Cloud, Receipt } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
 import { useDiamondSportsData } from '@/hooks/useDiamondSportsData';
@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import EnhancedLiveTVSection from '@/components/sports/EnhancedLiveTVSection';
 import EnhancedOddsDisplay from '@/components/sports/EnhancedOddsDisplay';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
@@ -26,6 +28,8 @@ const SportsBet: React.FC = () => {
   const { connectOddsWebSocket } = useDiamondSportsData();
   const { wallet } = useWallet();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [isBetSlipOpen, setIsBetSlipOpen] = useState(false);
   
   const [match, setMatch] = useState<any>(state?.match || null);
   const [odds, setOdds] = useState<any>(null);
@@ -261,6 +265,10 @@ const SportsBet: React.FC = () => {
       matchName: `${match?.team1} vs ${match?.team2}`,
       sport
     });
+    // Open bet slip drawer on mobile
+    if (isMobile) {
+      setIsBetSlipOpen(true);
+    }
   };
 
   const handlePlaceBet = async () => {
@@ -349,34 +357,129 @@ const SportsBet: React.FC = () => {
     );
   }
 
+  // Bet Slip Component (reusable for desktop sidebar and mobile drawer)
+  const BetSlipContent = () => (
+    <>
+      {selectedBet ? (
+        <div className="space-y-4">
+          <div className="p-3 bg-muted rounded-lg">
+            <p className="font-semibold text-sm sm:text-base">{selectedBet.matchName}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">{selectedBet.selection}</p>
+            <div className="flex justify-between mt-2">
+              <Badge variant={selectedBet.type === 'back' ? 'default' : 'destructive'}>
+                {selectedBet.type.toUpperCase()}
+              </Badge>
+              <span className="font-bold">{selectedBet.rate}</span>
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="bet-amount" className="text-sm">Stake Amount (₹)</Label>
+            <Input
+              id="bet-amount"
+              type="number"
+              placeholder="Enter amount"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              className="mt-1 h-12 text-base"
+            />
+            
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {[100, 500, 1000, 5000].map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBetAmount(amount.toString())}
+                  className="h-10"
+                >
+                  ₹{amount}
+                </Button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="space-y-2 p-3 bg-muted rounded-lg">
+            <div className="flex justify-between text-sm">
+              <span>Potential Win:</span>
+              <span className="font-semibold text-primary">
+                ₹{calculatePotentialWin().toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Liability:</span>
+              <span className="font-semibold text-destructive">
+                ₹{calculateLiability().toFixed(2)}
+              </span>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Button
+              className="w-full h-12"
+              onClick={handlePlaceBet}
+              disabled={!betAmount || parseFloat(betAmount) <= 0 || isPlacingBet}
+            >
+              {isPlacingBet ? 'Placing Bet...' : 'Place Bet'}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setSelectedBet(null);
+                setBetAmount('');
+                if (isMobile) setIsBetSlipOpen(false);
+              }}
+            >
+              Clear Bet Slip
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-center text-muted-foreground py-8">
+          Select a bet to get started
+        </p>
+      )}
+      
+      {/* Wallet Balance */}
+      <div className="mt-4 pt-4 border-t">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">Wallet Balance:</span>
+          <span className="font-semibold">₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}</span>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <Navigation />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate('/sports')}
-            className="mb-4"
+            className="mb-4 h-10 sm:h-auto"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Sports
+            <ArrowLeft className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
+            <span className="text-sm sm:text-base">Back to Sports</span>
           </Button>
           
           <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-2xl">
+            <CardHeader className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl">
                     {match.team1} vs {match.team2}
                   </CardTitle>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <Badge variant={match.status === 'Live' ? 'destructive' : 'secondary'} className={match.status === 'Live' ? 'animate-pulse' : ''}>
                       {match.status || 'Upcoming'}
                     </Badge>
                     <Badge variant="outline">{sport}</Badge>
-                    {match.league && <Badge variant="outline">{match.league}</Badge>}
+                    {match.league && <Badge variant="outline" className="hidden sm:inline-flex">{match.league}</Badge>}
                     {match.status === 'Live' && (
                       <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-600/30">
                         🔴 LIVE
@@ -384,7 +487,7 @@ const SportsBet: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right w-full sm:w-auto">
                   {liveScore ? (
                     <>
                       <p className="text-3xl font-bold">
@@ -401,39 +504,39 @@ const SportsBet: React.FC = () => {
                     </>
                   ) : matchDetails?.status === 'Live' ? (
                     <div className="text-center">
-                      <p className="text-lg font-semibold text-primary">Match In Progress</p>
+                      <p className="text-sm sm:text-lg font-semibold text-primary">Match In Progress</p>
                       <p className="text-xs text-muted-foreground mt-1">Live score updating soon</p>
                     </div>
                   ) : matchDetails?.startDate ? (
                     <div className="text-center">
-                      <p className="text-sm font-medium">Starts at</p>
-                      <p className="text-lg font-bold">{new Date(matchDetails.startDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-xs sm:text-sm font-medium">Starts at</p>
+                      <p className="text-base sm:text-lg font-bold">{new Date(matchDetails.startDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
                       <p className="text-xs text-muted-foreground mt-1">{new Date(matchDetails.startDate).toLocaleDateString('en-IN')}</p>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Score not available</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Score not available</p>
                       <p className="text-xs text-muted-foreground mt-1">Check back later</p>
                     </div>
                   )}
                 </div>
               </div>
               {liveDetails && (
-                <div className="mt-4 pt-4 border-t grid grid-cols-4 gap-4 text-center">
+                <div className="mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold">{liveDetails.fours || '0'}</p>
+                    <p className="text-xl sm:text-2xl font-bold">{liveDetails.fours || '0'}</p>
                     <p className="text-xs text-muted-foreground">Fours</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{liveDetails.sixes || '0'}</p>
+                    <p className="text-xl sm:text-2xl font-bold">{liveDetails.sixes || '0'}</p>
                     <p className="text-xs text-muted-foreground">Sixes</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{liveDetails.extras || '0'}</p>
+                    <p className="text-xl sm:text-2xl font-bold">{liveDetails.extras || '0'}</p>
                     <p className="text-xs text-muted-foreground">Extras</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{liveDetails.runRate || '0.0'}</p>
+                    <p className="text-xl sm:text-2xl font-bold">{liveDetails.runRate || '0.0'}</p>
                     <p className="text-xs text-muted-foreground">Run Rate</p>
                   </div>
                 </div>
@@ -466,32 +569,34 @@ const SportsBet: React.FC = () => {
         </div>
 
         <Tabs defaultValue="odds" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="odds" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">ODDS</span>
+          <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto">
+            <TabsTrigger value="odds" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+              <TrendingUp className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">ODDS</span>
             </TabsTrigger>
-            <TabsTrigger value="matchbet" className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Match Bet</span>
+            <TabsTrigger value="matchbet" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+              <Target className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm hidden sm:inline">Match Bet</span>
+              <span className="text-xs sm:text-sm sm:hidden">Bet</span>
             </TabsTrigger>
-            <TabsTrigger value="livetv" className="flex items-center gap-2">
-              <Tv className="h-4 w-4" />
-              <span className="hidden sm:inline">Live TV</span>
+            <TabsTrigger value="livetv" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+              <Tv className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">Live TV</span>
             </TabsTrigger>
-            <TabsTrigger value="details" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Match Details</span>
+            <TabsTrigger value="details" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+              <FileText className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm hidden sm:inline">Details</span>
+              <span className="text-xs sm:text-sm sm:hidden">Info</span>
             </TabsTrigger>
           </TabsList>
 
           {/* ODDS Tab */}
-          <TabsContent value="odds" className="space-y-6">
+          <TabsContent value="odds" className="space-y-4 sm:space-y-6">
             {/* Error Alert with Refresh */}
             {oddsError && (
-              <Alert>
+              <Alert className="text-sm">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="flex items-center justify-between">
+                <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div className="flex-1">
                     <p className="font-semibold mb-1">{oddsError}</p>
                     <p className="text-xs text-muted-foreground">The API has rate limits. Please wait a moment before refreshing.</p>
@@ -500,7 +605,7 @@ const SportsBet: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => window.location.reload()}
-                    className="ml-4"
+                    className="w-full sm:w-auto"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
                     Retry
@@ -509,109 +614,29 @@ const SportsBet: React.FC = () => {
               </Alert>
             )}
 
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className={isMobile ? "space-y-4" : "grid lg:grid-cols-3 gap-6"}>
               <div className="lg:col-span-2">
                 <EnhancedOddsDisplay 
                   odds={odds}
                   selectedBet={selectedBet}
-                  onSelectBet={(selection, type, rate, marketType) => {
-                    setSelectedBet({
-                      selection,
-                      type,
-                      rate,
-                      marketType,
-                      matchId,
-                      matchName: `${match?.team1} vs ${match?.team2}`,
-                      sport
-                    });
-                  }}
+                  onSelectBet={handleSelectBet}
                   isLoading={isLoadingOdds}
                 />
               </div>
 
-              {/* Bet Slip */}
-              <div>
-                <Card className="sticky top-4">
-                  <CardHeader>
-                    <CardTitle>Bet Slip</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedBet ? (
-                      <div className="space-y-4">
-                        <div className="p-3 bg-muted rounded-lg">
-                          <p className="font-semibold">{selectedBet.matchName}</p>
-                          <p className="text-sm text-muted-foreground">{selectedBet.selection}</p>
-                          <div className="flex justify-between mt-2">
-                            <Badge variant={selectedBet.type === 'back' ? 'default' : 'destructive'}>
-                              {selectedBet.type.toUpperCase()}
-                            </Badge>
-                            <span className="font-bold">{selectedBet.rate}</span>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="bet-amount">Stake Amount (₹)</Label>
-                          <Input
-                            id="bet-amount"
-                            type="number"
-                            placeholder="Enter amount"
-                            value={betAmount}
-                            onChange={(e) => setBetAmount(e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2 p-3 bg-muted rounded-lg">
-                          <div className="flex justify-between text-sm">
-                            <span>Potential Win:</span>
-                            <span className="font-semibold text-primary">
-                              ₹{calculatePotentialWin().toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Liability:</span>
-                            <span className="font-semibold text-destructive">
-                              ₹{calculateLiability().toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Button
-                            className="w-full"
-                            onClick={handlePlaceBet}
-                            disabled={!betAmount || parseFloat(betAmount) <= 0 || isPlacingBet}
-                          >
-                            {isPlacingBet ? 'Placing Bet...' : 'Place Bet'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => {
-                              setSelectedBet(null);
-                              setBetAmount('');
-                            }}
-                          >
-                            Clear Bet Slip
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-8">
-                        Select a bet to get started
-                      </p>
-                    )}
-                    
-                    {/* Wallet Balance */}
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Wallet Balance:</span>
-                        <span className="font-semibold">₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Desktop Bet Slip - Hidden on Mobile */}
+              {!isMobile && (
+                <div>
+                  <Card className="sticky top-4">
+                    <CardHeader>
+                      <CardTitle>Bet Slip</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BetSlipContent />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -747,29 +772,29 @@ const SportsBet: React.FC = () => {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {matchDetails.matchName && (
-                          <div className="p-4 bg-muted rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">Match Name</p>
-                            <p className="font-semibold">{matchDetails.matchName}</p>
-                          </div>
-                        )}
-                        {matchDetails.series && (
-                          <div className="p-4 bg-muted rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">Series</p>
-                            <p className="font-semibold">{matchDetails.series}</p>
-                          </div>
-                        )}
-                        {matchDetails.matchType && (
-                          <div className="p-4 bg-muted rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">Match Type</p>
-                            <p className="font-semibold">{matchDetails.matchType}</p>
-                          </div>
-                        )}
-                        {matchDetails.venue && (
-                          <div className="p-4 bg-muted rounded-lg">
-                            <p className="text-sm text-muted-foreground mb-1">Venue</p>
-                            <p className="font-semibold">{matchDetails.venue}</p>
-                          </div>
-                        )}
+                        <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-1">Match Name</p>
+                          <p className="font-semibold text-sm sm:text-base">{matchDetails.matchName}</p>
+                        </div>
+                      )}
+                      {matchDetails.series && (
+                        <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-1">Series</p>
+                          <p className="font-semibold text-sm sm:text-base">{matchDetails.series}</p>
+                        </div>
+                      )}
+                      {matchDetails.matchType && (
+                        <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-1">Match Type</p>
+                          <p className="font-semibold text-sm sm:text-base">{matchDetails.matchType}</p>
+                        </div>
+                      )}
+                      {matchDetails.venue && (
+                        <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-1">Venue</p>
+                          <p className="font-semibold text-sm sm:text-base">{matchDetails.venue}</p>
+                        </div>
+                      )}
                         {matchDetails.startDate && (
                           <div className="p-4 bg-muted rounded-lg col-span-full">
                             <p className="text-sm text-muted-foreground mb-1">Start Date & Time</p>
@@ -936,6 +961,34 @@ const SportsBet: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Mobile Floating Bet Slip Drawer */}
+        {isMobile && (
+          <Drawer open={isBetSlipOpen} onOpenChange={setIsBetSlipOpen}>
+            <DrawerTrigger asChild>
+              <Button 
+                size="lg"
+                className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg"
+                onClick={() => setIsBetSlipOpen(true)}
+              >
+                <Receipt className="h-6 w-6" />
+                {selectedBet && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-xs flex items-center justify-center">
+                    1
+                  </span>
+                )}
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[85vh]">
+              <DrawerHeader>
+                <DrawerTitle>Bet Slip</DrawerTitle>
+              </DrawerHeader>
+              <div className="overflow-y-auto p-4">
+                <BetSlipContent />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        )}
       </div>
     </div>
   );
