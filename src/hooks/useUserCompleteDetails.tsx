@@ -62,11 +62,11 @@ export const useUserCompleteDetails = (userId: string | null) => {
           .eq('id', userId)
           .maybeSingle(),
 
-        // Get user data from RPC as fallback
+        // Get user data from RPC as fallback (fetch all since search doesn't work with UUID)
         supabase.rpc('get_users_management_data', {
-          p_limit: 1,
+          p_limit: 10000,
           p_offset: 0,
-          p_search: userId,
+          p_search: null,
           p_status: 'all'
         }),
 
@@ -136,7 +136,10 @@ export const useUserCompleteDetails = (userId: string | null) => {
       ]);
 
       // Use profile data if available, otherwise use data from RPC
-      const userFromRpc = (userData.data as any)?.users?.[0];
+      // Filter users by ID since p_search doesn't work with UUID
+      const allUsers = (userData.data as any)?.users || [];
+      const userFromRpc = allUsers.find((u: any) => u.id === userId);
+      
       if (!profileData.data && !userFromRpc) throw new Error('User not found');
 
       // Calculate stats
