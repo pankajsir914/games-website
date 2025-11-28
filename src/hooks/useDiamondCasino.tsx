@@ -39,13 +39,29 @@ export const useDiamondCasino = () => {
   const fetchLiveTables = async () => {
     try {
       setLoading(true);
+      console.log('🎰 Fetching live casino tables...');
+      
       const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
         body: { action: 'get-tables' }
       });
 
-      if (error) throw error;
+      console.log('📡 Edge function response:', { data, error });
 
-      if (data?.success && data?.data?.tables) {
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('No data received from casino API');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Casino API request failed');
+      }
+
+      if (data?.data?.tables && data.data.tables.length > 0) {
+        console.log(`✅ Found ${data.data.tables.length} live tables`);
         // Process image URLs through proxy
         const tablesWithProxyImages = data.data.tables.map((table: any) => ({
           ...table,
@@ -54,14 +70,71 @@ export const useDiamondCasino = () => {
             : undefined
         }));
         setLiveTables(tablesWithProxyImages);
+      } else {
+        console.warn('⚠️ No tables in API response, trying database fallback...');
+        
+        // Fallback to database cache
+        const { data: cachedTables } = await supabase
+          .from('diamond_casino_tables')
+          .select('*')
+          .eq('status', 'active')
+          .order('last_updated', { ascending: false });
+        
+        if (cachedTables && cachedTables.length > 0) {
+          console.log(`✅ Found ${cachedTables.length} cached tables`);
+          const tables = cachedTables.map(ct => ({
+            id: ct.table_id,
+            name: ct.table_name,
+            status: ct.status,
+            players: ct.player_count,
+            data: ct.table_data,
+            imageUrl: (ct.table_data as any)?.imageUrl
+          }));
+          setLiveTables(tables);
+        } else {
+          console.warn('⚠️ No cached tables available');
+          setLiveTables([]);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching live tables:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load live casino tables",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      console.error('❌ Error fetching live tables:', error);
+      
+      // Try database fallback on error
+      try {
+        const { data: cachedTables } = await supabase
+          .from('diamond_casino_tables')
+          .select('*')
+          .eq('status', 'active')
+          .order('last_updated', { ascending: false });
+        
+        if (cachedTables && cachedTables.length > 0) {
+          console.log(`✅ Using ${cachedTables.length} cached tables after error`);
+          const tables = cachedTables.map(ct => ({
+            id: ct.table_id,
+            name: ct.table_name,
+            status: ct.status,
+            players: ct.player_count,
+            data: ct.table_data,
+            imageUrl: (ct.table_data as any)?.imageUrl
+          }));
+          setLiveTables(tables);
+          
+          toast({
+            title: "Using Cached Data",
+            description: "Live connection unavailable. Showing last known tables.",
+            variant: "default"
+          });
+        } else {
+          throw error; // Re-throw if no cache available
+        }
+      } catch (fallbackError) {
+        toast({
+          title: "Casino Connection Error",
+          description: error.message || "Failed to load live casino tables. Please check your API configuration.",
+          variant: "destructive"
+        });
+        setLiveTables([]);
+      }
     } finally {
       setLoading(false);
     }

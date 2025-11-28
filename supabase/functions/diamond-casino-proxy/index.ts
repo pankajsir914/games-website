@@ -165,6 +165,7 @@ serve(async (req) => {
     if (action === 'get-tables') {
       const apiUrl = `${CASINO_API_URL}/tables`;
       console.log(`📡 Fetching tables from: ${apiUrl}`);
+      console.log(`🔑 Using API key: ${CASINO_API_KEY ? 'Present (length: ' + CASINO_API_KEY.length + ')' : 'Missing'}`);
       
       const response = await fetch(apiUrl, {
         headers: {
@@ -173,11 +174,17 @@ serve(async (req) => {
         }
       });
 
+      console.log(`📥 API Response Status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch tables: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ API Error Response: ${errorText}`);
+        throw new Error(`Failed to fetch tables: ${response.status} ${response.statusText}`);
       }
 
       const apiData = await response.json();
+      console.log(`📦 API Data received:`, JSON.stringify(apiData).substring(0, 200));
+      
       const tables = (apiData.tables || apiData.data || []).map((table: any) => ({
         id: table.id || table.gmid,
         name: table.name || table.gname,
@@ -187,6 +194,8 @@ serve(async (req) => {
         players: table.players || 0,
         imageUrl: table.imageUrl || table.imgpath
       }));
+
+      console.log(`✅ Processed ${tables.length} tables`);
 
       // Update database cache
       for (const table of tables) {
@@ -424,10 +433,29 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Diamond Casino API error:', error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message 
-    }), {
+    
+    // More detailed error response
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorDetails = {
+      success: false,
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+      action: 'unknown'
+    };
+    
+    // Try to extract action from request if possible
+    try {
+      const url = new URL(req.url);
+      if (url.searchParams.has('action')) {
+        errorDetails.action = url.searchParams.get('action') || 'unknown';
+      }
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+    
+    console.error('Error details:', errorDetails);
+    
+    return new Response(JSON.stringify(errorDetails), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
