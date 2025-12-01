@@ -163,14 +163,14 @@ serve(async (req) => {
 
     // Get live tables
     if (action === 'get-tables') {
-      const apiUrl = `${CASINO_API_URL}/tables`;
+      const apiUrl = `${CASINO_API_URL}/casino/tables`;
       console.log(`📡 Fetching tables from: ${apiUrl}`);
       console.log(`🔑 Using API key: ${CASINO_API_KEY ? 'Present (length: ' + CASINO_API_KEY.length + ')' : 'Missing'}`);
       
       const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
-          'Content-Type': 'application/json',
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
 
@@ -218,10 +218,10 @@ serve(async (req) => {
 
     // Get specific table details
     else if (action === 'get-table' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/table/${tableId}`, {
+      const response = await fetch(`${CASINO_API_URL}/casino/table/${tableId}`, {
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
-          'Content-Type': 'application/json',
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
 
@@ -235,10 +235,10 @@ serve(async (req) => {
 
     // Get live stream URL
     else if (action === 'get-stream-url' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/stream/${tableId}`, {
+      const response = await fetch(`${CASINO_API_URL}/casino/tv_url?id=${tableId}`, {
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
-          'Content-Type': 'application/json',
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
 
@@ -256,10 +256,10 @@ serve(async (req) => {
 
     // Get current result
     else if (action === 'get-result' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/result/${tableId}`, {
+      const response = await fetch(`${CASINO_API_URL}/casino/result/${tableId}`, {
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
-          'Content-Type': 'application/json',
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
 
@@ -274,10 +274,10 @@ serve(async (req) => {
     // Get result history
     else if (action === 'get-result-history' && tableId) {
       const targetDate = date || new Date().toISOString().split('T')[0];
-      const response = await fetch(`${CASINO_API_URL}/history/${tableId}?date=${targetDate}`, {
+      const response = await fetch(`${CASINO_API_URL}/casino/history/${tableId}?date=${targetDate}`, {
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
-          'Content-Type': 'application/json',
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
 
@@ -291,10 +291,10 @@ serve(async (req) => {
 
     // Get table odds
     else if (action === 'get-odds' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/odds/${tableId}`, {
+      const response = await fetch(`${CASINO_API_URL}/casino/odds/${tableId}`, {
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
-          'Content-Type': 'application/json',
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
 
@@ -308,17 +308,12 @@ serve(async (req) => {
 
     // Get all casino table IDs
     else if (action === 'get-table-ids') {
-      const tableIdUrl = 'https://diamondcasinoapi.turnkeyxgaming.com/casino/tableid';
-      console.log(`📡 Fetching all table IDs from: ${tableIdUrl}`);
-      
-      const response = await fetch(tableIdUrl, {
+      const response = await fetch(`${CASINO_API_URL}/casino/tableid`, {
         headers: {
           'x-rapidapi-key': CASINO_API_KEY,
           'x-rapidapi-host': 'x-turnkeyxgaming-key',
         }
       });
-
-      console.log(`📥 Table IDs Response Status: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -371,10 +366,11 @@ serve(async (req) => {
       }
 
       // Place bet with casino API
-      const betResponse = await fetch(`${CASINO_API_URL}/place-bet`, {
+      const betResponse = await fetch(`${CASINO_API_URL}/casino/place-bet`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${CASINO_API_KEY}`,
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
