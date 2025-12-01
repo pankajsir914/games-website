@@ -306,6 +306,32 @@ serve(async (req) => {
       result = { success: true, data };
     }
 
+    // Get all casino table IDs
+    else if (action === 'get-table-ids') {
+      const tableIdUrl = 'https://diamondcasinoapi.turnkeyxgaming.com/casino/tableid';
+      console.log(`📡 Fetching all table IDs from: ${tableIdUrl}`);
+      
+      const response = await fetch(tableIdUrl, {
+        headers: {
+          'x-rapidapi-key': CASINO_API_KEY,
+          'x-rapidapi-host': 'x-turnkeyxgaming-key',
+        }
+      });
+
+      console.log(`📥 Table IDs Response Status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Table IDs Error: ${errorText}`);
+        throw new Error(`Failed to fetch table IDs: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Table IDs data received:`, JSON.stringify(data).substring(0, 200));
+      
+      result = { success: true, data };
+    }
+
     // Place bet
     else if (action === 'place-bet' && betData) {
       const authHeader = req.headers.get('authorization');

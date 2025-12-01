@@ -362,6 +362,32 @@ export const useDiamondCasino = () => {
     }
   };
 
+  // Fetch all casino table IDs
+  const fetchAllTableIds = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
+        body: { action: 'get-table-ids' }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        console.log('🎰 All Table IDs:', data.data);
+        return data.data;
+      }
+    } catch (error: any) {
+      console.error('Error fetching table IDs:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch table IDs",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     liveTables,
     selectedTable,
@@ -379,6 +405,7 @@ export const useDiamondCasino = () => {
     setSelectedTable,
     fetchStreamUrl,
     fetchCurrentResult,
-    fetchResultHistory
+    fetchResultHistory,
+    fetchAllTableIds
   };
 };
