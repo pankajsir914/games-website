@@ -163,7 +163,7 @@ serve(async (req) => {
 
     // Get live tables
     if (action === 'get-tables') {
-      const apiUrl = `${CASINO_API_URL}/casino/tables`;
+      const apiUrl = `${CASINO_API_URL}/casino/tableid`;
       console.log(`📡 Fetching tables from: ${apiUrl}`);
       console.log(`🔑 Using API key: ${CASINO_API_KEY ? 'Present (length: ' + CASINO_API_KEY.length + ')' : 'Missing'}`);
       
@@ -183,16 +183,19 @@ serve(async (req) => {
       }
 
       const apiData = await response.json();
-      console.log(`📦 API Data received:`, JSON.stringify(apiData).substring(0, 200));
+      console.log(`📦 API Data received:`, JSON.stringify(apiData).substring(0, 500));
       
-      const tables = (apiData.tables || apiData.data || []).map((table: any) => ({
-        id: table.id || table.gmid,
-        name: table.name || table.gname,
-        type: table.type || table.gmid,
+      // Handle different response formats - API might return array directly or wrapped in object
+      const rawTables = Array.isArray(apiData) ? apiData : (apiData.tables || apiData.data || apiData.result || []);
+      
+      const tables = rawTables.map((table: any) => ({
+        id: table.id || table.gmid || table.gtype,
+        name: table.name || table.gname || table.gtype,
+        type: table.type || table.gmid || table.gtype,
         data: table,
-        status: table.status || 'active',
+        status: table.status || table.gstatus || 'active',
         players: table.players || 0,
-        imageUrl: table.imageUrl || table.imgpath
+        imageUrl: table.imageUrl || table.imgpath || table.img
       }));
 
       console.log(`✅ Processed ${tables.length} tables`);
