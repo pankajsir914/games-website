@@ -184,38 +184,56 @@ serve(async (req) => {
       console.log(`📦 API Data type: ${typeof apiData}, isArray: ${Array.isArray(apiData)}`);
       console.log(`📦 API Data received:`, JSON.stringify(apiData).substring(0, 1000));
       
-      // Handle different response formats - API might return array directly, wrapped in object, or as object with table ids as keys
+      // Casino image base URL
+      const CASINO_IMAGE_BASE = 'https://sitethemedata.com/casino-games';
+      
+      // Handle response format: {"success":true,"msg":"Success","status":200,"data":{"t1":[...]}}
       let rawTables: any[] = [];
       
       if (Array.isArray(apiData)) {
         rawTables = apiData;
       } else if (apiData && typeof apiData === 'object') {
-        // Check for common wrapper properties
-        if (Array.isArray(apiData.tables)) {
-          rawTables = apiData.tables;
-        } else if (Array.isArray(apiData.data)) {
+        // Check for t1 array inside data (common format from this API)
+        if (apiData.data && Array.isArray(apiData.data.t1)) {
+          rawTables = apiData.data.t1;
+        } else if (apiData.data && Array.isArray(apiData.data)) {
           rawTables = apiData.data;
+        } else if (Array.isArray(apiData.tables)) {
+          rawTables = apiData.tables;
         } else if (Array.isArray(apiData.result)) {
           rawTables = apiData.result;
-        } else {
-          // API might return object with table IDs as keys - convert to array
-          rawTables = Object.values(apiData).filter((item: any) => 
-            item && typeof item === 'object' && (item.gmid || item.gname || item.id)
-          );
+        } else if (apiData.data && typeof apiData.data === 'object') {
+          // data might be an object with arrays as values
+          const dataArrays = Object.values(apiData.data).filter(Array.isArray);
+          if (dataArrays.length > 0) {
+            rawTables = dataArrays.flat();
+          }
         }
       }
       
       console.log(`📦 Raw tables count: ${rawTables.length}`);
       
-      const tables = rawTables.map((table: any) => ({
-        id: table.id || table.gmid || table.gtype || String(Math.random()),
-        name: table.name || table.gname || table.gtype || 'Unknown Table',
-        type: table.type || table.gmid || table.gtype,
-        data: table,
-        status: table.status || table.gstatus || 'active',
-        players: table.players || 0,
-        imageUrl: table.imageUrl || table.imgpath || table.img
-      }));
+      const tables = rawTables.map((table: any) => {
+        // Build full image URL from imgpath
+        let imageUrl = '';
+        if (table.imgpath) {
+          imageUrl = `${CASINO_IMAGE_BASE}/${table.imgpath}`;
+        } else if (table.imageUrl) {
+          imageUrl = table.imageUrl;
+        } else if (table.img) {
+          imageUrl = table.img.startsWith('http') ? table.img : `${CASINO_IMAGE_BASE}/${table.img}`;
+        }
+        
+        return {
+          id: table.gmid || table.id || table.gtype || String(Math.random()),
+          name: table.gname || table.name || table.gtype || 'Unknown Table',
+          type: table.gmid || table.type || table.gtype,
+          data: table,
+          status: table.status || table.gstatus || 'active',
+          players: table.players || 0,
+          imageUrl
+        };
+      });
 
       console.log(`✅ Processed ${tables.length} tables`);
 
