@@ -309,7 +309,7 @@ serve(async (req) => {
 
     // Get all casino table IDs from Hostinger VPS proxy
     else if (action === 'get-table-ids') {
-      const HOSTINGER_PROXY_URL = 'http://72.61.169.60:8000/api/casino/tableid';
+      const HOSTINGER_PROXY_URL = 'http://72.61.169.60:8000/api';
       console.log(`📡 Fetching table IDs from Hostinger proxy: ${HOSTINGER_PROXY_URL}`);
       
       const response = await fetch(HOSTINGER_PROXY_URL, {
