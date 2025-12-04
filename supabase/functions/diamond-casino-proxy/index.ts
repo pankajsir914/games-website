@@ -240,93 +240,113 @@ serve(async (req) => {
       result = { success: true, data: { tables } };
     }
 
-    // Get specific table details
+    // Get specific table details - use cached data from tables list
     else if (action === 'get-table' && tableId) {
       console.log(`📡 Fetching table details for: ${tableId}`);
-      const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${tableId}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) {
-        console.log(`⚠️ Table details not available, using cached data`);
-        // Return basic table info from database
-        const { data: cachedTable } = await supabase
-          .from('diamond_casino_tables')
-          .select('*')
-          .eq('table_id', tableId)
-          .single();
-        
-        result = { success: true, data: cachedTable?.table_data || { id: tableId } };
+      
+      // Get table data from our database cache (populated by get-tables)
+      const { data: cachedTable } = await supabase
+        .from('diamond_casino_tables')
+        .select('*')
+        .eq('table_id', tableId)
+        .single();
+      
+      if (cachedTable) {
+        console.log(`✅ Found cached table data for: ${tableId}`);
+        result = { success: true, data: cachedTable.table_data || { id: tableId, name: cachedTable.table_name } };
       } else {
-        const data = await response.json();
-        result = { success: true, data };
+        console.log(`⚠️ No cached data for table: ${tableId}`);
+        result = { success: true, data: { id: tableId } };
       }
     }
 
-    // Get live stream URL
+    // Get live stream URL via Hostinger proxy
     else if (action === 'get-stream-url' && tableId) {
       console.log(`📡 Fetching stream URL for: ${tableId}`);
-      const response = await fetch(`${HOSTINGER_PROXY_BASE}/tv_url?id=${tableId}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      try {
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/tv_url?id=${tableId}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (!response.ok) {
-        console.log(`⚠️ Stream URL not available for: ${tableId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const streamUrl = data.url || data.tv_url || data.stream_url || data.data?.url || data.data;
+          console.log(`✅ Stream URL response:`, JSON.stringify(data).substring(0, 200));
+          result = { success: true, data, streamUrl };
+        } else {
+          console.log(`⚠️ Stream URL API returned ${response.status} for: ${tableId}`);
+          result = { success: true, data: null, streamUrl: null };
+        }
+      } catch (fetchError) {
+        console.log(`⚠️ Stream URL fetch error for: ${tableId}`, fetchError);
         result = { success: true, data: null, streamUrl: null };
-      } else {
-        const data = await response.json();
-        const streamUrl = data.url || data.tv_url || data.stream_url || data.data?.url;
-        console.log(`✅ Stream URL response:`, JSON.stringify(data).substring(0, 200));
-        result = { success: true, data, streamUrl };
       }
     }
 
-    // Get current result
+    // Get current result via Hostinger proxy
     else if (action === 'get-result' && tableId) {
       console.log(`📡 Fetching current result for: ${tableId}`);
-      const response = await fetch(`${HOSTINGER_PROXY_BASE}/result?id=${tableId}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      try {
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/result?id=${tableId}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (!response.ok) {
-        console.log(`⚠️ Current result not available for: ${tableId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Result data for ${tableId}:`, JSON.stringify(data).substring(0, 300));
+          result = { success: true, data };
+        } else {
+          console.log(`⚠️ Result API returned ${response.status} for: ${tableId}`);
+          result = { success: true, data: null };
+        }
+      } catch (fetchError) {
+        console.log(`⚠️ Result fetch error for: ${tableId}`, fetchError);
         result = { success: true, data: null };
-      } else {
-        const data = await response.json();
-        result = { success: true, data };
       }
     }
 
-    // Get result history
+    // Get result history via Hostinger proxy
     else if (action === 'get-result-history' && tableId) {
       const targetDate = date || new Date().toISOString().split('T')[0];
       console.log(`📡 Fetching result history for: ${tableId}, date: ${targetDate}`);
-      const response = await fetch(`${HOSTINGER_PROXY_BASE}/history?id=${tableId}&date=${targetDate}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      try {
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/history?id=${tableId}&date=${targetDate}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (!response.ok) {
-        console.log(`⚠️ Result history not available for: ${tableId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ History data for ${tableId}:`, JSON.stringify(data).substring(0, 300));
+          result = { success: true, data: Array.isArray(data) ? data : (data.data || []) };
+        } else {
+          console.log(`⚠️ History API returned ${response.status} for: ${tableId}`);
+          result = { success: true, data: [] };
+        }
+      } catch (fetchError) {
+        console.log(`⚠️ History fetch error for: ${tableId}`, fetchError);
         result = { success: true, data: [] };
-      } else {
-        const data = await response.json();
-        result = { success: true, data };
       }
     }
 
-    // Get table odds
+    // Get table odds via Hostinger proxy
     else if (action === 'get-odds' && tableId) {
       console.log(`📡 Fetching odds for: ${tableId}`);
-      const response = await fetch(`${HOSTINGER_PROXY_BASE}/odds?id=${tableId}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      try {
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/odds?id=${tableId}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
 
-      if (!response.ok) {
-        console.log(`⚠️ Odds not available for: ${tableId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Odds data for ${tableId}:`, JSON.stringify(data).substring(0, 300));
+          result = { success: true, data };
+        } else {
+          console.log(`⚠️ Odds API returned ${response.status} for: ${tableId}`);
+          result = { success: true, data: null };
+        }
+      } catch (fetchError) {
+        console.log(`⚠️ Odds fetch error for: ${tableId}`, fetchError);
         result = { success: true, data: null };
-      } else {
-        const data = await response.json();
-        result = { success: true, data };
       }
     }
 
