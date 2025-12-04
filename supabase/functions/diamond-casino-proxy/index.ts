@@ -330,25 +330,18 @@ serve(async (req) => {
       }
     }
 
-    // Get table odds - fetch real-time odds from TurnkeyX API
+    // Get table odds - fetch real-time data from Hostinger proxy
     else if (action === 'get-odds' && tableId) {
       console.log(`📡 Fetching real-time odds for: ${tableId}`);
       try {
-        // First try to get from TurnkeyX API directly
-        const turnkeyUrl = `${CASINO_API_URL}/casino/getPrivateData?id=${tableId}`;
-        console.log(`📡 Trying TurnkeyX API: ${turnkeyUrl}`);
-        
-        const response = await fetch(turnkeyUrl, {
-          headers: { 
-            'x-rapidapi-key': CASINO_API_KEY,
-            'x-rapidapi-host': 'turnkeyxgaming.p.rapidapi.com',
-            'Content-Type': 'application/json'
-          }
+        // Use the 'data' endpoint for real-time betting odds
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${tableId}`, {
+          headers: { 'Content-Type': 'application/json' }
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`✅ TurnkeyX Odds data for ${tableId}:`, JSON.stringify(data).substring(0, 500));
+          console.log(`✅ Real-time data for ${tableId}:`, JSON.stringify(data).substring(0, 500));
           
           // Extract betting options from the response
           const oddsData = data?.data || data;
@@ -358,36 +351,59 @@ serve(async (req) => {
           ['t1', 't2', 't3'].forEach((key) => {
             if (oddsData[key] && Array.isArray(oddsData[key])) {
               oddsData[key].forEach((item: any) => {
-                if (item.nat || item.nation) {
+                if (item.nat || item.nation || item.name) {
                   bettingOptions.push({
-                    type: item.nat || item.nation,
+                    type: item.nat || item.nation || item.name,
                     back: parseFloat(item.b1 || item.b || '0') || 0,
                     lay: parseFloat(item.l1 || item.l || '0') || 0,
                     status: item.gstatus === '0' ? 'suspended' : 'active',
                     min: item.min || 100,
                     max: item.max || 100000,
                     sid: item.sid,
-                    mid: item.mid
+                    mid: oddsData.mid || item.mid
                   });
                 }
               });
             }
           });
           
-          console.log(`✅ Extracted ${bettingOptions.length} betting options`);
+          console.log(`✅ Extracted ${bettingOptions.length} betting options from data endpoint`);
           result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
         } else {
-          console.log(`⚠️ TurnkeyX Odds API returned ${response.status}`);
+          console.log(`⚠️ Data endpoint returned ${response.status}, trying data1...`);
           
-          // Fallback: Try Hostinger proxy
-          const hostingerResponse = await fetch(`${HOSTINGER_PROXY_BASE}/odds?type=${tableId}`, {
+          // Try data1 endpoint as fallback
+          const data1Response = await fetch(`${HOSTINGER_PROXY_BASE}/data1?id=${tableId}`, {
             headers: { 'Content-Type': 'application/json' }
           });
           
-          if (hostingerResponse.ok) {
-            const hostData = await hostingerResponse.json();
-            console.log(`✅ Hostinger Odds data:`, JSON.stringify(hostData).substring(0, 300));
-            result = { success: true, data: hostData };
+          if (data1Response.ok) {
+            const data1 = await data1Response.json();
+            console.log(`✅ Data1 response for ${tableId}:`, JSON.stringify(data1).substring(0, 500));
+            
+            const oddsData = data1?.data || data1;
+            const bettingOptions: any[] = [];
+            
+            ['t1', 't2', 't3'].forEach((key) => {
+              if (oddsData[key] && Array.isArray(oddsData[key])) {
+                oddsData[key].forEach((item: any) => {
+                  if (item.nat || item.nation || item.name) {
+                    bettingOptions.push({
+                      type: item.nat || item.nation || item.name,
+                      back: parseFloat(item.b1 || item.b || '0') || 0,
+                      lay: parseFloat(item.l1 || item.l || '0') || 0,
+                      status: item.gstatus === '0' ? 'suspended' : 'active',
+                      min: item.min || 100,
+                      max: item.max || 100000,
+                      sid: item.sid,
+                      mid: oddsData.mid || item.mid
+                    });
+                  }
+                });
+              }
+            });
+            
+            result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
           } else {
             result = { success: true, data: null };
           }
