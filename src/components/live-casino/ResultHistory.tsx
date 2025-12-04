@@ -25,16 +25,24 @@ export const ResultHistory = ({ results, tableId }: ResultHistoryProps) => {
               </p>
             ) : (
               results.map((result: any, index: number) => {
-                const winnerDisplay = result.nat || result.win || 'N/A';
+                // Convert win value to display text
+                const winValue = result.win || result.nat || 'N/A';
+                const getWinnerLabel = (win: string) => {
+                  if (win === '1') return 'Player A';
+                  if (win === '2') return 'Player B';
+                  if (win === 'T' || win === 'tie') return 'Tie';
+                  return win;
+                };
+                const winnerDisplay = getWinnerLabel(String(winValue));
                 
                 return (
                   <div 
-                    key={index} 
+                    key={result.mid || index} 
                     className="flex justify-between items-center p-2 sm:p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                   >
                     <div className="flex flex-col">
                       <span className="font-medium text-sm sm:text-base">
-                        Round #{result.mid || index + 1}
+                        Round #{result.mid ? String(result.mid).slice(-6) : index + 1}
                       </span>
                       <span className="text-xs sm:text-sm text-muted-foreground">
                         Winner: {winnerDisplay}
@@ -44,6 +52,7 @@ export const ResultHistory = ({ results, tableId }: ResultHistoryProps) => {
                       <div className={`font-bold text-base sm:text-lg ${
                         winnerDisplay === 'Player A' ? 'text-blue-500' : 
                         winnerDisplay === 'Player B' ? 'text-red-500' : 
+                        winnerDisplay === 'Tie' ? 'text-yellow-500' :
                         'text-primary'
                       }`}>
                         {winnerDisplay}

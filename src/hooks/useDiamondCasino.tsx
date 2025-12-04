@@ -337,14 +337,23 @@ export const useDiamondCasino = () => {
       
       if (error) throw error;
       
-      if (data?.success && data?.data?.data) {
+      console.log('📊 Current result API response:', data);
+      
+      // Handle nested response structure: data.data.data.res
+      const resData = data?.data?.data?.res || data?.data?.res || [];
+      const tableName = data?.data?.data?.res1?.cname || data?.data?.res1?.cname || '';
+      
+      if (resData.length > 0) {
         const resultData = {
-          tableName: data.data.data.res1?.cname || '',
-          latestResult: data.data.data.res?.[0] || null,
-          results: data.data.data.res || []
+          tableName: tableName,
+          latestResult: resData[0] || null,
+          results: resData
         };
         setCurrentResult(resultData);
         setResults(prev => ({ ...prev, [tableId]: resultData }));
+        
+        // Also update resultHistory with this data since history API often returns empty
+        setResultHistory(resData);
       }
     } catch (error) {
       console.error('Error fetching result:', error);
@@ -360,9 +369,15 @@ export const useDiamondCasino = () => {
       
       if (error) throw error;
       
-      if (data?.success && data?.data?.data) {
-        setResultHistory(data.data.data || []);
+      console.log('📊 Result history API response:', data);
+      
+      // Handle response - data.data is the array directly
+      const historyData = Array.isArray(data?.data) ? data.data : (data?.data?.data || []);
+      
+      if (historyData.length > 0) {
+        setResultHistory(historyData);
       }
+      // Note: If history is empty, we keep the results from fetchCurrentResult
     } catch (error) {
       console.error('Error fetching result history:', error);
     }
