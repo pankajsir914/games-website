@@ -332,10 +332,12 @@ serve(async (req) => {
 
     // Get table odds - fetch real-time data from Hostinger proxy
     else if (action === 'get-odds' && tableId) {
-      console.log(`📡 Fetching real-time odds for: ${tableId}`);
+      // tableId is actually the gmid (game market id) needed for odds
+      const gmid = tableId;
+      console.log(`📡 Fetching real-time odds for gmid: ${gmid}`);
       try {
-        // Use the 'data' endpoint for real-time betting odds
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${tableId}`, {
+        // Use the 'data' endpoint with gmid parameter for real-time betting odds
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${gmid}`, {
           headers: { 'Content-Type': 'application/json' }
         });
 
