@@ -332,18 +332,43 @@ serve(async (req) => {
 
     // Get table odds - fetch real-time data from Hostinger proxy
     else if (action === 'get-odds' && tableId) {
-      // tableId is actually the gmid (game market id) needed for odds
-      const gmid = tableId;
-      console.log(`📡 Fetching real-time odds for gmid: ${gmid}`);
+      console.log(`📡 Fetching real-time odds for tableId: ${tableId}`);
       try {
-        // Use the 'data' endpoint with gmid parameter for real-time betting odds
+        // Step 1: First get gmid from tableid endpoint
+        let gmid = tableId; // fallback to tableId if we can't get gmid
+        
+        const tableIdResponse = await fetch(`${HOSTINGER_PROXY_BASE}/tableid?id=${tableId}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (tableIdResponse.ok) {
+          const tableIdData = await tableIdResponse.json();
+          console.log(`📋 TableId response:`, JSON.stringify(tableIdData).substring(0, 300));
+          
+          // Extract gmid from the response (could be in data.gmid, data.mid, etc.)
+          const extractedGmid = tableIdData?.data?.gmid || tableIdData?.gmid || 
+                               tableIdData?.data?.mid || tableIdData?.mid ||
+                               tableIdData?.data?.data?.gmid || tableIdData?.data?.data?.mid;
+          
+          if (extractedGmid) {
+            gmid = extractedGmid;
+            console.log(`✅ Extracted gmid: ${gmid} from tableid endpoint`);
+          } else {
+            console.log(`⚠️ Could not extract gmid from tableid response, using tableId as fallback`);
+          }
+        } else {
+          console.log(`⚠️ TableId endpoint returned ${tableIdResponse.status}`);
+        }
+        
+        // Step 2: Use gmid to fetch odds from data endpoint
+        console.log(`📡 Fetching odds with gmid: ${gmid}`);
         const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${gmid}`, {
           headers: { 'Content-Type': 'application/json' }
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`✅ Real-time data for ${tableId}:`, JSON.stringify(data).substring(0, 500));
+          console.log(`✅ Real-time data for gmid ${gmid}:`, JSON.stringify(data).substring(0, 500));
           
           // Extract betting options from the response
           const oddsData = data?.data || data;
