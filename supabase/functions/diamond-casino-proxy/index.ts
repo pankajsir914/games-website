@@ -161,16 +161,14 @@ serve(async (req) => {
 
     let result;
 
-    // Get live tables
+    // Get live tables from Hostinger VPS proxy
     if (action === 'get-tables') {
-      const apiUrl = `${CASINO_API_URL}/casino/tableid`;
-      console.log(`📡 Fetching tables from: ${apiUrl}`);
-      console.log(`🔑 Using API key: ${CASINO_API_KEY ? 'Present (length: ' + CASINO_API_KEY.length + ')' : 'Missing'}`);
+      const HOSTINGER_PROXY_URL = 'http://72.61.169.60:8000/api/casino/tableid';
+      console.log(`📡 Fetching tables from Hostinger proxy: ${HOSTINGER_PROXY_URL}`);
       
-      const response = await fetch(apiUrl, {
+      const response = await fetch(HOSTINGER_PROXY_URL, {
         headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
+          'Content-Type': 'application/json',
         }
       });
 
@@ -309,12 +307,14 @@ serve(async (req) => {
       result = { success: true, data };
     }
 
-    // Get all casino table IDs
+    // Get all casino table IDs from Hostinger VPS proxy
     else if (action === 'get-table-ids') {
-      const response = await fetch(`${CASINO_API_URL}/casino/tableid`, {
+      const HOSTINGER_PROXY_URL = 'http://72.61.169.60:8000/api/casino/tableid';
+      console.log(`📡 Fetching table IDs from Hostinger proxy: ${HOSTINGER_PROXY_URL}`);
+      
+      const response = await fetch(HOSTINGER_PROXY_URL, {
         headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
+          'Content-Type': 'application/json',
         }
       });
 
@@ -328,7 +328,6 @@ serve(async (req) => {
       console.log(`✅ Table IDs data received:`, JSON.stringify(data).substring(0, 200));
       
       result = { success: true, data };
-    }
 
     // Place bet
     else if (action === 'place-bet' && betData) {
