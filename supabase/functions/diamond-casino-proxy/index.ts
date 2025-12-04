@@ -181,14 +181,35 @@ serve(async (req) => {
       }
 
       const apiData = await response.json();
-      console.log(`📦 API Data received:`, JSON.stringify(apiData).substring(0, 500));
+      console.log(`📦 API Data type: ${typeof apiData}, isArray: ${Array.isArray(apiData)}`);
+      console.log(`📦 API Data received:`, JSON.stringify(apiData).substring(0, 1000));
       
-      // Handle different response formats - API might return array directly or wrapped in object
-      const rawTables = Array.isArray(apiData) ? apiData : (apiData.tables || apiData.data || apiData.result || []);
+      // Handle different response formats - API might return array directly, wrapped in object, or as object with table ids as keys
+      let rawTables: any[] = [];
+      
+      if (Array.isArray(apiData)) {
+        rawTables = apiData;
+      } else if (apiData && typeof apiData === 'object') {
+        // Check for common wrapper properties
+        if (Array.isArray(apiData.tables)) {
+          rawTables = apiData.tables;
+        } else if (Array.isArray(apiData.data)) {
+          rawTables = apiData.data;
+        } else if (Array.isArray(apiData.result)) {
+          rawTables = apiData.result;
+        } else {
+          // API might return object with table IDs as keys - convert to array
+          rawTables = Object.values(apiData).filter((item: any) => 
+            item && typeof item === 'object' && (item.gmid || item.gname || item.id)
+          );
+        }
+      }
+      
+      console.log(`📦 Raw tables count: ${rawTables.length}`);
       
       const tables = rawTables.map((table: any) => ({
-        id: table.id || table.gmid || table.gtype,
-        name: table.name || table.gname || table.gtype,
+        id: table.id || table.gmid || table.gtype || String(Math.random()),
+        name: table.name || table.gname || table.gtype || 'Unknown Table',
         type: table.type || table.gmid || table.gtype,
         data: table,
         status: table.status || table.gstatus || 'active',
