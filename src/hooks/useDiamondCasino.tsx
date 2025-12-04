@@ -170,30 +170,59 @@ export const useDiamondCasino = () => {
     }
   };
 
-  // Fetch table odds
+  // Fetch table odds - use get-odds endpoint
   const fetchOdds = async (tableId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
-        body: { action: 'get-table', tableId }
+        body: { action: 'get-odds', tableId }
       });
+
+      console.log('📊 Odds API response:', data);
 
       if (error) throw error;
 
-      if (data?.success && data?.data?.data?.sub) {
+      // Handle different response structures
+      const oddsData = data?.data?.data || data?.data || {};
+      const subData = oddsData?.sub || oddsData?.t1 || oddsData?.t2 || [];
+      
+      if (Array.isArray(subData) && subData.length > 0) {
         // Transform the API response to our format
-        const bets = data.data.data.sub.map((bet: any) => ({
-          type: bet.nat,
-          odds: bet.b,
-          status: bet.gstatus,
-          min: bet.min,
-          max: bet.max,
-          sid: bet.sid
+        const bets = subData.map((bet: any) => ({
+          type: bet.nat || bet.nation || bet.name || `Option ${bet.sid || bet.id}`,
+          odds: parseFloat(bet.b || bet.back || bet.rate || '1') || 1,
+          status: bet.gstatus || bet.status || 'active',
+          min: bet.min || 10,
+          max: bet.max || 100000,
+          sid: bet.sid || bet.id
         }));
         
         setOdds({ 
           bets,
-          rawData: data.data.data 
+          rawData: oddsData 
         });
+      } else if (oddsData) {
+        // Try to extract betting options from other response formats
+        const extractedBets: any[] = [];
+        
+        // Check for t1, t2 arrays (common in teenpatti)
+        ['t1', 't2', 't3'].forEach((key, idx) => {
+          if (oddsData[key] && Array.isArray(oddsData[key])) {
+            oddsData[key].forEach((item: any) => {
+              extractedBets.push({
+                type: item.nat || item.nation || `Player ${idx + 1}`,
+                odds: parseFloat(item.b || item.back || item.rate || '1') || 1,
+                status: item.gstatus || 'active',
+                min: item.min || 10,
+                max: item.max || 100000,
+                sid: item.sid
+              });
+            });
+          }
+        });
+        
+        if (extractedBets.length > 0) {
+          setOdds({ bets: extractedBets, rawData: oddsData });
+        }
       }
     } catch (error) {
       console.error('Error fetching odds:', error);
