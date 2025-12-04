@@ -60,72 +60,54 @@ serve(async (req) => {
       const imagePath = url.searchParams.get('image');
       
       if (imagePath) {
-        // Try Redis cache first
-        if (redis) {
-          try {
-            const cached = await redis.get(`image:${imagePath}`);
-            if (cached) {
-              console.log('✅ Image cache hit:', imagePath);
-              return new Response(cached, {
-                headers: {
-                  ...corsHeaders,
-                  'Content-Type': 'image/jpeg',
-                  'Cache-Control': 'public, max-age=86400'
-                }
-              });
-            }
-          } catch (error) {
-            console.error('Redis get error:', error);
-          }
-        }
-
-        // Try multiple CloudFront URL variations
+        console.log(`🖼️ Proxying image: ${imagePath}`);
+        
+        // Try multiple image source URLs
         const urlVariations = [
+          `https://sitethemedata.com/casino-games/${imagePath}`,
           `https://dzm0kbaskt4pv.cloudfront.net/v11/images/games/${imagePath}`,
           `https://dzm0kbaskt4pv.cloudfront.net/images/games/${imagePath}`,
-          `https://dzm0kbaskt4pv.cloudfront.net/games/${imagePath}`,
-          `https://dzm0kbaskt4pv.cloudfront.net/${imagePath}`
         ];
 
         for (const imageUrl of urlVariations) {
           try {
+            console.log(`📡 Trying image URL: ${imageUrl}`);
             const imageResponse = await fetch(imageUrl, {
               headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://sitethemedata.com/',
               }
             });
 
             if (imageResponse.ok) {
-              const imageBlob = await imageResponse.blob();
               const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+              const imageData = await imageResponse.arrayBuffer();
               
-              // Cache in Redis
-              if (redis) {
-                try {
-                  const arrayBuffer = await imageBlob.arrayBuffer();
-                  await redis.setex(`image:${imagePath}`, 86400, new Uint8Array(arrayBuffer));
-                } catch (error) {
-                  console.error('Redis cache error:', error);
-                }
-              }
+              console.log(`✅ Image fetched successfully from: ${imageUrl} (${imageData.byteLength} bytes)`);
               
-              return new Response(imageBlob, {
+              return new Response(imageData, {
                 headers: {
                   ...corsHeaders,
                   'Content-Type': contentType,
-                  'Cache-Control': 'public, max-age=86400'
+                  'Cache-Control': 'public, max-age=86400',
+                  'X-Image-Source': imageUrl
                 }
               });
+            } else {
+              console.log(`❌ Image URL returned ${imageResponse.status}: ${imageUrl}`);
             }
           } catch (error) {
             console.error(`Fetch error for ${imageUrl}:`, error);
           }
         }
 
+        console.error(`❌ All image URLs failed for: ${imagePath}`);
         return new Response(JSON.stringify({ 
           error: 'Image not found', 
-          path: imagePath 
+          path: imagePath,
+          triedUrls: urlVariations
         }), {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

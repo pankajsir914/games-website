@@ -62,8 +62,20 @@ export const useDiamondCasino = () => {
 
       if (data?.data?.tables && data.data.tables.length > 0) {
         console.log(`✅ Found ${data.data.tables.length} live tables`);
-        // Use direct image URLs from the API (already constructed in edge function)
-        setLiveTables(data.data.tables);
+        // Proxy images through edge function to bypass CORS
+        const tablesWithProxiedImages = data.data.tables.map((table: any) => {
+          // Extract just the filename from the imageUrl
+          let imgPath = '';
+          if (table.imageUrl) {
+            const parts = table.imageUrl.split('/');
+            imgPath = parts[parts.length - 1]; // Get just the filename
+          }
+          return {
+            ...table,
+            imageUrl: imgPath ? `https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(imgPath)}` : undefined
+          };
+        });
+        setLiveTables(tablesWithProxiedImages);
       } else {
         console.warn('⚠️ No tables in API response, trying database fallback...');
         
