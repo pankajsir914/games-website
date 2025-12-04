@@ -54,6 +54,8 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const redis = await getRedisClient();
     
+    // Hostinger proxy base URL for all casino API calls
+    const HOSTINGER_PROXY_BASE = 'http://72.61.169.60:8000/api/casino';
     // Handle image proxy requests (GET requests with image path)
     if (req.method === 'GET') {
       const url = new URL(req.url);
@@ -240,92 +242,92 @@ serve(async (req) => {
 
     // Get specific table details
     else if (action === 'get-table' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/casino/table/${tableId}`, {
-        headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
-        }
+      console.log(`📡 Fetching table details for: ${tableId}`);
+      const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${tableId}`, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch table: ${response.statusText}`);
+        console.log(`⚠️ Table details not available, using cached data`);
+        // Return basic table info from database
+        const { data: cachedTable } = await supabase
+          .from('diamond_casino_tables')
+          .select('*')
+          .eq('table_id', tableId)
+          .single();
+        
+        result = { success: true, data: cachedTable?.table_data || { id: tableId } };
+      } else {
+        const data = await response.json();
+        result = { success: true, data };
       }
-
-      const data = await response.json();
-      result = { success: true, data };
     }
 
     // Get live stream URL
     else if (action === 'get-stream-url' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/casino/tv_url?id=${tableId}`, {
-        headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
-        }
+      console.log(`📡 Fetching stream URL for: ${tableId}`);
+      const response = await fetch(`${HOSTINGER_PROXY_BASE}/tv_url?id=${tableId}`, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch stream URL: ${response.statusText}`);
+        console.log(`⚠️ Stream URL not available for: ${tableId}`);
+        result = { success: true, data: null, streamUrl: null };
+      } else {
+        const data = await response.json();
+        const streamUrl = data.url || data.tv_url || data.stream_url || data.data?.url;
+        console.log(`✅ Stream URL response:`, JSON.stringify(data).substring(0, 200));
+        result = { success: true, data, streamUrl };
       }
-
-      const data = await response.json();
-      result = { 
-        success: true, 
-        data,
-        streamUrl: data.url || data.tv_url || data.stream_url 
-      };
     }
 
     // Get current result
     else if (action === 'get-result' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/casino/result/${tableId}`, {
-        headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
-        }
+      console.log(`📡 Fetching current result for: ${tableId}`);
+      const response = await fetch(`${HOSTINGER_PROXY_BASE}/result?id=${tableId}`, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch result: ${response.statusText}`);
+        console.log(`⚠️ Current result not available for: ${tableId}`);
+        result = { success: true, data: null };
+      } else {
+        const data = await response.json();
+        result = { success: true, data };
       }
-
-      const data = await response.json();
-      result = { success: true, data };
     }
 
     // Get result history
     else if (action === 'get-result-history' && tableId) {
       const targetDate = date || new Date().toISOString().split('T')[0];
-      const response = await fetch(`${CASINO_API_URL}/casino/history/${tableId}?date=${targetDate}`, {
-        headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
-        }
+      console.log(`📡 Fetching result history for: ${tableId}, date: ${targetDate}`);
+      const response = await fetch(`${HOSTINGER_PROXY_BASE}/history?id=${tableId}&date=${targetDate}`, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch result history: ${response.statusText}`);
+        console.log(`⚠️ Result history not available for: ${tableId}`);
+        result = { success: true, data: [] };
+      } else {
+        const data = await response.json();
+        result = { success: true, data };
       }
-
-      const data = await response.json();
-      result = { success: true, data };
     }
 
     // Get table odds
     else if (action === 'get-odds' && tableId) {
-      const response = await fetch(`${CASINO_API_URL}/casino/odds/${tableId}`, {
-        headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'x-rapidapi-host': 'x-turnkeyxgaming-key',
-        }
+      console.log(`📡 Fetching odds for: ${tableId}`);
+      const response = await fetch(`${HOSTINGER_PROXY_BASE}/odds?id=${tableId}`, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch odds: ${response.statusText}`);
+        console.log(`⚠️ Odds not available for: ${tableId}`);
+        result = { success: true, data: null };
+      } else {
+        const data = await response.json();
+        result = { success: true, data };
       }
-
-      const data = await response.json();
-      result = { success: true, data };
     }
 
     // Get all casino table IDs from Hostinger VPS proxy
