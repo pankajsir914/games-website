@@ -361,8 +361,9 @@ serve(async (req) => {
         }
         
         // Step 2: Use gmid to fetch odds from data endpoint
-        console.log(`📡 Fetching odds with gmid: ${gmid}`);
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?id=${gmid}`, {
+        // The data endpoint requires 'type' parameter (the table type like teen62, baccarat2, etc.)
+        console.log(`📡 Fetching odds with type: ${tableId}, gmid: ${gmid}`);
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?type=${tableId}&id=${gmid}`, {
           headers: { 'Content-Type': 'application/json' }
         });
 
