@@ -62,14 +62,8 @@ export const useDiamondCasino = () => {
 
       if (data?.data?.tables && data.data.tables.length > 0) {
         console.log(`✅ Found ${data.data.tables.length} live tables`);
-        // Process image URLs through proxy
-        const tablesWithProxyImages = data.data.tables.map((table: any) => ({
-          ...table,
-          imageUrl: table.imageUrl ? 
-            `https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(table.imageUrl)}` 
-            : undefined
-        }));
-        setLiveTables(tablesWithProxyImages);
+        // Use direct image URLs from the API (already constructed in edge function)
+        setLiveTables(data.data.tables);
       } else {
         console.warn('⚠️ No tables in API response, trying database fallback...');
         
