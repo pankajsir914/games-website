@@ -283,11 +283,12 @@ serve(async (req) => {
       }
     }
 
-    // Get current result via Hostinger proxy
+    // Get current result via Hostinger proxy - API needs 'type' parameter
     else if (action === 'get-result' && tableId) {
       console.log(`📡 Fetching current result for: ${tableId}`);
       try {
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/result?id=${tableId}`, {
+        // API expects 'type' parameter, not 'id'
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/result?type=${tableId}`, {
           headers: { 'Content-Type': 'application/json' }
         });
 
@@ -305,19 +306,20 @@ serve(async (req) => {
       }
     }
 
-    // Get result history via Hostinger proxy
+    // Get result history via Hostinger proxy - API needs 'type' parameter
     else if (action === 'get-result-history' && tableId) {
       const targetDate = date || new Date().toISOString().split('T')[0];
       console.log(`📡 Fetching result history for: ${tableId}, date: ${targetDate}`);
       try {
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/history?id=${tableId}&date=${targetDate}`, {
+        // API expects 'type' parameter, not 'id'
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/history?type=${tableId}&date=${targetDate}`, {
           headers: { 'Content-Type': 'application/json' }
         });
 
         if (response.ok) {
           const data = await response.json();
           console.log(`✅ History data for ${tableId}:`, JSON.stringify(data).substring(0, 300));
-          result = { success: true, data: Array.isArray(data) ? data : (data.data || []) };
+          result = { success: true, data: Array.isArray(data) ? data : (data.data || data.history || []) };
         } else {
           console.log(`⚠️ History API returned ${response.status} for: ${tableId}`);
           result = { success: true, data: [] };
@@ -332,7 +334,7 @@ serve(async (req) => {
     else if (action === 'get-odds' && tableId) {
       console.log(`📡 Fetching odds for: ${tableId}`);
       try {
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/odds?id=${tableId}`, {
+        const response = await fetch(`${HOSTINGER_PROXY_BASE}/odds?type=${tableId}`, {
           headers: { 'Content-Type': 'application/json' }
         });
 
