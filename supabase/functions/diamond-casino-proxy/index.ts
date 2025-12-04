@@ -330,21 +330,67 @@ serve(async (req) => {
       }
     }
 
-    // Get table odds via Hostinger proxy
+    // Get table odds - fetch real-time odds from TurnkeyX API
     else if (action === 'get-odds' && tableId) {
-      console.log(`📡 Fetching odds for: ${tableId}`);
+      console.log(`📡 Fetching real-time odds for: ${tableId}`);
       try {
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/odds?type=${tableId}`, {
-          headers: { 'Content-Type': 'application/json' }
+        // First try to get from TurnkeyX API directly
+        const turnkeyUrl = `${CASINO_API_URL}/casino/getPrivateData?id=${tableId}`;
+        console.log(`📡 Trying TurnkeyX API: ${turnkeyUrl}`);
+        
+        const response = await fetch(turnkeyUrl, {
+          headers: { 
+            'x-rapidapi-key': CASINO_API_KEY,
+            'x-rapidapi-host': 'turnkeyxgaming.p.rapidapi.com',
+            'Content-Type': 'application/json'
+          }
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`✅ Odds data for ${tableId}:`, JSON.stringify(data).substring(0, 300));
-          result = { success: true, data };
+          console.log(`✅ TurnkeyX Odds data for ${tableId}:`, JSON.stringify(data).substring(0, 500));
+          
+          // Extract betting options from the response
+          const oddsData = data?.data || data;
+          const bettingOptions: any[] = [];
+          
+          // Parse t1, t2, t3 arrays which contain betting options with odds
+          ['t1', 't2', 't3'].forEach((key) => {
+            if (oddsData[key] && Array.isArray(oddsData[key])) {
+              oddsData[key].forEach((item: any) => {
+                if (item.nat || item.nation) {
+                  bettingOptions.push({
+                    type: item.nat || item.nation,
+                    back: parseFloat(item.b1 || item.b || '0') || 0,
+                    lay: parseFloat(item.l1 || item.l || '0') || 0,
+                    status: item.gstatus === '0' ? 'suspended' : 'active',
+                    min: item.min || 100,
+                    max: item.max || 100000,
+                    sid: item.sid,
+                    mid: item.mid
+                  });
+                }
+              });
+            }
+          });
+          
+          console.log(`✅ Extracted ${bettingOptions.length} betting options`);
+          result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
         } else {
-          console.log(`⚠️ Odds API returned ${response.status} for: ${tableId}`);
-          result = { success: true, data: null };
+          console.log(`⚠️ TurnkeyX Odds API returned ${response.status}`);
+          
+          // Fallback: Try Hostinger proxy
+          const hostingerResponse = await fetch(`${HOSTINGER_PROXY_BASE}/odds?type=${tableId}`, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (hostingerResponse.ok) {
+            const hostData = await hostingerResponse.json();
+            console.log(`✅ Hostinger Odds data:`, JSON.stringify(hostData).substring(0, 300));
+            result = { success: true, data: hostData };
+          } else {
+            result = { success: true, data: null };
+          }
         }
       } catch (fetchError) {
         console.log(`⚠️ Odds fetch error for: ${tableId}`, fetchError);
