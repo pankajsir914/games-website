@@ -375,8 +375,9 @@ serve(async (req) => {
           const oddsData = data?.data || data;
           const bettingOptions: any[] = [];
           
-          // Parse t1, t2, t3 arrays which contain betting options with odds
-          ['t1', 't2', 't3'].forEach((key) => {
+          // Parse t1, t2, t3, sub arrays which contain betting options with odds
+          // 'sub' is the main array used by most games
+          ['sub', 't1', 't2', 't3'].forEach((key) => {
             if (oddsData[key] && Array.isArray(oddsData[key])) {
               oddsData[key].forEach((item: any) => {
                 if (item.nat || item.nation || item.name) {
@@ -384,11 +385,14 @@ serve(async (req) => {
                     type: item.nat || item.nation || item.name,
                     back: parseFloat(item.b1 || item.b || '0') || 0,
                     lay: parseFloat(item.l1 || item.l || '0') || 0,
-                    status: item.gstatus === '0' ? 'suspended' : 'active',
+                    status: item.gstatus === 'SUSPENDED' || item.gstatus === '0' ? 'suspended' : 'active',
                     min: item.min || 100,
                     max: item.max || 100000,
                     sid: item.sid,
-                    mid: oddsData.mid || item.mid
+                    mid: oddsData.mid || item.mid,
+                    subtype: item.subtype,
+                    etype: item.etype,
+                    visible: item.visible
                   });
                 }
               });
