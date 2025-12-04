@@ -328,6 +328,7 @@ serve(async (req) => {
       console.log(`✅ Table IDs data received:`, JSON.stringify(data).substring(0, 200));
       
       result = { success: true, data };
+    }
 
     // Place bet
     else if (action === 'place-bet' && betData) {
