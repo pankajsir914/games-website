@@ -128,9 +128,9 @@ const ColorPrediction = () => {
             />
 
             {/* Current Result Display */}
-            <Card className="p-4 sm:p-6 md:p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
-              <div className="text-center space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-white">
+            <Card className="p-3 sm:p-6 md:p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700">
+              <div className="text-center space-y-2 sm:space-y-4">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-white">
                   {lastCompletedRound ? 'Latest Result' : 'Current Round'}
                 </h3>
                 {lastCompletedRound?.winning_color ? (
@@ -139,22 +139,22 @@ const ColorPrediction = () => {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                    className={`mx-auto w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full flex flex-col items-center justify-center text-white shadow-2xl ${
+                    className={`mx-auto w-20 h-20 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-full flex flex-col items-center justify-center text-white shadow-2xl ${
                       lastCompletedRound.winning_color === 'red' ? 'bg-gradient-to-br from-red-500 to-red-700' :
                       lastCompletedRound.winning_color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-700' :
                       'bg-gradient-to-br from-purple-500 to-purple-700'
                     }`}
                   >
-                    <div className="text-3xl sm:text-4xl md:text-5xl font-bold">
+                    <div className="text-lg sm:text-3xl md:text-5xl font-bold">
                       {lastCompletedRound.winning_color.toUpperCase()}
                     </div>
-                    <div className="text-xs sm:text-sm mt-2 opacity-80">
-                      Period: {lastCompletedRound.period}
+                    <div className="text-[10px] sm:text-xs md:text-sm mt-1 opacity-80">
+                      #{lastCompletedRound.period}
                     </div>
                   </motion.div>
                 ) : (
-                  <div className="mx-auto w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full bg-gray-700 flex items-center justify-center">
-                    <p className="text-gray-400 text-sm">Waiting for result...</p>
+                  <div className="mx-auto w-20 h-20 sm:w-36 sm:h-36 md:w-48 md:h-48 rounded-full bg-gray-700 flex items-center justify-center">
+                    <p className="text-gray-400 text-xs sm:text-sm">Waiting...</p>
                   </div>
                 )}
               </div>
