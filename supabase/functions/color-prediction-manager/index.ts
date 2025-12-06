@@ -7,31 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface Database {
-  public: {
-    Tables: {
-      color_prediction_rounds: {
-        Row: {
-          id: string;
-          round_number: number;
-          period: string;
-          status: string;
-          bet_end_time: string;
-          draw_time: string | null;
-          winning_color: string | null;
-          total_bets_amount: number;
-          total_players: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          round_number: number;
-          period: string;
-          bet_end_time: string;
-        };
-      };
-    };
-  };
+interface GameSettings {
+  round_duration?: number;
+  result_display_time?: number;
+  cheat_mode?: boolean;
+  forced_color?: string;
 }
 
 serve(async (req) => {
@@ -41,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient<Database>(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
@@ -49,14 +29,20 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
     
-    // Check if game is paused
-    const { data: gameSettings } = await supabaseClient
+    // Fetch game settings
+    const { data: gameSettingsData } = await supabaseClient
       .from('game_settings')
-      .select('is_paused')
+      .select('is_paused, settings')
       .eq('game_type', 'color_prediction')
       .single();
     
-    if (gameSettings?.is_paused && action !== 'create_round') {
+    const gameSettings: GameSettings = gameSettingsData?.settings || {};
+    const roundDuration = gameSettings.round_duration || 30; // Default 30 seconds
+    const resultDisplayTime = gameSettings.result_display_time || 5; // Default 5 seconds
+    
+    console.log(`Settings: roundDuration=${roundDuration}s, resultDisplayTime=${resultDisplayTime}s`);
+    
+    if (gameSettingsData?.is_paused && action !== 'create_round') {
       return new Response(JSON.stringify({ 
         success: false, 
         message: 'Color Prediction game is currently paused' 
@@ -79,8 +65,8 @@ serve(async (req) => {
       const now = new Date();
       const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
       
-      // Set betting period to 30 seconds from now
-      const betEndTime = new Date(now.getTime() + 30000);
+      // Use dynamic round duration from settings
+      const betEndTime = new Date(now.getTime() + (roundDuration * 1000));
 
       const { data: newRound, error } = await supabaseClient
         .from('color_prediction_rounds')
@@ -193,8 +179,8 @@ serve(async (req) => {
           // If this is a stuck round (been in betting/drawing state for too long)
           const roundAge = Date.now() - new Date(round.bet_end_time).getTime();
           
-          // Force completion for stuck rounds (over 5 minutes old)
-          if (roundAge > 300000) {
+          // Force completion for stuck rounds (over 2 minutes old - reduced from 5)
+          if (roundAge > 120000) {
             console.log(`Force completing stuck round ${round.id} (${Math.floor(roundAge / 1000)}s old)`);
             const { error: updateError } = await supabaseClient
               .from('color_prediction_rounds')
@@ -207,23 +193,16 @@ serve(async (req) => {
               
             if (updateError) {
               console.error(`Error force completing round ${round.id}:`, updateError);
-              continue;
             }
+            continue;
           }
           
-          // Process normally if not stuck
-          const { data: gameSettings } = await supabaseClient
-            .from('game_settings')
-            .select('settings')
-            .eq('game_type', 'color_prediction')
-            .single();
-          
-          const cheatMode = gameSettings?.settings?.cheat_mode || false;
+          const cheatMode = gameSettings?.cheat_mode || false;
           let winningColor: string;
           
-          if (cheatMode && gameSettings?.settings?.forced_color) {
+          if (cheatMode && gameSettings?.forced_color) {
             // Use forced color in cheat mode
-            winningColor = gameSettings.settings.forced_color;
+            winningColor = gameSettings.forced_color;
             console.log(`Using forced color in cheat mode: ${winningColor}`);
           } else {
             // Generate random winning color (weighted: red=45%, green=45%, violet=10%)
@@ -287,13 +266,13 @@ serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        // Only create new round if last result was shown for at least 3 seconds
+        // Use dynamic result display time from settings
         if (lastCompletedRound?.draw_time) {
           const timeSinceCompletion = Date.now() - new Date(lastCompletedRound.draw_time).getTime();
-          const minDisplayTime = 3000; // 3 seconds
+          const minDisplayTime = resultDisplayTime * 1000; // Convert to ms
           
           if (timeSinceCompletion < minDisplayTime) {
-            console.log(`Waiting for result display (${Math.floor(timeSinceCompletion / 1000)}s / ${minDisplayTime / 1000}s)`);
+            console.log(`Waiting for result display (${Math.floor(timeSinceCompletion / 1000)}s / ${resultDisplayTime}s)`);
             return new Response(
               JSON.stringify({ 
                 success: true, 
@@ -324,8 +303,8 @@ serve(async (req) => {
           const now = new Date();
           const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(nextRoundNumber).padStart(3, '0')}`;
           
-          // Set betting period to 30 seconds from now
-          const betEndTime = new Date(now.getTime() + 30000);
+          // Use dynamic round duration from settings
+          const betEndTime = new Date(now.getTime() + (roundDuration * 1000));
 
           const { data: newRound, error: createError } = await supabaseClient
             .from('color_prediction_rounds')
@@ -359,7 +338,26 @@ serve(async (req) => {
           success: true, 
           message: 'Auto management completed',
           processed_rounds: expiredRounds?.length || 0,
-          active_rounds: activeRounds?.length || 0
+          active_rounds: activeRounds?.length || 0,
+          settings: { roundDuration, resultDisplayTime }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
+    // New action to get current settings
+    if (action === 'get_settings') {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          settings: { 
+            roundDuration, 
+            resultDisplayTime,
+            isPaused: gameSettingsData?.is_paused || false
+          }
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

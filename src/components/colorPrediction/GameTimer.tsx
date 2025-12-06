@@ -11,6 +11,7 @@ interface GameTimerProps {
   status: 'betting' | 'drawing' | 'completed';
   totalBets: number;
   totalPlayers: number;
+  roundDuration?: number; // Dynamic round duration
 }
 
 const GameTimer: React.FC<GameTimerProps> = ({
@@ -18,24 +19,29 @@ const GameTimer: React.FC<GameTimerProps> = ({
   roundNumber,
   status,
   totalBets,
-  totalPlayers
+  totalPlayers,
+  roundDuration = 30 // Default to 30 seconds
 }) => {
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
-  const progress = status === 'betting' ? (timeLeft / 30) : 0;
+  const progress = status === 'betting' ? (timeLeft / roundDuration) : 0;
   const strokeDashoffset = circumference - (progress * circumference);
+  
+  // Dynamic thresholds based on round duration
+  const lowTimeThreshold = Math.min(5, Math.floor(roundDuration * 0.17)); // ~17% of duration
+  const warningTimeThreshold = Math.min(10, Math.floor(roundDuration * 0.33)); // ~33% of duration
   
   const getTimerColor = () => {
     if (status !== 'betting') return 'text-gray-500';
-    if (timeLeft <= 5) return 'text-red-500';
-    if (timeLeft <= 10) return 'text-yellow-500';
+    if (timeLeft <= lowTimeThreshold) return 'text-red-500';
+    if (timeLeft <= warningTimeThreshold) return 'text-yellow-500';
     return 'text-emerald-500';
   };
 
   const getStrokeColor = () => {
     if (status !== 'betting') return 'stroke-gray-600';
-    if (timeLeft <= 5) return 'stroke-red-500';
-    if (timeLeft <= 10) return 'stroke-yellow-500';
+    if (timeLeft <= lowTimeThreshold) return 'stroke-red-500';
+    if (timeLeft <= warningTimeThreshold) return 'stroke-yellow-500';
     return 'stroke-emerald-500';
   };
 
@@ -107,14 +113,14 @@ const GameTimer: React.FC<GameTimerProps> = ({
             {status === 'betting' ? (
               <>
                 <motion.div
-                  animate={timeLeft <= 5 ? { scale: [1, 1.1, 1] } : {}}
+                  animate={timeLeft <= lowTimeThreshold ? { scale: [1, 1.1, 1] } : {}}
                   transition={{ duration: 1, repeat: Infinity }}
                   className={cn("text-3xl sm:text-4xl md:text-5xl font-bold", getTimerColor())}
                 >
                   {timeLeft}
                 </motion.div>
                 <p className="text-gray-400 text-xs sm:text-sm mt-1">seconds</p>
-                {timeLeft <= 5 && (
+                {timeLeft <= lowTimeThreshold && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}

@@ -28,7 +28,8 @@ const ColorPrediction = () => {
     userBetHistory,
     timeLeft,
     roundLoading,
-    placeBet
+    placeBet,
+    roundDuration
   } = useColorPrediction();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -123,6 +124,7 @@ const ColorPrediction = () => {
               status={currentRound?.status || 'betting'}
               totalBets={currentRound?.total_bets_amount || 0}
               totalPlayers={currentRound?.total_players || 0}
+              roundDuration={roundDuration}
             />
 
             {/* Current Result Display */}
