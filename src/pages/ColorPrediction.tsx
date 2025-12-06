@@ -29,7 +29,8 @@ const ColorPrediction = () => {
     timeLeft,
     roundLoading,
     placeBet,
-    roundDuration
+    roundDuration,
+    topWinners
   } = useColorPrediction();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -225,24 +226,28 @@ const ColorPrediction = () => {
                 Top Winners Today
               </h3>
               <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((rank) => (
-                  <div key={rank} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        rank === 1 ? 'bg-yellow-500 text-black' :
-                        rank === 2 ? 'bg-gray-400 text-black' :
-                        rank === 3 ? 'bg-orange-600 text-white' :
-                        'bg-gray-700 text-gray-400'
-                      }`}>
-                        {rank}
+                {topWinners.length > 0 ? (
+                  topWinners.map((winner, index) => (
+                    <div key={winner.userId} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          index === 0 ? 'bg-yellow-500 text-black' :
+                          index === 1 ? 'bg-gray-400 text-black' :
+                          index === 2 ? 'bg-orange-600 text-white' :
+                          'bg-gray-700 text-gray-400'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <span className="text-gray-300 truncate max-w-[100px]">{winner.name}</span>
                       </div>
-                      <span className="text-gray-300">Player{rank}</span>
+                      <span className="text-yellow-400 font-semibold">
+                        ₹{winner.total.toLocaleString()}
+                      </span>
                     </div>
-                    <span className="text-yellow-400 font-semibold">
-                      ₹{(10000 - rank * 1500).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm text-center py-4">No winners yet today</p>
+                )}
               </div>
             </Card>
 
