@@ -196,12 +196,37 @@ serve(async (req) => {
     if (action === 'auto_manage') {
       console.log('Auto-manage called at:', new Date().toISOString());
       
+      const now = new Date();
+      
+      // Check for stuck rounds (betting ended more than 30 seconds ago)
+      const thirtySecondsAgo = new Date(now.getTime() - 30000).toISOString();
+      const { data: stuckRounds, error: stuckError } = await supabaseClient
+        .from('aviator_rounds')
+        .select('*')
+        .eq('status', 'betting')
+        .lt('bet_end_time', thirtySecondsAgo);
+
+      if (!stuckError && stuckRounds && stuckRounds.length > 0) {
+        console.log(`Found ${stuckRounds.length} stuck rounds, force crashing them`);
+        for (const round of stuckRounds) {
+          await supabaseClient
+            .from('aviator_rounds')
+            .update({ 
+              status: 'crashed',
+              crash_time: now.toISOString(),
+              updated_at: now.toISOString()
+            })
+            .eq('id', round.id);
+          console.log(`Force crashed stuck round ${round.id}`);
+        }
+      }
+      
       // Check for rounds that need to start flying (betting time ended)
       const { data: bettingRounds, error: bettingError } = await supabaseClient
         .from('aviator_rounds')
         .select('*')
         .eq('status', 'betting')
-        .lt('bet_end_time', new Date().toISOString());
+        .lt('bet_end_time', now.toISOString());
 
       if (bettingError) {
         console.error('Error fetching betting rounds:', bettingError);
@@ -217,7 +242,7 @@ serve(async (req) => {
             .from('aviator_rounds')
             .update({ 
               status: 'flying',
-              updated_at: new Date().toISOString()
+              updated_at: now.toISOString()
             })
             .eq('id', round.id);
 
@@ -239,35 +264,33 @@ serve(async (req) => {
         throw flyingError;
       }
 
+      let crashedCount = 0;
+
       // Filter rounds that should crash based on calculated flight duration
-      const roundsTocrashes = (flyingRounds || []).filter(round => {
+      for (const round of flyingRounds || []) {
         const betEndTime = new Date(round.bet_end_time).getTime();
         const flightDuration = ((round.crash_multiplier - 1) / 0.1) * 1000; // milliseconds
         const shouldCrashAt = betEndTime + flightDuration;
-        return Date.now() >= shouldCrashAt;
-      });
+        
+        if (Date.now() >= shouldCrashAt) {
+          try {
+            console.log(`Auto-crashing round ${round.id} at multiplier ${round.crash_multiplier}`);
+            
+            const { data: result, error: processError } = await supabaseClient
+              .rpc('process_aviator_crash', {
+                p_round_id: round.id,
+                p_crash_multiplier: round.crash_multiplier,
+              });
 
-      console.log(`Found ${roundsTocrashes.length} rounds ready to crash`);
-
-      // Auto-crash flying rounds that have reached their crash point
-      for (const round of roundsTocrashes) {
-        try {
-          console.log(`Auto-crashing round ${round.id} at multiplier ${round.crash_multiplier}`);
-          
-          const { data: result, error: processError } = await supabaseClient
-            .rpc('process_aviator_crash', {
-              p_round_id: round.id,
-              p_crash_multiplier: round.crash_multiplier,
-            });
-
-          if (processError) {
-            console.error(`Error processing crash for round ${round.id}:`, processError);
-            throw processError;
+            if (processError) {
+              console.error(`Error processing crash for round ${round.id}:`, processError);
+            } else {
+              crashedCount++;
+              console.log(`Successfully crashed round ${round.id}, result:`, result);
+            }
+          } catch (error) {
+            console.error(`Failed to crash round ${round.id}:`, error);
           }
-
-          console.log(`Successfully crashed round ${round.id}, result:`, result);
-        } catch (error) {
-          console.error(`Failed to crash round ${round.id}:`, error);
         }
       }
 
@@ -283,6 +306,8 @@ serve(async (req) => {
       }
 
       console.log(`Found ${activeRounds?.length || 0} active rounds`);
+
+      let newRoundCreated = false;
 
       // Create new round if no active rounds exist
       if (!activeRounds || activeRounds.length === 0) {
@@ -311,6 +336,14 @@ serve(async (req) => {
           // Use forced multiplier in cheat mode
           crashMultiplier = gameSettings.settings.forced_multiplier;
           console.log(`Using forced multiplier in cheat mode: ${crashMultiplier}`);
+          
+          // Reset forced multiplier after use
+          await supabaseClient
+            .from('game_settings')
+            .update({ 
+              settings: { ...gameSettings.settings, forced_multiplier: null }
+            })
+            .eq('game_type', 'aviator');
         } else {
           // Generate random crash point between 1.01x and 50x
           const generateCrashPoint = () => {
@@ -324,7 +357,6 @@ serve(async (req) => {
           console.log(`Generated random multiplier: ${crashMultiplier}`);
         }
 
-        const now = new Date();
         // Set betting period to 7 seconds from now
         const betEndTime = new Date(now.getTime() + 7000);
 
@@ -342,6 +374,7 @@ serve(async (req) => {
           console.error('Error creating new round:', createError);
           throw createError;
         } else {
+          newRoundCreated = true;
           console.log('Created new round automatically:', newRound);
         }
       }
@@ -351,8 +384,10 @@ serve(async (req) => {
           success: true, 
           message: 'Auto management completed',
           started_flying: bettingRounds?.length || 0,
-          crashed_rounds: flyingRounds?.length || 0,
-          active_rounds: activeRounds?.length || 0
+          crashed_rounds: crashedCount,
+          active_rounds: activeRounds?.length || 0,
+          new_round_created: newRoundCreated,
+          stuck_rounds_cleaned: stuckRounds?.length || 0
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
