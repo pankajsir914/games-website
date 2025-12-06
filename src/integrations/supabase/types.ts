@@ -2399,6 +2399,10 @@ export type Database = {
           id: string
           phone: string | null
           requires_password_change: boolean | null
+          tpin_failed_attempts: number | null
+          tpin_hash: string | null
+          tpin_locked_until: string | null
+          tpin_set_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -2409,6 +2413,10 @@ export type Database = {
           id: string
           phone?: string | null
           requires_password_change?: boolean | null
+          tpin_failed_attempts?: number | null
+          tpin_hash?: string | null
+          tpin_locked_until?: string | null
+          tpin_set_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -2419,6 +2427,10 @@ export type Database = {
           id?: string
           phone?: string | null
           requires_password_change?: boolean | null
+          tpin_failed_attempts?: number | null
+          tpin_hash?: string | null
+          tpin_locked_until?: string | null
+          tpin_set_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -3611,6 +3623,7 @@ export type Database = {
       }
       cashout_chicken_run_bet: { Args: { p_bet_id: string }; Returns: Json }
       check_admin_ip_whitelist: { Args: never; Returns: boolean }
+      check_admin_tpin_status: { Args: never; Returns: Json }
       check_chat_rate_limit: { Args: { p_user_id: string }; Returns: boolean }
       check_enhanced_rate_limit: {
         Args: {
@@ -3888,10 +3901,12 @@ export type Database = {
         Args: { p_admin_notes?: string; p_request_id: string; p_status: string }
         Returns: Json
       }
+      reset_admin_tpin: { Args: { p_admin_id: string }; Returns: Json }
       reveal_chicken_run_tile: {
         Args: { p_bet_id: string; p_column: number; p_row: number }
         Returns: Json
       }
+      set_admin_tpin: { Args: { p_tpin: string }; Returns: Json }
       set_user_bet_limits: {
         Args: {
           p_daily_limit?: number
@@ -3956,6 +3971,7 @@ export type Database = {
         Args: { p_input: string; p_input_type?: string; p_max_length?: number }
         Returns: string
       }
+      verify_admin_tpin: { Args: { p_tpin: string }; Returns: Json }
     }
     Enums: {
       admin_role: "admin" | "moderator" | "master_admin"

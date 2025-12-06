@@ -15,6 +15,7 @@ import { CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
 import { useMasterAdminFinance } from '@/hooks/useMasterAdminFinance';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RejectPaymentModal } from './RejectPaymentModal';
+import { TPINVerificationModal } from '@/components/admin/TPINVerificationModal';
 
 interface PaymentRequestsTableProps {
   filters?: {
@@ -28,6 +29,10 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
   const { financeData, isLoading, processPaymentRequest, isProcessing } = useMasterAdminFinance();
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<{ id: string; amount: number } | null>(null);
+  
+  // TPIN verification state
+  const [tpinModalOpen, setTpinModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ id: string; action: 'approve' | 'reject'; notes?: string } | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -43,7 +48,8 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
   };
 
   const handleApprove = (id: string) => {
-    processPaymentRequest({ requestId: id, action: 'approve' });
+    setPendingAction({ id, action: 'approve' });
+    setTpinModalOpen(true);
   };
 
   const handleRejectClick = (id: string, amount: number) => {
@@ -53,12 +59,24 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
 
   const handleRejectConfirm = (notes: string) => {
     if (selectedRequest) {
-      processPaymentRequest({ 
-        requestId: selectedRequest.id, 
-        action: 'reject',
-        notes 
-      });
+      setPendingAction({ id: selectedRequest.id, action: 'reject', notes });
       setRejectModalOpen(false);
+      setTpinModalOpen(true);
+    }
+  };
+
+  const handleTPINVerified = () => {
+    if (pendingAction) {
+      if (pendingAction.action === 'approve') {
+        processPaymentRequest({ requestId: pendingAction.id, action: 'approve' });
+      } else {
+        processPaymentRequest({ 
+          requestId: pendingAction.id, 
+          action: 'reject',
+          notes: pendingAction.notes 
+        });
+      }
+      setPendingAction(null);
       setSelectedRequest(null);
     }
   };
@@ -204,6 +222,16 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
         onConfirm={handleRejectConfirm}
         isProcessing={isProcessing}
         amount={selectedRequest?.amount || 0}
+      />
+      
+      <TPINVerificationModal
+        open={tpinModalOpen}
+        onOpenChange={(open) => {
+          setTpinModalOpen(open);
+          if (!open) setPendingAction(null);
+        }}
+        onVerified={handleTPINVerified}
+        actionDescription={pendingAction?.action === 'approve' ? 'approving this payment' : 'rejecting this payment'}
       />
     </>
   );
