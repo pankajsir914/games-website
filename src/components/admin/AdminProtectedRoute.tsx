@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { useTPIN } from '@/hooks/useTPIN';
 import { Loader2, Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { TPINSetupModal } from './TPINSetupModal';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +17,9 @@ interface AdminProtectedRouteProps {
 
 export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: AdminProtectedRouteProps) => {
   const { data: adminAuth, isLoading, error } = useAdminAuth();
+  const { needsTPINSetup, isCheckingStatus, refetchStatus } = useTPIN();
   const queryClient = useQueryClient();
+  const [showTPINSetup, setShowTPINSetup] = useState(false);
 
   // Listen for auth state changes to detect session expiry
   useEffect(() => {
@@ -43,8 +47,23 @@ export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: Ad
     return () => subscription.unsubscribe();
   }, [queryClient]);
 
+  // Show TPIN setup modal when needed
+  useEffect(() => {
+    if (adminAuth?.hasAccess && needsTPINSetup) {
+      setShowTPINSetup(true);
+    } else {
+      setShowTPINSetup(false);
+    }
+  }, [adminAuth?.hasAccess, needsTPINSetup]);
+
+  // Handle TPIN setup completion
+  const handleTPINSetupComplete = () => {
+    refetchStatus();
+    setShowTPINSetup(false);
+  };
+
   // Show loading spinner while checking authentication
-  if (isLoading) {
+  if (isLoading || isCheckingStatus) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -128,5 +147,18 @@ export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: Ad
   }
 
   // User is authenticated and has required role
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <TPINSetupModal 
+        open={showTPINSetup} 
+        onOpenChange={(open) => {
+          if (!open && !needsTPINSetup) {
+            setShowTPINSetup(false);
+          }
+        }}
+        canDismiss={false}
+      />
+    </>
+  );
 };

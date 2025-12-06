@@ -16,6 +16,7 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAdminWithdrawals } from '@/hooks/useAdminWithdrawals';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserDetailModal } from '@/components/admin/UserDetailModal';
+import { TPINVerificationModal } from '@/components/admin/TPINVerificationModal';
 
 interface WithdrawalFilters {
   search: string;
@@ -31,6 +32,10 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
   const { data: withdrawals, isLoading, processWithdrawal, isProcessing } = useAdminWithdrawals();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  
+  // TPIN verification state
+  const [tpinModalOpen, setTpinModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ id: string; action: 'approve' | 'reject' } | null>(null);
 
   const handleUserClick = (userId: string) => {
     setSelectedUserId(userId);
@@ -53,11 +58,21 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
   };
 
   const handleApprove = (id: string) => {
-    processWithdrawal({ id, status: 'approved', adminNotes: 'Approved by admin' });
+    setPendingAction({ id, action: 'approve' });
+    setTpinModalOpen(true);
   };
 
   const handleReject = (id: string) => {
-    processWithdrawal({ id, status: 'rejected', adminNotes: 'Rejected by admin' });
+    setPendingAction({ id, action: 'reject' });
+    setTpinModalOpen(true);
+  };
+
+  const handleTPINVerified = () => {
+    if (pendingAction) {
+      const notes = pendingAction.action === 'approve' ? 'Approved by admin' : 'Rejected by admin';
+      processWithdrawal({ id: pendingAction.id, status: pendingAction.action === 'approve' ? 'approved' : 'rejected', adminNotes: notes });
+      setPendingAction(null);
+    }
   };
 
   if (isLoading) {
@@ -94,102 +109,114 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
   });
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Request ID</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead>Account</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Request Time</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredWithdrawals?.map((withdrawal) => (
-              <TableRow key={withdrawal.id}>
-                <TableCell>
-                  <span className="font-mono text-sm">{withdrawal.id.slice(0, 8)}</span>
-                </TableCell>
-                <TableCell>
-                  <div 
-                    className="flex items-center space-x-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-1 rounded-md transition-colors"
-                    onClick={() => handleUserClick(withdrawal.user_id)}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{withdrawal.avatar}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">{withdrawal.user}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="font-semibold">₹{withdrawal.amount.toLocaleString()}</span>
-                </TableCell>
-                <TableCell>{withdrawal.method}</TableCell>
-                <TableCell>
-                  <span className="font-mono text-sm">{withdrawal.accountDetails}</span>
-                </TableCell>
-                <TableCell>{getStatusBadge(withdrawal.status)}</TableCell>
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">{withdrawal.requestTime}</span>
-                </TableCell>
-                <TableCell>
-                  {withdrawal.status === 'pending' && (
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleApprove(withdrawal.id)}
-                        className="bg-gaming-success hover:bg-gaming-success/90"
-                        disabled={isProcessing}
-                      >
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                        Approve
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => handleReject(withdrawal.id)}
-                        disabled={isProcessing}
-                      >
-                        <XCircle className="mr-1 h-3 w-3" />
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                  {withdrawal.status === 'approved' && (
-                    <Badge variant="outline" className="text-blue-600">
-                      <Clock className="mr-1 h-3 w-3" />
-                      Completed
-                    </Badge>
-                  )}
-                  {withdrawal.status === 'processing' && (
-                    <Badge variant="outline" className="text-blue-600">
-                      <Clock className="mr-1 h-3 w-3" />
-                      Processing
-                    </Badge>
-                  )}
-                  {withdrawal.status === 'rejected' && (
-                    <Badge variant="destructive">
-                      <XCircle className="mr-1 h-3 w-3" />
-                      Rejected
-                    </Badge>
-                  )}
-                </TableCell>
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Request ID</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Account</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Request Time</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
+            </TableHeader>
+            <TableBody>
+              {filteredWithdrawals?.map((withdrawal) => (
+                <TableRow key={withdrawal.id}>
+                  <TableCell>
+                    <span className="font-mono text-sm">{withdrawal.id.slice(0, 8)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div 
+                      className="flex items-center space-x-3 cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-1 rounded-md transition-colors"
+                      onClick={() => handleUserClick(withdrawal.user_id)}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{withdrawal.avatar}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{withdrawal.user}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-semibold">₹{withdrawal.amount.toLocaleString()}</span>
+                  </TableCell>
+                  <TableCell>{withdrawal.method}</TableCell>
+                  <TableCell>
+                    <span className="font-mono text-sm">{withdrawal.accountDetails}</span>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(withdrawal.status)}</TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">{withdrawal.requestTime}</span>
+                  </TableCell>
+                  <TableCell>
+                    {withdrawal.status === 'pending' && (
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleApprove(withdrawal.id)}
+                          className="bg-gaming-success hover:bg-gaming-success/90"
+                          disabled={isProcessing}
+                        >
+                          <CheckCircle className="mr-1 h-3 w-3" />
+                          Approve
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => handleReject(withdrawal.id)}
+                          disabled={isProcessing}
+                        >
+                          <XCircle className="mr-1 h-3 w-3" />
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                    {withdrawal.status === 'approved' && (
+                      <Badge variant="outline" className="text-blue-600">
+                        <Clock className="mr-1 h-3 w-3" />
+                        Completed
+                      </Badge>
+                    )}
+                    {withdrawal.status === 'processing' && (
+                      <Badge variant="outline" className="text-blue-600">
+                        <Clock className="mr-1 h-3 w-3" />
+                        Processing
+                      </Badge>
+                    )}
+                    {withdrawal.status === 'rejected' && (
+                      <Badge variant="destructive">
+                        <XCircle className="mr-1 h-3 w-3" />
+                        Rejected
+                      </Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
       
       <UserDetailModal 
         open={userModalOpen}
         onOpenChange={setUserModalOpen}
         userId={selectedUserId}
       />
-    </Card>
+      
+      <TPINVerificationModal
+        open={tpinModalOpen}
+        onOpenChange={(open) => {
+          setTpinModalOpen(open);
+          if (!open) setPendingAction(null);
+        }}
+        onVerified={handleTPINVerified}
+        actionDescription={pendingAction?.action === 'approve' ? 'approving this withdrawal' : 'rejecting this withdrawal'}
+      />
+    </>
   );
 };
