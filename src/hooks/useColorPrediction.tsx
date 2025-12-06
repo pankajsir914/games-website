@@ -96,6 +96,52 @@ export const useColorPrediction = () => {
     },
   });
 
+  // Fetch top winners today (real data from bets)
+  const { data: topWinners } = useQuery({
+    queryKey: ['color-prediction-top-winners'],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
+        .from('color_prediction_bets')
+        .select(`
+          user_id,
+          payout_amount,
+          profiles!inner(username, full_name)
+        `)
+        .eq('status', 'won')
+        .gte('created_at', today.toISOString())
+        .order('payout_amount', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching top winners:', error);
+        return [];
+      }
+
+      // Aggregate winnings by user
+      const userWinnings: Record<string, { userId: string; name: string; total: number }> = {};
+      
+      data?.forEach((bet: any) => {
+        const userId = bet.user_id;
+        const name = bet.profiles?.full_name || bet.profiles?.username || 'Player';
+        const payout = Number(bet.payout_amount) || 0;
+        
+        if (!userWinnings[userId]) {
+          userWinnings[userId] = { userId, name, total: 0 };
+        }
+        userWinnings[userId].total += payout;
+      });
+
+      // Sort and return top 5
+      return Object.values(userWinnings)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   // Fetch user's bet for current round
   const { data: userBet } = useQuery({
     queryKey: ['color-prediction-user-bet', currentRound?.id],
@@ -312,6 +358,7 @@ export const useColorPrediction = () => {
     roundLoading,
     placeBet: placeBet.mutate,
     isPlacingBet: placeBet.isPending,
-    roundDuration, // Export for GameTimer
+    roundDuration,
+    topWinners: topWinners || [],
   };
 };
