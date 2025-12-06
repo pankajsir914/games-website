@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Menu, User, LogOut, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Menu, User, LogOut, Shield, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +14,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
 import { AdminNotifications } from './AdminNotifications';
 import { SessionStatusIndicator } from './SessionStatusIndicator';
+import { TPINSetupModal } from './TPINSetupModal';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -22,6 +22,7 @@ interface AdminHeaderProps {
 
 export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
   const { data: adminAuth, logout } = useAdminAuth();
+  const [showTPINModal, setShowTPINModal] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -55,74 +56,81 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
   };
 
   return (
-    <header className="bg-card border-b border-border">
-      {/* Top Bar */}
-      <div className="h-16 flex items-center justify-between px-3 sm:px-4 md:px-6">
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuClick}
-            className="lg:hidden mr-2"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
+    <>
+      <header className="bg-card border-b border-border">
+        <div className="h-16 flex items-center justify-between px-3 sm:px-4 md:px-6">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMenuClick}
+              className="lg:hidden mr-2"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
 
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Session Status Indicator */}
-          <SessionStatusIndicator />
-          
-          {/* Role Badge */}
-          {adminAuth?.role && (
-            <div className="hidden md:flex">
-              {getRoleBadge()}
-            </div>
-          )}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <SessionStatusIndicator />
+            
+            {adminAuth?.role && (
+              <div className="hidden md:flex">
+                {getRoleBadge()}
+              </div>
+            )}
 
-          {/* Notifications */}
-          <AdminNotifications />
+            <AdminNotifications />
 
-          {/* User menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-avatar.jpg" alt="Admin" />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-screen sm:w-56 max-w-sm" align="end">
-              <div className="px-2 py-1.5">
-                <div className="flex items-center gap-2">
-                  {getRoleIcon()}
-                  <div>
-                    <p className="text-sm font-medium">{adminAuth?.user?.email}</p>
-                    <p className="text-xs text-muted-foreground">{adminAuth?.role || 'No role'}</p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="/placeholder-avatar.jpg" alt="Admin" />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-screen sm:w-56 max-w-sm" align="end">
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center gap-2">
+                    {getRoleIcon()}
+                    <div>
+                      <p className="text-sm font-medium">{adminAuth?.user?.email}</p>
+                      <p className="text-xs text-muted-foreground">{adminAuth?.role || 'No role'}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Profile Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive cursor-pointer"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowTPINModal(true)}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Change TPIN
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="text-destructive cursor-pointer"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
+      </header>
 
-    </header>
+      <TPINSetupModal
+        open={showTPINModal}
+        onOpenChange={setShowTPINModal}
+        canDismiss={true}
+        mode="change"
+      />
+    </>
   );
 };
