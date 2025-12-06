@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -50,6 +49,8 @@ export const useAviator = () => {
   const { wallet } = useWallet();
   const queryClient = useQueryClient();
   const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
+  const autoManageRef = useRef<NodeJS.Timeout | null>(null);
+  const multiplierIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch current round
   const { data: currentRound, isLoading: roundLoading } = useQuery({
@@ -104,6 +105,65 @@ export const useAviator = () => {
       return data as AviatorRound[];
     },
   });
+
+  // Auto-manage fallback - call edge function every 3 seconds
+  useEffect(() => {
+    const callAutoManage = async () => {
+      try {
+        await supabase.functions.invoke('aviator-game-manager', {
+          body: { action: 'auto_manage' }
+        });
+      } catch (error) {
+        console.error('Auto-manage fallback error:', error);
+      }
+    };
+
+    // Initial call
+    callAutoManage();
+    
+    // Set up interval
+    autoManageRef.current = setInterval(callAutoManage, 3000);
+    
+    return () => {
+      if (autoManageRef.current) {
+        clearInterval(autoManageRef.current);
+      }
+    };
+  }, []);
+
+  // Calculate multiplier in real-time during flying phase
+  useEffect(() => {
+    if (currentRound?.status === 'flying') {
+      const betEndTime = new Date(currentRound.bet_end_time).getTime();
+      
+      const updateMultiplier = () => {
+        const elapsed = (Date.now() - betEndTime) / 1000;
+        const newMultiplier = Math.max(1.0, 1 + (elapsed * 0.1));
+        
+        // Check if we should crash
+        if (newMultiplier >= currentRound.crash_multiplier) {
+          setCurrentMultiplier(currentRound.crash_multiplier);
+          if (multiplierIntervalRef.current) {
+            clearInterval(multiplierIntervalRef.current);
+          }
+        } else {
+          setCurrentMultiplier(Number(newMultiplier.toFixed(2)));
+        }
+      };
+      
+      // Update every 50ms for smooth animation
+      multiplierIntervalRef.current = setInterval(updateMultiplier, 50);
+      updateMultiplier();
+      
+      return () => {
+        if (multiplierIntervalRef.current) {
+          clearInterval(multiplierIntervalRef.current);
+        }
+      };
+    } else {
+      setCurrentMultiplier(1.0);
+    }
+  }, [currentRound?.status, currentRound?.bet_end_time, currentRound?.crash_multiplier]);
 
   // Place bet mutation
   const placeBet = useMutation({
