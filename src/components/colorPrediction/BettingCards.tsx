@@ -59,7 +59,7 @@ const BettingCards: React.FC<BettingCardsProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Color Selection Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {colors.map((color) => {
           const Icon = color.icon;
           const isSelected = selectedColor === color.name;
@@ -77,7 +77,7 @@ const BettingCards: React.FC<BettingCardsProps> = ({
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="absolute inset-0 rounded-2xl blur-xl"
+                  className="absolute inset-0 rounded-xl sm:rounded-2xl blur-xl"
                   style={{ backgroundColor: color.glowColor }}
                 />
               )}
@@ -88,7 +88,7 @@ const BettingCards: React.FC<BettingCardsProps> = ({
                 color.shadow
               )}>
                 <div className={cn(
-                  "p-4 sm:p-6 bg-gradient-to-br",
+                  "p-2 sm:p-6 bg-gradient-to-br",
                   color.gradient,
                   "relative z-10"
                 )}>
@@ -96,13 +96,13 @@ const BettingCards: React.FC<BettingCardsProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                   
                   {/* Content */}
-                  <div className="relative z-20 text-white text-center space-y-2 sm:space-y-3">
-                    <Icon className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-1 sm:mb-2" />
-                    <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-wider">
+                  <div className="relative z-20 text-white text-center space-y-1 sm:space-y-3">
+                    <Icon className="w-5 h-5 sm:w-10 sm:h-10 mx-auto" />
+                    <h3 className="text-sm sm:text-2xl font-bold uppercase tracking-wider">
                       {color.name}
                     </h3>
-                    <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
-                      {color.multiplier} Payout
+                    <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] sm:text-sm px-1 sm:px-2">
+                      {color.multiplier}
                     </Badge>
                   </div>
 
