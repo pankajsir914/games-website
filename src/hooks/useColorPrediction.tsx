@@ -10,6 +10,32 @@ export const useColorPrediction = () => {
   const queryClient = useQueryClient();
   const [timeLeft, setTimeLeft] = useState(30);
 
+  // Fetch game settings for round duration
+  const { data: gameSettings } = useQuery({
+    queryKey: ['color-prediction-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('game_settings')
+        .select('settings')
+        .eq('game_type', 'color_prediction')
+        .single();
+
+      if (error) {
+        console.error('Error fetching game settings:', error);
+        return { round_duration: 30, result_display_time: 5 };
+      }
+      
+      const settings = data?.settings as Record<string, unknown> | null;
+      return {
+        round_duration: (settings?.round_duration as number) || 30,
+        result_display_time: (settings?.result_display_time as number) || 5,
+      };
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  const roundDuration = gameSettings?.round_duration || 30;
+
   // Fetch current active round
   const { data: currentRound, isLoading: roundLoading } = useQuery({
     queryKey: ['color-prediction-current-round'],
@@ -153,7 +179,7 @@ export const useColorPrediction = () => {
     },
   });
 
-  // Timer effect
+  // Timer effect - use dynamic round duration
   useEffect(() => {
     if (!currentRound) return;
 
@@ -179,7 +205,7 @@ export const useColorPrediction = () => {
     return () => clearInterval(interval);
   }, [currentRound, queryClient]);
 
-  // Auto-check for expired rounds
+  // Auto-check for expired rounds - reduced interval
   useEffect(() => {
     const checkExpiredRounds = () => {
       if (currentRound?.status === 'betting') {
@@ -187,19 +213,19 @@ export const useColorPrediction = () => {
         const now = Date.now();
 
         // If betting time has expired but status is still betting
-        if (now > betEndTime + 60000) { // 1 minute grace period
+        if (now > betEndTime + 30000) { // 30 second grace period (reduced from 60)
           queryClient.invalidateQueries({ queryKey: ['color-prediction-current-round'] });
         }
       }
     };
 
     checkExpiredRounds();
-    const interval = setInterval(checkExpiredRounds, 15000);
+    const interval = setInterval(checkExpiredRounds, 10000); // Check every 10 seconds
 
     return () => clearInterval(interval);
   }, [currentRound, queryClient]);
 
-  // Auto-manage rounds - call edge function periodically with debounce
+  // Auto-manage rounds - call edge function every 5 seconds (reduced from 35)
   useEffect(() => {
     let isManaging = false;
     
@@ -228,9 +254,9 @@ export const useColorPrediction = () => {
       }
     };
 
-    // Run immediately and then every 35 seconds (reduced frequency)
+    // Run immediately and then every 5 seconds
     autoManage();
-    const interval = setInterval(autoManage, 35000);
+    const interval = setInterval(autoManage, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -249,6 +275,7 @@ export const useColorPrediction = () => {
         () => {
           queryClient.invalidateQueries({ queryKey: ['color-prediction-current-round'] });
           queryClient.invalidateQueries({ queryKey: ['color-prediction-recent-rounds'] });
+          queryClient.invalidateQueries({ queryKey: ['color-prediction-last-completed'] });
         }
       )
       .subscribe();
@@ -285,5 +312,6 @@ export const useColorPrediction = () => {
     roundLoading,
     placeBet: placeBet.mutate,
     isPlacingBet: placeBet.isPending,
+    roundDuration, // Export for GameTimer
   };
 };
