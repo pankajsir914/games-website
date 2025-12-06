@@ -68,12 +68,12 @@ serve(async (req) => {
 
       const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
       
-      // Generate random crash point between 1.01x and 50x
+      // Generate random crash point between 1.01x and 10x (faster games)
       const generateCrashPoint = () => {
         const random = Math.random();
-        if (random < 0.5) return 1.01 + Math.random() * 1.49; // 50% chance: 1.01x - 2.5x
-        if (random < 0.8) return 2.5 + Math.random() * 7.5; // 30% chance: 2.5x - 10x
-        return 10 + Math.random() * 40; // 20% chance: 10x - 50x
+        if (random < 0.5) return 1.01 + Math.random() * 0.99; // 50% chance: 1.01x - 2.0x
+        if (random < 0.8) return 2.0 + Math.random() * 3.0; // 30% chance: 2.0x - 5.0x
+        return 5.0 + Math.random() * 5.0; // 20% chance: 5.0x - 10.0x
       };
 
       const crashMultiplier = generateCrashPoint();
@@ -267,19 +267,25 @@ serve(async (req) => {
       let crashedCount = 0;
 
       // Filter rounds that should crash based on calculated flight duration
+      // Formula: flightDuration = (crash_multiplier - 1) / 0.2 seconds (0.2x per second growth)
+      // Also cap max flight time at 30 seconds
       for (const round of flyingRounds || []) {
         const betEndTime = new Date(round.bet_end_time).getTime();
-        const flightDuration = ((round.crash_multiplier - 1) / 0.1) * 1000; // milliseconds
+        const flightDuration = Math.min(((round.crash_multiplier - 1) / 0.2) * 1000, 30000); // max 30 sec
         const shouldCrashAt = betEndTime + flightDuration;
         
         if (Date.now() >= shouldCrashAt) {
           try {
-            console.log(`Auto-crashing round ${round.id} at multiplier ${round.crash_multiplier}`);
+            // Calculate actual multiplier at crash time
+            const elapsedSeconds = (Date.now() - betEndTime) / 1000;
+            const actualMultiplier = Math.min(1 + (elapsedSeconds * 0.2), round.crash_multiplier);
+            
+            console.log(`Auto-crashing round ${round.id} at multiplier ${actualMultiplier.toFixed(2)}`);
             
             const { data: result, error: processError } = await supabaseClient
               .rpc('process_aviator_crash', {
                 p_round_id: round.id,
-                p_crash_multiplier: round.crash_multiplier,
+                p_crash_multiplier: actualMultiplier,
               });
 
             if (processError) {
@@ -345,12 +351,12 @@ serve(async (req) => {
             })
             .eq('game_type', 'aviator');
         } else {
-          // Generate random crash point between 1.01x and 50x
+          // Generate random crash point between 1.01x and 10x (faster games)
           const generateCrashPoint = () => {
             const random = Math.random();
-            if (random < 0.5) return 1.01 + Math.random() * 1.49; // 50% chance: 1.01x - 2.5x
-            if (random < 0.8) return 2.5 + Math.random() * 7.5; // 30% chance: 2.5x - 10x
-            return 10 + Math.random() * 40; // 20% chance: 10x - 50x
+            if (random < 0.5) return 1.01 + Math.random() * 0.99; // 50% chance: 1.01x - 2.0x
+            if (random < 0.8) return 2.0 + Math.random() * 3.0; // 30% chance: 2.0x - 5.0x
+            return 5.0 + Math.random() * 5.0; // 20% chance: 5.0x - 10.0x
           };
           
           crashMultiplier = generateCrashPoint();

@@ -138,7 +138,8 @@ export const useAviator = () => {
       
       const updateMultiplier = () => {
         const elapsed = (Date.now() - betEndTime) / 1000;
-        const newMultiplier = Math.max(1.0, 1 + (elapsed * 0.1));
+        // Speed up to 0.2x per second for faster gameplay
+        const newMultiplier = Math.max(1.0, 1 + (elapsed * 0.2));
         
         // Check if we should crash
         if (newMultiplier >= currentRound.crash_multiplier) {
