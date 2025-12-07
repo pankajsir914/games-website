@@ -347,26 +347,23 @@ export const useDiamondCasino = () => {
   }, []);
 
   // Fetch stream URL
- const fetchStreamUrl = async (tableId: string) => {
-  try {
-    const { data, error } = await supabase.functions.invoke(
-      'diamond-casino-proxy',
-      {
+  const fetchStreamUrl = async (tableId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('diamond-casino-proxy', {
         body: { action: 'get-stream-url', tableId }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success && data?.data?.data?.tv_url) {
+        const streamUrl = data.data.data.tv_url;
+        setStreamUrls(prev => ({ ...prev, [tableId]: streamUrl }));
+        return streamUrl;
       }
-    );
-
-    if (error) throw error;
-
-    const streamUrl = data?.data?.data?.tv_url;
-    return streamUrl || null;
-
-  } catch (error) {
-    console.error("Error fetching stream URL:", error);
-    return null;
-  }
-};
-
+    } catch (error) {
+      console.error('Error fetching stream URL:', error);
+    }
+  };
 
   // Fetch current result
   const fetchCurrentResult = async (tableId: string) => {
