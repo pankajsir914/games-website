@@ -139,7 +139,7 @@ const Wallet = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5 text-primary" />
-                  Quick Actions
+                  Quick Actionss
                 </CardTitle>
               </CardHeader>
               <CardContent>
