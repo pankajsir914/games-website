@@ -86,68 +86,110 @@ serve(async (req) => {
 
     let result;
 
+    // Helper function to fetch with timeout
+    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    };
+
     // Get live tables from Hostinger VPS proxy
     if (action === 'get-tables') {
       const HOSTINGER_PROXY_URL = 'http://72.61.169.60:8000/api/casino/tableid';
       console.log(`📡 Fetching tables from: ${HOSTINGER_PROXY_URL}`);
       
-      const response = await fetch(HOSTINGER_PROXY_URL, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      let tables: any[] = [];
+      let fromCache = false;
+      
+      try {
+        const response = await fetchWithTimeout(HOSTINGER_PROXY_URL, {
+          headers: { 'Content-Type': 'application/json' }
+        }, 8000);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch tables: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`Failed to fetch tables: ${response.status}`);
+        }
 
-      const apiData = await response.json();
-      const CASINO_IMAGE_BASE = 'https://sitethemedata.com/casino-games';
-      
-      let rawTables: any[] = [];
-      
-      if (Array.isArray(apiData)) {
-        rawTables = apiData;
-      } else if (apiData?.data?.t1) {
-        rawTables = apiData.data.t1;
-      } else if (Array.isArray(apiData?.data)) {
-        rawTables = apiData.data;
-      }
-      
-      const tables = rawTables.map((table: any) => {
-        let imageUrl = '';
-        if (table.imgpath) {
-          imageUrl = `${CASINO_IMAGE_BASE}/${table.imgpath}`;
-        } else if (table.imageUrl) {
-          imageUrl = table.imageUrl;
-        } else if (table.img) {
-          imageUrl = table.img.startsWith('http') ? table.img : `${CASINO_IMAGE_BASE}/${table.img}`;
+        const apiData = await response.json();
+        const CASINO_IMAGE_BASE = 'https://sitethemedata.com/casino-games';
+        
+        let rawTables: any[] = [];
+        
+        if (Array.isArray(apiData)) {
+          rawTables = apiData;
+        } else if (apiData?.data?.t1) {
+          rawTables = apiData.data.t1;
+        } else if (Array.isArray(apiData?.data)) {
+          rawTables = apiData.data;
         }
         
-        return {
-          id: table.gmid || table.id || table.gtype || String(Math.random()),
-          name: table.gname || table.name || table.gtype || 'Unknown Table',
-          type: table.gmid || table.type || table.gtype,
-          data: table,
-          status: table.status || table.gstatus || 'active',
-          players: table.players || 0,
-          imageUrl
-        };
-      });
+        tables = rawTables.map((table: any) => {
+          let imageUrl = '';
+          if (table.imgpath) {
+            imageUrl = `${CASINO_IMAGE_BASE}/${table.imgpath}`;
+          } else if (table.imageUrl) {
+            imageUrl = table.imageUrl;
+          } else if (table.img) {
+            imageUrl = table.img.startsWith('http') ? table.img : `${CASINO_IMAGE_BASE}/${table.img}`;
+          }
+          
+          return {
+            id: table.gmid || table.id || table.gtype || String(Math.random()),
+            name: table.gname || table.name || table.gtype || 'Unknown Table',
+            type: table.gmid || table.type || table.gtype,
+            data: table,
+            status: table.status || table.gstatus || 'active',
+            players: table.players || 0,
+            imageUrl
+          };
+        });
 
-      // Update database cache
-      for (const table of tables) {
-        await supabase
+        // Update database cache
+        for (const table of tables) {
+          await supabase
+            .from('diamond_casino_tables')
+            .upsert({
+              table_id: table.id,
+              table_name: table.name,
+              table_data: table.data,
+              player_count: table.players,
+              status: table.status,
+              last_updated: new Date().toISOString()
+            }, { onConflict: 'table_id' });
+        }
+      } catch (fetchError) {
+        console.log(`⚠️ VPS unreachable, falling back to cached tables:`, fetchError);
+        fromCache = true;
+        
+        // Fallback to cached data from database
+        const { data: cachedTables } = await supabase
           .from('diamond_casino_tables')
-          .upsert({
-            table_id: table.id,
-            table_name: table.name,
-            table_data: table.data,
-            player_count: table.players,
-            status: table.status,
-            last_updated: new Date().toISOString()
-          }, { onConflict: 'table_id' });
+          .select('*')
+          .order('table_name');
+        
+        if (cachedTables && cachedTables.length > 0) {
+          tables = cachedTables.map((t: any) => ({
+            id: t.table_id,
+            name: t.table_name,
+            type: t.table_id,
+            data: t.table_data,
+            status: t.status || 'active',
+            players: t.player_count || 0,
+            imageUrl: t.table_data?.imgpath 
+              ? `https://sitethemedata.com/casino-games/${t.table_data.imgpath}` 
+              : ''
+          }));
+        }
       }
 
-      result = { success: true, data: { tables } };
+      result = { success: true, data: { tables }, fromCache };
     }
 
     // Get specific table details
