@@ -67,7 +67,7 @@ export const TableCard = ({ table, onClick }: TableCardProps) => {
         )}
       </div>
       
-      <CardHeader className="pb-1 sm:pb-2 md:pb-3 px-2 sm:px-4 md:px-6 pt-2 sm:pt-4 md:pt-6">
+      {/* <CardHeader className="pb-1 sm:pb-2 md:pb-3 px-2 sm:px-4 md:px-6 pt-2 sm:pt-4 md:pt-6">
         <div className="flex items-start justify-between">
           <CardTitle className="text-[10px] sm:text-base md:text-lg font-bold leading-tight line-clamp-1">{table.name}</CardTitle>
         </div>
@@ -80,7 +80,7 @@ export const TableCard = ({ table, onClick }: TableCardProps) => {
         >
           {isLive ? "Join Now" : "Coming Soon"}
         </Badge>
-      </CardContent>
+      </CardContent> */}
     </Card>
   );
 };
