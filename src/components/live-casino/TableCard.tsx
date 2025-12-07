@@ -41,7 +41,7 @@ export const TableCard = ({ table, onClick }: TableCardProps) => {
       className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 border-primary/20 overflow-hidden"
       onClick={onClick}
     >
-      <div className={`relative w-full h-20 sm:h-32 md:h-40 bg-gradient-to-br ${getGradientClass()} flex items-center justify-center`}>
+      <div className={`relative w-full  bg-gradient-to-br ${getGradientClass()} flex items-center justify-center`}>
         {table.imageUrl && !imageError && (
           <img 
             src={table.imageUrl} 
