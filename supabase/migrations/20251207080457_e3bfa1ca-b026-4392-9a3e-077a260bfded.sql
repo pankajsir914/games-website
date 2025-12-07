@@ -16,9 +16,18 @@ AS $$
   );
 $$;
 
--- Wallet Transactions: Allow admins to read all transactions
-CREATE POLICY "Admins can view all transactions" ON public.wallet_transactions
-FOR SELECT USING (public.is_admin_or_master());
+CREATE POLICY "Admins can view only their users' transactions"
+ON public.wallet_transactions
+FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1
+    FROM public.admin_roles ar
+    WHERE ar.user_id = wallet_transactions.user_id
+      AND ar.admin_id = auth.uid()
+  )
+);
+
 
 -- Aviator Bets: Allow admins to read all bets
 CREATE POLICY "Admins can view all aviator bets" ON public.aviator_bets
