@@ -60,7 +60,7 @@ const LiveCasino = () => {
       
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 mt-2 sm:mt-2">
         {/* Header */}
-        <div className="mb-4 sm:mb-8">
+        {/* <div className="mb-4 sm:mb-8">
           {viewMode === 'betting' && (
             <Button
               variant="ghost"
@@ -82,7 +82,7 @@ const LiveCasino = () => {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Loading State */}
         {loading && liveTables.length === 0 && (
