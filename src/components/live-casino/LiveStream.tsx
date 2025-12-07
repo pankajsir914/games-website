@@ -1,40 +1,51 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, ExternalLink, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LiveStreamProps {
   tableId: string;
-  streamUrl?: string;
   tableName?: string;
 }
 
-export const LiveStream = ({ tableId, streamUrl, tableName }: LiveStreamProps) => {
+export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [iframeError, setIframeError] = useState(false);
 
-  const handleWatchExternal = () => {
-    if (streamUrl) {
-      window.open(streamUrl, '_blank', 'noopener,noreferrer');
+  // Fetch fresh token from Supabase function
+  const fetchStreamUrl = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "diamond-casino-proxy",
+        { body: { action: "get-stream-url", tableId } }
+      );
+      if (error) throw error;
+      const url = data?.data?.data?.tv_url || null;
+      setStreamUrl(url);
+      setIframeError(false); // reset iframe error on new URL
+    } catch (err) {
+      console.error("Error fetching stream URL:", err);
+      setStreamUrl(null);
+      setIframeError(true);
     }
   };
 
-  if (!streamUrl) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-            Live Stream - {tableName}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-            <p className="text-white/60 text-xs sm:text-sm">Stream not available</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Fetch token on mount and tableId change
+  useEffect(() => {
+    if (!tableId) return;
+    fetchStreamUrl();
+
+    // Optional: auto-refresh token every 2 minutes for long streams
+    const interval = setInterval(fetchStreamUrl, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [tableId]);
+
+  const handleWatchExternal = () => {
+    if (streamUrl) {
+      window.open(streamUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
   return (
     <Card>
@@ -47,26 +58,19 @@ export const LiveStream = ({ tableId, streamUrl, tableName }: LiveStreamProps) =
             </span>
             LIVE - {tableName}
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleWatchExternal}
-            className="gap-2"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Open Stream
-          </Button>
+         
         </CardTitle>
       </CardHeader>
+
       <CardContent>
         <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-          {iframeError ? (
+          {iframeError || !streamUrl ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4 text-center">
               <AlertCircle className="h-12 w-12 text-yellow-500" />
               <div>
                 <p className="text-white font-medium mb-2">Stream Restricted</p>
                 <p className="text-white/60 text-sm mb-4">
-                  Domain whitelisting required. Click below to watch the stream.
+                  Token expired or domain restriction. Click below to watch the stream.
                 </p>
               </div>
               <Button onClick={handleWatchExternal} className="gap-2">
@@ -76,25 +80,13 @@ export const LiveStream = ({ tableId, streamUrl, tableName }: LiveStreamProps) =
             </div>
           ) : (
             <iframe
+              key={streamUrl} // reload iframe when token changes
               src={streamUrl}
               className="w-full h-full"
               allow="autoplay; fullscreen; encrypted-media"
               allowFullScreen
               title={`Live stream for ${tableName}`}
               onError={() => setIframeError(true)}
-              onLoad={(e) => {
-                // Check if iframe loaded empty or blocked
-                try {
-                  const iframe = e.target as HTMLIFrameElement;
-                  // If we can't access contentWindow, it might be blocked
-                  if (!iframe.contentWindow?.document) {
-                    setIframeError(true);
-                  }
-                } catch {
-                  // Cross-origin error - means iframe loaded but we can't check
-                  // This is expected for external domains, so don't set error
-                }
-              }}
             />
           )}
         </div>
