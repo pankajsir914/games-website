@@ -133,7 +133,6 @@ const LiveCasino = () => {
                   {/* Live Stream */}
                   <LiveStream 
                     tableId={selectedTable.id} 
-                    streamUrl={streamUrl}
                     tableName={selectedTable.name}
                   />
 
