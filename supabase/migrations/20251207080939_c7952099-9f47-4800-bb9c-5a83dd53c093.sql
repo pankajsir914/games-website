@@ -1,122 +1,70 @@
------------------------------------------
--- 1) HELPER FUNCTION: Check admin role
------------------------------------------
-DROP FUNCTION IF EXISTS has_admin_role(uuid, text);
 
-CREATE FUNCTION has_admin_role(user_id uuid, role_name text)
-RETURNS boolean AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 
-    FROM admin_roles 
-    WHERE admin_roles.user_id = user_id
-    AND admin_roles.role = role_name
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Drop existing admin SELECT policy for withdrawal_requests
+DROP POLICY IF EXISTS "Admins can view their users withdrawal requests" ON public.withdrawal_requests;
 
-
------------------------------------------
--- 2) HELPER FUNCTION: Check if user is admin
------------------------------------------
-DROP FUNCTION IF EXISTS is_admin_user(uuid);
-
-CREATE FUNCTION is_admin_user(user_id uuid)
-RETURNS boolean AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1 
-    FROM admin_roles 
-    WHERE admin_roles.user_id = user_id
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
------------------------------------------
--- 3) DROP ALL OLD POLICIES
------------------------------------------
-DROP POLICY IF EXISTS "Users select own withdrawals" ON public.withdrawal_requests;
-DROP POLICY IF EXISTS "Admins select their users withdrawals" ON public.withdrawal_requests;
-DROP POLICY IF EXISTS "Master admin select all withdrawals" ON public.withdrawal_requests;
-DROP POLICY IF EXISTS "Master admin update all withdrawals" ON public.withdrawal_requests;
-DROP POLICY IF EXISTS "Admins update their users withdrawals" ON public.withdrawal_requests;
-
-
------------------------------------------
--- 4) USER CAN SELECT ONLY OWN DATA
------------------------------------------
-CREATE POLICY "Users select own withdrawals"
+-- Create a simpler and more reliable policy for admins
+CREATE POLICY "Admins can view their users withdrawal requests" 
 ON public.withdrawal_requests
-FOR SELECT
+FOR SELECT 
 USING (
+  -- User's own requests
   auth.uid() = user_id
-);
-
-
------------------------------------------
--- 5) MASTER ADMIN CAN SELECT ALL
------------------------------------------
-CREATE POLICY "Master admin select all withdrawals"
-ON public.withdrawal_requests
-FOR SELECT
-USING (
+  OR
+  -- Master admin can see all
   has_admin_role(auth.uid(), 'master_admin')
-);
-
-
------------------------------------------
--- 6) NORMAL ADMIN CAN SELECT ONLY USERS THEY CREATED
------------------------------------------
-CREATE POLICY "Admins select their users withdrawals"
-ON public.withdrawal_requests
-FOR SELECT
-USING (
-  is_admin_user(auth.uid())
-  AND EXISTS (
-    SELECT 1 
-    FROM profiles p
-    WHERE p.id = withdrawal_requests.user_id
-    AND p.created_by = auth.uid()
+  OR
+  -- Admin can see requests from users they created
+  (
+    is_admin_user(auth.uid()) 
+    AND EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = withdrawal_requests.user_id 
+      AND p.created_by = auth.uid()
+    )
   )
+  OR
+  -- Admin can see requests assigned to them
+  (is_admin_user(auth.uid()) AND admin_id = auth.uid())
+  OR
+  -- Admin can see unassigned requests from their users
+  (is_admin_user(auth.uid()) AND admin_id IS NULL AND EXISTS (
+    SELECT 1 FROM profiles p 
+    WHERE p.id = withdrawal_requests.user_id 
+    AND p.created_by = auth.uid()
+  ))
 );
 
+-- Drop existing admin UPDATE policy
+DROP POLICY IF EXISTS "Admins can update their users withdrawal requests" ON public.withdrawal_requests;
 
------------------------------------------
--- 7) MASTER ADMIN CAN UPDATE ALL
------------------------------------------
-CREATE POLICY "Master admin update all withdrawals"
+-- Create a simpler UPDATE policy for admins
+CREATE POLICY "Admins can update their users withdrawal requests"
 ON public.withdrawal_requests
 FOR UPDATE
 USING (
+  -- Master admin can update all
   has_admin_role(auth.uid(), 'master_admin')
-)
-WITH CHECK (
-  has_admin_role(auth.uid(), 'master_admin')
+  OR
+  -- Admin can update requests from users they created
+  (
+    is_admin_user(auth.uid()) 
+    AND EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = withdrawal_requests.user_id 
+      AND p.created_by = auth.uid()
+    )
+  )
+  OR
+  -- Admin can update requests assigned to them
+  (is_admin_user(auth.uid()) AND admin_id = auth.uid())
 );
 
-
------------------------------------------
--- 8) NORMAL ADMIN CAN UPDATE ONLY THEIR USERS
------------------------------------------
-CREATE POLICY "Admins update their users withdrawals"
+-- Drop and recreate the Users SELECT policy to avoid conflicts
+DROP POLICY IF EXISTS "Users can view own withdrawal requests" ON public.withdrawal_requests;
+CREATE POLICY "Users can view own withdrawal requests"
 ON public.withdrawal_requests
-FOR UPDATE
-USING (
-  is_admin_user(auth.uid())
-  AND EXISTS (
-    SELECT 1 
-    FROM profiles p
-    WHERE p.id = withdrawal_requests.user_id
-    AND p.created_by = auth.uid()
-  )
-)
-WITH CHECK (
-  is_admin_user(auth.uid())
-  AND EXISTS (
-    SELECT 1 
-    FROM profiles p
-    WHERE p.id = withdrawal_requests.user_id
-    AND p.created_by = auth.uid()
-  )
-);
+FOR SELECT
+USING (auth.uid() = user_id);
+
+-- Drop the master admin policy as it's now included in the main admin policy
+DROP POLICY IF EXISTS "Master admins can view all withdrawal requests" ON public.withdrawal_requests;
