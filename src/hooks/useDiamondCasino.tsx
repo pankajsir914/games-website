@@ -169,7 +169,7 @@ export const useTables = (opts?: { edgeFunctionName?: string; useImageProxy?: bo
     let imageUrl: string | undefined;
     if (opts?.useImageProxy && t.imageUrl) {
       const filename = extractFilename(t.imageUrl);
-      if (filename) imageUrl = `${supabase.functions?.url?.replace?.(/\/$/, '') || 'https://'+(process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF||'foiojihgpeehvpwejeqw')}.supabase.co/functions/v1/${edgeFn}?image=${encodeURIComponent(filename)}`;
+      if (filename) imageUrl = `https://foiojihgpeehvpwejeqw.supabase.co/functions/v1/${edgeFn}?image=${encodeURIComponent(filename)}`;
     } else if (t.imageUrl) {
       imageUrl = t.imageUrl;
     } else if (t.table_data && typeof t.table_data === 'object' && t.table_data.imageUrl) {
@@ -442,6 +442,7 @@ export const useDiamondCasino = (opts?: { useImageProxy?: boolean; edgeFunctionN
   const oddsHook = useOdds();
   const resultsHook = useResults();
   const { toast } = useToast();
+  const [selectedTable, setSelectedTable] = useState<DiamondTable | null>(null);
 
   // Place bet - ensures user auth and includes user id in payload
   const placeBet = async (betData: {
@@ -454,7 +455,8 @@ export const useDiamondCasino = (opts?: { useImageProxy?: boolean; edgeFunctionN
   }) => {
     try {
       // ensure logged in
-      const { data: { session, user } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!session || !user) throw new Error('You must be logged in to place bets');
 
       const payload = { ...betData, user_id: user.id };
@@ -513,6 +515,16 @@ export const useDiamondCasino = (opts?: { useImageProxy?: boolean; edgeFunctionN
     fetchCurrentResult: resultsHook.fetchCurrentResult,
     fetchResultHistory: resultsHook.fetchResultHistory,
     fetchStreamUrl: resultsHook.fetchStreamUrl,
+
+    // selected table state
+    selectedTable,
+    setSelectedTable,
+    fetchTableDetails: async (tableId: string) => {
+      // Simply return cached table data for now
+      const table = tablesHook.tables.find(t => t.id === tableId);
+      return table?.data || null;
+    },
+    loading: tablesHook.loading || oddsHook.loading,
 
     // actions
     placeBet,

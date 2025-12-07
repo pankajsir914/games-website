@@ -8,7 +8,7 @@ interface TableCardProps {
     id: string;
     name: string;
     status: string;
-    players: number;
+    players?: number;
     data?: any;
     imageUrl?: string;
   };

@@ -305,11 +305,11 @@ serve(async (req) => {
       // Check wallet balance
       const { data: wallet } = await supabase
         .from('wallets')
-        .select('current_balance')
+        .select('balance')
         .eq('user_id', user.id)
         .single();
 
-      if (!wallet || wallet.current_balance < betData.amount) {
+      if (!wallet || wallet.balance < betData.amount) {
         throw new Error('Insufficient balance');
       }
 
