@@ -20,7 +20,7 @@ const Navigation = () => {
 
   const navItems = [
     { href: "/", label: "Home" },
-    { href: "/games", label: "Casino" },
+    { href: "/live-casino", label: "Casino" },
     { href: "/sports", label: "Sports" },
     { href: "/aviator", label: "Aviator" },
     { href: "/support", label: "Support" },
