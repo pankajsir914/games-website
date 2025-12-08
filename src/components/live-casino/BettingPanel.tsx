@@ -14,40 +14,64 @@ interface BettingPanelProps {
 }
 
 export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelProps) => {
-  const [amount, setAmount] = useState<string>('100');
-  const [selectedBet, setSelectedBet] = useState<string>('');
-  const [betType, setBetType] = useState<'back' | 'lay'>('back');
+  const [amount, setAmount] = useState("100");
+  const [selectedBet, setSelectedBet] = useState("");
+  const [betType, setBetType] = useState<"back" | "lay">("back");
 
   const quickAmounts = [100, 500, 1000, 5000];
   const betTypes = odds?.bets || [];
-  const hasRealOdds = betTypes.length > 0 && betTypes.some((b: any) => b.back > 0 || b.odds > 0);
+
+  // Safe odds detection
+  const hasRealOdds = betTypes.some(
+    (b: any) =>
+      (b?.back && b.back > 0) ||
+      (b?.lay && b.lay > 0) ||
+      (b?.odds && b.odds > 0)
+  );
+
+  const getSelectedBetData = () => {
+    return betTypes.find((b: any) => b?.type === selectedBet);
+  };
+
+  const getSelectedOdds = () => {
+    const bet = getSelectedBetData();
+    if (!bet) return 1;
+
+    if (betType === "back")
+      return bet.back > 0 ? bet.back : bet.odds > 0 ? bet.odds : 1;
+
+    return bet?.lay > 0 ? bet.lay : 1;
+  };
 
   const handlePlaceBet = async () => {
-    if (!selectedBet || !amount || parseFloat(amount) <= 0) {
-      return;
-    }
+    const amt = Number(amount);
 
-    const bet = betTypes.find((b: any) => b.type === selectedBet);
-    const selectedOdds = betType === 'back' ? (bet?.back || bet?.odds || 1) : (bet?.lay || 1);
+    if (!selectedBet || !amt || isNaN(amt) || amt <= 0) return;
+
+    const bet = getSelectedBetData();
+    const oddsValue = getSelectedOdds();
 
     await onPlaceBet({
       tableId: table.id,
       tableName: table.name,
-      amount: parseFloat(amount),
+      amount: amt,
       betType: selectedBet,
-      odds: selectedOdds,
+      odds: oddsValue,
       roundId: table.data?.currentRound || bet?.mid || undefined,
-      sid: bet?.sid
+      sid: bet?.sid,
     });
 
-    setAmount('100');
-    setSelectedBet('');
+    setAmount("100");
+    setSelectedBet("");
   };
 
-  const getSelectedBetOdds = () => {
-    const bet = betTypes.find((b: any) => b.type === selectedBet);
-    if (!bet) return 1;
-    return betType === 'back' ? (bet.back || bet.odds || 1) : (bet.lay || 1);
+  const calculatePotential = () => {
+    const amt = Number(amount);
+    const odds = getSelectedOdds();
+
+    if (!amt || odds <= 1) return "0.00";
+
+    return (amt * (odds - 1)).toFixed(2);
   };
 
   return (
@@ -62,88 +86,106 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
           )}
         </CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-3 sm:space-y-4">
-        {/* No odds available message */}
         {!hasRealOdds && (
           <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
             <AlertCircle className="w-5 h-5 text-yellow-500" />
-            <span className="text-sm text-yellow-500">
-              Waiting for live odds...
-            </span>
+            <span className="text-sm text-yellow-500">Waiting for live odds...</span>
           </div>
         )}
 
-        {/* Bet types with real odds */}
         {hasRealOdds && (
           <div>
             <Label className="text-sm text-muted-foreground mb-2 block">
               Select Bet (Live Odds)
             </Label>
+
             <div className="grid gap-2">
-              {betTypes.map((bet: any) => (
-                <div
-                  key={bet.type}
-                  className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                    selectedBet === bet.type 
-                      ? 'border-primary bg-primary/10' 
-                      : 'border-border hover:border-primary/50'
-                  } ${bet.status === 'suspended' ? 'opacity-50 pointer-events-none' : ''}`}
-                  onClick={() => bet.status !== 'suspended' && setSelectedBet(bet.type)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">{bet.type}</span>
-                    {bet.status === 'suspended' && (
-                      <Badge variant="destructive" className="text-xs">Suspended</Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    {/* Back button */}
-                    <Button
-                      size="sm"
-                      variant={selectedBet === bet.type && betType === 'back' ? 'default' : 'outline'}
-                      className={`flex-1 ${
-                        selectedBet === bet.type && betType === 'back'
-                          ? 'bg-blue-500 hover:bg-blue-600'
-                          : 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBet(bet.type);
-                        setBetType('back');
-                      }}
-                      disabled={bet.status === 'suspended' || !bet.back}
-                    >
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      <span className="font-bold">{bet.back?.toFixed(2) || bet.odds?.toFixed(2) || '-'}</span>
-                    </Button>
-                    {/* Lay button */}
-                    {bet.lay > 0 && (
+              {betTypes.map((bet: any) => {
+                const isSuspended = bet?.status === "suspended";
+
+                return (
+                  <div
+                    key={bet.type}
+                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                      selectedBet === bet.type
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    } ${isSuspended ? "opacity-50 pointer-events-none" : ""}`}
+                    onClick={() => !isSuspended && setSelectedBet(bet.type)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{bet.type}</span>
+
+                      {isSuspended && (
+                        <Badge variant="destructive" className="text-xs">
+                          Suspended
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 mt-2">
+                      {/* BACK */}
                       <Button
                         size="sm"
-                        variant={selectedBet === bet.type && betType === 'lay' ? 'default' : 'outline'}
+                        variant={
+                          selectedBet === bet.type && betType === "back"
+                            ? "default"
+                            : "outline"
+                        }
                         className={`flex-1 ${
-                          selectedBet === bet.type && betType === 'lay'
-                            ? 'bg-pink-500 hover:bg-pink-600'
-                            : 'bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/30'
+                          selectedBet === bet.type && betType === "back"
+                            ? "bg-blue-500 hover:bg-blue-600"
+                            : "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30"
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedBet(bet.type);
-                          setBetType('lay');
+                          setBetType("back");
                         }}
-                        disabled={bet.status === 'suspended'}
                       >
-                        <TrendingDown className="w-3 h-3 mr-1" />
-                        <span className="font-bold">{bet.lay?.toFixed(2) || '-'}</span>
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        <span className="font-bold">
+                          {bet.back?.toFixed(2) || bet.odds?.toFixed(2) || "-"}
+                        </span>
                       </Button>
-                    )}
+
+                      {/* LAY */}
+                      {bet?.lay > 0 && (
+                        <Button
+                          size="sm"
+                          variant={
+                            selectedBet === bet.type && betType === "lay"
+                              ? "default"
+                              : "outline"
+                          }
+                          className={`flex-1 ${
+                            selectedBet === bet.type && betType === "lay"
+                              ? "bg-pink-500 hover:bg-pink-600"
+                              : "bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/30"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBet(bet.type);
+                            setBetType("lay");
+                          }}
+                        >
+                          <TrendingDown className="w-3 h-3 mr-1" />
+                          <span className="font-bold">
+                            {bet.lay?.toFixed(2) || "-"}
+                          </span>
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>Min: ₹{bet.min || 100}</span>
+                      <span>Max: ₹{(bet.max || 100000).toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Min: ₹{bet.min || 100}</span>
-                    <span>Max: ₹{(bet.max || 100000).toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -157,9 +199,9 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
             {quickAmounts.map((amt) => (
               <Button
                 key={amt}
-                variant={amount === amt.toString() ? "default" : "outline"}
+                variant={amount === String(amt) ? "default" : "outline"}
                 size="sm"
-                onClick={() => setAmount(amt.toString())}
+                onClick={() => setAmount(String(amt))}
                 className="h-8 sm:h-10 text-xs sm:text-sm"
               >
                 ₹{amt}
@@ -168,7 +210,7 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
           </div>
         </div>
 
-        {/* Custom amount */}
+        {/* Custom */}
         <div>
           <Label htmlFor="custom-amount" className="text-sm">
             Custom Amount
@@ -184,12 +226,14 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
           />
         </div>
 
-        {/* Place bet button */}
+        {/* Place Bet */}
         <Button
           onClick={handlePlaceBet}
-          disabled={!selectedBet || !amount || loading || !hasRealOdds}
+          disabled={!selectedBet || loading || !hasRealOdds}
           className={`w-full h-10 sm:h-12 text-base sm:text-lg font-bold ${
-            betType === 'back' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-pink-500 hover:bg-pink-600'
+            betType === "back"
+              ? "bg-blue-500 hover:bg-blue-600"
+              : "bg-pink-500 hover:bg-pink-600"
           }`}
           size="lg"
         >
@@ -199,14 +243,14 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
               Placing Bet...
             </>
           ) : (
-            `${betType === 'back' ? 'Back' : 'Lay'} ₹${amount || 0}`
+            `${betType === "back" ? "Back" : "Lay"} ₹${amount || 0}`
           )}
         </Button>
 
         {selectedBet && amount && hasRealOdds && (
           <div className="text-sm text-center text-muted-foreground">
-            {betType === 'back' ? 'Potential win' : 'Liability'}: ₹
-            {(parseFloat(amount) * (getSelectedBetOdds() - 1)).toFixed(2)}
+            {betType === "back" ? "Potential win" : "Liability"}: ₹
+            {calculatePotential()}
           </div>
         )}
       </CardContent>
