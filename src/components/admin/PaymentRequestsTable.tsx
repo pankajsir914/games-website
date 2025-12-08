@@ -106,10 +106,13 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
 
   // Apply filters
   const filteredRequests = paymentRequests.filter(request => {
-    if (filters?.search && !request.id.toLowerCase().includes(filters.search.toLowerCase())) {
-      return false;
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      const matchesId = request.id.toLowerCase().includes(searchLower);
+      const matchesName = request.user_name?.toLowerCase().includes(searchLower);
+      if (!matchesId && !matchesName) return false;
     }
-    if (filters?.status !== 'all' && request.status !== filters.status) {
+    if (filters?.status && filters.status !== 'all' && request.status !== filters.status) {
       return false;
     }
     return true;
@@ -142,9 +145,9 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback>U</AvatarFallback>
+                          <AvatarFallback>{(request.user_name || 'U').slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{request.user_id.slice(0, 8)}</span>
+                        <span className="font-medium">{request.user_name || request.user_id.slice(0, 8)}</span>
                       </div>
                     </TableCell>
                     <TableCell>
