@@ -116,13 +116,13 @@ export const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
           <TabsContent value="signin" className="space-y-4">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
+                <Label htmlFor="signin-email">Username</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
   id="signin-email"
   type="text"
-  placeholder="Enter username or email"
+  placeholder="Enter username"
   value={email}
   onChange={(e) => setEmail(e.target.value)}
   onBlur={() => {
