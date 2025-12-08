@@ -22,6 +22,7 @@ export const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
   const [resetEmail, setResetEmail] = useState('');
   
   // Registration form state
+  const DEFAULT_DOMAIN = "@rrbgames.com";
   const [registerName, setRegisterName] = useState('');
   const [registerMobile, setRegisterMobile] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
@@ -119,14 +120,20 @@ export const AuthModal = ({ open, onOpenChange }: AuthModalProps) => {
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
+  id="signin-email"
+  type="text"
+  placeholder="Enter username or email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  onBlur={() => {
+    if (email && !email.includes("@")) {
+      setEmail(email + DEFAULT_DOMAIN);
+    }
+  }}
+  className="pl-10"
+  required
+/>
+
                 </div>
               </div>
               <div className="space-y-2">
