@@ -87,63 +87,63 @@ export function DashboardSidebar() {
       count: 677,
       color: 'text-purple-500'
     },
-    { 
-      id: 'bonus', 
-      title: 'Bonus Wagering', 
-      icon: Gift, 
-      path: '/games',
-      count: 2278,
-      color: 'text-pink-500'
-    },
-    { 
-      id: 'slots', 
-      title: 'Slots', 
-      icon: Coins, 
-      path: '/games',
-      count: 10428,
-      color: 'text-gaming-gold'
-    },
+    // { 
+    //   id: 'bonus', 
+    //   title: 'Bonus Wagering', 
+    //   icon: Gift, 
+    //   path: '/games',
+    //   count: 2278,
+    //   color: 'text-pink-500'
+    // },
+    // { 
+    //   id: 'slots', 
+    //   title: 'Slots', 
+    //   icon: Coins, 
+    //   path: '/games',
+    //   count: 10428,
+    //   color: 'text-gaming-gold'
+    // },
    
-    { 
-      id: 'drops', 
-      title: 'Drops & Wins', 
-      icon: Target, 
-      path: '/games',
-      count: 77,
-      color: 'text-green-500'
-    },
-    { 
-      id: 'new', 
-      title: 'New', 
-      icon: Sparkles, 
-      path: '/games',
-      count: 414,
-      color: 'text-cyan-500'
-    },
-    { 
-      id: 'quick', 
-      title: 'Quick games', 
-      icon: Zap, 
-      path: '/games',
-      count: 678,
-      color: 'text-yellow-500'
-    },
-    { 
-      id: 'shows', 
-      title: 'Game shows', 
-      icon: Clock, 
-      path: '/games',
-      count: 76,
-      color: 'text-indigo-500'
-    },
-    { 
-      id: 'spinoleague', 
-      title: 'Spinoleague', 
-      icon: Dice1, 
-      path: '/games',
-      count: 440,
-      color: 'text-violet-500'
-    },
+    // { 
+    //   id: 'drops', 
+    //   title: 'Drops & Wins', 
+    //   icon: Target, 
+    //   path: '/games',
+    //   count: 77,
+    //   color: 'text-green-500'
+    // },
+    // { 
+    //   id: 'new', 
+    //   title: 'New', 
+    //   icon: Sparkles, 
+    //   path: '/games',
+    //   count: 414,
+    //   color: 'text-cyan-500'
+    // },
+    // { 
+    //   id: 'quick', 
+    //   title: 'Quick games', 
+    //   icon: Zap, 
+    //   path: '/games',
+    //   count: 678,
+    //   color: 'text-yellow-500'
+    // },
+    // { 
+    //   id: 'shows', 
+    //   title: 'Game shows', 
+    //   icon: Clock, 
+    //   path: '/games',
+    //   count: 76,
+    //   color: 'text-indigo-500'
+    // },
+    // { 
+    //   id: 'spinoleague', 
+    //   title: 'Spinoleague', 
+    //   icon: Dice1, 
+    //   path: '/games',
+    //   count: 440,
+    //   color: 'text-violet-500'
+    // },
     { 
       id: 'all', 
       title: 'All games', 
