@@ -10,7 +10,7 @@ interface DiamondTable {
   players: number;
   data: any;
   imageUrl?: string;
-}
+} 
 
 interface DiamondBet {
   id: string;
