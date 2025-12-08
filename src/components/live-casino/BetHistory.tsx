@@ -81,4 +81,4 @@ export const BetHistory = ({ bets }: BetHistoryProps) => {
       </CardContent>
     </Card>
   );
-};
+};    
