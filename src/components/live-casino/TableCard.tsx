@@ -14,7 +14,7 @@ interface TableCardProps {
     imageUrl?: string;
   };
   onClick: () => void;
-}
+} 
 
 export const TableCard = ({ table, onClick }: TableCardProps) => {
   const isRestricted = table.status === "restricted";
