@@ -25,7 +25,10 @@ const LudoMultiplayer = () => {
     rollDice,
     moveToken,
     forfeitGame,
-    clearRoom
+    clearRoom,
+    joinRoom,
+    getRoomById,
+    getGameHistory
   } = useLudoBackend();
 
   const [gameState, setGameState] = useState<GameState>({
@@ -73,8 +76,14 @@ const LudoMultiplayer = () => {
   }, [currentRoom]);
 
   // Hide lobby when joining a room
-  const handleJoinRoom = (roomId: string) => {
-    setShowLobby(false);
+  const handleJoinRoom = async (roomId: string) => {
+    try {
+      await joinRoom(roomId);
+      await getRoomById(roomId);
+      setShowLobby(false);
+    } catch (error) {
+      console.error('Error joining room:', error);
+    }
   };
 
   // Handle dice roll
@@ -221,8 +230,8 @@ const LudoMultiplayer = () => {
         <div className="pt-16">
           <LudoLobby 
             user={user} 
-            onJoinGame={async () => {}} 
-            onGetHistory={async () => []} 
+            onJoinGame={handleJoinRoom} 
+            onGetHistory={getGameHistory} 
             loading={isLoading} 
           />
         </div>
