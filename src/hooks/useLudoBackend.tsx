@@ -74,22 +74,35 @@ export const useLudoBackend = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || error.error || 'Failed to create room');
+      }
+
+      // Check if data has error property
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data?.room_id) {
+        throw new Error('Room creation failed - no room ID returned');
+      }
 
       toast({
         title: "Room Created",
         description: `Room created with entry fee ₹${entryFee}`,
       });
 
-      // Fetch the created room
-      await getRoomById(data.room_id);
+      // Room will be fetched separately by the component to avoid circular dependency
       
       return data;
     } catch (err: any) {
-      setError(err.message);
+      console.error('Create room error:', err);
+      const errorMessage = err?.message || err?.error || 'Failed to create room. Please check your balance.';
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive",
       });
       throw err;
@@ -123,8 +136,27 @@ export const useLudoBackend = () => {
         description: `You are player ${data.player_position} (${data.player_color})`,
       });
 
-      // Fetch updated room state
-      await getRoomById(roomId);
+      // Fetch updated room state directly to avoid circular dependency
+      try {
+        const { data: room, error: roomError } = await supabase
+          .from('ludo_rooms')
+          .select(`
+            *,
+            ludo_player_sessions(*)
+          `)
+          .eq('id', roomId)
+          .single();
+
+        if (!roomError && room) {
+          setCurrentRoom(room);
+          const userSession = room.ludo_player_sessions?.find(
+            (session: any) => session.player_id === user?.id
+          );
+          setPlayerSession(userSession || null);
+        }
+      } catch (err) {
+        console.error('Error fetching room after join:', err);
+      }
       
       if (data.room_full) {
         toast({
@@ -384,8 +416,27 @@ export const useLudoBackend = () => {
         },
         (payload) => {
           console.log('Player session update:', payload);
-          // Refresh room data
-          getRoomById(currentRoom.id);
+          // Refresh room data directly to avoid circular dependency
+          supabase
+            .from('ludo_rooms')
+            .select(`
+              *,
+              ludo_player_sessions(*)
+            `)
+            .eq('id', currentRoom.id)
+            .single()
+            .then(({ data: room, error: roomError }) => {
+              if (!roomError && room) {
+                setCurrentRoom(room);
+                const userSession = room.ludo_player_sessions?.find(
+                  (session: any) => session.player_id === user?.id
+                );
+                setPlayerSession(userSession || null);
+              }
+            })
+            .catch((err) => {
+              console.error('Error refreshing room:', err);
+            });
         }
       )
       .on(
@@ -414,7 +465,7 @@ export const useLudoBackend = () => {
       supabase.removeChannel(roomChannel);
       clearInterval(heartbeatInterval);
     };
-  }, [currentRoom, sendHeartbeat, getRoomById]);
+  }, [currentRoom, sendHeartbeat, user]);
 
   // Load moves for current room
   useEffect(() => {
