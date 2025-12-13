@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Clock, Trophy, Coins, Loader2 } from 'lucide-react';
+import { Users, Clock, Trophy, Coins, Loader2, Plus, X } from 'lucide-react';
 import { useLudoBackend } from '@/hooks/useLudoBackend';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface LudoLobbyProps {
   user: any;
@@ -19,24 +20,23 @@ interface LudoLobbyProps {
 }
 
 const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, loading }) => {
+  const { createRoom, getAvailableRooms, getGameHistory } = useLudoBackend();
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [gameHistory, setGameHistory] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'join' | 'history'>('join');
   const [roomsLoading, setRoomsLoading] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [roomConfig, setRoomConfig] = useState({
+    maxPlayers: 2,
+    entryFee: 100
+  });
 
   const fetchAvailableRooms = async () => {
     setRoomsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('ludo_rooms')
-        .select('*')
-        .eq('status', 'waiting')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      
-      setAvailableRooms(data || []);
+      const rooms = await getAvailableRooms();
+      setAvailableRooms(rooms || []);
     } catch (error) {
       console.error('Error fetching rooms:', error);
       toast({
@@ -49,18 +49,56 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
     }
   };
 
+  const handleCreateRoom = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a room",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate entry fee
+    if (roomConfig.entryFee < 10 || roomConfig.entryFee > 1000) {
+      toast({
+        title: "Invalid Entry Fee",
+        description: "Entry fee must be between ₹10 and ₹1000",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCreatingRoom(true);
+    try {
+      const result = await createRoom(roomConfig.maxPlayers, roomConfig.entryFee);
+      
+      if (result?.room_id) {
+        toast({
+          title: "Room Created!",
+          description: "Waiting for players to join...",
+        });
+        setShowCreateDialog(false);
+        await fetchAvailableRooms();
+        // Auto-join the created room - this will also fetch the room
+        await handleJoinGame(result.room_id);
+      } else {
+        throw new Error('Room creation failed - no room ID returned');
+      }
+    } catch (error: any) {
+      console.error('Create room error:', error);
+      toast({
+        title: "Failed to create room",
+        description: error?.message || error?.error || "Please check your balance and try again",
+        variant: "destructive"
+      });
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
+
   const handleJoinGame = async (roomId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('ludo-game-manager', {
-        body: {
-          action: 'join_room',
-          roomId,
-          playerId: user?.id
-        }
-      });
-
-      if (error) throw error;
-      
       await onJoinGame(roomId);
     } catch (error: any) {
       toast({
@@ -73,7 +111,7 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
 
   const loadGameHistory = async () => {
     try {
-      const history = await onGetHistory();
+      const history = await getGameHistory();
       setGameHistory(history || []);
     } catch (error) {
       console.error('Error loading history:', error);
@@ -128,7 +166,7 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex justify-center space-x-4">
+      <div className="flex justify-center items-center space-x-4">
         {[
           { id: 'join', label: 'Join Game', icon: Users },
           { id: 'history', label: 'Game History', icon: Clock },
@@ -143,6 +181,13 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
             {label}
           </Button>
         ))}
+        <Button
+          onClick={() => setShowCreateDialog(true)}
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+        >
+          <Plus className="w-4 h-4" />
+          Create Room
+        </Button>
       </div>
 
 
@@ -279,6 +324,95 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
           </CardContent>
         </Card>
       )}
+
+      {/* Create Room Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Ludo Room</DialogTitle>
+            <DialogDescription>
+              Set up a new multiplayer Ludo game. Other players can join your room.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxPlayers">Number of Players</Label>
+              <Select
+                value={roomConfig.maxPlayers.toString()}
+                onValueChange={(value) => setRoomConfig(prev => ({ ...prev, maxPlayers: parseInt(value) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 Players</SelectItem>
+                  <SelectItem value="4">4 Players</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="entryFee">Entry Fee (₹)</Label>
+              <Input
+                id="entryFee"
+                type="number"
+                min="10"
+                max="1000"
+                step="10"
+                value={roomConfig.entryFee}
+                onChange={(e) => setRoomConfig(prev => ({ ...prev, entryFee: parseInt(e.target.value) || 100 }))}
+                placeholder="Enter entry fee"
+              />
+              <p className="text-xs text-muted-foreground">
+                Minimum: ₹10, Maximum: ₹1000
+              </p>
+            </div>
+
+            <div className="bg-muted/50 p-3 rounded-lg">
+              <div className="text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Pot:</span>
+                  <span className="font-bold text-primary">
+                    ₹{(roomConfig.entryFee * roomConfig.maxPlayers * 0.9).toFixed(0)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Commission (10%):</span>
+                  <span>₹{(roomConfig.entryFee * roomConfig.maxPlayers * 0.1).toFixed(0)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleCreateRoom}
+                disabled={creatingRoom || roomConfig.entryFee < 10 || roomConfig.entryFee > 1000}
+                className="flex-1"
+              >
+                {creatingRoom ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Room
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+                disabled={creatingRoom}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
