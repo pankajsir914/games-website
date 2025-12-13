@@ -52,22 +52,37 @@ export const useAviator = () => {
   const autoManageRef = useRef<NodeJS.Timeout | null>(null);
   const multiplierIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch current round
+  // Fetch current round - include crashed rounds too for immediate crash detection
   const { data: currentRound, isLoading: roundLoading } = useQuery({
     queryKey: ['aviator-current-round'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try to get active rounds (betting or flying)
+      const { data: activeData, error: activeError } = await supabase
         .from('aviator_rounds')
         .select('*')
         .in('status', ['betting', 'flying'])
         .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (activeError && activeError.code !== 'PGRST116') throw activeError;
+      
+      // If we have an active round, return it
+      if (activeData && activeData.length > 0) {
+        return activeData[0] as AviatorRound;
+      }
+      
+      // Otherwise, get the most recent round (including crashed) for crash display
+      const { data: recentData, error: recentError } = await supabase
+        .from('aviator_rounds')
+        .select('*')
+        .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as AviatorRound | null;
+      if (recentError && recentError.code !== 'PGRST116') throw recentError;
+      return recentData as AviatorRound | null;
     },
-    refetchInterval: 1000,
+    refetchInterval: 500, // Refetch more frequently to catch crashes quickly
   });
 
   // Fetch user's current bet for the round
@@ -137,31 +152,46 @@ export const useAviator = () => {
       const betEndTime = new Date(currentRound.bet_end_time).getTime();
       
       const updateMultiplier = () => {
-        const elapsed = (Date.now() - betEndTime) / 1000;
+        const now = Date.now();
+        const elapsed = Math.max(0, (now - betEndTime) / 1000); // Ensure non-negative
         // Speed up to 0.2x per second for faster gameplay
-        const newMultiplier = Math.max(1.0, 1 + (elapsed * 0.2));
+        const newMultiplier = 1 + (elapsed * 0.2);
         
-        // Check if we should crash
-        if (newMultiplier >= currentRound.crash_multiplier) {
-          setCurrentMultiplier(currentRound.crash_multiplier);
+        // Check if we should crash (max 4x)
+        const maxMultiplier = Math.min(currentRound.crash_multiplier, 4.0);
+        if (newMultiplier >= maxMultiplier) {
+          setCurrentMultiplier(Number(maxMultiplier.toFixed(2)));
           if (multiplierIntervalRef.current) {
             clearInterval(multiplierIntervalRef.current);
+            multiplierIntervalRef.current = null;
           }
         } else {
-          setCurrentMultiplier(Number(newMultiplier.toFixed(2)));
+          setCurrentMultiplier(Number(Math.min(newMultiplier, 4.0).toFixed(2)));
         }
       };
       
+      // Clear any existing interval first
+      if (multiplierIntervalRef.current) {
+        clearInterval(multiplierIntervalRef.current);
+        multiplierIntervalRef.current = null;
+      }
+      
       // Update every 50ms for smooth animation
+      updateMultiplier(); // Initial call
       multiplierIntervalRef.current = setInterval(updateMultiplier, 50);
-      updateMultiplier();
       
       return () => {
         if (multiplierIntervalRef.current) {
           clearInterval(multiplierIntervalRef.current);
+          multiplierIntervalRef.current = null;
         }
       };
     } else {
+      // Clear interval and reset multiplier when not flying
+      if (multiplierIntervalRef.current) {
+        clearInterval(multiplierIntervalRef.current);
+        multiplierIntervalRef.current = null;
+      }
       setCurrentMultiplier(1.0);
     }
   }, [currentRound?.status, currentRound?.bet_end_time, currentRound?.crash_multiplier]);
