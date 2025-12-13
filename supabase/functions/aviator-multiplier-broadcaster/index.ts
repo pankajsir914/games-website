@@ -34,21 +34,52 @@ serve(async (req) => {
     }
 
     // Calculate current multiplier based on elapsed time
+    // Match frontend calculation: 0.2x per second
     const betEndTime = new Date(flyingRound.bet_end_time).getTime();
     const elapsed = (Date.now() - betEndTime) / 1000; // seconds since flight started
-    const currentMultiplier = Math.min(1 + (elapsed * 0.1), flyingRound.crash_multiplier);
+    const currentMultiplier = Math.min(1 + (elapsed * 0.2), flyingRound.crash_multiplier);
 
     // Broadcast multiplier update via Realtime
-    const channel = supabaseClient.channel(`aviator-${flyingRound.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'multiplier',
-      payload: {
-        multiplier: currentMultiplier,
-        round_id: flyingRound.id,
-        timestamp: Date.now()
-      }
+    const channelName = `aviator-${flyingRound.id}`;
+    const channel = supabaseClient.channel(channelName);
+    
+    // Subscribe to channel before sending broadcast
+    const subscribePromise = new Promise((resolve, reject) => {
+      channel
+        .on('broadcast', { event: 'multiplier' }, () => {}) // Dummy listener
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            resolve(status);
+          } else if (status === 'CHANNEL_ERROR') {
+            reject(new Error('Channel subscription failed'));
+          }
+        });
     });
+    
+    try {
+      await subscribePromise;
+      
+      // Send broadcast
+      const { error: sendError } = await channel.send({
+        type: 'broadcast',
+        event: 'multiplier',
+        payload: {
+          multiplier: currentMultiplier,
+          round_id: flyingRound.id,
+          timestamp: Date.now()
+        }
+      });
+      
+      if (sendError) {
+        console.error('Error sending broadcast:', sendError);
+      }
+      
+      // Clean up channel
+      await supabaseClient.removeChannel(channel);
+    } catch (error) {
+      console.error('Error in channel subscription:', error);
+      await supabaseClient.removeChannel(channel);
+    }
 
     console.log(`Broadcast multiplier ${currentMultiplier.toFixed(2)}x for round ${flyingRound.id}`);
 
