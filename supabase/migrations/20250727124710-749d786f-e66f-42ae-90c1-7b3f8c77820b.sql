@@ -148,8 +148,8 @@ BEGIN
     RAISE EXCEPTION 'Max players must be 2 or 4';
   END IF;
 
-  IF p_entry_fee < 1.00 OR p_entry_fee > 500.00 THEN
-    RAISE EXCEPTION 'Entry fee must be between ₹1.00 and ₹500.00';
+  IF p_entry_fee < 10.00 OR p_entry_fee > 1000.00 THEN
+    RAISE EXCEPTION 'Entry fee must be between ₹10.00 and ₹1000.00';
   END IF;
 
   -- Check wallet balance
