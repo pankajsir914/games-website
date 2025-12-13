@@ -163,12 +163,17 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
       const maxTime = Math.max(multiplierHistory[multiplierHistory.length - 1].time, 10);
       const maxMultiplier = Math.max(...multiplierHistory.map(p => p.multiplier), 5);
       
-      // Draw curve
+      // Draw curve with gradient
+      const gradient = ctx.createLinearGradient(0, 0, rect.width, 0);
+      gradient.addColorStop(0, 'rgba(34, 197, 94, 1)');
+      gradient.addColorStop(0.5, 'rgba(59, 130, 246, 1)');
+      gradient.addColorStop(1, 'rgba(251, 191, 36, 1)');
+      
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
-      ctx.lineWidth = 3;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = 'rgba(34, 197, 94, 0.6)';
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = 'rgba(34, 197, 94, 0.8)';
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       
@@ -186,17 +191,30 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
       ctx.stroke();
       
       // Fill area under curve
-      const lastPoint = multiplierHistory[multiplierHistory.length - 1];
-      const lastX = (lastPoint.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
-      ctx.lineTo(lastX, rect.height * 0.85);
+      const curveEndPoint = multiplierHistory[multiplierHistory.length - 1];
+      const curveEndX = (curveEndPoint.time / maxTime) * rect.width * 0.85 + rect.width * 0.05;
+      const curveEndY = rect.height * 0.85 - (Math.log(curveEndPoint.multiplier) / Math.log(maxMultiplier)) * rect.height * 0.7;
+      
+      ctx.lineTo(curveEndX, rect.height * 0.85);
       ctx.lineTo(rect.width * 0.05, rect.height * 0.85);
       ctx.closePath();
       
-      const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
-      gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
-      gradient.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
-      ctx.fillStyle = gradient;
+      const fillGradient = ctx.createLinearGradient(0, 0, 0, rect.height);
+      fillGradient.addColorStop(0, 'rgba(34, 197, 94, 0.3)');
+      fillGradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.2)');
+      fillGradient.addColorStop(1, 'rgba(251, 191, 36, 0.1)');
+      ctx.fillStyle = fillGradient;
       ctx.shadowBlur = 0;
+      ctx.fill();
+      
+      // Add glow effect at the end point
+      const glowGradient = ctx.createRadialGradient(curveEndX, curveEndY, 0, curveEndX, curveEndY, 30);
+      glowGradient.addColorStop(0, 'rgba(251, 191, 36, 0.8)');
+      glowGradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.4)');
+      glowGradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(curveEndX, curveEndY, 30, 0, Math.PI * 2);
       ctx.fill();
     } catch (error) {
       console.error('Canvas drawing error:', error);
@@ -282,13 +300,32 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
         className="absolute inset-0 transition-all duration-1000"
         style={{
           background: gameData.gameState === 'flying' 
-            ? `linear-gradient(to top, 
-                hsl(220, 40%, ${20 - gameData.multiplier}%) 0%, 
-                hsl(220, 60%, ${30 - gameData.multiplier * 2}%) 50%,
-                hsl(220, 80%, ${40 - gameData.multiplier * 3}%) 100%)`
-            : 'linear-gradient(to top, hsl(220, 40%, 20%) 0%, hsl(220, 60%, 30%) 50%, hsl(220, 80%, 40%) 100%)'
+            ? `radial-gradient(ellipse at center, 
+                hsl(220, 50%, ${25 - gameData.multiplier * 0.5}%) 0%, 
+                hsl(220, 60%, ${30 - gameData.multiplier * 1}%) 40%,
+                hsl(220, 70%, ${35 - gameData.multiplier * 1.5}%) 70%,
+                hsl(220, 80%, ${40 - gameData.multiplier * 2}%) 100%)`
+            : gameData.gameState === 'crashed'
+            ? 'radial-gradient(ellipse at center, hsl(0, 60%, 25%) 0%, hsl(0, 70%, 20%) 50%, hsl(0, 80%, 15%) 100%)'
+            : 'radial-gradient(ellipse at center, hsl(220, 40%, 20%) 0%, hsl(220, 60%, 30%) 50%, hsl(220, 80%, 40%) 100%)'
         }}
       />
+      
+      {/* Animated Gradient Overlay */}
+      {gameData.gameState === 'flying' && (
+        <div 
+          className="absolute inset-0 opacity-30 animate-gradient-x"
+          style={{
+            background: `linear-gradient(90deg, 
+              transparent 0%, 
+              rgba(59, 130, 246, 0.3) 25%,
+              rgba(251, 191, 36, 0.3) 50%,
+              rgba(34, 197, 94, 0.3) 75%,
+              transparent 100%)`,
+            backgroundSize: '200% 100%'
+          }}
+        />
+      )}
 
       {/* Animated Stars */}
       <div className="absolute inset-0">
@@ -330,14 +367,19 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
       {particles.map((particle, i) => (
         <div
           key={i}
-          className="absolute w-2 h-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
+          className="absolute rounded-full"
           style={{
             left: `${particle.x}%`,
             bottom: `${particle.y}%`,
+            width: `${4 * particle.life}px`,
+            height: `${4 * particle.life}px`,
             opacity: particle.life,
-            transform: `scale(${particle.life})`,
-            filter: 'blur(1px)',
-            boxShadow: '0 0 10px rgba(251, 191, 36, 0.8)'
+            background: `radial-gradient(circle, 
+              rgba(251, 191, 36, ${particle.life}) 0%, 
+              rgba(251, 146, 60, ${particle.life * 0.7}) 50%,
+              transparent 100%)`,
+            filter: 'blur(2px)',
+            boxShadow: `0 0 ${10 * particle.life}px rgba(251, 191, 36, ${particle.life * 0.8})`
           }}
         />
       ))}
@@ -356,7 +398,23 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
                 }}
               />
             ))}
-            <div className="text-6xl animate-bounce">💥</div>
+            <div className="text-6xl sm:text-8xl animate-bounce">💥</div>
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-2xl sm:text-3xl font-bold text-red-500 animate-pulse">
+              CRASHED!
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Crash Message Overlay */}
+      {gameData.gameState === 'crashed' && !showCrashEffect && (
+        <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none bg-black/30 backdrop-blur-sm rounded-lg">
+          <div className="text-center">
+            <div className="text-4xl sm:text-6xl mb-2">💥</div>
+            <div className="text-xl sm:text-2xl font-bold text-red-500">CRASHED</div>
+            <div className="text-sm sm:text-base text-muted-foreground mt-1">
+              at {gameData.multiplier.toFixed(2)}x
+            </div>
           </div>
         </div>
       )}
@@ -386,21 +444,31 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
         )}
 
         {/* Enhanced Multiplier Display */}
-        <div className="text-center mb-2 sm:mb-4 md:mb-6">
+        <div className="text-center mb-2 sm:mb-4 md:mb-6 relative">
           <div className={cn(
-            "text-3xl sm:text-5xl md:text-7xl font-bold transition-all duration-300 tabular-nums relative",
+            "text-3xl sm:text-5xl md:text-7xl font-bold transition-all duration-300 tabular-nums relative inline-block",
             gameData.gameState === 'flying' && "animate-pulse",
             gameData.gameState === 'crashed' && "text-red-500 animate-shake",
             gameData.gameState === 'cashed_out' && "text-green-500"
           )}>
+            {/* Glow effect behind multiplier */}
+            {gameData.gameState === 'flying' && (
+              <>
+                <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-yellow-400/40 via-orange-400/40 to-red-400/40 animate-pulse -z-10" />
+                <div className="absolute inset-0 blur-xl bg-gradient-to-r from-yellow-400/30 via-orange-400/30 to-red-400/30 animate-pulse -z-10" />
+              </>
+            )}
             <span className={cn(
-              "relative z-10",
-              gameData.gameState === 'flying' && "bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent"
+              "relative z-10 drop-shadow-2xl",
+              gameData.gameState === 'flying' && "bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent",
+              gameData.gameState === 'crashed' && "text-red-400",
+              gameData.gameState === 'cashed_out' && "text-green-400"
             )}>
               {gameData.multiplier.toFixed(2)}x
             </span>
+            {/* Animated border for flying state */}
             {gameData.gameState === 'flying' && (
-              <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-yellow-400/20 via-orange-400/20 to-red-400/20 animate-pulse" />
+              <div className="absolute -inset-2 rounded-lg border-2 border-yellow-400/30 animate-pulse pointer-events-none" />
             )}
           </div>
           
@@ -438,33 +506,54 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
           {(gameData.gameState === 'flying' || gameData.gameState === 'crashed') && (
             <div 
               className={cn(
-                "absolute transition-all duration-300 z-20",
-                gameData.gameState === 'crashed' && "animate-fall"
+                "absolute transition-all duration-500 z-20",
+                gameData.gameState === 'crashed' && "animate-spin"
               )}
               style={{
                 left: `${position.x}%`,
                 bottom: `${position.y}%`,
-                transform: `rotate(${position.rotation}deg) scale(${position.scale})`,
+                transform: gameData.gameState === 'crashed' 
+                  ? `rotate(180deg) scale(0.5) translateY(20px)`
+                  : `rotate(${position.rotation}deg) scale(${position.scale})`,
+                transition: gameData.gameState === 'crashed' ? 'all 0.5s ease-out' : 'all 0.1s linear',
               }}
             >
               <div className="relative">
                 {/* Plane Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-xl opacity-60 animate-pulse" />
+                <div className={cn(
+                  "absolute inset-0 rounded-full blur-xl transition-all duration-300",
+                  gameData.gameState === 'crashed'
+                    ? "bg-gradient-to-r from-red-500 to-orange-500 opacity-80"
+                    : "bg-gradient-to-r from-yellow-400 to-orange-500 opacity-60 animate-pulse"
+                )} />
                 
                 {/* Plane Body */}
                 <div className={cn(
                   "relative p-1.5 sm:p-2 md:p-3 rounded-full bg-gradient-to-br transition-all duration-300",
                   gameData.gameState === 'crashed' 
-                    ? "from-red-500 to-red-700" 
+                    ? "from-red-600 to-red-900 border-2 border-red-400 shadow-lg shadow-red-500/50" 
                     : "from-yellow-400 to-orange-500"
                 )}>
-                  <Plane className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white" />
+                  <Plane className={cn(
+                    "h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-white transition-transform",
+                    gameData.gameState === 'crashed' && "rotate-45"
+                  )} />
                 </div>
                 
                 {/* Engine Fire Effect */}
                 {gameData.gameState === 'flying' && (
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
                     <div className="w-4 h-8 bg-gradient-to-t from-blue-500 via-yellow-400 to-transparent rounded-full animate-flicker" />
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-6 bg-gradient-to-t from-orange-500 via-red-400 to-transparent rounded-full animate-flicker" style={{ animationDelay: '0.1s' }} />
+                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-2 h-4 bg-gradient-to-t from-red-500 to-transparent rounded-full animate-flicker" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                )}
+                
+                {/* Crash Smoke Effect */}
+                {gameData.gameState === 'crashed' && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <div className="w-8 h-8 bg-gray-600/50 rounded-full blur-md animate-ping" />
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-6 bg-gray-500/50 rounded-full blur-sm animate-ping" style={{ animationDelay: '0.2s' }} />
                   </div>
                 )}
               </div>
