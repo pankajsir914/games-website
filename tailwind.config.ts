@@ -223,8 +223,15 @@ export default {
         "gradient-x": "gradient-x 15s ease infinite",
         "chicken-walk": "chicken-walk 0.5s ease-in-out",
         "chicken-burn": "chicken-burn 1s ease-in-out",
+        "twinkle": "twinkle 3s ease-in-out infinite",
+        "drift": "drift 20s linear infinite",
+        "explode": "explode 0.6s ease-out forwards",
+        "shake": "shake 0.5s ease-in-out",
+        "fall": "fall 1s ease-out forwards",
+        "flicker": "flicker 0.5s ease-in-out infinite",
       },
     },
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
