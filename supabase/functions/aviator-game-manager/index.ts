@@ -68,12 +68,12 @@ serve(async (req) => {
 
       const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
       
-      // Generate random crash point between 1.01x and 10x (faster games)
+      // Generate random crash point between 1.01x and 4x (max 4x)
       const generateCrashPoint = () => {
         const random = Math.random();
-        if (random < 0.5) return 1.01 + Math.random() * 0.99; // 50% chance: 1.01x - 2.0x
-        if (random < 0.8) return 2.0 + Math.random() * 3.0; // 30% chance: 2.0x - 5.0x
-        return 5.0 + Math.random() * 5.0; // 20% chance: 5.0x - 10.0x
+        if (random < 0.4) return 1.01 + Math.random() * 0.99; // 40% chance: 1.01x - 2.0x
+        if (random < 0.7) return 2.0 + Math.random() * 1.0; // 30% chance: 2.0x - 3.0x
+        return 3.0 + Math.random() * 1.0; // 30% chance: 3.0x - 4.0x (max 4x)
       };
 
       const crashMultiplier = generateCrashPoint();
@@ -87,6 +87,7 @@ serve(async (req) => {
         .insert({
           round_number: nextRoundNumber,
           crash_multiplier: Number(crashMultiplier.toFixed(3)),
+          bet_start_time: now.toISOString(),
           bet_end_time: betEndTime.toISOString(),
         })
         .select()
@@ -276,9 +277,10 @@ serve(async (req) => {
         
         if (Date.now() >= shouldCrashAt) {
           try {
-            // Calculate actual multiplier at crash time
+            // Calculate actual multiplier at crash time (max 4x)
             const elapsedSeconds = (Date.now() - betEndTime) / 1000;
-            const actualMultiplier = Math.min(1 + (elapsedSeconds * 0.2), round.crash_multiplier);
+            const maxAllowed = Math.min(round.crash_multiplier, 4.0);
+            const actualMultiplier = Math.min(1 + (elapsedSeconds * 0.2), maxAllowed);
             
             console.log(`Auto-crashing round ${round.id} at multiplier ${actualMultiplier.toFixed(2)}`);
             
@@ -351,12 +353,12 @@ serve(async (req) => {
             })
             .eq('game_type', 'aviator');
         } else {
-          // Generate random crash point between 1.01x and 10x (faster games)
+          // Generate random crash point between 1.01x and 4x (max 4x)
           const generateCrashPoint = () => {
             const random = Math.random();
-            if (random < 0.5) return 1.01 + Math.random() * 0.99; // 50% chance: 1.01x - 2.0x
-            if (random < 0.8) return 2.0 + Math.random() * 3.0; // 30% chance: 2.0x - 5.0x
-            return 5.0 + Math.random() * 5.0; // 20% chance: 5.0x - 10.0x
+            if (random < 0.4) return 1.01 + Math.random() * 0.99; // 40% chance: 1.01x - 2.0x
+            if (random < 0.7) return 2.0 + Math.random() * 1.0; // 30% chance: 2.0x - 3.0x
+            return 3.0 + Math.random() * 1.0; // 30% chance: 3.0x - 4.0x (max 4x)
           };
           
           crashMultiplier = generateCrashPoint();
@@ -371,6 +373,7 @@ serve(async (req) => {
           .insert({
             round_number: nextRoundNumber,
             crash_multiplier: Number(crashMultiplier.toFixed(3)),
+            bet_start_time: now.toISOString(),
             bet_end_time: betEndTime.toISOString(),
           })
           .select()
@@ -421,3 +424,4 @@ serve(async (req) => {
     );
   }
 });
+
