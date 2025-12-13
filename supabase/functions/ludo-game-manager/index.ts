@@ -34,9 +34,17 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
+    // Use service role key for admin operations, but forward user auth for RLS
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseServiceKey,
       {
         global: {
           headers: {
@@ -47,7 +55,30 @@ serve(async (req) => {
       }
     );
 
-    const { action, roomId, playerId, moveData } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    const { action, roomId, playerId, moveData } = body;
+
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: 'Action is required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     console.log(`Ludo game action: ${action} for room ${roomId}`);
 
@@ -79,12 +110,15 @@ serve(async (req) => {
       default:
         throw new Error(`Unknown action: ${action}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ludo game manager error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error?.message || 'Internal server error',
+        details: error?.details || null
+      }),
       { 
-        status: 400, 
+        status: error?.status || 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
@@ -92,35 +126,65 @@ serve(async (req) => {
 });
 
 async function createRoom(supabaseClient: any, { maxPlayers, entryFee }: any) {
-  const { data, error } = await supabaseClient.rpc('create_ludo_room', {
-    p_max_players: maxPlayers,
-    p_entry_fee: entryFee
-  });
+  try {
+    console.log('Creating room with:', { maxPlayers, entryFee });
+    
+    // Validate inputs
+    if (!maxPlayers || (maxPlayers !== 2 && maxPlayers !== 4)) {
+      throw new Error('Max players must be 2 or 4');
+    }
+    
+    if (!entryFee || entryFee < 1 || entryFee > 1000) {
+      throw new Error('Entry fee must be between ₹1 and ₹1000');
+    }
 
-  if (error) throw error;
+    const { data, error } = await supabaseClient.rpc('create_ludo_room', {
+      p_max_players: maxPlayers,
+      p_entry_fee: entryFee
+    });
 
-  // Initialize game state
-  const gameState: GameState = {
-    currentPlayer: 1,
-    diceValue: null,
-    isRolling: false,
-    winner: null,
-    canRoll: true,
-    consecutiveSixes: 0,
-    turnTimeoutAt: null,
-    tokens: initializeTokens(maxPlayers)
-  };
+    if (error) {
+      console.error('RPC error:', error);
+      throw new Error(error.message || 'Failed to create room');
+    }
 
-  // Update room with initial game state
-  await supabaseClient
-    .from('ludo_rooms')
-    .update({ game_state: gameState })
-    .eq('id', data.room_id);
+    if (!data || !data.room_id) {
+      throw new Error('Room creation failed: No room ID returned');
+    }
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+    console.log('Room created successfully:', data.room_id);
+
+    // Initialize game state
+    const gameState: GameState = {
+      currentPlayer: 1,
+      diceValue: null,
+      isRolling: false,
+      winner: null,
+      canRoll: true,
+      consecutiveSixes: 0,
+      turnTimeoutAt: null,
+      tokens: initializeTokens(maxPlayers)
+    };
+
+    // Update room with initial game state
+    const { error: updateError } = await supabaseClient
+      .from('ludo_rooms')
+      .update({ game_state: gameState })
+      .eq('id', data.room_id);
+
+    if (updateError) {
+      console.error('Error updating game state:', updateError);
+      // Don't throw, room is already created successfully
+    }
+
+    return new Response(
+      JSON.stringify(data),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error: any) {
+    console.error('Error in createRoom:', error);
+    throw error;
+  }
 }
 
 async function joinRoom(supabaseClient: any, roomId: string, playerId: string) {
