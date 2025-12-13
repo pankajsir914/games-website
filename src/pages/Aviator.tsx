@@ -5,7 +5,7 @@ import LiveBetsPanel from '@/components/aviator/LiveBetsPanel';
 import StatisticsPanel from '@/components/aviator/StatisticsPanel';
 import BettingHistory from '@/components/aviator/BettingHistory';
 import LiveChat from '@/components/aviator/LiveChat';
-import DualBettingControls from '@/components/aviator/DualBettingControls';
+import SingleBettingControls from '@/components/aviator/SingleBettingControls';
 import GameStats from '@/components/aviator/GameStats';
 import MyBetHistory from '@/components/aviator/MyBetHistory';
 import { useAviator } from '@/hooks/useAviator';
@@ -45,6 +45,7 @@ const Aviator = () => {
     balance,
     placeBet,
     cashOut,
+    isPlacingBet,
     roundLoading
   } = useAviator();
 
@@ -111,14 +112,14 @@ const Aviator = () => {
         gameState: 'flying',
         crashPoint: currentRound.crash_multiplier,
         isPlaying: !!userBet && userBet.status === 'active',
-        multiplier: 1.0
+        multiplier: prev.multiplier > 1.0 ? prev.multiplier : 1.0 // Keep existing multiplier if already flying
       }));
       setBettingCountdown(0);
     } else if (currentRound.status === 'crashed') {
       setGameData(prev => ({
         ...prev,
         gameState: 'crashed',
-        multiplier: currentRound.crash_multiplier,
+        multiplier: Math.min(currentRound.crash_multiplier, 4.0),
         isPlaying: false
       }));
     }
@@ -160,7 +161,42 @@ const Aviator = () => {
     }
   }, [bettingCountdown, currentRound?.status]);
 
-  // Subscribe to backend multiplier broadcasts
+  // Sync currentMultiplier from hook to gameData during flying phase
+  useEffect(() => {
+    if (currentRound?.status === 'flying' && currentMultiplier > 1.0) {
+      setGameData(prev => {
+        // Check if we've reached crash point (max 4x)
+        const maxCrashPoint = Math.min(currentRound.crash_multiplier, 4.0);
+        const hasCrashed = currentMultiplier >= maxCrashPoint;
+        
+        // Check auto cash out
+        if (prev.autoCashOut && currentMultiplier >= prev.autoCashOut && prev.isPlaying && userBet && !hasCrashed) {
+          cashOut({
+            betId: userBet.id,
+            currentMultiplier: currentMultiplier
+          });
+        }
+        
+        // If crashed, update game state immediately (max 4x)
+        if (hasCrashed && prev.gameState === 'flying') {
+          const maxCrashPoint = Math.min(currentRound.crash_multiplier, 4.0);
+          return {
+            ...prev,
+            multiplier: maxCrashPoint,
+            gameState: 'crashed',
+            isPlaying: false
+          };
+        }
+        
+        return {
+          ...prev,
+          multiplier: Math.min(currentMultiplier, 4.0)
+        };
+      });
+    }
+  }, [currentMultiplier, currentRound?.status, currentRound?.crash_multiplier, userBet, cashOut]);
+
+  // Subscribe to backend multiplier broadcasts (as backup)
   useEffect(() => {
     if (!currentRound || currentRound.status !== 'flying') return;
     
@@ -192,7 +228,7 @@ const Aviator = () => {
     };
   }, [currentRound, userBet, setCurrentMultiplier, cashOut]);
 
-  const handlePlaceBet = useCallback((betIndex: number, amount: number, autoCashout?: number) => {
+  const handlePlaceBet = useCallback((amount: number, autoCashout?: number) => {
     if (!currentRound || !user) {
       toast({
         title: "Authentication Required",
@@ -215,6 +251,15 @@ const Aviator = () => {
       toast({
         title: "Insufficient Balance",
         description: "Your bet amount exceeds your balance.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (amount < 10) {
+      toast({
+        title: "Invalid Bet Amount",
+        description: "Minimum bet amount is ₹10.",
         variant: "destructive"
       });
       return;
@@ -301,12 +346,12 @@ const Aviator = () => {
           />
           
           {/* Betting Controls - Full Width */}
-          <DualBettingControls
+          <SingleBettingControls
             gameData={gameData}
             setGameData={setGameData}
             onPlaceBet={handlePlaceBet}
             bettingCountdown={bettingCountdown}
-            isPlacingBet={false}
+            isPlacingBet={isPlacingBet}
             disabled={gameData.gameState !== 'betting'}
           />
           
