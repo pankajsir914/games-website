@@ -1,49 +1,65 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
 import { 
-  Users, 
-  UserCog, 
-  Shield, 
+  Users,
+  Shield,
+  UserCog,
   Crown,
-  Plus,
-  Edit,
-  Trash2,
+  Search,
   Eye,
-  Clock,
-  MapPin,
+  Edit,
+  MoreVertical,
+  RefreshCw,
+  UserPlus,
   Mail,
   Phone,
-  MoreVertical,
   Wallet,
-  Settings
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
-import { CreateAdminModal } from './CreateAdminModal';
-import { AdminProfileModal } from './AdminProfileModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { EditProfileModal } from './EditProfileModal';
-import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
-<<<<<<< HEAD
-import { useQueryClient } from '@tanstack/react-query';
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+import { AdminProfileModal } from './AdminProfileModal';
+import { CreateAdminModal } from './CreateAdminModal';
 
 export const TeamManagement = () => {
-  const [showCreate, setShowCreate] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
+  const { teamMembers, isLoading, error, refetch } = useTeamManagement();
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const { teamMembers, isLoading, updateUserStatus, isUpdating } = useTeamManagement();
-<<<<<<< HEAD
-  const queryClient = useQueryClient();
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const filteredMembers = teamMembers?.filter(member => {
+    const search = searchQuery.toLowerCase();
+    return (
+      member.full_name?.toLowerCase().includes(search) ||
+      member.email.toLowerCase().includes(search) ||
+      member.role.toLowerCase().includes(search)
+    );
+  });
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'master_admin': return <Crown className="h-4 w-4 text-gaming-gold" />;
+      case 'admin': return <Shield className="h-4 w-4 text-gaming-danger" />;
+      case 'moderator': return <UserCog className="h-4 w-4 text-primary" />;
+      default: return <Users className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -63,173 +79,173 @@ export const TeamManagement = () => {
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'master_admin': return <Crown className="h-4 w-4 text-gaming-gold" />;
-      case 'admin': return <Shield className="h-4 w-4 text-gaming-danger" />;
-      case 'moderator': return <UserCog className="h-4 w-4 text-primary" />;
-      default: return <Users className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  // Filter team members based on search term
-  const filteredMembers = teamMembers?.filter(member => 
-    member.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  // Calculate role counts
-  const roleStats = {
-    master_admin: teamMembers?.filter(m => m.role === 'master_admin').length || 0,
-    admin: teamMembers?.filter(m => m.role === 'admin').length || 0,
-    moderator: teamMembers?.filter(m => m.role === 'moderator').length || 0,
-  };
-
-  const formatLastLogin = (lastSignIn: string | null) => {
-    if (!lastSignIn) return 'Never';
-    return new Date(lastSignIn).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const handleViewProfile = (member: TeamMember) => {
+  const handleViewMember = (member: TeamMember) => {
     setSelectedMember(member);
-    setShowProfile(true);
+    setViewModalOpen(true);
   };
 
-  const handleProfileUpdate = () => {
-    // Refresh team data after profile update
-<<<<<<< HEAD
-    queryClient.invalidateQueries({ queryKey: ['team-members'] });
-=======
-    window.location.reload();
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+  const handleEditMember = (member: TeamMember) => {
+    setSelectedMember(member);
+    setEditModalOpen(true);
   };
+
+  // Team stats
+  const stats = {
+    total: teamMembers?.length || 0,
+    masterAdmins: teamMembers?.filter(m => m.role === 'master_admin').length || 0,
+    admins: teamMembers?.filter(m => m.role === 'admin').length || 0,
+    moderators: teamMembers?.filter(m => m.role === 'moderator').length || 0,
+    active: teamMembers?.filter(m => m.status === 'active').length || 0,
+  };
+
+  if (error) {
+    return (
+      <Card className="bg-gradient-card">
+        <CardContent className="py-8">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-gaming-danger mx-auto" />
+            <h3 className="text-lg font-semibold">Error Loading Team Data</h3>
+            <p className="text-muted-foreground">{error.message}</p>
+            <Button onClick={() => refetch()} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Team & Admin Management</h2>
-          <p className="text-muted-foreground">Manage admin roles, permissions, and team access</p>
+          <h2 className="text-2xl font-bold text-foreground">Team Management</h2>
+          <p className="text-muted-foreground">Manage admins and moderators</p>
         </div>
-        <Button className="bg-gaming-gold text-gaming-gold-foreground hover:bg-gaming-gold/90" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Admin
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => refetch()} variant="outline" size="sm" disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => setCreateModalOpen(true)} className="bg-gaming-gold text-gaming-gold-foreground hover:bg-gaming-gold/90">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create Admin
+          </Button>
+        </div>
       </div>
 
-      {/* Role Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-card border-gaming-gold/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Master Admins</CardTitle>
-            <Crown className="h-4 w-4 text-gaming-gold" />
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="bg-gradient-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Total Members
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gaming-gold">{roleStats.master_admin}</div>
-            <p className="text-xs text-muted-foreground">Ultimate access</p>
+            <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-gaming-danger/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            <Shield className="h-4 w-4 text-gaming-danger" />
+        <Card className="bg-gradient-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Crown className="h-4 w-4 text-gaming-gold" />
+              Master Admins
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gaming-danger">{roleStats.admin}</div>
-            <p className="text-xs text-muted-foreground">Full management access</p>
+            <div className="text-2xl font-bold text-gaming-gold">{stats.masterAdmins}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-card border-primary/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Moderators</CardTitle>
-            <UserCog className="h-4 w-4 text-primary" />
+        <Card className="bg-gradient-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Shield className="h-4 w-4 text-gaming-danger" />
+              Admins
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{roleStats.moderator}</div>
-            <p className="text-xs text-muted-foreground">Content & user moderation</p>
+            <div className="text-2xl font-bold text-gaming-danger">{stats.admins}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <UserCog className="h-4 w-4 text-primary" />
+              Moderators
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{stats.moderators}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-gaming-success" />
+              Active
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gaming-success">{stats.active}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Search */}
       <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle>Search Team Members</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
+        <CardContent className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
+              placeholder="Search team members by name, email, or role..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Add New Admin Modal */}
-      <CreateAdminModal 
-        open={showCreate} 
-        onOpenChange={setShowCreate} 
-      />
-
-      {/* Admin Profile Modal */}
-      <AdminProfileModal
-        open={showProfile}
-        onOpenChange={setShowProfile}
-        member={selectedMember}
-        onUpdate={handleProfileUpdate}
-      />
-
-      {/* Edit Profile Modal */}
-      <EditProfileModal
-        open={showEditProfile}
-        onOpenChange={setShowEditProfile}
-        member={selectedMember}
-        onUpdate={handleProfileUpdate}
-      />
-
       {/* Team Members List */}
       <Card className="bg-gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Team Members ({filteredMembers.length})
+            <Users className="h-5 w-5" />
+            Team Members
           </CardTitle>
-          <CardDescription>Manage existing team members and their access levels</CardDescription>
+          <CardDescription>
+            All administrators and moderators
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-48" />
-                    </div>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="h-6 w-16" />
-                  </div>
+                  <Skeleton className="h-8 w-20" />
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="space-y-4">
+          ) : filteredMembers && filteredMembers.length > 0 ? (
+            <div className="space-y-3">
               {filteredMembers.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border border-border/50">
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-4 bg-background/50 rounded-lg border hover:border-primary/30 transition-colors"
+                >
                   <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12 bg-primary">
                       <AvatarFallback className="text-primary-foreground font-semibold">
@@ -237,11 +253,14 @@ export const TeamManagement = () => {
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold">{member.full_name || 'No Name'}</h4>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
                         {getRoleIcon(member.role)}
+                        <span className="font-semibold">{member.full_name || 'No Name'}</span>
+                        {getRoleBadge(member.role)}
+                        {getStatusBadge(member.status)}
                       </div>
+                      
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />
@@ -254,145 +273,81 @@ export const TeamManagement = () => {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                      
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Wallet className="h-3 w-3" />
+                          Balance: ₹{member.wallet_balance?.toLocaleString() || '0'}
+                        </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          Last login: {formatLastLogin(member.last_sign_in_at)}
+                          Joined: {new Date(member.created_at).toLocaleDateString()}
                         </div>
-<<<<<<< HEAD
-                        <div>Credits: ₹{(member.admin_credits || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-=======
-                        <div>Balance: ₹{(member.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="flex gap-2">
-                      {getRoleBadge(member.role)}
-                      {getStatusBadge(member.status)}
-                    </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewMember(member)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
                     
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="outline" disabled={isUpdating}>
-                          <MoreVertical className="h-3 w-3" />
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewProfile(member)}>
-                          <Eye className="h-3 w-3 mr-2" />
+                        <DropdownMenuItem onClick={() => handleViewMember(member)}>
+                          <Eye className="h-4 w-4 mr-2" />
                           View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleViewProfile(member)}>
-                          <Wallet className="h-3 w-3 mr-2" />
-                          Manage Points
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          setSelectedMember(member);
-                          setShowEditProfile(true);
-                        }}>
-                          <Settings className="h-3 w-3 mr-2" />
+                        <DropdownMenuItem onClick={() => handleEditMember(member)}>
+                          <Edit className="h-4 w-4 mr-2" />
                           Edit Profile
                         </DropdownMenuItem>
-                        {member.role !== 'master_admin' && (
-                          <>
-                            <DropdownMenuItem
-                              onClick={() => updateUserStatus({
-                                userId: member.id,
-                                action: member.status === 'active' ? 'suspend' : 'unblock',
-                                reason: `Status change by master admin`
-                              })}
-                            >
-                              <Shield className="h-3 w-3 mr-2" />
-                              {member.status === 'active' ? 'Suspend' : 'Activate'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-gaming-danger"
-                              onClick={() => updateUserStatus({
-                                userId: member.id,
-                                action: 'block',
-                                reason: 'Account blocked by master admin'
-                              })}
-                            >
-                              <Trash2 className="h-3 w-3 mr-2" />
-                              Remove Access
-                            </DropdownMenuItem>
-                          </>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
               ))}
-              
-              {filteredMembers.length === 0 && !isLoading && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No team members found.
-                </div>
-              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                {searchQuery ? 'No team members match your search' : 'No team members found'}
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Permission Matrix */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-gaming-danger" />
-            Permission Matrix
-          </CardTitle>
-          <CardDescription>Overview of role-based permissions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Permission</th>
-                  <th className="text-center p-2">Master Admin</th>
-                  <th className="text-center p-2">Admin</th>
-                  <th className="text-center p-2">Moderator</th>
-                </tr>
-              </thead>
-              <tbody className="space-y-1">
-                <tr className="border-b border-border/50">
-                  <td className="p-2">User Management</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="p-2">Game Management</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="p-2">Financial Control</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="p-2">Content Management</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">✅</td>
-                </tr>
-                <tr className="border-b border-border/50">
-                  <td className="p-2">Admin Management</td>
-                  <td className="text-center p-2">✅</td>
-                  <td className="text-center p-2">❌</td>
-                  <td className="text-center p-2">❌</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Modals */}
+      <AdminProfileModal
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+        member={selectedMember}
+        onUpdate={refetch}
+      />
+
+      <EditProfileModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        member={selectedMember}
+        onUpdate={refetch}
+      />
+
+      <CreateAdminModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+      />
     </div>
   );
 };
