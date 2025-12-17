@@ -667,8 +667,4 @@ async function completeGame(supabaseClient: any, roomId: string, winnerId: strin
 
   console.log(`Game completed. Winner: ${winnerId}, Amount: ${data.winner_amount}`);
   return data;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
