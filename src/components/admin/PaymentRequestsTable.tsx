@@ -126,16 +126,10 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
             <TableHeader>
               <TableRow>
                 <TableHead>Request ID</TableHead>
-<<<<<<< HEAD
                 <TableHead>User Name</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead>UTR Number</TableHead>
-=======
-                <TableHead>User</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                 <TableHead>Receipt</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Request Time</TableHead>
@@ -154,11 +148,7 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
                         <Avatar className="h-8 w-8">
                           <AvatarFallback>{(request.user_name || 'U').slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
-<<<<<<< HEAD
                         <span className="font-medium">{request.user_name || `User ${request.user_id.slice(0, 8)}`}</span>
-=======
-                        <span className="font-medium">{request.user_name || request.user_id.slice(0, 8)}</span>
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                       </div>
                     </TableCell>
                     <TableCell>
@@ -166,14 +156,11 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
                     </TableCell>
                     <TableCell>{request.payment_method || 'UPI'}</TableCell>
                     <TableCell>
-<<<<<<< HEAD
                       <span className="font-mono text-sm text-muted-foreground">
                         {request.transaction_ref || request.utr_number || '-'}
                       </span>
                     </TableCell>
                     <TableCell>
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                       {request.screenshot_url ? (
                         <a 
                           href={request.screenshot_url} 
@@ -228,11 +215,7 @@ export const PaymentRequestsTable = ({ filters }: PaymentRequestsTableProps) => 
                 ))
               ) : (
                 <TableRow>
-<<<<<<< HEAD
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-=======
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                     No payment requests found
                   </TableCell>
                 </TableRow>
