@@ -1,20 +1,13 @@
-<<<<<<< HEAD
 import React, { useState } from 'react';
-=======
-import React from 'react';
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-<<<<<<< HEAD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import { 
   User, 
   Mail, 
@@ -30,13 +23,9 @@ import {
   UserPlus,
   CheckCircle,
   XCircle,
-<<<<<<< HEAD
   AlertTriangle,
   ArrowUpCircle,
   ArrowDownCircle
-=======
-  AlertTriangle
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 } from 'lucide-react';
 
 interface UserProfileModalProps {
@@ -46,7 +35,6 @@ interface UserProfileModalProps {
 }
 
 export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProps) => {
-<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch payment requests for this user
@@ -83,8 +71,6 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
     enabled: !!user?.id && isOpen,
   });
 
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   if (!user) return null;
 
   const getStatusColor = (status: string) => {
@@ -113,7 +99,6 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
           <DialogDescription>Complete details and activity history</DialogDescription>
         </DialogHeader>
 
-<<<<<<< HEAD
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -121,9 +106,6 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
-=======
-        <div className="space-y-6 mt-6">
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           {/* User Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
@@ -307,7 +289,6 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
               </CardContent>
             </Card>
           )}
-<<<<<<< HEAD
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-6 mt-6">
@@ -421,9 +402,6 @@ export const UserProfileModal = ({ user, isOpen, onClose }: UserProfileModalProp
             </Card>
           </TabsContent>
         </Tabs>
-=======
-        </div>
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       </DialogContent>
     </Dialog>
   );
