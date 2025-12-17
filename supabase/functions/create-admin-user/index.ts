@@ -49,12 +49,15 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, fullName, phone, initialPoints } = await req.json()
+    const { email, password, fullName, phone, initialPoints, role } = await req.json()
 
     // Validate inputs
     if (!email || !password || !fullName) {
       throw new Error('Email, password, and full name are required')
     }
+
+    // Validate role
+    const assignedRole = role === 'moderator' ? 'moderator' : 'admin'
 
     if (password.length < 6) {
       throw new Error('Password must be at least 6 characters')
@@ -123,12 +126,12 @@ serve(async (req) => {
       throw new Error(`Failed to create wallet: ${walletError.message}`)
     }
 
-    // Assign admin role
+    // Assign admin/moderator role
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: authUser.user.id,
-        role: 'admin',
+        role: assignedRole,
         assigned_by: userData.user.id
       })
 
