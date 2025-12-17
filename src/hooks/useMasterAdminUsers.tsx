@@ -21,6 +21,7 @@ interface UserData {
   created_by?: string;
   creator_name?: string;
   user_role?: string;
+  wallet_balance?: number;
 }
 
 interface UsersResponse {
@@ -38,7 +39,6 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
-<<<<<<< HEAD
       // Get current admin's ID and role first
       const { data: { user: adminUser } } = await supabase.auth.getUser();
       if (!adminUser) throw new Error('Not authenticated');
@@ -48,8 +48,6 @@ export const useMasterAdminUsers = () => {
       
       const isMasterAdmin = highestRole === 'master_admin';
 
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       try {
         // Try the existing RPC function that works for all admins
         const { data: userManagementData, error: userError } = await supabase
@@ -65,11 +63,7 @@ export const useMasterAdminUsers = () => {
           const data = userManagementData as any;
           
           // Map the data to our expected format
-<<<<<<< HEAD
           let users = (data.users || []).map((user: any) => ({
-=======
-          const users = (data.users || []).map((user: any) => ({
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             id: user.id,
             email: user.email,
             full_name: user.full_name || 'Unknown User',
@@ -79,6 +73,7 @@ export const useMasterAdminUsers = () => {
             last_sign_in_at: user.last_sign_in_at,
             email_confirmed_at: user.email_confirmed_at,
             current_balance: user.current_balance || 0,
+            wallet_balance: user.current_balance || 0,
             total_deposits: user.total_deposits || 0,
             total_withdrawals: user.total_withdrawals || 0,
             games_played: user.games_played || 0,
@@ -89,7 +84,6 @@ export const useMasterAdminUsers = () => {
             creator_name: user.creator_name,
             user_role: user.user_role
           }));
-<<<<<<< HEAD
 
           // Additional frontend filtering: Only show users created by current admin (if not master admin)
           if (!isMasterAdmin) {
@@ -99,13 +93,7 @@ export const useMasterAdminUsers = () => {
           
           return {
             users,
-            total_count: users.length, // Use filtered count
-=======
-          
-          return {
-            users,
-            total_count: data.total_count || users.length,
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+            total_count: users.length,
             blocked_users: 0,
             high_risk_users: 0,
             online_count: users.filter((u: any) => u.status === 'online').length,
@@ -113,7 +101,6 @@ export const useMasterAdminUsers = () => {
           } as UsersResponse;
         }
 
-<<<<<<< HEAD
         // Try the master admin only function as fallback (only for master admin)
         if (isMasterAdmin) {
           const { data: allUsersData, error: allUsersError } = await supabase
@@ -132,35 +119,12 @@ export const useMasterAdminUsers = () => {
               recently_active_count: usersData.recently_active_count || 0
             } as UsersResponse;
           }
-=======
-        // Try the master admin only function as fallback
-        const { data: allUsersData, error: allUsersError } = await supabase
-          .rpc('get_all_users_for_master_admin');
-
-        if (!allUsersError && allUsersData) {
-          console.log('Fetched users from master admin function:', allUsersData);
-          const usersData = allUsersData as any;
-          
-          return {
-            users: usersData.users || [],
-            total_count: usersData.total_count || 0,
-            blocked_users: 0,
-            high_risk_users: 0,
-            online_count: usersData.online_count || 0,
-            recently_active_count: usersData.recently_active_count || 0
-          } as UsersResponse;
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         }
       } catch (error) {
         console.log('RPC functions not available, falling back to direct queries', error);
       }
 
       // Final fallback to direct queries
-<<<<<<< HEAD
-      // Use adminUser already declared above
-
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       const { data: adminUsers } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -168,19 +132,13 @@ export const useMasterAdminUsers = () => {
 
       const adminUserIds = adminUsers?.map(u => u.user_id) || [];
 
-<<<<<<< HEAD
       // Get profiles - filter by created_by if regular admin
       let profilesQuery = supabase
-=======
-      // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-<<<<<<< HEAD
       if (!isMasterAdmin) {
         // Regular admin: only get users they created
         profilesQuery = profilesQuery.eq('created_by', adminUser.id);
@@ -188,8 +146,6 @@ export const useMasterAdminUsers = () => {
 
       const { data: profiles, error: profilesError } = await profilesQuery;
 
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;
@@ -203,75 +159,9 @@ export const useMasterAdminUsers = () => {
       const { data: wallets } = await supabase
         .from('wallets')
         .select('user_id, current_balance')
-        .in('user_id', profileIds);
+        .in('user_id', profileIds.length > 0 ? profileIds : ['00000000-0000-0000-0000-000000000000']);
 
       const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
-
-      // Get transactions summary
-      const { data: deposits } = await supabase
-        .from('wallet_transactions')
-        .select('user_id, amount')
-        .in('user_id', profileIds)
-        .eq('type', 'credit')
-        .ilike('reason', '%deposit%');
-
-      const { data: withdrawals } = await supabase
-        .from('wallet_transactions')
-        .select('user_id, amount')
-        .in('user_id', profileIds)
-        .eq('type', 'debit')
-        .ilike('reason', '%withdraw%');
-
-      // Aggregate deposits and withdrawals by user
-      const depositMap = new Map<string, number>();
-      deposits?.forEach(d => {
-        const current = depositMap.get(d.user_id) || 0;
-        depositMap.set(d.user_id, current + Number(d.amount));
-      });
-
-      const withdrawalMap = new Map<string, number>();
-      withdrawals?.forEach(w => {
-        const current = withdrawalMap.get(w.user_id) || 0;
-        withdrawalMap.set(w.user_id, current + Number(w.amount));
-      });
-
-      // Get game counts
-      const gameQueries = profileIds.map(async (userId) => {
-        const aviatorCount = supabase
-          .from('aviator_bets')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId);
-
-        const colorCount = supabase
-          .from('color_prediction_bets')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId);
-
-        const andarCount = supabase
-          .from('andar_bahar_bets')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId);
-
-        const rouletteCount = supabase
-          .from('roulette_bets')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId);
-
-        const [aviator, color, andar, roulette] = await Promise.all([
-          aviatorCount,
-          colorCount,
-          andarCount,
-          rouletteCount
-        ]);
-
-        return {
-          userId,
-          count: (aviator.count || 0) + (color.count || 0) + (andar.count || 0) + (roulette.count || 0)
-        };
-      });
-
-      const gameCounts = await Promise.all(gameQueries);
-      const gameCountMap = new Map(gameCounts.map(g => [g.userId, g.count]));
 
       // Format the data
       const users = userProfiles.map(profile => ({
@@ -283,11 +173,12 @@ export const useMasterAdminUsers = () => {
         created_at: profile.created_at,
         last_sign_in_at: null,
         current_balance: walletMap.get(profile.id) || 0,
-        total_deposits: depositMap.get(profile.id) || 0,
-        total_withdrawals: withdrawalMap.get(profile.id) || 0,
-        games_played: gameCountMap.get(profile.id) || 0,
+        wallet_balance: walletMap.get(profile.id) || 0,
+        total_deposits: 0,
+        total_withdrawals: 0,
+        games_played: 0,
         status: 'offline' as const,
-        is_blocked: false,
+        is_blocked: profile.is_blocked || false,
         risk_level: 'low' as const,
         created_by: profile.created_by
       }));
@@ -295,7 +186,7 @@ export const useMasterAdminUsers = () => {
       return {
         users,
         total_count: users.length,
-        blocked_users: 0,
+        blocked_users: users.filter(u => u.is_blocked).length,
         high_risk_users: 0
       } as UsersResponse;
     },
@@ -303,19 +194,26 @@ export const useMasterAdminUsers = () => {
   });
 
   const updateUserStatus = useMutation({
-    mutationFn: async ({ userId, action, reason }: { userId: string; action: 'block' | 'unblock' | 'suspend'; reason?: string }) => {
-      // Since we can't directly modify auth.users, we'll create an alert
+    mutationFn: async ({ userId, action, reason }: { userId: string; action: 'block' | 'unblock' | 'activate' | 'suspend'; reason?: string }) => {
+      // Update user status in profiles table
+      const isBlocking = action === 'block';
       const { error } = await supabase
+        .from('profiles')
+        .update({ is_blocked: isBlocking })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase
         .from('admin_alerts')
         .insert({
           alert_type: 'user_action',
           severity: 'medium',
-          title: `User ${action} requested`,
+          title: `User ${action} action`,
           description: `Action: ${action} for user ${userId}. Reason: ${reason || 'No reason provided'}`,
           data: { userId, action, reason }
         });
-
-      if (error) throw error;
 
       return { success: true };
     },
@@ -323,7 +221,7 @@ export const useMasterAdminUsers = () => {
       queryClient.invalidateQueries({ queryKey: ['master-admin-users'] });
       toast({
         title: 'Success',
-        description: 'User status update request logged',
+        description: 'User status updated successfully',
       });
     },
     onError: (error: Error) => {
@@ -336,7 +234,7 @@ export const useMasterAdminUsers = () => {
   });
 
   return {
-    users: getUsers.data,
+    users: getUsers.data?.users || [],
     isLoading: getUsers.isLoading,
     error: getUsers.error,
     refetch: getUsers.refetch,
