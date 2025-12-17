@@ -6,7 +6,6 @@ export const useAdminTransactions = () => {
   return useQuery({
     queryKey: ['admin-transactions'],
     queryFn: async () => {
-<<<<<<< HEAD
       // Get current admin's user ID
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
@@ -57,9 +56,19 @@ export const useAdminTransactions = () => {
           userProfiles = profiles || [];
         }
       } else {
-        // Regular admin: Use RLS policies which check profiles.created_by
-        // RLS will automatically filter based on created_by, so we don't need to filter by user_id
-        // Just fetch all transactions - RLS will only return those from users created by this admin
+        // Regular admin: get users created by this admin first
+        const { data: myUsers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('created_by', currentAdminId);
+        
+        const myUserIds = myUsers?.map(u => u.id) || [];
+        
+        if (myUserIds.length === 0) {
+          return [];
+        }
+
+        // Get transactions only from users created by this admin
         const { data, error } = await supabase
           .from('wallet_transactions')
           .select(`
@@ -72,6 +81,7 @@ export const useAdminTransactions = () => {
             balance_after,
             created_at
           `)
+          .in('user_id', myUserIds)
           .order('created_at', { ascending: false })
           .limit(100);
 
@@ -95,39 +105,11 @@ export const useAdminTransactions = () => {
 
       // Create a map of user profiles
       const profileMap = new Map(userProfiles.map(p => [p.id, p]));
-=======
-      const { data: transactions, error } = await supabase
-        .from('wallet_transactions')
-        .select(`
-          id,
-          user_id,
-          amount,
-          type,
-          reason,
-          game_type,
-          balance_after,
-          created_at
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      // Get user profiles for the transactions
-      const userIds = [...new Set(transactions.map(t => t.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', userIds);
-
-      // Create a map of user profiles
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       return transactions.map(transaction => ({
         id: transaction.id,
         user: profileMap.get(transaction.user_id)?.full_name || 'Unknown User',
-        type: transaction.type === 'credit' ? 'deposit' : transaction.reason.toLowerCase().includes('win') ? 'game_win' : 'withdrawal',
+        type: transaction.type === 'credit' ? 'deposit' : transaction.reason?.toLowerCase().includes('win') ? 'game_win' : 'withdrawal',
         amount: Number(transaction.amount),
         status: 'completed',
         method: transaction.game_type || (transaction.type === 'credit' ? 'UPI' : 'Bank Transfer'),
@@ -137,3 +119,4 @@ export const useAdminTransactions = () => {
     },
   });
 };
+
