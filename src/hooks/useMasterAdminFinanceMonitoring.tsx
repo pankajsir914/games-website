@@ -88,10 +88,10 @@ export const useMasterAdminFinanceMonitoring = () => {
       // Calculate house profit (estimated from bets)
       const { data: bets } = await supabase
         .from('aviator_bets')
-        .select('bet_amount, win_amount');
+        .select('bet_amount, payout_amount, status');
       
-      const totalBets = bets?.reduce((sum, b) => sum + Number(b.bet_amount), 0) || 0;
-      const totalWins = bets?.reduce((sum, b) => sum + Number(b.win_amount || 0), 0) || 0;
+      const totalBets = bets?.reduce((sum, b: any) => sum + Number(b.bet_amount || 0), 0) || 0;
+      const totalWins = bets?.filter((b: any) => b.status === 'cashed_out').reduce((sum, b: any) => sum + Number(b.payout_amount || 0), 0) || 0;
       const houseProfit = totalBets - totalWins;
 
       return {
