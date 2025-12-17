@@ -35,6 +35,11 @@ interface FinancialData {
     ifsc_code?: string;
     payment_method_type?: string;
     upi_id?: string;
+    bank_details?: {
+      account_holder?: string;
+      bank_name?: string;
+      account_number?: string;
+    };
   }[];
   payment_requests: {
     id: string;
@@ -45,11 +50,7 @@ interface FinancialData {
     created_at: string;
     payment_method: string;
     screenshot_url?: string;
-<<<<<<< HEAD
     transaction_ref?: string | null;
-    utr_number?: string | null;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   }[];
 }
 
@@ -159,17 +160,6 @@ export const useMasterAdminFinance = () => {
           .order('created_at', { ascending: false })
           .limit(10);
         recentTransactions = txns || [];
-<<<<<<< HEAD
-      } else {
-        // Regular admin: Use RLS policies which check profiles.created_by
-        // RLS will automatically filter based on created_by, so we don't need to filter by user_id
-        // Just fetch all data - RLS will only return those from users created by this admin
-        
-        const { count: depositCount } = await supabase
-          .from('payment_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-=======
       } else if (myUserIds.length > 0) {
         // Regular admin only sees their created users' data
         const { count: depositCount } = await supabase
@@ -177,48 +167,11 @@ export const useMasterAdminFinance = () => {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending')
           .in('user_id', myUserIds);
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         pendingDeposits = depositCount || 0;
 
         const { count: withdrawalCount } = await supabase
           .from('withdrawal_requests')
           .select('*', { count: 'exact', head: true })
-<<<<<<< HEAD
-          .eq('status', 'pending');
-        pendingWithdrawals = withdrawalCount || 0;
-
-        const { data: wReqs, error: wReqsError } = await supabase
-          .from('withdrawal_requests')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (wReqsError) {
-          console.error('Error fetching withdrawal requests:', wReqsError);
-        }
-        withdrawalRequests = wReqs || [];
-
-        const { data: pReqs, error: pReqsError } = await supabase
-          .from('payment_requests')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (pReqsError) {
-          console.error('Error fetching payment requests:', pReqsError);
-        }
-        paymentRequests = pReqs || [];
-
-        const { data: txns, error: txnsError } = await supabase
-          .from('wallet_transactions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-        
-        if (txnsError) {
-          console.error('Error fetching transactions:', txnsError);
-        }
-=======
           .eq('status', 'pending')
           .in('user_id', myUserIds);
         pendingWithdrawals = withdrawalCount || 0;
@@ -245,7 +198,6 @@ export const useMasterAdminFinance = () => {
           .in('user_id', myUserIds)
           .order('created_at', { ascending: false })
           .limit(10);
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         recentTransactions = txns || [];
       }
 
@@ -258,58 +210,12 @@ export const useMasterAdminFinance = () => {
         ])
       ];
 
-<<<<<<< HEAD
-      // Use RPC function to get user profiles (bypasses RLS for admins)
-      let profileMap = new Map();
-      if (allUserIds.length > 0) {
-        try {
-          // Try using get_users_management_data RPC which handles RLS properly
-          const { data: userManagementData } = await supabase
-            .rpc('get_users_management_data', {
-              p_limit: 10000,
-              p_offset: 0,
-              p_search: null,
-              p_status: 'all'
-            });
-
-          const allUsers = (userManagementData as any)?.users || [];
-          // Filter to only users we need
-          const relevantUsers = allUsers.filter((u: any) => allUserIds.includes(u.id));
-          profileMap = new Map(relevantUsers.map((u: any) => [u.id, { 
-            id: u.id, 
-            full_name: u.full_name, 
-            phone: u.phone 
-          }]));
-          
-          console.log('Profiles fetched via RPC:', {
-            totalUsers: allUsers.length,
-            relevantUsers: relevantUsers.length,
-            allUserIds: allUserIds.length,
-            profileMapSize: profileMap.size
-          });
-        } catch (rpcError) {
-          console.error('Error fetching profiles via RPC, falling back to direct query:', rpcError);
-          // Fallback to direct query
-          const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, full_name, phone')
-            .in('id', allUserIds);
-          
-          if (profilesError) {
-            console.error('Error fetching profiles:', profilesError);
-          } else {
-            profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-          }
-        }
-      }
-=======
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, phone')
         .in('id', allUserIds.length > 0 ? allUserIds : ['00000000-0000-0000-0000-000000000000']);
 
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       return {
         total_platform_balance: totalPlatformBalance,
@@ -341,40 +247,26 @@ export const useMasterAdminFinance = () => {
             account_holder_name: w.account_holder_name,
             ifsc_code: w.ifsc_code,
             payment_method_type: w.payment_method_type,
-            upi_id: w.upi_id
+            upi_id: w.upi_id,
+            bank_details: {
+              account_holder: w.account_holder_name,
+              bank_name: 'Bank',
+              account_number: w.bank_account_number
+            }
           };
         }),
         payment_requests: paymentRequests.map(p => {
           const profile = profileMap.get(p.user_id);
-<<<<<<< HEAD
-          const userName = profile?.full_name || profile?.phone || `User ${p.user_id.slice(0, 8)}`;
-          
-          // Debug logging
-          if (!profile) {
-            console.log('No profile found for user:', p.user_id, 'Payment request:', p.id);
-          }
-          
-          return {
-            id: p.id,
-            user_id: p.user_id,
-            user_name: userName,
-=======
           return {
             id: p.id,
             user_id: p.user_id,
             user_name: profile?.full_name || profile?.phone || `User ${p.user_id.slice(0, 8)}`,
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             amount: Number(p.amount),
             status: p.status,
             created_at: p.created_at,
             payment_method: p.payment_method,
-<<<<<<< HEAD
             screenshot_url: p.screenshot_url,
-            transaction_ref: p.transaction_ref || null,
-            utr_number: p.transaction_ref || null
-=======
-            screenshot_url: p.screenshot_url
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+            transaction_ref: p.transaction_ref || null
           };
         })
       } as FinancialData;
