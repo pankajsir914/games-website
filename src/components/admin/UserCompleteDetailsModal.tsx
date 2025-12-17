@@ -6,17 +6,12 @@ import { UserOverviewTab } from './tabs/UserOverviewTab';
 import { BettingHistoryTab } from './tabs/BettingHistoryTab';
 import { TransactionHistoryTab } from './tabs/TransactionHistoryTab';
 import { GameSessionsTab } from './tabs/GameSessionsTab';
-<<<<<<< HEAD
 import { AlertCircle, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-=======
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
 interface UserCompleteDetailsModalProps {
   open: boolean;
@@ -31,7 +26,6 @@ export const UserCompleteDetailsModal = ({
 }: UserCompleteDetailsModalProps) => {
   const { data, isLoading, error } = useUserCompleteDetails(userId);
 
-<<<<<<< HEAD
   // Fetch payment requests for this user
   // Use JOIN with profiles to check created_by
   const { data: paymentRequests, isLoading: loadingPayments, error: paymentError } = useQuery({
@@ -220,8 +214,6 @@ export const UserCompleteDetailsModal = ({
     retry: 1,
   });
 
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto w-[95vw] p-4 sm:p-6">
@@ -247,20 +239,13 @@ export const UserCompleteDetailsModal = ({
 
         {data && (
           <Tabs defaultValue="overview" className="w-full">
-<<<<<<< HEAD
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 gap-1">
-=======
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
               <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
               <TabsTrigger value="betting" className="text-xs sm:text-sm">Betting</TabsTrigger>
               <TabsTrigger value="transactions" className="text-xs sm:text-sm">Transactions</TabsTrigger>
               <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
-<<<<<<< HEAD
               <TabsTrigger value="payments" className="text-xs sm:text-sm">Payment Requests</TabsTrigger>
               <TabsTrigger value="withdrawals" className="text-xs sm:text-sm">Withdrawal Requests</TabsTrigger>
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             </TabsList>
 
             <TabsContent value="overview" className="mt-4 sm:mt-6">
@@ -278,7 +263,6 @@ export const UserCompleteDetailsModal = ({
             <TabsContent value="sessions" className="mt-4 sm:mt-6">
               <GameSessionsTab data={data} />
             </TabsContent>
-<<<<<<< HEAD
 
             <TabsContent value="payments" className="mt-4 sm:mt-6">
               <Card>
@@ -406,8 +390,6 @@ export const UserCompleteDetailsModal = ({
                 </CardContent>
               </Card>
             </TabsContent>
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           </Tabs>
         )}
       </DialogContent>
