@@ -6,7 +6,7 @@ export const useMasterAdminActions = () => {
   const qc = useQueryClient();
 
   const createAdmin = useMutation({
-    mutationFn: async ({ fullName, email, phone, password, points }: { fullName: string; email: string; phone?: string; password: string; points?: number }) => {
+    mutationFn: async ({ fullName, email, phone, password, points, role }: { fullName: string; email: string; phone?: string; password: string; points?: number; role?: 'admin' | 'moderator' }) => {
       try {
         // Use the edge function to create admin user
         const { data, error } = await supabase.functions.invoke('create-admin-user', {
@@ -15,7 +15,8 @@ export const useMasterAdminActions = () => {
             password,
             fullName,
             phone: phone || null,
-            initialPoints: points || 0
+            initialPoints: points || 0,
+            role: role || 'admin'
           }
         });
 
