@@ -63,7 +63,6 @@ export const WithdrawalStats = () => {
     );
   }
 
-<<<<<<< HEAD
   if (!stats) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -94,11 +93,6 @@ export const WithdrawalStats = () => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       {stats.map((stat) => (
-=======
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-      {stats?.map((stat) => (
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -117,3 +111,4 @@ export const WithdrawalStats = () => {
     </div>
   );
 };
+
