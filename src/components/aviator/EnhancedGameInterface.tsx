@@ -587,8 +587,4 @@ const EnhancedGameInterface = ({ gameData, bettingCountdown, onCashOut }: GameIn
   );
 };
 
-<<<<<<< HEAD
 export default EnhancedGameInterface;
-=======
-export default EnhancedGameInterface;
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
