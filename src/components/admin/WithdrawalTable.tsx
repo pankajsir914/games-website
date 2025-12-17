@@ -1,9 +1,5 @@
 
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
-=======
-import React, { useState } from 'react';
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import {
   Table,
   TableBody,
@@ -33,11 +29,7 @@ interface WithdrawalTableProps {
 }
 
 export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
-<<<<<<< HEAD
   const { data: withdrawals, isLoading, error, processWithdrawal, isProcessing } = useAdminWithdrawals();
-=======
-  const { data: withdrawals, isLoading, processWithdrawal, isProcessing } = useAdminWithdrawals();
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   
@@ -45,17 +37,6 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
   const [tpinModalOpen, setTpinModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ id: string; action: 'approve' | 'reject' } | null>(null);
 
-<<<<<<< HEAD
-  // Debug logging
-  useEffect(() => {
-    console.log('Withdrawals data:', withdrawals);
-    console.log('Withdrawals count:', withdrawals?.length);
-    console.log('Is loading:', isLoading);
-    console.log('Error:', error);
-  }, [withdrawals, isLoading, error]);
-
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   const handleUserClick = (userId: string) => {
     setSelectedUserId(userId);
     setUserModalOpen(true);
@@ -127,7 +108,6 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
     return true;
   });
 
-<<<<<<< HEAD
   if (error) {
     return (
       <Card>
@@ -135,9 +115,6 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
           <div className="text-center text-destructive">
             <p className="font-semibold mb-2">Error loading withdrawals</p>
             <p className="text-sm">{error instanceof Error ? error.message : 'Unknown error'}</p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Please check the browser console for more details.
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -179,8 +156,6 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
     );
   }
 
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   return (
     <>
       <Card>
@@ -293,3 +268,4 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
     </>
   );
 };
+
