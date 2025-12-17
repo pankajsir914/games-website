@@ -6,6 +6,7 @@ export const useAdminTransactions = () => {
   return useQuery({
     queryKey: ['admin-transactions'],
     queryFn: async () => {
+<<<<<<< HEAD
       // Get current admin's user ID
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
@@ -94,6 +95,34 @@ export const useAdminTransactions = () => {
 
       // Create a map of user profiles
       const profileMap = new Map(userProfiles.map(p => [p.id, p]));
+=======
+      const { data: transactions, error } = await supabase
+        .from('wallet_transactions')
+        .select(`
+          id,
+          user_id,
+          amount,
+          type,
+          reason,
+          game_type,
+          balance_after,
+          created_at
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      // Get user profiles for the transactions
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      // Create a map of user profiles
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       return transactions.map(transaction => ({
         id: transaction.id,

@@ -417,4 +417,8 @@ const LudoLobby: React.FC<LudoLobbyProps> = ({ user, onJoinGame, onGetHistory, l
   );
 };
 
+<<<<<<< HEAD
 export default LudoLobby;
+=======
+export default LudoLobby;
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515

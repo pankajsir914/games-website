@@ -2,23 +2,38 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+<<<<<<< HEAD
+=======
+import { Alert, AlertDescription } from '@/components/ui/alert';
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import { 
   Shield, 
   AlertTriangle, 
   CheckCircle, 
+<<<<<<< HEAD
+=======
+  Eye, 
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   Lock, 
   Globe,
   Clock,
   User,
   Activity,
+<<<<<<< HEAD
   RefreshCw,
   Users,
   Key
+=======
+  RefreshCw
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 } from 'lucide-react';
 import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { useMasterAdminAuth } from '@/hooks/useMasterAdminAuth';
 import { supabase } from '@/integrations/supabase/client';
+<<<<<<< HEAD
 import { formatDistanceToNow } from 'date-fns';
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
 interface SecurityDashboardProps {
   className?: string;
@@ -27,12 +42,17 @@ interface SecurityDashboardProps {
 export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
   const { securityCheck, isValidating, performSecurityCheck } = useSecurityValidation();
   const { user } = useMasterAdminAuth();
+<<<<<<< HEAD
   const [stats, setStats] = useState({
     totalAdmins: 0,
     activeSessionsToday: 0,
     recentLogins: [] as any[],
     blockedUsers: 0
   });
+=======
+  const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
+  const [securitySettings, setSecuritySettings] = useState<any>({});
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -42,6 +62,7 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
   const loadSecurityData = async () => {
     setLoadingData(true);
     try {
+<<<<<<< HEAD
       // Get admin count
       const { count: adminCount } = await supabase
         .from('user_roles')
@@ -86,6 +107,30 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
         recentLogins,
         blockedUsers: blockedCount || 0
       });
+=======
+      // Load recent security alerts
+      const { data: alerts } = await supabase
+        .from('admin_alerts')
+        .select('*')
+        .eq('alert_type', 'security_event')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Load security settings
+      const { data: settings } = await supabase
+        .from('admin_security_settings')
+        .select('*');
+
+      setRecentAlerts(alerts || []);
+      
+      // Convert settings array to object for easier access
+      const settingsObj = (settings || []).reduce((acc: any, setting: any) => {
+        acc[setting.setting_key] = setting.setting_value;
+        return acc;
+      }, {});
+      
+      setSecuritySettings(settingsObj);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
     } catch (error) {
       console.error('Failed to load security data:', error);
     } finally {
@@ -108,6 +153,7 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
     return 'text-gaming-danger';
   };
 
+<<<<<<< HEAD
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'master_admin':
@@ -118,6 +164,18 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
         return <Badge className="bg-primary text-primary-foreground text-xs">Mod</Badge>;
       default:
         return <Badge variant="outline" className="text-xs">Unknown</Badge>;
+=======
+  const getAlertSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'high':
+        return <Badge className="bg-gaming-danger text-gaming-danger-foreground">High</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-500 text-white">Medium</Badge>;
+      case 'low':
+        return <Badge className="bg-gaming-success text-gaming-success-foreground">Low</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
     }
   };
 
@@ -201,6 +259,7 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
         </CardContent>
       </Card>
 
+<<<<<<< HEAD
       {/* Security Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-card">
@@ -208,10 +267,20 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="h-4 w-4" />
               Total Admins
+=======
+      {/* Security Settings Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-gradient-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Session Timeout
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
+<<<<<<< HEAD
               {stats.totalAdmins}
             </div>
             <p className="text-xs text-muted-foreground">Active admin accounts</p>
@@ -230,6 +299,11 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
               {stats.activeSessionsToday}
             </div>
             <p className="text-xs text-muted-foreground">Recent activity</p>
+=======
+              {securitySettings.session_timeout_hours || 8}h
+            </div>
+            <p className="text-xs text-muted-foreground">Auto logout time</p>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           </CardContent>
         </Card>
 
@@ -237,20 +311,31 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Lock className="h-4 w-4" />
+<<<<<<< HEAD
               Blocked Users
+=======
+              Failed Attempts
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gaming-danger">
+<<<<<<< HEAD
               {stats.blockedUsers}
             </div>
             <p className="text-xs text-muted-foreground">Blocked accounts</p>
+=======
+              {securitySettings.max_failed_attempts || 5}
+            </div>
+            <p className="text-xs text-muted-foreground">Before lockout</p>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
+<<<<<<< HEAD
               <Key className="h-4 w-4" />
               Session Timeout
             </CardTitle>
@@ -260,22 +345,44 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
               8h
             </div>
             <p className="text-xs text-muted-foreground">Auto logout time</p>
+=======
+              <Globe className="h-4 w-4" />
+              IP Restrictions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gaming-success">
+              {Array.isArray(securitySettings.allowed_ip_ranges) ? 
+                securitySettings.allowed_ip_ranges.length : 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Allowed ranges</p>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           </CardContent>
         </Card>
       </div>
 
+<<<<<<< HEAD
       {/* Recent Admin Activity */}
       <Card className="bg-gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
             Recent Admin Activity
+=======
+      {/* Recent Security Alerts */}
+      <Card className="bg-gradient-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-gaming-danger" />
+            Recent Security Alerts
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loadingData ? (
             <div className="flex items-center justify-center py-4">
               <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+<<<<<<< HEAD
               Loading activity...
             </div>
           ) : stats.recentLogins.length > 0 ? (
@@ -295,12 +402,36 @@ export const SecurityDashboard = ({ className }: SecurityDashboardProps) => {
                   </div>
                   {getRoleBadge(login.role)}
                 </div>
+=======
+              Loading security alerts...
+            </div>
+          ) : recentAlerts.length > 0 ? (
+            <div className="space-y-3">
+              {recentAlerts.map((alert) => (
+                <Alert key={alert.id} className="bg-background/50">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">{alert.title}</div>
+                      <div className="text-sm text-muted-foreground">{alert.description}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {new Date(alert.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                    {getAlertSeverityBadge(alert.severity)}
+                  </AlertDescription>
+                </Alert>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
               ))}
             </div>
           ) : (
             <div className="text-center py-4 text-muted-foreground">
               <CheckCircle className="h-8 w-8 mx-auto mb-2 text-gaming-success" />
+<<<<<<< HEAD
               No recent admin activity
+=======
+              No recent security alerts
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             </div>
           )}
         </CardContent>

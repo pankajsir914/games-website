@@ -1,8 +1,16 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+<<<<<<< HEAD
 import { Badge } from '@/components/ui/badge';
 import { OverviewDashboard } from './OverviewDashboard';
 
+=======
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { OverviewDashboard } from './OverviewDashboard';
+
+import { PlayerWalletInsights } from './PlayerWalletInsights';
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import { AdminLayout } from './AdminLayout';
 import { AdminWalletCard } from './AdminWalletCard';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -183,10 +191,28 @@ export const AdminDashboard = () => {
           </Card>
         </div>
 
+<<<<<<< HEAD
         {/* Main Dashboard Content */}
         <div className="space-y-6">
           <OverviewDashboard />
         </div>
+=======
+        {/* Main Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 gap-2">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="wallets" className="text-xs sm:text-sm">Player Wallets</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <OverviewDashboard />
+          </TabsContent>
+
+          <TabsContent value="wallets" className="space-y-6">
+            <PlayerWalletInsights />
+          </TabsContent>
+        </Tabs>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       </div>
     </AdminLayout>
   );

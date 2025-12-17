@@ -10,7 +10,11 @@ export interface TeamMember {
   role: string;
   created_at: string;
   last_sign_in_at: string | null;
+<<<<<<< HEAD
   admin_credits: number; // Credits admin can distribute to users
+=======
+  current_balance: number;
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   status: 'active' | 'inactive' | 'suspended';
 }
 

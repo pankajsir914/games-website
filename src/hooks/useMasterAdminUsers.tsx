@@ -38,6 +38,7 @@ export const useMasterAdminUsers = () => {
   const getUsers = useQuery({
     queryKey: ['master-admin-users'],
     queryFn: async () => {
+<<<<<<< HEAD
       // Get current admin's ID and role first
       const { data: { user: adminUser } } = await supabase.auth.getUser();
       if (!adminUser) throw new Error('Not authenticated');
@@ -47,6 +48,8 @@ export const useMasterAdminUsers = () => {
       
       const isMasterAdmin = highestRole === 'master_admin';
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       try {
         // Try the existing RPC function that works for all admins
         const { data: userManagementData, error: userError } = await supabase
@@ -62,7 +65,11 @@ export const useMasterAdminUsers = () => {
           const data = userManagementData as any;
           
           // Map the data to our expected format
+<<<<<<< HEAD
           let users = (data.users || []).map((user: any) => ({
+=======
+          const users = (data.users || []).map((user: any) => ({
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             id: user.id,
             email: user.email,
             full_name: user.full_name || 'Unknown User',
@@ -82,6 +89,7 @@ export const useMasterAdminUsers = () => {
             creator_name: user.creator_name,
             user_role: user.user_role
           }));
+<<<<<<< HEAD
 
           // Additional frontend filtering: Only show users created by current admin (if not master admin)
           if (!isMasterAdmin) {
@@ -92,6 +100,12 @@ export const useMasterAdminUsers = () => {
           return {
             users,
             total_count: users.length, // Use filtered count
+=======
+          
+          return {
+            users,
+            total_count: data.total_count || users.length,
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             blocked_users: 0,
             high_risk_users: 0,
             online_count: users.filter((u: any) => u.status === 'online').length,
@@ -99,6 +113,7 @@ export const useMasterAdminUsers = () => {
           } as UsersResponse;
         }
 
+<<<<<<< HEAD
         // Try the master admin only function as fallback (only for master admin)
         if (isMasterAdmin) {
           const { data: allUsersData, error: allUsersError } = await supabase
@@ -117,14 +132,35 @@ export const useMasterAdminUsers = () => {
               recently_active_count: usersData.recently_active_count || 0
             } as UsersResponse;
           }
+=======
+        // Try the master admin only function as fallback
+        const { data: allUsersData, error: allUsersError } = await supabase
+          .rpc('get_all_users_for_master_admin');
+
+        if (!allUsersError && allUsersData) {
+          console.log('Fetched users from master admin function:', allUsersData);
+          const usersData = allUsersData as any;
+          
+          return {
+            users: usersData.users || [],
+            total_count: usersData.total_count || 0,
+            blocked_users: 0,
+            high_risk_users: 0,
+            online_count: usersData.online_count || 0,
+            recently_active_count: usersData.recently_active_count || 0
+          } as UsersResponse;
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         }
       } catch (error) {
         console.log('RPC functions not available, falling back to direct queries', error);
       }
 
       // Final fallback to direct queries
+<<<<<<< HEAD
       // Use adminUser already declared above
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       const { data: adminUsers } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -132,13 +168,19 @@ export const useMasterAdminUsers = () => {
 
       const adminUserIds = adminUsers?.map(u => u.user_id) || [];
 
+<<<<<<< HEAD
       // Get profiles - filter by created_by if regular admin
       let profilesQuery = supabase
+=======
+      // Get all profiles
+      const { data: profiles, error: profilesError } = await supabase
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
+<<<<<<< HEAD
       if (!isMasterAdmin) {
         // Regular admin: only get users they created
         profilesQuery = profilesQuery.eq('created_by', adminUser.id);
@@ -146,6 +188,8 @@ export const useMasterAdminUsers = () => {
 
       const { data: profiles, error: profilesError } = await profilesQuery;
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;

@@ -27,6 +27,7 @@ export const useAdminDashboardStats = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+<<<<<<< HEAD
       // Check if current user is master admin
       const { data: highestRole } = await supabase
         .rpc('get_user_highest_role', { _user_id: user.id });
@@ -43,6 +44,8 @@ export const useAdminDashboardStats = () => {
         myUserIds = myUsers?.map(u => u.id) || [];
       }
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       // Get total users count created by this admin
       const { data: usersData, error: usersError } = await supabase
         .rpc('get_users_management_data', {
@@ -59,6 +62,7 @@ export const useAdminDashboardStats = () => {
 
       const totalUsers = (usersData as any)?.total_count || 0;
 
+<<<<<<< HEAD
       // Get total points distributed (admin credit transactions) - filter by user if regular admin
       let pointsQuery = supabase
         .from('admin_credit_transactions')
@@ -70,6 +74,13 @@ export const useAdminDashboardStats = () => {
       }
 
       const { data: pointsData, error: pointsError } = await pointsQuery;
+=======
+      // Get total points distributed (admin credit transactions)
+      const { data: pointsData, error: pointsError } = await supabase
+        .from('admin_credit_transactions')
+        .select('amount')
+        .eq('tx_type', 'distribution');
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       if (pointsError) {
         console.error('Error fetching points data:', pointsError);
@@ -78,6 +89,7 @@ export const useAdminDashboardStats = () => {
 
       const totalPointsDistributed = pointsData?.reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
 
+<<<<<<< HEAD
       // Get active sessions (users with activity in last 30 minutes) - filter by user if regular admin
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       let sessionsQuery = supabase
@@ -90,12 +102,21 @@ export const useAdminDashboardStats = () => {
       }
 
       const { count: activeSessions, error: sessionsError } = await sessionsQuery;
+=======
+      // Get active sessions (users with activity in last 30 minutes)
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const { count: activeSessions, error: sessionsError } = await supabase
+        .from('wallet_transactions')
+        .select('user_id', { count: 'exact', head: true })
+        .gte('created_at', thirtyMinutesAgo);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       if (sessionsError) {
         console.error('Error fetching active sessions:', sessionsError);
         throw sessionsError;
       }
 
+<<<<<<< HEAD
       // Get pending deposits - filter by user if regular admin
       let depositsQuery = supabase
         .from('payment_requests')
@@ -107,12 +128,20 @@ export const useAdminDashboardStats = () => {
       }
 
       const { count: pendingDeposits, error: depositsError } = await depositsQuery;
+=======
+      // Get pending deposits
+      const { count: pendingDeposits, error: depositsError } = await supabase
+        .from('payment_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       if (depositsError) {
         console.error('Error fetching pending deposits:', depositsError);
         throw depositsError;
       }
 
+<<<<<<< HEAD
       // Get pending withdrawals - filter by user if regular admin
       let withdrawalsQuery = supabase
         .from('withdrawal_requests')
@@ -124,12 +153,20 @@ export const useAdminDashboardStats = () => {
       }
 
       const { count: pendingWithdrawals, error: withdrawalsError } = await withdrawalsQuery;
+=======
+      // Get pending withdrawals
+      const { count: pendingWithdrawals, error: withdrawalsError } = await supabase
+        .from('withdrawal_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       if (withdrawalsError) {
         console.error('Error fetching pending withdrawals:', withdrawalsError);
         throw withdrawalsError;
       }
 
+<<<<<<< HEAD
       // Get today's bets count - filter by user if regular admin
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -150,10 +187,33 @@ export const useAdminDashboardStats = () => {
         .gte('created_at', today.toISOString());
       
       let rouletteQuery = supabase
+=======
+      // Get today's bets count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: aviatorBets } = await supabase
+        .from('aviator_bets')
+        .select('bet_amount')
+        .gte('created_at', today.toISOString());
+
+      const { data: colorBets } = await supabase
+        .from('color_prediction_bets')
+        .select('bet_amount')
+        .gte('created_at', today.toISOString());
+
+      const { data: andarBets } = await supabase
+        .from('andar_bahar_bets')
+        .select('bet_amount')
+        .gte('created_at', today.toISOString());
+
+      const { data: rouletteBets } = await supabase
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         .from('roulette_bets')
         .select('bet_amount')
         .gte('created_at', today.toISOString());
 
+<<<<<<< HEAD
       if (!isMasterAdmin && myUserIds.length > 0) {
         aviatorQuery = aviatorQuery.in('user_id', myUserIds);
         colorQuery = colorQuery.in('user_id', myUserIds);
@@ -166,6 +226,8 @@ export const useAdminDashboardStats = () => {
       const { data: andarBets } = await andarQuery;
       const { data: rouletteBets } = await rouletteQuery;
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       const todayBets = (aviatorBets?.length || 0) + (colorBets?.length || 0) + 
                        (andarBets?.length || 0) + (rouletteBets?.length || 0);
 

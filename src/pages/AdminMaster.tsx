@@ -145,6 +145,7 @@ const AdminMaster = () => {
             <CardContent>
               {analytics ? (
                 <>
+<<<<<<< HEAD
                   <div className="text-2xl font-bold text-primary">
                     ₹{analytics.totalPlatformBalance >= 1000000 
                       ? (analytics.totalPlatformBalance / 1000000).toFixed(1) + 'M'
@@ -152,6 +153,9 @@ const AdminMaster = () => {
                         ? (analytics.totalPlatformBalance / 1000).toFixed(1) + 'K'
                         : analytics.totalPlatformBalance.toLocaleString()}
                   </div>
+=======
+                  <div className="text-2xl font-bold text-primary">₹{(analytics.totalDeposits / 1000000).toFixed(1)}M</div>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                   <p className="text-xs text-muted-foreground">Platform total</p>
                 </>
               ) : (
@@ -166,6 +170,7 @@ const AdminMaster = () => {
               <Activity className="h-4 w-4 text-cyan-500" />
             </CardHeader>
             <CardContent>
+<<<<<<< HEAD
               {analytics ? (
                 <>
                   <div className="text-2xl font-bold text-cyan-500">{analytics.liveUsers}</div>
@@ -174,6 +179,10 @@ const AdminMaster = () => {
               ) : (
                 <Skeleton className="h-8 w-12" />
               )}
+=======
+              <div className="text-2xl font-bold text-cyan-500">142</div>
+              <p className="text-xs text-muted-foreground">Active now</p>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             </CardContent>
           </Card>
 
@@ -185,6 +194,7 @@ const AdminMaster = () => {
             <CardContent>
               {analytics ? (
                 <>
+<<<<<<< HEAD
                   <div className={`text-2xl font-bold ${analytics.platformProfit >= 0 ? 'text-purple-500' : 'text-red-500'}`}>
                     {analytics.platformProfit >= 0 ? '₹' : '-₹'}
                     {Math.abs(analytics.platformProfit) >= 1000
@@ -192,6 +202,10 @@ const AdminMaster = () => {
                       : Math.abs(analytics.platformProfit).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground">From today's activity</p>
+=======
+                  <div className="text-2xl font-bold text-purple-500">₹{(analytics.platformProfit / 1000).toFixed(1)}K</div>
+                  <p className="text-xs text-muted-foreground">+18% vs yesterday</p>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                 </>
               ) : (
                 <Skeleton className="h-8 w-16" />

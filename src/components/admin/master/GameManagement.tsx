@@ -47,11 +47,15 @@ export const GameManagement = () => {
     minBet: 10
   });
 
+<<<<<<< HEAD
   // Filter to only show Ludo, Color Prediction, and Aviator
   const allowedGames = ['ludo', 'color_prediction', 'aviator'];
   const games = (gamesData?.games || []).filter((game: any) => 
     allowedGames.includes(game.game_type)
   );
+=======
+  const games = gamesData?.games || [];
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   const stats = gamesData || { total_active_players: 0, total_revenue_today: 0, platform_profit_today: 0 };
 
   const handleToggleGame = (gameType: string, currentEnabled: boolean) => {
@@ -63,7 +67,11 @@ export const GameManagement = () => {
   };
 
   const handleApplyGlobalSettings = () => {
+<<<<<<< HEAD
     // Apply global settings to filtered games only (Ludo, Color Prediction, Aviator)
+=======
+    // Apply global settings to all games
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
     games.forEach(game => {
       updateGameSettings({ 
         gameType: game.game_type, 

@@ -13,10 +13,16 @@ import { TPINSetupModal } from './TPINSetupModal';
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'admin' | 'moderator';
+<<<<<<< HEAD
   allowMasterAdmin?: boolean; // If false, master admin will be redirected
 }
 
 export const AdminProtectedRoute = ({ children, requiredRole = 'moderator', allowMasterAdmin = true }: AdminProtectedRouteProps) => {
+=======
+}
+
+export const AdminProtectedRoute = ({ children, requiredRole = 'moderator' }: AdminProtectedRouteProps) => {
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   const { data: adminAuth, isLoading, error } = useAdminAuth();
   const { needsTPINSetup, isCheckingStatus, refetchStatus } = useTPIN();
   const queryClient = useQueryClient();
@@ -105,11 +111,14 @@ export const AdminProtectedRoute = ({ children, requiredRole = 'moderator', allo
     return <Navigate to="/admin/login" replace />;
   }
 
+<<<<<<< HEAD
   // Block master admin if allowMasterAdmin is false
   if (!allowMasterAdmin && adminAuth.isMasterAdmin) {
     return <Navigate to="/admin/users" replace />;
   }
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   // Allow master admins as superusers
   const hasRequiredRole = requiredRole === 'moderator' 
     ? adminAuth.hasAccess 

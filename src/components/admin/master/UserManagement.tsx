@@ -324,6 +324,21 @@ export const UserManagement = () => {
                       <Eye className="h-3 w-3 mr-1" />
                       View Profile
                     </Button>
+<<<<<<< HEAD
+=======
+                    <Button size="sm" variant="outline" onClick={() => handleViewWallet(user)}>
+                      <Wallet className="h-3 w-3 mr-1" />
+                      Wallet
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setCreditModalUser(user.id)}>
+                      <Coins className="h-3 w-3 mr-1" />
+                      Credit
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleEditUser(user)}>
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                   </div>
                   
                   <div className="flex gap-2">

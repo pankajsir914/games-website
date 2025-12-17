@@ -28,7 +28,10 @@ import { CreateAdminModal } from './CreateAdminModal';
 import { AdminProfileModal } from './AdminProfileModal';
 import { EditProfileModal } from './EditProfileModal';
 import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
+<<<<<<< HEAD
 import { useQueryClient } from '@tanstack/react-query';
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
 export const TeamManagement = () => {
   const [showCreate, setShowCreate] = useState(false);
@@ -37,7 +40,10 @@ export const TeamManagement = () => {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { teamMembers, isLoading, updateUserStatus, isUpdating } = useTeamManagement();
+<<<<<<< HEAD
   const queryClient = useQueryClient();
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -97,7 +103,11 @@ export const TeamManagement = () => {
 
   const handleProfileUpdate = () => {
     // Refresh team data after profile update
+<<<<<<< HEAD
     queryClient.invalidateQueries({ queryKey: ['team-members'] });
+=======
+    window.location.reload();
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   };
 
   return (
@@ -249,7 +259,11 @@ export const TeamManagement = () => {
                           <Clock className="h-3 w-3" />
                           Last login: {formatLastLogin(member.last_sign_in_at)}
                         </div>
+<<<<<<< HEAD
                         <div>Credits: ₹{(member.admin_credits || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+=======
+                        <div>Balance: ₹{(member.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                       </div>
                     </div>
                   </div>

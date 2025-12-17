@@ -26,7 +26,11 @@ interface TransactionTableProps {
 }
 
 export const TransactionTable = ({ filters }: TransactionTableProps) => {
+<<<<<<< HEAD
   const { data: transactions, isLoading, error } = useAdminTransactions();
+=======
+  const { data: transactions, isLoading } = useAdminTransactions();
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -92,6 +96,7 @@ export const TransactionTable = ({ filters }: TransactionTableProps) => {
     return true;
   });
 
+<<<<<<< HEAD
   if (error) {
     return (
       <Card>
@@ -121,6 +126,8 @@ export const TransactionTable = ({ filters }: TransactionTableProps) => {
     );
   }
 
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   return (
     <Card>
       <CardContent className="p-0">

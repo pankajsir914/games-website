@@ -45,8 +45,11 @@ interface FinancialData {
     created_at: string;
     payment_method: string;
     screenshot_url?: string;
+<<<<<<< HEAD
     transaction_ref?: string | null;
     utr_number?: string | null;
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   }[];
 }
 
@@ -156,6 +159,7 @@ export const useMasterAdminFinance = () => {
           .order('created_at', { ascending: false })
           .limit(10);
         recentTransactions = txns || [];
+<<<<<<< HEAD
       } else {
         // Regular admin: Use RLS policies which check profiles.created_by
         // RLS will automatically filter based on created_by, so we don't need to filter by user_id
@@ -165,11 +169,21 @@ export const useMasterAdminFinance = () => {
           .from('payment_requests')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
+=======
+      } else if (myUserIds.length > 0) {
+        // Regular admin only sees their created users' data
+        const { count: depositCount } = await supabase
+          .from('payment_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .in('user_id', myUserIds);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         pendingDeposits = depositCount || 0;
 
         const { count: withdrawalCount } = await supabase
           .from('withdrawal_requests')
           .select('*', { count: 'exact', head: true })
+<<<<<<< HEAD
           .eq('status', 'pending');
         pendingWithdrawals = withdrawalCount || 0;
 
@@ -204,6 +218,34 @@ export const useMasterAdminFinance = () => {
         if (txnsError) {
           console.error('Error fetching transactions:', txnsError);
         }
+=======
+          .eq('status', 'pending')
+          .in('user_id', myUserIds);
+        pendingWithdrawals = withdrawalCount || 0;
+
+        const { data: wReqs } = await supabase
+          .from('withdrawal_requests')
+          .select('*')
+          .in('user_id', myUserIds)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        withdrawalRequests = wReqs || [];
+
+        const { data: pReqs } = await supabase
+          .from('payment_requests')
+          .select('*')
+          .in('user_id', myUserIds)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        paymentRequests = pReqs || [];
+
+        const { data: txns } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .in('user_id', myUserIds)
+          .order('created_at', { ascending: false })
+          .limit(10);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         recentTransactions = txns || [];
       }
 
@@ -216,6 +258,7 @@ export const useMasterAdminFinance = () => {
         ])
       ];
 
+<<<<<<< HEAD
       // Use RPC function to get user profiles (bypasses RLS for admins)
       let profileMap = new Map();
       if (allUserIds.length > 0) {
@@ -259,6 +302,14 @@ export const useMasterAdminFinance = () => {
           }
         }
       }
+=======
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone')
+        .in('id', allUserIds.length > 0 ? allUserIds : ['00000000-0000-0000-0000-000000000000']);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       return {
         total_platform_balance: totalPlatformBalance,
@@ -295,6 +346,7 @@ export const useMasterAdminFinance = () => {
         }),
         payment_requests: paymentRequests.map(p => {
           const profile = profileMap.get(p.user_id);
+<<<<<<< HEAD
           const userName = profile?.full_name || profile?.phone || `User ${p.user_id.slice(0, 8)}`;
           
           // Debug logging
@@ -306,13 +358,23 @@ export const useMasterAdminFinance = () => {
             id: p.id,
             user_id: p.user_id,
             user_name: userName,
+=======
+          return {
+            id: p.id,
+            user_id: p.user_id,
+            user_name: profile?.full_name || profile?.phone || `User ${p.user_id.slice(0, 8)}`,
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             amount: Number(p.amount),
             status: p.status,
             created_at: p.created_at,
             payment_method: p.payment_method,
+<<<<<<< HEAD
             screenshot_url: p.screenshot_url,
             transaction_ref: p.transaction_ref || null,
             utr_number: p.transaction_ref || null
+=======
+            screenshot_url: p.screenshot_url
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           };
         })
       } as FinancialData;

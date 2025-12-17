@@ -20,12 +20,21 @@ interface AdminSidebarProps {
 }
 
 const menuItems = [
+<<<<<<< HEAD
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', showForMaster: false },
   { icon: Users, label: 'Users', href: '/admin/users', showForMaster: true },
   { icon: CreditCard, label: 'Payments', href: '/admin/payments', showForMaster: false },
   { icon: CheckCircle, label: 'Withdrawals', href: '/admin/withdrawals', showForMaster: false },
   { icon: CreditCard, label: 'Transactions', href: '/admin/transactions', showForMaster: false },
   { icon: Users, label: 'Bet Logs', href: '/admin/bets', showForMaster: false },
+=======
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
+  { icon: Users, label: 'Users', href: '/admin/users' },
+  { icon: CreditCard, label: 'Payments', href: '/admin/payments' },
+  { icon: CheckCircle, label: 'Withdrawals', href: '/admin/withdrawals' },
+  { icon: CreditCard, label: 'Transactions', href: '/admin/transactions' },
+  { icon: Users, label: 'Bet Logs', href: '/admin/bets' },
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 ];
 
 export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
@@ -88,11 +97,14 @@ export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
             )}
             
             {menuItems.map((item) => {
+<<<<<<< HEAD
               // Hide Payments, Withdrawals, Transactions for master admin
               if (isMasterAdmin && !item.showForMaster) {
                 return null;
               }
               
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
               const isActive = location.pathname === item.href;
               return (
                 <Link

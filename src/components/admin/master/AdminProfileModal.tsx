@@ -82,6 +82,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
 
     setIsUpdatingPoints(true);
     try {
+<<<<<<< HEAD
       const amount = parseFloat(pointsAmount);
       
       // Use allocate_admin_credits RPC to add credits that admin can distribute to users
@@ -102,14 +103,51 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
         title: "Admin Credits Allocated",
         description: `Successfully allocated ₹${pointsAmount} admin credits to ${member.full_name || member.email}. They can now distribute these to users.`,
       });
+=======
+      // For master admin allocating credits to admins
+      if (member.role === 'admin') {
+        const { data, error } = await supabase.rpc('allocate_admin_credits', {
+          p_admin_id: member.id,
+          p_amount: parseFloat(pointsAmount),
+          p_notes: `Credits allocated by master admin`
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Credits Allocated",
+          description: `Successfully allocated ₹${pointsAmount} admin credits to ${member.full_name || member.email}`,
+        });
+      } else {
+        // For transferring points to users from admin balance
+        const { data, error } = await supabase.rpc('transfer_admin_credits_to_user', {
+          p_user_id: member.id,
+          p_amount: parseFloat(pointsAmount),
+          p_notes: `Points transferred by master admin`
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Points Transferred",
+          description: `Successfully transferred ₹${pointsAmount} to ${member.full_name || member.email}`,
+        });
+      }
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       
       setPointsAmount('');
       onUpdate?.();
     } catch (error: any) {
+<<<<<<< HEAD
       console.error('Allocation failed:', error);
       toast({
         title: "Allocation Failed",
         description: error.message || 'Failed to allocate admin credits',
+=======
+      toast({
+        title: "Transfer Failed",
+        description: error.message,
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         variant: "destructive"
       });
     } finally {
@@ -232,12 +270,17 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             </CardContent>
           </Card>
 
+<<<<<<< HEAD
           {/* Admin Credits Management */}
+=======
+          {/* Points Management */}
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
           {member.role !== 'master_admin' && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Wallet className="h-5 w-5" />
+<<<<<<< HEAD
                   Admin Credits
                 </CardTitle>
               </CardHeader>
@@ -252,6 +295,19 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
 
                 <div className="space-y-3">
                   <Label htmlFor="points-amount">Allocate Credits</Label>
+=======
+                  Points Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                  <span className="font-medium">Current Balance</span>
+                  <span className="text-xl font-bold text-gaming-success">₹{member.current_balance.toFixed(2)}</span>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="points-amount">Allocate Points</Label>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                   <div className="flex gap-2">
                     <Input
                       id="points-amount"
@@ -264,14 +320,22 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
                     <Button 
                       onClick={allocatePoints}
                       disabled={isUpdatingPoints || !pointsAmount}
+<<<<<<< HEAD
                       className="bg-primary text-primary-foreground hover:bg-primary/90"
+=======
+                      className="bg-gaming-success text-gaming-success-foreground hover:bg-gaming-success/90"
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       {isUpdatingPoints ? 'Allocating...' : 'Allocate'}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
+<<<<<<< HEAD
                     Admin can only distribute these credits to users - admins cannot play games.
+=======
+                    Admin can distribute these points to users
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                   </p>
                 </div>
               </CardContent>

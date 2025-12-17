@@ -17,7 +17,10 @@ import EnhancedLiveTVSection from '@/components/sports/EnhancedLiveTVSection';
 import EnhancedOddsDisplay from '@/components/sports/EnhancedOddsDisplay';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
+<<<<<<< HEAD
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const SportsBet: React.FC = () => {
@@ -31,7 +34,10 @@ const SportsBet: React.FC = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false);
+<<<<<<< HEAD
   const [isBetSlipDialogOpen, setIsBetSlipDialogOpen] = useState(false);
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   
   const [match, setMatch] = useState<any>(state?.match || null);
   const [odds, setOdds] = useState<any>(null);
@@ -267,11 +273,17 @@ const SportsBet: React.FC = () => {
       matchName: `${match?.team1} vs ${match?.team2}`,
       sport
     });
+<<<<<<< HEAD
     // Open bet slip drawer on mobile, dialog on desktop
     if (isMobile) {
       setIsBetSlipOpen(true);
     } else {
       setIsBetSlipDialogOpen(true);
+=======
+    // Open bet slip drawer on mobile
+    if (isMobile) {
+      setIsBetSlipOpen(true);
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
     }
   };
 
@@ -286,7 +298,11 @@ const SportsBet: React.FC = () => {
     }
 
     const amount = parseFloat(betAmount);
+<<<<<<< HEAD
     if (wallet && amount > wallet.current_balance) {
+=======
+    if (wallet && amount > (wallet as any).balance) {
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
       toast({
         title: "Insufficient balance",
         description: "You don't have enough balance to place this bet",
@@ -309,9 +325,12 @@ const SportsBet: React.FC = () => {
       // Reset bet slip
       setSelectedBet(null);
       setBetAmount('');
+<<<<<<< HEAD
       // Close dialogs
       if (isMobile) setIsBetSlipOpen(false);
       if (!isMobile) setIsBetSlipDialogOpen(false);
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
     } catch (error) {
       toast({
         title: "Failed to place bet",
@@ -437,7 +456,10 @@ const SportsBet: React.FC = () => {
                 setSelectedBet(null);
                 setBetAmount('');
                 if (isMobile) setIsBetSlipOpen(false);
+<<<<<<< HEAD
                 if (!isMobile) setIsBetSlipDialogOpen(false);
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
               }}
             >
               Clear Bet Slip
@@ -454,7 +476,11 @@ const SportsBet: React.FC = () => {
       <div className="mt-4 pt-4 border-t">
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Wallet Balance:</span>
+<<<<<<< HEAD
           <span className="font-semibold">₹{wallet ? (wallet.current_balance || 0).toFixed(2) : '0.00'}</span>
+=======
+          <span className="font-semibold">₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}</span>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         </div>
       </div>
     </>
@@ -622,6 +648,7 @@ const SportsBet: React.FC = () => {
               </Alert>
             )}
 
+<<<<<<< HEAD
             <div className={isMobile ? "space-y-4" : "space-y-4"}>
               <EnhancedOddsDisplay 
                 odds={odds}
@@ -658,6 +685,29 @@ const SportsBet: React.FC = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+=======
+            <div className={isMobile ? "space-y-4" : "grid lg:grid-cols-3 gap-6"}>
+              <div className="lg:col-span-2">
+                <EnhancedOddsDisplay 
+                  odds={odds}
+                  selectedBet={selectedBet}
+                  onSelectBet={handleSelectBet}
+                  isLoading={isLoadingOdds}
+                />
+              </div>
+
+              {/* Desktop Bet Slip - Hidden on Mobile */}
+              {!isMobile && (
+                <div>
+                  <Card className="sticky top-4">
+                    <CardHeader>
+                      <CardTitle>Bet Slip</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BetSlipContent />
+                    </CardContent>
+                  </Card>
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                 </div>
               )}
             </div>
@@ -771,7 +821,11 @@ const SportsBet: React.FC = () => {
                           Wallet Balance:
                         </span>
                         <span className={isMobile ? "font-bold text-base" : "font-bold text-xl"}>
+<<<<<<< HEAD
                           ₹{wallet ? (wallet.current_balance || 0).toFixed(2) : '0.00'}
+=======
+                          ₹{wallet ? ((wallet as any).balance || 0).toFixed(2) : '0.00'}
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
                         </span>
                       </div>
                     </div>

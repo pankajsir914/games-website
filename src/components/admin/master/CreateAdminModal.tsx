@@ -3,7 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+<<<<<<< HEAD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 import { useMasterAdminActions } from '@/hooks/useMasterAdminActions';
 import { Loader2 } from 'lucide-react';
 
@@ -14,11 +17,16 @@ interface CreateAdminModalProps {
 
 export const CreateAdminModal = ({ open, onOpenChange }: CreateAdminModalProps) => {
   const { createAdmin, creating } = useMasterAdminActions();
+<<<<<<< HEAD
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', password: '', points: '', role: 'admin' });
+=======
+  const [form, setForm] = useState({ fullName: '', email: '', phone: '', password: '', points: '' });
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const pts = parseFloat(form.points || '0');
+<<<<<<< HEAD
     createAdmin({ 
       fullName: form.fullName, 
       email: form.email, 
@@ -29,6 +37,11 @@ export const CreateAdminModal = ({ open, onOpenChange }: CreateAdminModalProps) 
     }, {
       onSuccess: () => {
         setForm({ fullName: '', email: '', phone: '', password: '', points: '', role: 'admin' });
+=======
+    createAdmin({ fullName: form.fullName, email: form.email, phone: form.phone, password: form.password, points: isNaN(pts) ? 0 : pts }, {
+      onSuccess: () => {
+        setForm({ fullName: '', email: '', phone: '', password: '', points: '' });
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         onOpenChange(false);
       }
     });
@@ -59,6 +72,7 @@ export const CreateAdminModal = ({ open, onOpenChange }: CreateAdminModalProps) 
             <Input type="password" minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
           </div>
           <div>
+<<<<<<< HEAD
             <Label>Role</Label>
             <Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value })}>
               <SelectTrigger>
@@ -71,6 +85,8 @@ export const CreateAdminModal = ({ open, onOpenChange }: CreateAdminModalProps) 
             </Select>
           </div>
           <div>
+=======
+>>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
             <Label>Initial Points</Label>
             <Input type="number" min={0} step="1" value={form.points} onChange={(e) => setForm({ ...form, points: e.target.value })} />
           </div>
