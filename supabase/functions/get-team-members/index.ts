@@ -79,7 +79,6 @@ serve(async (req) => {
       throw usersError
     }
 
-<<<<<<< HEAD
     // Get admin credit balances (for distributing to users)
     const { data: adminCredits, error: creditsError } = await supabaseAdmin
       .from('admin_credit_accounts')
@@ -88,28 +87,13 @@ serve(async (req) => {
 
     if (creditsError) {
       console.warn('Error fetching admin credits:', creditsError)
-=======
-    // Get wallet balances
-    const { data: wallets, error: walletsError } = await supabaseAdmin
-      .from('wallets')
-      .select('user_id, current_balance')
-      .in('user_id', userIds)
-
-    if (walletsError) {
-      console.warn('Error fetching wallets:', walletsError)
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
     }
 
     // Combine all data
     const teamMembers = adminRoles.map(role => {
       const authUser = users?.find(u => u.id === role.user_id)
-<<<<<<< HEAD
       const profile = profiles?.find(p => p.id === role.user_id)
       const credits = adminCredits?.find(c => c.admin_id === role.user_id)
-=======
-      const wallet = wallets?.find(w => w.user_id === role.user_id)
-      const profile = profiles?.find(p => p.id === role.user_id)
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       return {
         id: role.user_id,
@@ -119,11 +103,7 @@ serve(async (req) => {
         role: role.role,
         created_at: role.assigned_at,
         last_sign_in_at: authUser?.last_sign_in_at || null,
-<<<<<<< HEAD
         admin_credits: credits?.balance || 0, // Credits admin can distribute to users
-=======
-        current_balance: wallet?.current_balance || 0,
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         status: getStatusFromLastSignIn(authUser?.last_sign_in_at)
       }
     })
