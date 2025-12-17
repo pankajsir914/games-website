@@ -22,74 +22,83 @@ export const useAdminWithdrawals = () => {
       }
 
       const isMasterAdmin = highestRole === 'master_admin';
+      console.log('Admin role check - isMasterAdmin:', isMasterAdmin, 'highestRole:', highestRole);
 
       let withdrawals: any[] = [];
 
-      if (isMasterAdmin) {
-        // Master admin can see all withdrawals
-        const { data, error } = await supabase
-          .from('withdrawal_requests')
-          .select(`
-            id,
-            user_id,
-            amount,
-            status,
-            account_holder_name,
-            bank_account_number,
-            ifsc_code,
-            payment_method_type,
-            upi_id,
-            created_at,
-            admin_id
-          `)
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error fetching withdrawals (master admin):', error);
+      // Try fetching withdrawals - RLS will filter based on admin's access
+      const { data, error } = await supabase
+        .from('withdrawal_requests')
+        .select(`
+          id,
+          user_id,
+          amount,
+          status,
+          account_holder_name,
+          bank_account_number,
+          ifsc_code,
+          payment_method_type,
+          upi_id,
+          created_at,
+          admin_id
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching withdrawals:', error);
+        // If RLS blocks, try alternative approach for regular admin
+        if (!isMasterAdmin) {
+          // Get users created by this admin first
+          const { data: myUsers, error: usersError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('created_by', user.id);
+
+          if (usersError) {
+            console.error('Error fetching admin users:', usersError);
+            throw usersError;
+          }
+
+          const myUserIds = myUsers?.map(u => u.id) || [];
+          console.log('Admin users found:', myUserIds.length);
+
+          if (myUserIds.length === 0) {
+            return []; // No users, no withdrawals
+          }
+
+          // Get withdrawals only from users created by this admin (bypass RLS issue)
+          const { data: filteredData, error: filteredError } = await supabase
+            .from('withdrawal_requests')
+            .select(`
+              id,
+              user_id,
+              amount,
+              status,
+              account_holder_name,
+              bank_account_number,
+              ifsc_code,
+              payment_method_type,
+              upi_id,
+              created_at,
+              admin_id
+            `)
+            .in('user_id', myUserIds)
+            .order('created_at', { ascending: false });
+          
+          if (filteredError) {
+            console.error('Error fetching filtered withdrawals:', filteredError);
+            throw filteredError;
+          }
+          
+          withdrawals = filteredData || [];
+        } else {
           throw error;
         }
-        withdrawals = data || [];
-        console.log('Master admin withdrawals fetched:', withdrawals.length);
       } else {
-        // Regular admin: get users created by this admin first
-        const { data: myUsers } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('created_by', user.id);
-
-        const myUserIds = myUsers?.map(u => u.id) || [];
-
-        if (myUserIds.length === 0) {
-          return []; // No users, no withdrawals
-        }
-
-        // Get withdrawals only from users created by this admin
-        const { data, error } = await supabase
-          .from('withdrawal_requests')
-          .select(`
-            id,
-            user_id,
-            amount,
-            status,
-            account_holder_name,
-            bank_account_number,
-            ifsc_code,
-            payment_method_type,
-            upi_id,
-            created_at,
-            admin_id
-          `)
-          .in('user_id', myUserIds)
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error fetching withdrawals (regular admin):', error);
-          throw error;
-        }
-        
         withdrawals = data || [];
-        console.log('Regular admin withdrawals fetched:', withdrawals.length);
       }
+      
+      console.log('Withdrawals fetched:', withdrawals.length);
 
       if (withdrawals.length === 0) {
         return [];
