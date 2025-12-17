@@ -10,18 +10,15 @@ export interface TeamMember {
   role: string;
   created_at: string;
   last_sign_in_at: string | null;
-<<<<<<< HEAD
-  admin_credits: number; // Credits admin can distribute to users
-=======
-  current_balance: number;
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+  admin_credits: number;
+  wallet_balance?: number;
   status: 'active' | 'inactive' | 'suspended';
 }
 
 export const useTeamManagement = () => {
   const queryClient = useQueryClient();
 
-  const { data: teamMembers, isLoading, error } = useQuery({
+  const { data: teamMembers, isLoading, error, refetch } = useQuery({
     queryKey: ['team-members'],
     queryFn: async () => {
       // Use edge function to get team members with proper auth data
@@ -67,19 +64,8 @@ export const useTeamManagement = () => {
     teamMembers,
     isLoading,
     error,
+    refetch,
     updateUserStatus: updateUserStatus.mutate,
     isUpdating: updateUserStatus.isPending
   };
 };
-
-function getStatusFromLastSignIn(lastSignIn: string | null): 'active' | 'inactive' | 'suspended' {
-  if (!lastSignIn) return 'inactive';
-  
-  const lastSignInDate = new Date(lastSignIn);
-  const now = new Date();
-  const daysDiff = (now.getTime() - lastSignInDate.getTime()) / (1000 * 3600 * 24);
-  
-  if (daysDiff < 1) return 'active';
-  if (daysDiff < 7) return 'inactive';
-  return 'suspended';
-}
