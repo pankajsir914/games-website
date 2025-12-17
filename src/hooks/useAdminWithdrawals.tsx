@@ -13,7 +13,6 @@ export const useAdminWithdrawals = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-<<<<<<< HEAD
       // Check if current user is master admin using RPC function
       const { data: highestRole, error: roleError } = await supabase
         .rpc('get_user_highest_role', { _user_id: user.id });
@@ -23,16 +22,6 @@ export const useAdminWithdrawals = () => {
       }
 
       const isMasterAdmin = highestRole === 'master_admin';
-=======
-      // Check if current user is master admin using user_roles table
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      const isMasterAdmin = userRole?.role === 'master_admin';
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       let withdrawals: any[] = [];
 
@@ -55,20 +44,12 @@ export const useAdminWithdrawals = () => {
           `)
           .order('created_at', { ascending: false });
         
-<<<<<<< HEAD
         if (error) {
           console.error('Error fetching withdrawals (master admin):', error);
           throw error;
         }
         withdrawals = data || [];
         console.log('Master admin withdrawals fetched:', withdrawals.length);
-      } else {
-        // Regular admin: Use RLS policies which check profiles.created_by
-        // RLS will automatically filter based on created_by, so we don't need to filter by user_id
-        // Just fetch all withdrawals - RLS will only return those from users created by this admin
-=======
-        if (error) throw error;
-        withdrawals = data || [];
       } else {
         // Regular admin: get users created by this admin first
         const { data: myUsers } = await supabase
@@ -83,7 +64,6 @@ export const useAdminWithdrawals = () => {
         }
 
         // Get withdrawals only from users created by this admin
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
         const { data, error } = await supabase
           .from('withdrawal_requests')
           .select(`
@@ -99,7 +79,7 @@ export const useAdminWithdrawals = () => {
             created_at,
             admin_id
           `)
-<<<<<<< HEAD
+          .in('user_id', myUserIds)
           .order('created_at', { ascending: false });
         
         if (error) {
@@ -108,14 +88,7 @@ export const useAdminWithdrawals = () => {
         }
         
         withdrawals = data || [];
-        console.log('Regular admin withdrawals fetched (via RLS):', withdrawals.length);
-=======
-          .in('user_id', myUserIds)
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        withdrawals = data || [];
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
+        console.log('Regular admin withdrawals fetched:', withdrawals.length);
       }
 
       if (withdrawals.length === 0) {
@@ -188,3 +161,4 @@ export const useAdminWithdrawals = () => {
     isProcessing: processWithdrawal.isPending,
   };
 };
+
