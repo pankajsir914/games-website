@@ -382,8 +382,4 @@ const LudoMultiplayer = () => {
   );
 };
 
-<<<<<<< HEAD
 export default LudoMultiplayer;
-=======
-export default LudoMultiplayer;
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
