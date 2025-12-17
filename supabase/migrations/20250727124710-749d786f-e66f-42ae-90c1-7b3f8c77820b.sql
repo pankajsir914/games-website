@@ -1,19 +1,11 @@
 -- Create Ludo game tables with proper security
 
 -- Ludo rooms table
-<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS public.ludo_rooms (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   created_by UUID NOT NULL,
   max_players INTEGER NOT NULL CHECK (max_players IN (2, 4)),
   entry_fee NUMERIC(10,2) NOT NULL CHECK (entry_fee >= 10.00 AND entry_fee <= 1000.00),
-=======
-CREATE TABLE public.ludo_rooms (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_by UUID NOT NULL,
-  max_players INTEGER NOT NULL CHECK (max_players IN (2, 4)),
-  entry_fee NUMERIC(10,2) NOT NULL CHECK (entry_fee >= 1.00 AND entry_fee <= 500.00),
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'active', 'completed', 'cancelled')),
   current_players INTEGER NOT NULL DEFAULT 0,
   players JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -30,11 +22,7 @@ CREATE TABLE public.ludo_rooms (
 );
 
 -- Ludo moves table
-<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS public.ludo_moves (
-=======
-CREATE TABLE public.ludo_moves (
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   room_id UUID NOT NULL REFERENCES public.ludo_rooms(id) ON DELETE CASCADE,
   player_id UUID NOT NULL,
@@ -50,11 +38,7 @@ CREATE TABLE public.ludo_moves (
 );
 
 -- Ludo player sessions for real-time tracking
-<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS public.ludo_player_sessions (
-=======
-CREATE TABLE public.ludo_player_sessions (
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   room_id UUID NOT NULL REFERENCES public.ludo_rooms(id) ON DELETE CASCADE,
   player_id UUID NOT NULL,
@@ -68,7 +52,6 @@ CREATE TABLE public.ludo_player_sessions (
   UNIQUE(room_id, player_color)
 );
 
-<<<<<<< HEAD
 -- Update entry_fee constraint if table exists
 DO $$
 BEGIN
@@ -81,34 +64,23 @@ BEGIN
   END IF;
 END $$;
 
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 -- Enable Row Level Security
 ALTER TABLE public.ludo_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ludo_moves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ludo_player_sessions ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for ludo_rooms
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Users can view all ludo rooms" ON public.ludo_rooms;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Users can view all ludo rooms" 
 ON public.ludo_rooms FOR SELECT 
 USING (true);
 
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Users can create ludo rooms" ON public.ludo_rooms;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Users can create ludo rooms" 
 ON public.ludo_rooms FOR INSERT 
 WITH CHECK (auth.uid() = created_by);
 
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Room creators and players can update rooms" ON public.ludo_rooms;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Room creators and players can update rooms" 
 ON public.ludo_rooms FOR UPDATE 
 USING (
@@ -119,10 +91,7 @@ USING (
 );
 
 -- RLS Policies for ludo_moves
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Players can view moves for their rooms" ON public.ludo_moves;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Players can view moves for their rooms" 
 ON public.ludo_moves FOR SELECT 
 USING (
@@ -133,10 +102,7 @@ USING (
   )
 );
 
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Players can create moves for their rooms" ON public.ludo_moves;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Players can create moves for their rooms" 
 ON public.ludo_moves FOR INSERT 
 WITH CHECK (
@@ -149,10 +115,7 @@ WITH CHECK (
 );
 
 -- RLS Policies for ludo_player_sessions
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Players can view sessions for their rooms" ON public.ludo_player_sessions;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Players can view sessions for their rooms" 
 ON public.ludo_player_sessions FOR SELECT 
 USING (
@@ -164,38 +127,23 @@ USING (
   )
 );
 
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Players can create their own sessions" ON public.ludo_player_sessions;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Players can create their own sessions" 
 ON public.ludo_player_sessions FOR INSERT 
 WITH CHECK (auth.uid() = player_id);
 
-<<<<<<< HEAD
 DROP POLICY IF EXISTS "Players can update their own sessions" ON public.ludo_player_sessions;
-=======
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 CREATE POLICY "Players can update their own sessions" 
 ON public.ludo_player_sessions FOR UPDATE 
 USING (auth.uid() = player_id);
 
 -- Create indexes for performance
-<<<<<<< HEAD
 CREATE INDEX IF NOT EXISTS idx_ludo_rooms_status ON public.ludo_rooms(status);
 CREATE INDEX IF NOT EXISTS idx_ludo_rooms_created_by ON public.ludo_rooms(created_by);
 CREATE INDEX IF NOT EXISTS idx_ludo_moves_room_id ON public.ludo_moves(room_id);
 CREATE INDEX IF NOT EXISTS idx_ludo_moves_player_id ON public.ludo_moves(player_id);
 CREATE INDEX IF NOT EXISTS idx_ludo_player_sessions_room_id ON public.ludo_player_sessions(room_id);
 CREATE INDEX IF NOT EXISTS idx_ludo_player_sessions_player_id ON public.ludo_player_sessions(player_id);
-=======
-CREATE INDEX idx_ludo_rooms_status ON public.ludo_rooms(status);
-CREATE INDEX idx_ludo_rooms_created_by ON public.ludo_rooms(created_by);
-CREATE INDEX idx_ludo_moves_room_id ON public.ludo_moves(room_id);
-CREATE INDEX idx_ludo_moves_player_id ON public.ludo_moves(player_id);
-CREATE INDEX idx_ludo_player_sessions_room_id ON public.ludo_player_sessions(room_id);
-CREATE INDEX idx_ludo_player_sessions_player_id ON public.ludo_player_sessions(player_id);
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
 -- Function to create a ludo room
 CREATE OR REPLACE FUNCTION public.create_ludo_room(
@@ -454,8 +402,4 @@ ALTER TABLE public.ludo_player_sessions REPLICA IDENTITY FULL;
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ludo_rooms;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ludo_moves;
-<<<<<<< HEAD
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ludo_player_sessions;
-=======
-ALTER PUBLICATION supabase_realtime ADD TABLE public.ludo_player_sessions;
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
