@@ -51,6 +51,7 @@ interface FinancialData {
     payment_method: string;
     screenshot_url?: string;
     transaction_ref?: string | null;
+    utr_number?: string | null;
   }[];
 }
 
@@ -63,15 +64,18 @@ export const useMasterAdminFinance = () => {
       // Get current admin's ID
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+      console.log('Finance: Fetching data for admin:', user.id);
 
-      // Check if current user is master admin
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
+      // Check if current user is master admin using RPC
+      const { data: highestRole, error: roleError } = await supabase
+        .rpc('get_user_highest_role', { _user_id: user.id });
 
-      const isMasterAdmin = userRole?.role === 'master_admin';
+      if (roleError) {
+        console.error('Finance: Role fetch error:', roleError);
+      }
+
+      const isMasterAdmin = highestRole === 'master_admin';
+      console.log('Finance: Admin role check:', { isMasterAdmin, highestRole });
 
       // Get users created by this admin (if not master admin)
       let myUserIds: string[] = [];
@@ -81,6 +85,7 @@ export const useMasterAdminFinance = () => {
           .select('id')
           .eq('created_by', user.id);
         myUserIds = myUsers?.map(u => u.id) || [];
+        console.log('Finance: Admin users found:', myUserIds.length);
       }
 
       // Get total platform balance
@@ -126,80 +131,80 @@ export const useMasterAdminFinance = () => {
       let paymentRequests: any[] = [];
       let recentTransactions: any[] = [];
 
-      if (isMasterAdmin) {
-        // Master admin sees all
-        const { count: depositCount } = await supabase
-          .from('payment_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-        pendingDeposits = depositCount || 0;
-
-        const { count: withdrawalCount } = await supabase
-          .from('withdrawal_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-        pendingWithdrawals = withdrawalCount || 0;
-
-        const { data: wReqs } = await supabase
-          .from('withdrawal_requests')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
-        withdrawalRequests = wReqs || [];
-
-        const { data: pReqs } = await supabase
-          .from('payment_requests')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
+      // Fetch payment requests - try direct query first, RLS will filter
+      const { data: pReqs, error: pReqsError } = await supabase
+        .from('payment_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (pReqsError) {
+        console.error('Finance: Error fetching payment requests:', pReqsError);
+        // Fallback for regular admin
+        if (!isMasterAdmin && myUserIds.length > 0) {
+          const { data: filteredPReqs } = await supabase
+            .from('payment_requests')
+            .select('*')
+            .in('user_id', myUserIds)
+            .order('created_at', { ascending: false })
+            .limit(50);
+          paymentRequests = filteredPReqs || [];
+        }
+      } else {
         paymentRequests = pReqs || [];
+      }
+      console.log('Finance: Payment requests fetched:', paymentRequests.length);
 
-        const { data: txns } = await supabase
-          .from('wallet_transactions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-        recentTransactions = txns || [];
-      } else if (myUserIds.length > 0) {
-        // Regular admin only sees their created users' data
-        const { count: depositCount } = await supabase
-          .from('payment_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending')
-          .in('user_id', myUserIds);
-        pendingDeposits = depositCount || 0;
-
-        const { count: withdrawalCount } = await supabase
-          .from('withdrawal_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending')
-          .in('user_id', myUserIds);
-        pendingWithdrawals = withdrawalCount || 0;
-
-        const { data: wReqs } = await supabase
-          .from('withdrawal_requests')
-          .select('*')
-          .in('user_id', myUserIds)
-          .order('created_at', { ascending: false })
-          .limit(50);
+      // Fetch withdrawal requests
+      const { data: wReqs, error: wReqsError } = await supabase
+        .from('withdrawal_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (wReqsError) {
+        console.error('Finance: Error fetching withdrawal requests:', wReqsError);
+        // Fallback for regular admin
+        if (!isMasterAdmin && myUserIds.length > 0) {
+          const { data: filteredWReqs } = await supabase
+            .from('withdrawal_requests')
+            .select('*')
+            .in('user_id', myUserIds)
+            .order('created_at', { ascending: false })
+            .limit(50);
+          withdrawalRequests = filteredWReqs || [];
+        }
+      } else {
         withdrawalRequests = wReqs || [];
+      }
+      console.log('Finance: Withdrawal requests fetched:', withdrawalRequests.length);
 
-        const { data: pReqs } = await supabase
-          .from('payment_requests')
-          .select('*')
-          .in('user_id', myUserIds)
-          .order('created_at', { ascending: false })
-          .limit(50);
-        paymentRequests = pReqs || [];
-
-        const { data: txns } = await supabase
-          .from('wallet_transactions')
-          .select('*')
-          .in('user_id', myUserIds)
-          .order('created_at', { ascending: false })
-          .limit(10);
+      // Fetch recent transactions
+      const { data: txns, error: txnsError } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (txnsError) {
+        console.error('Finance: Error fetching transactions:', txnsError);
+        // Fallback for regular admin
+        if (!isMasterAdmin && myUserIds.length > 0) {
+          const { data: filteredTxns } = await supabase
+            .from('wallet_transactions')
+            .select('*')
+            .in('user_id', myUserIds)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          recentTransactions = filteredTxns || [];
+        }
+      } else {
         recentTransactions = txns || [];
       }
+
+      // Calculate pending counts
+      pendingDeposits = paymentRequests.filter(p => p.status === 'pending').length;
+      pendingWithdrawals = withdrawalRequests.filter(w => w.status === 'pending').length;
 
       // Get user profiles for enriching data
       const allUserIds = [
@@ -266,7 +271,8 @@ export const useMasterAdminFinance = () => {
             created_at: p.created_at,
             payment_method: p.payment_method,
             screenshot_url: p.screenshot_url,
-            transaction_ref: p.transaction_ref || null
+            transaction_ref: p.transaction_ref || null,
+            utr_number: p.utr_number || p.transaction_ref || null
           };
         })
       } as FinancialData;
