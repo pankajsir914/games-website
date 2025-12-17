@@ -40,7 +40,7 @@ interface UserManagementTableProps {
 
 export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
   const { data: adminAuth } = useAdminAuth();
-  const { users: usersResponse, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
+  const { users, isLoading, refetch, updateUserStatus, isUpdating } = useMasterAdminUsers();
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
   const [limitsModalUser, setLimitsModalUser] = useState<{ id: string; name?: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -49,7 +49,6 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
   const [tpinModalOpen, setTpinModalOpen] = useState(false);
   const [pendingUserAction, setPendingUserAction] = useState<{ userId: string; action: 'block' | 'unblock' | 'suspend' } | null>(null);
   
-  const users = usersResponse?.users || [];
   const isMasterAdmin = adminAuth?.role === 'master_admin';
 
   const getStatusBadge = (status: string) => {
