@@ -113,7 +113,6 @@ export const EditProfileModal = ({ open, onOpenChange, member, onUpdate }: EditP
 
     setIsPasswordLoading(true);
     try {
-<<<<<<< HEAD
       // Use edge function to reset password for the selected member
       // Master admin can reset any admin/moderator password
       const { data: edgeData, error: edgeError } = await supabase.functions.invoke('reset-user-password', {
@@ -131,15 +130,6 @@ export const EditProfileModal = ({ open, onOpenChange, member, onUpdate }: EditP
       if (!edgeData?.success) {
         throw new Error(edgeData?.error || 'Failed to reset password');
       }
-=======
-      // For admin users, we'll use the admin functions to reset password
-      // Since we can't verify current password directly, we'll proceed with the change
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
-      });
-
-      if (error) throw error;
->>>>>>> 4547c8ad80084463d58b164f1cebe7081ac0d515
 
       toast({
         title: "Password Updated",
