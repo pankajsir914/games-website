@@ -12,6 +12,7 @@ export const useAdminTransactions = () => {
         throw new Error('Not authenticated');
       }
       const currentAdminId = user.id;
+      console.log('Fetching transactions for admin:', currentAdminId);
 
       // Check if current user is master admin
       const { data: highestRole, error: roleError } = await supabase
@@ -22,85 +23,83 @@ export const useAdminTransactions = () => {
       }
 
       const isMasterAdmin = highestRole === 'master_admin';
+      console.log('Transactions - Admin role check:', { isMasterAdmin, highestRole });
 
       let transactions: any[] = [];
       let userProfiles: any[] = [];
 
-      if (isMasterAdmin) {
-        // Master admin can see all transactions
-        const { data, error } = await supabase
-          .from('wallet_transactions')
-          .select(`
-            id,
-            user_id,
-            amount,
-            type,
-            reason,
-            game_type,
-            balance_after,
-            created_at
-          `)
-          .order('created_at', { ascending: false })
-          .limit(100);
+      // First try to get transactions directly - RLS will filter based on access
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select(`
+          id,
+          user_id,
+          amount,
+          type,
+          reason,
+          game_type,
+          balance_after,
+          created_at
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-        if (error) throw error;
-        transactions = data || [];
-
-        // Get user profiles for all transactions
-        const userIds = [...new Set(transactions.map(t => t.user_id))];
-        if (userIds.length > 0) {
-          const { data: profiles } = await supabase
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        
+        // If RLS blocks, try alternative approach for regular admin
+        if (!isMasterAdmin) {
+          const { data: myUsers } = await supabase
             .from('profiles')
-            .select('id, full_name')
-            .in('id', userIds);
-          userProfiles = profiles || [];
-        }
-      } else {
-        // Regular admin: get users created by this admin first
-        const { data: myUsers } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('created_by', currentAdminId);
-        
-        const myUserIds = myUsers?.map(u => u.id) || [];
-        
-        if (myUserIds.length === 0) {
-          return [];
-        }
+            .select('id')
+            .eq('created_by', currentAdminId);
+          
+          const myUserIds = myUsers?.map(u => u.id) || [];
+          console.log('Admin users for transactions:', myUserIds.length);
+          
+          if (myUserIds.length === 0) {
+            return [];
+          }
 
-        // Get transactions only from users created by this admin
-        const { data, error } = await supabase
-          .from('wallet_transactions')
-          .select(`
-            id,
-            user_id,
-            amount,
-            type,
-            reason,
-            game_type,
-            balance_after,
-            created_at
-          `)
-          .in('user_id', myUserIds)
-          .order('created_at', { ascending: false })
-          .limit(100);
+          const { data: filteredData, error: filteredError } = await supabase
+            .from('wallet_transactions')
+            .select(`
+              id,
+              user_id,
+              amount,
+              type,
+              reason,
+              game_type,
+              balance_after,
+              created_at
+            `)
+            .in('user_id', myUserIds)
+            .order('created_at', { ascending: false })
+            .limit(100);
 
-        if (error) {
-          console.error('Error fetching transactions:', error);
+          if (filteredError) {
+            console.error('Error fetching filtered transactions:', filteredError);
+            throw filteredError;
+          }
+          
+          transactions = filteredData || [];
+        } else {
           throw error;
         }
-        
+      } else {
         transactions = data || [];
+      }
 
-        // Get user profiles for all transactions
-        const userIds = [...new Set(transactions.map(t => t.user_id))];
-        if (userIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', userIds);
-          userProfiles = profiles || [];
-        }
+      console.log('Transactions fetched:', transactions.length);
+
+      // Get user profiles for all transactions
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        userProfiles = profiles || [];
       }
 
       // Create a map of user profiles
