@@ -268,7 +268,7 @@ export const ColorPredictionGameControl = () => {
                   <div className={`w-8 h-8 rounded-full ${color.color}`} />
                   <span className="text-sm">{color.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {color.value === 'violet' ? '4.5x' : '2x'}
+                    2x
                   </span>
                 </Button>
               ))}
@@ -289,3 +289,4 @@ export const ColorPredictionGameControl = () => {
     </div>
   );
 };
+
