@@ -10,6 +10,9 @@ interface DashboardStats {
   pendingWithdrawals: number;
   todayBets: number;
   todayRevenue: number;
+  totalDeposits: number;
+  totalWithdrawals: number;
+  netPL: number;
   usersGrowth: number;
   pointsGrowth: number;
   sessionsGrowth: number;
@@ -152,6 +155,35 @@ export const useAdminDashboardStats = () => {
         ...(rouletteBets || [])
       ].reduce((sum, bet) => sum + Number(bet.bet_amount) * 0.05, 0); // 5% house edge
 
+      // Get total deposits (approved payment requests)
+      let totalDepositsQuery = supabase
+        .from('payment_requests')
+        .select('amount')
+        .eq('status', 'approved');
+      
+      if (!isMasterAdmin && myUserIds.length > 0) {
+        totalDepositsQuery = totalDepositsQuery.in('user_id', myUserIds);
+      }
+
+      const { data: approvedDeposits } = await totalDepositsQuery;
+      const totalDeposits = approvedDeposits?.reduce((sum, d) => sum + Number(d.amount || 0), 0) || 0;
+
+      // Get total withdrawals (approved withdrawal requests)
+      let totalWithdrawalsQuery = supabase
+        .from('withdrawal_requests')
+        .select('amount')
+        .eq('status', 'approved');
+      
+      if (!isMasterAdmin && myUserIds.length > 0) {
+        totalWithdrawalsQuery = totalWithdrawalsQuery.in('user_id', myUserIds);
+      }
+
+      const { data: approvedWithdrawals } = await totalWithdrawalsQuery;
+      const totalWithdrawals = approvedWithdrawals?.reduce((sum, w) => sum + Number(w.amount || 0), 0) || 0;
+
+      // Calculate Net P&L: Total Deposits - Total Withdrawals + Game Revenue
+      const netPL = totalDeposits - totalWithdrawals + todayRevenue;
+
       // Calculate growth percentages (mock data for now)
       const dashboardStats: DashboardStats = {
         totalUsers: totalUsers || 0,
@@ -161,6 +193,9 @@ export const useAdminDashboardStats = () => {
         pendingWithdrawals: pendingWithdrawals || 0,
         todayBets,
         todayRevenue,
+        totalDeposits,
+        totalWithdrawals,
+        netPL,
         usersGrowth: 15.2, // Mock growth percentage
         pointsGrowth: 20.1,
         sessionsGrowth: 8.5
