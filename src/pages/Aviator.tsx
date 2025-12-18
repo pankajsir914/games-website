@@ -75,6 +75,7 @@ const Aviator = () => {
   const [bettingCountdown, setBettingCountdown] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const autoCashOutTriggeredRef = useRef<boolean>(false);
 
   // Update balance from wallet
   useEffect(() => {
@@ -122,6 +123,8 @@ const Aviator = () => {
         multiplier: Math.min(currentRound.crash_multiplier, 4.0),
         isPlaying: false
       }));
+      // Reset auto cashout trigger when round ends
+      autoCashOutTriggeredRef.current = false;
     }
   }, [currentRound, userBet]);
 
@@ -134,6 +137,8 @@ const Aviator = () => {
         currentBet: userBet.bet_amount,
         autoCashOut: userBet.auto_cashout_multiplier || null
       }));
+      // Reset auto cashout trigger when new bet is placed
+      autoCashOutTriggeredRef.current = false;
     } else {
       setGameData(prev => ({
         ...prev,
@@ -141,6 +146,8 @@ const Aviator = () => {
         currentBet: 0,
         autoCashOut: null
       }));
+      // Reset when bet is cleared
+      autoCashOutTriggeredRef.current = false;
     }
   }, [userBet]);
 
@@ -169,8 +176,9 @@ const Aviator = () => {
         const maxCrashPoint = Math.min(currentRound.crash_multiplier, 4.0);
         const hasCrashed = currentMultiplier >= maxCrashPoint;
         
-        // Check auto cash out
-        if (prev.autoCashOut && currentMultiplier >= prev.autoCashOut && prev.isPlaying && userBet && !hasCrashed) {
+        // Check auto cash out - only trigger once per bet
+        if (prev.autoCashOut && currentMultiplier >= prev.autoCashOut && prev.isPlaying && userBet && !hasCrashed && !autoCashOutTriggeredRef.current) {
+          autoCashOutTriggeredRef.current = true;
           cashOut({
             betId: userBet.id,
             currentMultiplier: currentMultiplier
@@ -207,8 +215,9 @@ const Aviator = () => {
         const multiplier = payload.multiplier;
         setCurrentMultiplier(multiplier);
         setGameData(prev => {
-          // Check auto cash out
-          if (prev.autoCashOut && multiplier >= prev.autoCashOut && prev.isPlaying && userBet) {
+          // Check auto cash out - only trigger once per bet (prevent duplicate calls)
+          if (prev.autoCashOut && multiplier >= prev.autoCashOut && prev.isPlaying && userBet && !autoCashOutTriggeredRef.current) {
+            autoCashOutTriggeredRef.current = true;
             cashOut({
               betId: userBet.id,
               currentMultiplier: multiplier
@@ -283,6 +292,10 @@ const Aviator = () => {
 
   const handleCashOut = useCallback(() => {
     if (!userBet || gameData.gameState !== 'flying' || !gameData.isPlaying) return;
+    
+    // Prevent multiple cash out attempts
+    if (autoCashOutTriggeredRef.current) return;
+    autoCashOutTriggeredRef.current = true;
 
     cashOut({
       betId: userBet.id,
