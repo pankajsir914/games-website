@@ -172,10 +172,45 @@ export const useUserCompleteDetails = (userId: string | null) => {
       const betStats = calculateBetStats(allBets);
 
       const transactions = transactionsData.data || [];
-      const deposits = transactions.filter((t) => t.type === 'credit');
-      const withdrawals = transactions.filter((t) => t.type === 'debit');
+      const deposits = transactions.filter((t) => t.type === 'credit' && 
+        (t.reason?.toLowerCase().includes('deposit') || t.reason?.toLowerCase().includes('payment')));
+      const withdrawals = transactions.filter((t) => t.type === 'debit' && 
+        (t.reason?.toLowerCase().includes('withdraw') || t.reason?.toLowerCase().includes('withdrawal')));
+      
+      // Calculate total_won from wallet transactions (game wins/rewards)
+      // Include all credit transactions that have a game_type (indicating game win)
+      // Exclude deposits and admin credits
+      const gameWins = transactions.filter((t) => {
+        if (t.type !== 'credit') return false;
+        if (!t.game_type) return false;
+        if (!t.reason) return false;
+        const reasonLower = t.reason.toLowerCase();
+        return !reasonLower.includes('deposit') && 
+               !reasonLower.includes('payment') && 
+               !reasonLower.includes('admin') &&
+               !reasonLower.includes('credit');
+      });
+      const totalWonFromTransactions = gameWins.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      
+      // Also check for wins in bet payout_amount (for cases where transaction might not exist)
+      const totalWonFromBets = allBets
+        .filter(b => (b.status === 'won' || b.status === 'cashed_out') && Number(b.payout_amount || 0) > 0)
+        .reduce((sum, b) => sum + Number(b.payout_amount || 0), 0);
+      
+      // Use the higher value to ensure we capture all wins
+      // Transaction data is more reliable as it reflects actual wallet credits
+      const totalWon = totalWonFromTransactions > 0 ? totalWonFromTransactions : totalWonFromBets;
 
       const profileInfo = profileData.data as any;
+      
+      console.log('User stats calculation:', {
+        userId,
+        betStatsTotalWon: betStats.totalWon,
+        totalWonFromTransactions,
+        finalTotalWon: totalWon,
+        gameWinsCount: gameWins.length,
+        allBetsCount: allBets.length
+      });
       
       return {
         profile: {
@@ -192,7 +227,7 @@ export const useUserCompleteDetails = (userId: string | null) => {
         wallet: { balance: userFromRpc?.current_balance || 0 },
         stats: {
           total_bets: betStats.total,
-          total_won: betStats.totalWon,
+          total_won: totalWon,
           total_lost: betStats.totalLost,
           total_deposits: deposits.reduce((sum, t) => sum + Number(t.amount), 0),
           total_withdrawals: withdrawals.reduce((sum, t) => sum + Number(t.amount), 0),
