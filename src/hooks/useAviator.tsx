@@ -97,12 +97,27 @@ export const useAviator = () => {
         .eq('user_id', user.id)
         .eq('round_id', currentRound.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle not found gracefully
 
-      if (error && error.code !== 'PGRST116') throw error;
+      // Handle various error cases gracefully
+      if (error) {
+        // PGRST116 = not found (expected when no active bet)
+        // 406 = Not Acceptable (can happen when bet status changes)
+        if (error.code === 'PGRST116' || error.code === '406' || error.message?.includes('not found')) {
+          return null;
+        }
+        throw error;
+      }
       return data as AviatorBet | null;
     },
     enabled: !!user?.id && !!currentRound?.id,
+    retry: (failureCount, error: any) => {
+      // Don't retry on expected errors (not found, 406)
+      if (error?.code === 'PGRST116' || error?.code === '406') {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   // Fetch recent rounds for history
@@ -248,10 +263,20 @@ export const useAviator = () => {
         p_current_multiplier: currentMultiplier,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Silently ignore "already processed" errors (expected when preventing duplicate calls)
+        if (error.message?.includes('already processed') || error.message?.includes('not found')) {
+          console.log('Cash out already processed, ignoring duplicate call');
+          return null;
+        }
+        throw error;
+      }
       return data as unknown as CashoutResponse;
     },
     onSuccess: (data) => {
+      // Only show toast and invalidate if cash out was successful (data exists)
+      if (!data) return;
+      
       queryClient.invalidateQueries({ queryKey: ['aviator-user-bet'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       
@@ -261,6 +286,11 @@ export const useAviator = () => {
       });
     },
     onError: (error: any) => {
+      // Don't show error toast for already processed errors
+      if (error.message?.includes('already processed') || error.message?.includes('not found')) {
+        return;
+      }
+      
       toast({
         title: "Cash Out Failed",
         description: error.message,
