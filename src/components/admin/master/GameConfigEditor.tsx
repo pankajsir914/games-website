@@ -39,7 +39,7 @@ const gameConfigs = {
   color_prediction: {
     round_duration: 60,
     colors: ['red', 'green', 'violet'],
-    multipliers: { red: 2.0, green: 2.0, violet: 4.5 },
+    multipliers: { red: 2.0, green: 2.0, violet: 2.0 },
     max_bets_per_round: 1000,
     result_display_time: 10,
   },
