@@ -106,11 +106,8 @@ BEGIN
     RAISE EXCEPTION 'Insufficient wallet balance';
   END IF;
   
-  -- Set multiplier (violet has higher payout)
-  v_multiplier := CASE 
-    WHEN p_color = 'violet' THEN 4.5
-    ELSE 2.0
-  END;
+  -- Set multiplier (all colors have 2x payout)
+  v_multiplier := 2.0;
   
   -- Deduct bet amount from wallet
   PERFORM public.update_wallet_balance(
@@ -239,3 +236,4 @@ ALTER TABLE public.color_prediction_bets REPLICA IDENTITY FULL;
 -- Add tables to realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.color_prediction_rounds;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.color_prediction_bets;
+
