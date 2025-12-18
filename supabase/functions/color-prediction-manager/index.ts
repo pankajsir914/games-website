@@ -119,17 +119,53 @@ serve(async (req) => {
         .update({ status: 'drawing' })
         .eq('id', roundId);
 
-      // Generate random winning color (weighted: red=45%, green=45%, violet=10%)
-      const random = Math.random();
-      let winningColor: string;
-      
-      if (random < 0.45) {
-        winningColor = 'red';
-      } else if (random < 0.90) {
-        winningColor = 'green';
-      } else {
-        winningColor = 'violet';
+      // Get total bets for each color
+      const { data: betsData, error: betsError } = await supabaseClient
+        .from('color_prediction_bets')
+        .select('color, bet_amount')
+        .eq('round_id', roundId)
+        .eq('status', 'pending');
+
+      if (betsError) {
+        console.error('Error fetching bets:', betsError);
+        throw betsError;
       }
+
+      // Calculate total bets for each color
+      const colorTotals: Record<string, number> = {
+        red: 0,
+        green: 0,
+        violet: 0
+      };
+
+      betsData?.forEach((bet: any) => {
+        const color = bet.color;
+        const amount = Number(bet.bet_amount) || 0;
+        if (colorTotals[color] !== undefined) {
+          colorTotals[color] += amount;
+        }
+      });
+
+      console.log('Color totals:', colorTotals);
+
+      // Find color with minimum bets (house edge logic)
+      let winningColor: string = 'green'; // Default fallback
+      let minAmount = Infinity;
+
+      for (const [color, amount] of Object.entries(colorTotals)) {
+        if (amount < minAmount) {
+          minAmount = amount;
+          winningColor = color;
+        }
+      }
+
+      // If all colors have same amount (or no bets), use green as default
+      const allSame = Object.values(colorTotals).every(val => val === minAmount);
+      if (allSame && minAmount === 0) {
+        winningColor = 'green'; // Default when no bets
+      }
+
+      console.log(`Winning color selected: ${winningColor} (minimum bets: ₹${minAmount})`);
 
       // Process the round with the winning color
       const { data: result, error: processError } = await supabaseClient
@@ -182,11 +218,46 @@ serve(async (req) => {
           // Force completion for stuck rounds (over 2 minutes old - reduced from 5)
           if (roundAge > 120000) {
             console.log(`Force completing stuck round ${round.id} (${Math.floor(roundAge / 1000)}s old)`);
+            
+            // Get total bets for each color to determine winning color
+            const { data: betsData, error: betsError } = await supabaseClient
+              .from('color_prediction_bets')
+              .select('color, bet_amount')
+              .eq('round_id', round.id)
+              .eq('status', 'pending');
+
+            let winningColor = 'green'; // Default fallback
+            
+            if (!betsError && betsData) {
+              const colorTotals: Record<string, number> = {
+                red: 0,
+                green: 0,
+                violet: 0
+              };
+
+              betsData.forEach((bet: any) => {
+                const color = bet.color;
+                const amount = Number(bet.bet_amount) || 0;
+                if (colorTotals[color] !== undefined) {
+                  colorTotals[color] += amount;
+                }
+              });
+
+              // Find color with minimum bets
+              let minAmount = Infinity;
+              for (const [color, amount] of Object.entries(colorTotals)) {
+                if (amount < minAmount) {
+                  minAmount = amount;
+                  winningColor = color;
+                }
+              }
+            }
+            
             const { error: updateError } = await supabaseClient
               .from('color_prediction_rounds')
               .update({
                 status: 'completed',
-                winning_color: 'green', // Default to green for stuck rounds
+                winning_color: winningColor,
                 draw_time: new Date().toISOString()
               })
               .eq('id', round.id);
@@ -205,17 +276,54 @@ serve(async (req) => {
             winningColor = gameSettings.forced_color;
             console.log(`Using forced color in cheat mode: ${winningColor}`);
           } else {
-            // Generate random winning color (weighted: red=45%, green=45%, violet=10%)
-            const random = Math.random();
-            
-            if (random < 0.45) {
-              winningColor = 'red';
-            } else if (random < 0.90) {
+            // Get total bets for each color
+            const { data: betsData, error: betsError } = await supabaseClient
+              .from('color_prediction_bets')
+              .select('color, bet_amount')
+              .eq('round_id', round.id)
+              .eq('status', 'pending');
+
+            if (betsError) {
+              console.error('Error fetching bets:', betsError);
+              // Fallback to green if error
               winningColor = 'green';
             } else {
-              winningColor = 'violet';
+              // Calculate total bets for each color
+              const colorTotals: Record<string, number> = {
+                red: 0,
+                green: 0,
+                violet: 0
+              };
+
+              betsData?.forEach((bet: any) => {
+                const color = bet.color;
+                const amount = Number(bet.bet_amount) || 0;
+                if (colorTotals[color] !== undefined) {
+                  colorTotals[color] += amount;
+                }
+              });
+
+              console.log('Color totals:', colorTotals);
+
+              // Find color with minimum bets (house edge logic)
+              winningColor = 'green'; // Default fallback
+              let minAmount = Infinity;
+
+              for (const [color, amount] of Object.entries(colorTotals)) {
+                if (amount < minAmount) {
+                  minAmount = amount;
+                  winningColor = color;
+                }
+              }
+
+              // If all colors have same amount (or no bets), use green as default
+              const allSame = Object.values(colorTotals).every(val => val === minAmount);
+              if (allSame && minAmount === 0) {
+                winningColor = 'green'; // Default when no bets
+              }
+
+              console.log(`Winning color selected: ${winningColor} (minimum bets: ₹${minAmount})`);
             }
-            console.log(`Generated random color: ${winningColor} (random: ${random})`);
           }
 
           // Update round status to drawing
@@ -385,3 +493,4 @@ serve(async (req) => {
     );
   }
 });
+
