@@ -216,9 +216,9 @@ export const UserCompleteDetailsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto w-[95vw] p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">User Complete Details</DialogTitle>
+      <DialogContent className="max-w-[98vw] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-6xl max-h-[98vh] sm:max-h-[95vh] md:max-h-[90vh] overflow-y-auto w-full p-2 sm:p-4 md:p-6">
+        <DialogHeader className="px-1 sm:px-0">
+          <DialogTitle className="text-sm sm:text-base md:text-lg lg:text-xl">User Complete Details</DialogTitle>
         </DialogHeader>
 
         {isLoading && (
@@ -239,34 +239,40 @@ export const UserCompleteDetailsModal = ({
 
         {data && (
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 gap-1">
-              <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-              <TabsTrigger value="betting" className="text-xs sm:text-sm">Betting</TabsTrigger>
-              <TabsTrigger value="transactions" className="text-xs sm:text-sm">Transactions</TabsTrigger>
-              <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
-              <TabsTrigger value="payments" className="text-xs sm:text-sm">Payment Requests</TabsTrigger>
-              <TabsTrigger value="withdrawals" className="text-xs sm:text-sm">Withdrawal Requests</TabsTrigger>
+            <TabsList className="flex w-full flex-nowrap overflow-x-auto gap-1 md:grid md:grid-cols-6 md:overflow-x-visible">
+              <TabsTrigger value="overview" className="text-[10px] xs:text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">Overview</TabsTrigger>
+              <TabsTrigger value="betting" className="text-[10px] xs:text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">Betting</TabsTrigger>
+              <TabsTrigger value="transactions" className="text-[10px] xs:text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">Transactions</TabsTrigger>
+              <TabsTrigger value="sessions" className="text-[10px] xs:text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">Sessions</TabsTrigger>
+              <TabsTrigger value="payments" className="text-[10px] xs:text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">
+                <span className="hidden sm:inline">Payment Requests</span>
+                <span className="sm:hidden">Payments</span>
+              </TabsTrigger>
+              <TabsTrigger value="withdrawals" className="text-[10px] xs:text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0">
+                <span className="hidden sm:inline">Withdrawal Requests</span>
+                <span className="sm:hidden">Withdrawals</span>
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="mt-4 sm:mt-6">
+            <TabsContent value="overview" className="mt-2 sm:mt-4 md:mt-6 px-0 sm:px-1">
               <UserOverviewTab data={data} />
             </TabsContent>
 
-            <TabsContent value="betting" className="mt-4 sm:mt-6">
+            <TabsContent value="betting" className="mt-2 sm:mt-4 md:mt-6 px-0 sm:px-1">
               <BettingHistoryTab data={data} />
             </TabsContent>
 
-            <TabsContent value="transactions" className="mt-4 sm:mt-6">
+            <TabsContent value="transactions" className="mt-2 sm:mt-4 md:mt-6 px-0 sm:px-1">
               <TransactionHistoryTab data={data} />
             </TabsContent>
 
-            <TabsContent value="sessions" className="mt-4 sm:mt-6">
+            <TabsContent value="sessions" className="mt-2 sm:mt-4 md:mt-6 px-0 sm:px-1">
               <GameSessionsTab data={data} />
             </TabsContent>
 
-            <TabsContent value="payments" className="mt-4 sm:mt-6">
+            <TabsContent value="payments" className="mt-2 sm:mt-4 md:mt-6 px-0 sm:px-1">
               <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-2 sm:p-4">
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <ArrowUpCircle className="h-4 w-4 text-gaming-success" />
                     Payment Requests ({paymentRequests?.length || 0})
@@ -286,31 +292,33 @@ export const UserCompleteDetailsModal = ({
                       ))}
                     </div>
                   ) : paymentRequests && paymentRequests.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {paymentRequests.map((request: any) => (
-                        <div key={request.id} className="p-3 border rounded-lg bg-background/50">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold">₹{Number(request.amount).toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">
+                        <div key={request.id} className="p-2 sm:p-3 border rounded-lg bg-background/50">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm sm:text-base">₹{Number(request.amount).toLocaleString()}</p>
+                              <p className="text-[10px] xs:text-xs text-muted-foreground break-words">
                                 {new Date(request.created_at).toLocaleString()}
                               </p>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="text-[10px] xs:text-xs text-muted-foreground mt-1 break-words">
                                 Method: {request.payment_method || 'N/A'}
                               </p>
                             </div>
                             <Badge 
                               className={
-                                request.status === 'approved' ? 'bg-gaming-success' :
-                                request.status === 'rejected' ? 'bg-gaming-danger' :
-                                'bg-yellow-500'
+                                `text-[10px] xs:text-xs shrink-0 ${
+                                  request.status === 'approved' ? 'bg-gaming-success' :
+                                  request.status === 'rejected' ? 'bg-gaming-danger' :
+                                  'bg-yellow-500'
+                                }`
                               }
                             >
                               {request.status}
                             </Badge>
                           </div>
                           {request.admin_notes && (
-                            <p className="text-xs text-muted-foreground mt-2">
+                            <p className="text-[10px] xs:text-xs text-muted-foreground mt-2 break-words">
                               Notes: {request.admin_notes}
                             </p>
                           )}
@@ -326,9 +334,9 @@ export const UserCompleteDetailsModal = ({
               </Card>
             </TabsContent>
 
-            <TabsContent value="withdrawals" className="mt-4 sm:mt-6">
+            <TabsContent value="withdrawals" className="mt-2 sm:mt-4 md:mt-6 px-0 sm:px-1">
               <Card>
-                <CardContent className="p-4">
+                <CardContent className="p-2 sm:p-4">
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <ArrowDownCircle className="h-4 w-4 text-gaming-danger" />
                     Withdrawal Requests ({withdrawalRequests?.length || 0})
@@ -348,16 +356,16 @@ export const UserCompleteDetailsModal = ({
                       ))}
                     </div>
                   ) : withdrawalRequests && withdrawalRequests.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {withdrawalRequests.map((request: any) => (
-                        <div key={request.id} className="p-3 border rounded-lg bg-background/50">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold">₹{Number(request.amount).toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">
+                        <div key={request.id} className="p-2 sm:p-3 border rounded-lg bg-background/50">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm sm:text-base">₹{Number(request.amount).toLocaleString()}</p>
+                              <p className="text-[10px] xs:text-xs text-muted-foreground break-words">
                                 {new Date(request.created_at).toLocaleString()}
                               </p>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="text-[10px] xs:text-xs text-muted-foreground mt-1 break-words">
                                 {request.payment_method_type === 'upi' 
                                   ? `UPI: ${request.upi_id || 'N/A'}`
                                   : `Bank: ${request.account_holder_name || 'N/A'} (${request.bank_account_number?.slice(-4) || '••••'})`
@@ -366,16 +374,18 @@ export const UserCompleteDetailsModal = ({
                             </div>
                             <Badge 
                               className={
-                                request.status === 'approved' ? 'bg-gaming-success' :
-                                request.status === 'rejected' ? 'bg-gaming-danger' :
-                                'bg-yellow-500'
+                                `text-[10px] xs:text-xs shrink-0 ${
+                                  request.status === 'approved' ? 'bg-gaming-success' :
+                                  request.status === 'rejected' ? 'bg-gaming-danger' :
+                                  'bg-yellow-500'
+                                }`
                               }
                             >
                               {request.status}
                             </Badge>
                           </div>
                           {request.admin_notes && (
-                            <p className="text-xs text-muted-foreground mt-2">
+                            <p className="text-[10px] xs:text-xs text-muted-foreground mt-2 break-words">
                               Notes: {request.admin_notes}
                             </p>
                           )}
