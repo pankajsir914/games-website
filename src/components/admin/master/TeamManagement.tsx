@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
 import { useAdminPL } from '@/hooks/useAdminPL';
@@ -47,13 +48,20 @@ export const TeamManagement = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  // Month and year selection for monthly settlement
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+
   // Get admin IDs (only admins, not moderators or master_admin)
   const adminIds = teamMembers?.filter(m => m.role === 'admin').map(m => m.id) || [];
   
-  // Fetch P&L data for admins
+  // Fetch P&L data for admins for selected month
   const { data: adminPLData, isLoading: isLoadingPL } = useAdminPL({ 
     adminIds,
-    sharePercentage: 20 // 20% sharing percentage (can be made configurable)
+    sharePercentage: 20, // 20% sharing percentage (can be made configurable)
+    month: selectedMonth,
+    year: selectedYear
   });
 
   // Create a map for quick lookup
@@ -138,7 +146,7 @@ export const TeamManagement = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Team Management</h2>
-          <p className="text-muted-foreground">Manage admins and moderators</p>
+          <p className="text-muted-foreground">Manage admins and moderators - Monthly P&L Settlement</p>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={() => refetch()} variant="outline" size="sm" disabled={isLoading}>
@@ -151,6 +159,62 @@ export const TeamManagement = () => {
           </Button>
         </div>
       </div>
+
+      {/* Month/Year Selector for Monthly Settlement */}
+      {adminIds.length > 0 && (
+        <Card className="bg-gradient-card">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Monthly Settlement Period:</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">January</SelectItem>
+                    <SelectItem value="2">February</SelectItem>
+                    <SelectItem value="3">March</SelectItem>
+                    <SelectItem value="4">April</SelectItem>
+                    <SelectItem value="5">May</SelectItem>
+                    <SelectItem value="6">June</SelectItem>
+                    <SelectItem value="7">July</SelectItem>
+                    <SelectItem value="8">August</SelectItem>
+                    <SelectItem value="9">September</SelectItem>
+                    <SelectItem value="10">October</SelectItem>
+                    <SelectItem value="11">November</SelectItem>
+                    <SelectItem value="12">December</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select 
+                  value={selectedYear.toString()} 
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = now.getFullYear() - 2 + i;
+                      return (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Badge variant="outline" className="ml-auto">
+                {new Date(selectedYear, selectedMonth - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -221,9 +285,11 @@ export const TeamManagement = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-gaming-gold" />
-              Admin P&L Summary
+              Admin P&L Summary - Monthly Settlement
             </CardTitle>
-            <CardDescription>Profit & Loss tracking for all admins with sharing calculations</CardDescription>
+            <CardDescription>
+              Profit & Loss tracking for {new Date(selectedYear, selectedMonth - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} with {adminPLData?.[0]?.share_percentage || 20}% sharing
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoadingPL ? (
@@ -354,7 +420,7 @@ export const TeamManagement = () => {
                                 <span className="text-[10px]">Loading P&L...</span>
                               ) : (
                                 <span className={`font-semibold ${plMap.get(member.id)?.net_pl && plMap.get(member.id)!.net_pl >= 0 ? 'text-gaming-success' : 'text-gaming-danger'}`}>
-                                  P&L: {plMap.get(member.id)?.net_pl && plMap.get(member.id)!.net_pl >= 0 ? '+' : ''}₹{Math.abs(plMap.get(member.id)?.net_pl || 0).toLocaleString()}
+                                  Monthly P&L: {plMap.get(member.id)?.net_pl && plMap.get(member.id)!.net_pl >= 0 ? '+' : ''}₹{Math.abs(plMap.get(member.id)?.net_pl || 0).toLocaleString()}
                                 </span>
                               )}
                             </div>
@@ -362,23 +428,26 @@ export const TeamManagement = () => {
                         )}
                       </div>
                       {member.role === 'admin' && plMap.has(member.id) && !isLoadingPL && (
-                        <div className="flex items-center gap-4 text-xs mt-1">
+                        <div className="flex flex-col gap-2 text-xs mt-1">
                           <div className={`flex items-center gap-1 px-2 py-1 rounded ${plMap.get(member.id)?.amount_to_share && plMap.get(member.id)!.amount_to_share >= 0 ? 'bg-gaming-success/10 text-gaming-success' : 'bg-gaming-danger/10 text-gaming-danger'}`}>
                             {plMap.get(member.id)?.amount_to_share && plMap.get(member.id)!.amount_to_share >= 0 ? (
                               <>
                                 <TrendingUp className="h-3 w-3" />
                                 <span className="font-semibold">
-                                  Admin to Pay: ₹{Math.abs(plMap.get(member.id)?.amount_to_share || 0).toLocaleString()} ({plMap.get(member.id)?.share_percentage}%)
+                                  Admin to Pay Master: ₹{Math.abs(plMap.get(member.id)?.amount_to_share || 0).toLocaleString()} ({plMap.get(member.id)?.share_percentage}%)
                                 </span>
                               </>
                             ) : (
                               <>
                                 <TrendingDown className="h-3 w-3" />
                                 <span className="font-semibold">
-                                  Master to Pay: ₹{Math.abs(plMap.get(member.id)?.amount_to_share || 0).toLocaleString()} ({plMap.get(member.id)?.share_percentage}%)
+                                  Master to Pay Admin: ₹{Math.abs(plMap.get(member.id)?.amount_to_share || 0).toLocaleString()} ({plMap.get(member.id)?.share_percentage}%)
                                 </span>
                               </>
                             )}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            Breakdown: Deposits ₹{plMap.get(member.id)?.total_deposits.toLocaleString() || '0'} - Withdrawals ₹{plMap.get(member.id)?.total_withdrawals.toLocaleString() || '0'} + Revenue ₹{plMap.get(member.id)?.total_revenue.toLocaleString() || '0'}
                           </div>
                         </div>
                       )}
