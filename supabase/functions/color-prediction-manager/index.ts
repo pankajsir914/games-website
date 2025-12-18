@@ -159,13 +159,17 @@ serve(async (req) => {
         }
       }
 
-      // If all colors have same amount (or no bets), use green as default
+      // If all colors have same amount, randomly select one
       const allSame = Object.values(colorTotals).every(val => val === minAmount);
-      if (allSame && minAmount === 0) {
-        winningColor = 'green'; // Default when no bets
+      if (allSame) {
+        // Randomly select from all three colors
+        const colors = ['red', 'green', 'violet'];
+        const randomIndex = Math.floor(Math.random() * colors.length);
+        winningColor = colors[randomIndex];
+        console.log(`All colors have equal bets (₹${minAmount}), randomly selected: ${winningColor}`);
+      } else {
+        console.log(`Winning color selected: ${winningColor} (minimum bets: ₹${minAmount})`);
       }
-
-      console.log(`Winning color selected: ${winningColor} (minimum bets: ₹${minAmount})`);
 
       // Process the round with the winning color
       const { data: result, error: processError } = await supabaseClient
@@ -251,6 +255,16 @@ serve(async (req) => {
                   winningColor = color;
                 }
               }
+
+              // If all colors have same amount, randomly select one
+              const allSame = Object.values(colorTotals).every(val => val === minAmount);
+              if (allSame) {
+                // Randomly select from all three colors
+                const colors = ['red', 'green', 'violet'];
+                const randomIndex = Math.floor(Math.random() * colors.length);
+                winningColor = colors[randomIndex];
+                console.log(`Stuck round - All colors have equal bets (₹${minAmount}), randomly selected: ${winningColor}`);
+              }
             }
             
             const { error: updateError } = await supabaseClient
@@ -316,13 +330,17 @@ serve(async (req) => {
                 }
               }
 
-              // If all colors have same amount (or no bets), use green as default
+              // If all colors have same amount, randomly select one
               const allSame = Object.values(colorTotals).every(val => val === minAmount);
-              if (allSame && minAmount === 0) {
-                winningColor = 'green'; // Default when no bets
+              if (allSame) {
+                // Randomly select from all three colors
+                const colors = ['red', 'green', 'violet'];
+                const randomIndex = Math.floor(Math.random() * colors.length);
+                winningColor = colors[randomIndex];
+                console.log(`All colors have equal bets (₹${minAmount}), randomly selected: ${winningColor}`);
+              } else {
+                console.log(`Winning color selected: ${winningColor} (minimum bets: ₹${minAmount})`);
               }
-
-              console.log(`Winning color selected: ${winningColor} (minimum bets: ₹${minAmount})`);
             }
           }
 
