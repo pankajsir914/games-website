@@ -277,7 +277,7 @@ export const TeamManagement = () => {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Wallet className="h-3 w-3" />
-                          Balance: ₹{member.wallet_balance?.toLocaleString() || '0'}
+                          Admin Credits: {member.admin_credits?.toLocaleString() || '0'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
