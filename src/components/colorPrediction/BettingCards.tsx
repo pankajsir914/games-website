@@ -40,7 +40,7 @@ const BettingCards: React.FC<BettingCardsProps> = ({
       name: 'green', 
       gradient: 'from-emerald-500 to-emerald-600',
       shadow: 'shadow-emerald-500/50',
-      multiplier: '5x',
+      multiplier: '2x',
       icon: Sparkles,
       glowColor: 'rgba(16, 185, 129, 0.5)'
     },
