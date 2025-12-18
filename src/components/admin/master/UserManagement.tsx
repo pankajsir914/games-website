@@ -245,20 +245,20 @@ export const UserManagement = () => {
                           {new Date(user.created_at).toLocaleDateString()}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewUser(user.id)}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewUser(user.id); }}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => handleToggleBlock(user.id, user.is_blocked)}
+                              onClick={(e) => { e.stopPropagation(); handleToggleBlock(user.id, user.is_blocked); }}
                               disabled={isUpdating}
                               className={user.is_blocked ? 'text-gaming-success' : 'text-gaming-danger'}
                             >
