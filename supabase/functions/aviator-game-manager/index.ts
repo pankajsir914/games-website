@@ -68,12 +68,12 @@ serve(async (req) => {
 
       const nextRoundNumber = (lastRound.data?.round_number || 0) + 1;
       
-      // Generate random crash point between 1.01x and 4x (max 4x)
+      // Generate random crash point with new probabilities
       const generateCrashPoint = () => {
         const random = Math.random();
-        if (random < 0.4) return 1.01 + Math.random() * 0.99; // 40% chance: 1.01x - 2.0x
-        if (random < 0.7) return 2.0 + Math.random() * 1.0; // 30% chance: 2.0x - 3.0x
-        return 3.0 + Math.random() * 1.0; // 30% chance: 3.0x - 4.0x (max 4x)
+        if (random < 0.7) return 1.01 + Math.random() * 0.99; // 70% chance: 1.01x - 2.0x
+        if (random < 0.9) return 2.0 + Math.random() * 1.0; // 20% chance: 2.0x - 3.0x
+        return 4.0; // 10% chance: exactly 4.0x
       };
 
       const crashMultiplier = generateCrashPoint();
@@ -353,12 +353,12 @@ serve(async (req) => {
             })
             .eq('game_type', 'aviator');
         } else {
-          // Generate random crash point between 1.01x and 4x (max 4x)
+          // Generate random crash point with new probabilities
           const generateCrashPoint = () => {
             const random = Math.random();
-            if (random < 0.4) return 1.01 + Math.random() * 0.99; // 40% chance: 1.01x - 2.0x
-            if (random < 0.7) return 2.0 + Math.random() * 1.0; // 30% chance: 2.0x - 3.0x
-            return 3.0 + Math.random() * 1.0; // 30% chance: 3.0x - 4.0x (max 4x)
+            if (random < 0.7) return 1.01 + Math.random() * 0.99; // 70% chance: 1.01x - 2.0x
+            if (random < 0.9) return 2.0 + Math.random() * 1.0; // 20% chance: 2.0x - 3.0x
+            return 4.0; // 10% chance: exactly 4.0x
           };
           
           crashMultiplier = generateCrashPoint();
@@ -424,4 +424,3 @@ serve(async (req) => {
     );
   }
 });
-
