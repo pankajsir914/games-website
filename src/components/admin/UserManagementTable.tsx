@@ -231,24 +231,24 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                   )}
                   <TableCell>{getStatusBadge('active')}</TableCell>
                   <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setCreditModalUser(user.id)}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setCreditModalUser(user.id); }}>
                           <Coins className="mr-2 h-4 w-4" />
                           Credit Points
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setLimitsModalUser({ id: user.id, name: user.full_name })}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setLimitsModalUser({ id: user.id, name: user.full_name }); }}>
                           <Sliders className="mr-2 h-4 w-4" />
                           Set Bet Limits
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleUserAction(user.id, 'block')}
+                          onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, 'block'); }}
                           disabled={isUpdating}
                           className="text-destructive"
                         >
@@ -256,14 +256,14 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                           Block User
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleUserAction(user.id, 'unblock')}
+                          onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, 'unblock'); }}
                           disabled={isUpdating}
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Unblock User
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleUserAction(user.id, 'suspend')}
+                          onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, 'suspend'); }}
                           disabled={isUpdating}
                         >
                           <Ban className="mr-2 h-4 w-4" />
