@@ -9,22 +9,36 @@ interface AdminPLData {
   net_pl: number;
   share_percentage: number; // Default percentage for profit/loss sharing
   amount_to_share: number; // Amount to be shared (positive = admin gives to master, negative = master gives to admin)
+  month: number;
+  year: number;
 }
 
 interface UseAdminPLParams {
   adminIds: string[];
   sharePercentage?: number; // Percentage to share (default 20%)
+  month?: number; // Month (1-12), if not provided, uses current month
+  year?: number; // Year, if not provided, uses current year
 }
 
-export const useAdminPL = ({ adminIds, sharePercentage = 20 }: UseAdminPLParams) => {
+export const useAdminPL = ({ adminIds, sharePercentage = 20, month, year }: UseAdminPLParams) => {
   return useQuery({
-    queryKey: ['admin-pl', adminIds, sharePercentage],
+    queryKey: ['admin-pl', adminIds, sharePercentage, month, year],
     queryFn: async () => {
       if (!adminIds || adminIds.length === 0) {
         return [];
       }
 
-      console.log('Fetching P&L for admins:', adminIds);
+      // Determine month and year for filtering
+      const now = new Date();
+      const selectedMonth = month || (now.getMonth() + 1); // 1-12
+      const selectedYear = year || now.getFullYear();
+
+      // Calculate start and end of the month
+      const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
+      monthStart.setHours(0, 0, 0, 0);
+      const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
+
+      console.log(`Fetching P&L for admins for ${selectedMonth}/${selectedYear}:`, adminIds);
 
       const adminPLData: AdminPLData[] = [];
 
@@ -45,49 +59,63 @@ export const useAdminPL = ({ adminIds, sharePercentage = 20 }: UseAdminPLParams)
             total_revenue: 0,
             net_pl: 0,
             share_percentage: sharePercentage,
-            amount_to_share: 0
+            amount_to_share: 0,
+            month: selectedMonth,
+            year: selectedYear
           });
           continue;
         }
 
-        // Get total deposits (approved payment requests)
+        // Get total deposits (approved payment requests) for the selected month
         const { data: approvedDeposits } = await supabase
           .from('payment_requests')
-          .select('amount')
+          .select('amount, created_at')
           .eq('status', 'approved')
-          .in('user_id', myUserIds);
+          .in('user_id', myUserIds)
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
 
         const totalDeposits = approvedDeposits?.reduce((sum, d) => sum + Number(d.amount || 0), 0) || 0;
 
-        // Get total withdrawals (approved withdrawal requests)
+        // Get total withdrawals (approved withdrawal requests) for the selected month
         const { data: approvedWithdrawals } = await supabase
           .from('withdrawal_requests')
-          .select('amount')
+          .select('amount, created_at')
           .eq('status', 'approved')
-          .in('user_id', myUserIds);
+          .in('user_id', myUserIds)
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
 
         const totalWithdrawals = approvedWithdrawals?.reduce((sum, w) => sum + Number(w.amount || 0), 0) || 0;
 
-        // Get all-time revenue from bets (house edge)
+        // Get monthly revenue from bets (house edge) for the selected month
         const { data: aviatorBets } = await supabase
           .from('aviator_bets')
-          .select('bet_amount, payout_amount')
-          .in('user_id', myUserIds);
+          .select('bet_amount, payout_amount, created_at')
+          .in('user_id', myUserIds)
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
 
         const { data: colorBets } = await supabase
           .from('color_prediction_bets')
-          .select('bet_amount, payout_amount')
-          .in('user_id', myUserIds);
+          .select('bet_amount, payout_amount, created_at')
+          .in('user_id', myUserIds)
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
 
         const { data: andarBets } = await supabase
           .from('andar_bahar_bets')
-          .select('bet_amount, payout_amount')
-          .in('user_id', myUserIds);
+          .select('bet_amount, payout_amount, created_at')
+          .in('user_id', myUserIds)
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
 
         const { data: rouletteBets } = await supabase
           .from('roulette_bets')
-          .select('bet_amount, payout_amount')
-          .in('user_id', myUserIds);
+          .select('bet_amount, payout_amount, created_at')
+          .in('user_id', myUserIds)
+          .gte('created_at', monthStart.toISOString())
+          .lte('created_at', monthEnd.toISOString());
 
         // Calculate revenue (total bets - total payouts)
         const allBets = [
@@ -118,7 +146,9 @@ export const useAdminPL = ({ adminIds, sharePercentage = 20 }: UseAdminPLParams)
           total_revenue: totalRevenue,
           net_pl: netPL,
           share_percentage: sharePercentage,
-          amount_to_share: amountToShare
+          amount_to_share: amountToShare,
+          month: selectedMonth,
+          year: selectedYear
         });
       }
 
