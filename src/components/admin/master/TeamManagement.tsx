@@ -446,8 +446,17 @@ export const TeamManagement = () => {
                               </>
                             )}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            Breakdown: Deposits ₹{plMap.get(member.id)?.total_deposits.toLocaleString() || '0'} - Withdrawals ₹{plMap.get(member.id)?.total_withdrawals.toLocaleString() || '0'} + Revenue ₹{plMap.get(member.id)?.total_revenue.toLocaleString() || '0'}
+                          <div className="text-[10px] text-muted-foreground space-y-1">
+                            <div>Deposits: ₹{plMap.get(member.id)?.total_deposits.toLocaleString() || '0'} | Withdrawals: ₹{plMap.get(member.id)?.total_withdrawals.toLocaleString() || '0'}</div>
+                            <div>
+                              Games: Bets ₹{plMap.get(member.id)?.total_bets.toLocaleString() || '0'} - Payouts ₹{plMap.get(member.id)?.total_payouts.toLocaleString() || '0'} = 
+                              <span className={plMap.get(member.id)?.total_revenue && plMap.get(member.id)!.total_revenue >= 0 ? 'text-gaming-success font-semibold' : 'text-gaming-danger font-semibold'}>
+                                {' '}{plMap.get(member.id)?.total_revenue && plMap.get(member.id)!.total_revenue >= 0 ? '+' : ''}₹{Math.abs(plMap.get(member.id)?.total_revenue || 0).toLocaleString()}
+                              </span>
+                              {plMap.get(member.id)?.total_revenue && plMap.get(member.id)!.total_revenue < 0 && (
+                                <span className="text-gaming-danger text-[9px] ml-1">(Users won more = Admin loss)</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
