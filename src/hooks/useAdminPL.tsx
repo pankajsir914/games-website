@@ -5,7 +5,9 @@ interface AdminPLData {
   admin_id: string;
   total_deposits: number;
   total_withdrawals: number;
-  total_revenue: number;
+  total_bets: number; // Total bets placed by users
+  total_payouts: number; // Total payouts to users (user wins = admin loss)
+  total_revenue: number; // Game profit = bets - payouts
   net_pl: number;
   share_percentage: number; // Default percentage for profit/loss sharing
   amount_to_share: number; // Amount to be shared (positive = admin gives to master, negative = master gives to admin)
@@ -56,6 +58,8 @@ export const useAdminPL = ({ adminIds, sharePercentage = 20, month, year }: UseA
             admin_id: adminId,
             total_deposits: 0,
             total_withdrawals: 0,
+            total_bets: 0,
+            total_payouts: 0,
             total_revenue: 0,
             net_pl: 0,
             share_percentage: sharePercentage,
@@ -117,7 +121,8 @@ export const useAdminPL = ({ adminIds, sharePercentage = 20, month, year }: UseA
           .gte('created_at', monthStart.toISOString())
           .lte('created_at', monthEnd.toISOString());
 
-        // Calculate revenue (total bets - total payouts)
+        // Calculate game results
+        // Simple concept: User wins = Admin loss, User loses = Admin profit
         const allBets = [
           ...(aviatorBets || []),
           ...(colorBets || []),
@@ -127,10 +132,17 @@ export const useAdminPL = ({ adminIds, sharePercentage = 20, month, year }: UseA
 
         const totalBets = allBets.reduce((sum, bet) => sum + Number(bet.bet_amount || 0), 0);
         const totalPayouts = allBets.reduce((sum, bet) => sum + Number(bet.payout_amount || 0), 0);
-        const totalRevenue = totalBets - totalPayouts;
+        
+        // User wins (payouts) = Admin loss
+        // User loses (bets kept) = Admin profit
+        // Net game result = Total bets - Total payouts
+        // Positive = admin profit (users lost more), Negative = admin loss (users won more)
+        const gameProfit = totalBets - totalPayouts;
 
-        // Calculate Net P&L: Deposits - Withdrawals + Revenue
-        const netPL = totalDeposits - totalWithdrawals + totalRevenue;
+        // Calculate Net P&L: 
+        // Deposits (money in) - Withdrawals (money out) + Game Profit (bets - payouts)
+        // If gameProfit is negative (users won more), it reduces admin's P&L
+        const netPL = totalDeposits - totalWithdrawals + gameProfit;
 
         // Calculate amount to share
         // If profit: admin gives sharePercentage% to master admin (positive)
@@ -143,7 +155,9 @@ export const useAdminPL = ({ adminIds, sharePercentage = 20, month, year }: UseA
           admin_id: adminId,
           total_deposits: totalDeposits,
           total_withdrawals: totalWithdrawals,
-          total_revenue: totalRevenue,
+          total_bets: totalBets,
+          total_payouts: totalPayouts,
+          total_revenue: gameProfit, // Game profit = bets - payouts (positive = admin profit, negative = admin loss)
           net_pl: netPL,
           share_percentage: sharePercentage,
           amount_to_share: amountToShare,
