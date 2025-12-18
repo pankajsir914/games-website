@@ -123,14 +123,6 @@ export const UserOverviewTab = ({ data }: UserOverviewTabProps) => {
             <span className="text-xs sm:text-sm text-muted-foreground">Withdrawals</span>
             <span className="text-sm sm:text-base font-semibold text-foreground">₹{stats.total_withdrawals.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-            <span className="text-xs sm:text-sm text-muted-foreground">Wagered</span>
-            <span className="text-sm sm:text-base font-semibold text-foreground">₹{stats.total_lost.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-            <span className="text-xs sm:text-sm text-muted-foreground">Payouts</span>
-            <span className="text-sm sm:text-base font-semibold text-foreground">₹{stats.total_won.toLocaleString()}</span>
-          </div>
         </div>
       </Card>
     </div>
