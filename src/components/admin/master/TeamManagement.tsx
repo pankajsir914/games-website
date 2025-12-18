@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTeamManagement, TeamMember } from '@/hooks/useTeamManagement';
+import { useAdminPL } from '@/hooks/useAdminPL';
 import { 
   Users,
   Shield,
@@ -23,7 +24,10 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  BarChart3
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,6 +46,18 @@ export const TeamManagement = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  // Get admin IDs (only admins, not moderators or master_admin)
+  const adminIds = teamMembers?.filter(m => m.role === 'admin').map(m => m.id) || [];
+  
+  // Fetch P&L data for admins
+  const { data: adminPLData, isLoading: isLoadingPL } = useAdminPL({ 
+    adminIds,
+    sharePercentage: 20 // 20% sharing percentage (can be made configurable)
+  });
+
+  // Create a map for quick lookup
+  const plMap = new Map(adminPLData?.map(pl => [pl.admin_id, pl]) || []);
 
   const filteredMembers = teamMembers?.filter(member => {
     const search = searchQuery.toLowerCase();
@@ -199,6 +215,53 @@ export const TeamManagement = () => {
         </Card>
       </div>
 
+      {/* Admin P&L Summary */}
+      {adminIds.length > 0 && (
+        <Card className="bg-gradient-card border-gaming-gold/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-gaming-gold" />
+              Admin P&L Summary
+            </CardTitle>
+            <CardDescription>Profit & Loss tracking for all admins with sharing calculations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingPL ? (
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+              </div>
+            ) : adminPLData && adminPLData.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total Admin P&L</p>
+                    <p className={`text-2xl font-bold ${adminPLData.reduce((sum, pl) => sum + pl.net_pl, 0) >= 0 ? 'text-gaming-success' : 'text-gaming-danger'}`}>
+                      {adminPLData.reduce((sum, pl) => sum + pl.net_pl, 0) >= 0 ? '+' : ''}
+                      ₹{Math.abs(adminPLData.reduce((sum, pl) => sum + pl.net_pl, 0)).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total to Receive from Admins</p>
+                    <p className="text-2xl font-bold text-gaming-success">
+                      ₹{adminPLData.filter(pl => pl.amount_to_share > 0).reduce((sum, pl) => sum + pl.amount_to_share, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total to Pay to Admins</p>
+                    <p className="text-2xl font-bold text-gaming-danger">
+                      ₹{Math.abs(adminPLData.filter(pl => pl.amount_to_share < 0).reduce((sum, pl) => sum + pl.amount_to_share, 0)).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No P&L data available</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search */}
       <Card className="bg-gradient-card">
         <CardContent className="p-4">
@@ -283,7 +346,42 @@ export const TeamManagement = () => {
                           <Clock className="h-3 w-3" />
                           Joined: {new Date(member.created_at).toLocaleDateString()}
                         </div>
+                        {member.role === 'admin' && plMap.has(member.id) && (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <BarChart3 className="h-3 w-3" />
+                              {isLoadingPL ? (
+                                <span className="text-[10px]">Loading P&L...</span>
+                              ) : (
+                                <span className={`font-semibold ${plMap.get(member.id)?.net_pl && plMap.get(member.id)!.net_pl >= 0 ? 'text-gaming-success' : 'text-gaming-danger'}`}>
+                                  P&L: {plMap.get(member.id)?.net_pl && plMap.get(member.id)!.net_pl >= 0 ? '+' : ''}₹{Math.abs(plMap.get(member.id)?.net_pl || 0).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
+                      {member.role === 'admin' && plMap.has(member.id) && !isLoadingPL && (
+                        <div className="flex items-center gap-4 text-xs mt-1">
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded ${plMap.get(member.id)?.amount_to_share && plMap.get(member.id)!.amount_to_share >= 0 ? 'bg-gaming-success/10 text-gaming-success' : 'bg-gaming-danger/10 text-gaming-danger'}`}>
+                            {plMap.get(member.id)?.amount_to_share && plMap.get(member.id)!.amount_to_share >= 0 ? (
+                              <>
+                                <TrendingUp className="h-3 w-3" />
+                                <span className="font-semibold">
+                                  Admin to Pay: ₹{Math.abs(plMap.get(member.id)?.amount_to_share || 0).toLocaleString()} ({plMap.get(member.id)?.share_percentage}%)
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <TrendingDown className="h-3 w-3" />
+                                <span className="font-semibold">
+                                  Master to Pay: ₹{Math.abs(plMap.get(member.id)?.amount_to_share || 0).toLocaleString()} ({plMap.get(member.id)?.share_percentage}%)
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
