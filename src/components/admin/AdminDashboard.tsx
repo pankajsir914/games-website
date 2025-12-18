@@ -6,7 +6,7 @@ import { AdminLayout } from './AdminLayout';
 import { AdminWalletCard } from './AdminWalletCard';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useAdminDashboardStats } from '@/hooks/useAdminDashboardStats';
-import { Shield, Users, Coins, TrendingUp, CreditCard, Banknote, DollarSign, Activity } from 'lucide-react';
+import { Shield, Users, Coins, TrendingUp, TrendingDown, CreditCard, Banknote, DollarSign, Activity, BarChart3 } from 'lucide-react';
 
 export const AdminDashboard = () => {
   const { data: auth, isLoading } = useAdminAuth();
@@ -178,6 +178,60 @@ export const AdminDashboard = () => {
               <p className="text-xs text-muted-foreground">
                 House edge earnings
               </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Net P&L Card */}
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+          <Card className="lg:col-span-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-semibold">Net Profit & Loss</CardTitle>
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Deposits</p>
+                  <p className="text-xl font-bold text-gaming-success">
+                    {isLoadingStats ? (
+                      <div className="animate-pulse h-6 w-24 bg-muted rounded"></div>
+                    ) : (
+                      `₹${stats?.totalDeposits?.toLocaleString() || '0'}`
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Withdrawals</p>
+                  <p className="text-xl font-bold text-gaming-danger">
+                    {isLoadingStats ? (
+                      <div className="animate-pulse h-6 w-24 bg-muted rounded"></div>
+                    ) : (
+                      `₹${stats?.totalWithdrawals?.toLocaleString() || '0'}`
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Net P&L</p>
+                  <div className="flex items-center gap-2">
+                    {stats?.netPL !== undefined && stats.netPL >= 0 ? (
+                      <TrendingUp className="h-5 w-5 text-gaming-success" />
+                    ) : (
+                      <TrendingDown className="h-5 w-5 text-gaming-danger" />
+                    )}
+                    <p className={`text-2xl font-bold ${stats?.netPL !== undefined && stats.netPL >= 0 ? 'text-gaming-success' : 'text-gaming-danger'}`}>
+                      {isLoadingStats ? (
+                        <div className="animate-pulse h-7 w-32 bg-muted rounded"></div>
+                      ) : (
+                        `${stats?.netPL !== undefined && stats.netPL >= 0 ? '+' : ''}₹${Math.abs(stats?.netPL || 0).toLocaleString()}`
+                      )}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Deposits - Withdrawals + Revenue
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
