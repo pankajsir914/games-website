@@ -13,6 +13,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [iframeError, setIframeError] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   // Helper to extract stream URL from response
   const extractStreamUrl = (data: any): string | null => {
@@ -56,13 +57,17 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
       setLoading(true);
       setIframeError(false);
       
+      console.log(`[LiveStream] Fetching stream URL for tableId: ${tableId}`);
+      
       const { data, error } = await supabase.functions.invoke(
         "diamond-casino-proxy",
         { body: { action: "get-stream-url", tableId } }
       );
 
+      console.log(`[LiveStream] Response received:`, { data, error });
+
       if (error) {
-        console.error("Error fetching stream URL:", error);
+        console.error("[LiveStream] Error fetching stream URL:", error);
         setStreamUrl(null);
         setIframeError(true);
         return;
@@ -70,25 +75,35 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
 
       // Check for restricted status
       if (data?.code === "RESTRICTED" || data?.restricted === true) {
-        console.warn("Stream is restricted for this domain");
+        console.warn("[LiveStream] Stream is restricted for this domain");
         setStreamUrl(null);
         setIframeError(true);
         return;
       }
 
-      // Extract stream URL from response
-      const url = extractStreamUrl(data);
+      // The proxy returns { success: true, data, streamUrl }
+      // Check streamUrl first (extracted by proxy)
+      let url = data?.streamUrl || null;
+      
+      // If streamUrl not found, try extracting from data object
+      if (!url) {
+        url = extractStreamUrl(data);
+      }
+      
+      console.log(`[LiveStream] Extracted URL:`, url);
       
       if (url) {
+        console.log(`[LiveStream] Setting stream URL:`, url);
         setStreamUrl(url);
         setIframeError(false);
+        setIframeLoaded(false); // Reset loaded state when URL changes
       } else {
-        console.warn("No valid stream URL found in response:", data);
+        console.warn("[LiveStream] No valid stream URL found in response. Full response:", JSON.stringify(data, null, 2));
         setStreamUrl(null);
         setIframeError(true);
       }
     } catch (err) {
-      console.error("Error fetching stream URL:", err);
+      console.error("[LiveStream] Error fetching stream URL:", err);
       setStreamUrl(null);
       setIframeError(true);
     } finally {
@@ -188,21 +203,31 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
               </Button>
             </div>
           ) : (
-            <iframe
-              key={streamUrl} // reload iframe when token changes
-              src={streamUrl}
-              className="w-full h-full"
-              allow="autoplay; fullscreen; encrypted-media"
-              allowFullScreen
-              title={`Live stream for ${tableName}`}
-              onError={() => {
-                console.error("Iframe load error");
-                setIframeError(true);
-              }}
-              onLoad={() => {
-                setIframeError(false);
-              }}
-            />
+            <>
+              <iframe
+                key={streamUrl} // reload iframe when token changes
+                src={streamUrl}
+                className="w-full h-full border-0"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allowFullScreen
+                title={`Live stream for ${tableName}`}
+                loading="lazy"
+                onLoad={() => {
+                  console.log("[LiveStream] Iframe loaded successfully");
+                  setIframeLoaded(true);
+                  setIframeError(false);
+                }}
+              />
+              {/* Debug info - visible in dev mode */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded max-w-xs break-all z-10">
+                  <div className="font-bold mb-1">Stream Debug Info:</div>
+                  <div className="break-all">Table ID: {tableId}</div>
+                  <div className="break-all mt-1">URL: {streamUrl?.substring(0, 100)}...</div>
+                  <div className="mt-1">Loaded: {iframeLoaded ? 'Yes' : 'No'}</div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </CardContent>
