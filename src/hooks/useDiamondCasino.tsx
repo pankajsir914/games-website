@@ -77,17 +77,13 @@ export const useDiamondCasino = () => {
     const imageList: string[] = [];
     
     try {
-      console.log("🔍 [Supabase Images] Fetching images from Supabase storage...");
-      
       // First, check if there are image URLs stored in diamond_casino_tables table
-      console.log("   📋 Checking diamond_casino_tables for stored image URLs...");
       const { data: cachedTables, error: dbError } = await supabase
         .from("diamond_casino_tables")
         .select("table_id, table_name, table_data")
         .eq("status", "active");
       
       if (!dbError && cachedTables) {
-        console.log(`   ✅ Found ${cachedTables.length} cached tables in database`);
         for (const table of cachedTables) {
           const tableData = table.table_data as any;
           if (tableData?.imageUrl && typeof tableData.imageUrl === 'string') {
@@ -105,15 +101,12 @@ export const useDiamondCasino = () => {
                 imageMap.set(tableName.replace(/[^a-z0-9]/g, ''), tableData.imageUrl);
                 imageMap.set(tableName.replace(/\s+/g, '-'), tableData.imageUrl);
               }
-              
-              console.log(`   📸 Found stored image for table "${table.table_id}": ${tableData.imageUrl}`);
             }
           }
         }
       }
       
       // Also check game_assets table for live-casino images
-      console.log("   📋 Checking game_assets table for live-casino images...");
       const { data: gameAssets, error: assetsError } = await supabase
         .from('game_assets')
         .select('*')
@@ -123,10 +116,8 @@ export const useDiamondCasino = () => {
         .order('created_at', { ascending: false });
       
       if (!assetsError && gameAssets && gameAssets.length > 0) {
-        console.log(`   ✅ Found ${gameAssets.length} images in game_assets table`);
         for (const asset of gameAssets) {
           imageList.push(asset.asset_url);
-          console.log(`   📸 Game Asset: ${asset.asset_name} -> ${asset.asset_url}`);
         }
       }
       
@@ -138,11 +129,7 @@ export const useDiamondCasino = () => {
           sortBy: { column: 'name', order: 'asc' }
         });
 
-      if (error) {
-        console.warn("⚠️ [Supabase Images] Error listing storage files:", error);
-      } else if (files && files.length > 0) {
-        console.log(`✅ [Supabase Images] Found ${files.length} files in Supabase storage`);
-        
+      if (!error && files && files.length > 0) {
         // Create a map of table ID/name to image URL AND a list for sequential assignment
         for (const file of files) {
           if (file.name && (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') || file.name.endsWith('.png') || file.name.endsWith('.webp'))) {
@@ -162,8 +149,6 @@ export const useDiamondCasino = () => {
             if (!imageMap.has(key)) {
               imageMap.set(key, publicUrl);
             }
-            
-            console.log(`   📸 Image: ${file.name} -> ${publicUrl}`);
 
             // Also try matching with common variations
             const variations = [
@@ -179,16 +164,8 @@ export const useDiamondCasino = () => {
           }
         }
       }
-      
-      console.log(`📊 [Supabase Images] Summary:`);
-      console.log(`   Mapped images (by key): ${imageMap.size}`);
-      console.log(`   Total images available: ${imageList.length}`);
-      
-      if (imageList.length === 0) {
-        console.warn("   ⚠️  No images found! Upload images to Supabase Storage > game-assets > casino-tables");
-      }
     } catch (error) {
-      console.error("❌ [Supabase Images] Error processing images:", error);
+      // Silent error handling
     }
 
     return { imageMap, imageList };
@@ -197,69 +174,44 @@ export const useDiamondCasino = () => {
   // ----------------- Helper: Match table to Supabase image -----------------
   const getSupabaseImageUrl = (table: any, imageMap: Map<string, string>): string | undefined => {
     if (!imageMap || imageMap.size === 0) {
-      console.log(`🔍 [Image Matching] Table "${table.name || table.id}" - No images in map`);
       return undefined;
     }
-
-    console.log(`\n🔍 [Image Matching] Trying to match table:`);
-    console.log(`   Table ID: "${table.id}"`);
-    console.log(`   Table Name: "${table.name}"`);
-    console.log(`   Table Type: "${table.type || 'N/A'}"`);
 
     // Try matching by table ID
     if (table.id) {
       const idKey = table.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-      console.log(`   🔑 Trying ID key (alphanumeric): "${idKey}"`);
       if (imageMap.has(idKey)) {
-        const url = imageMap.get(idKey);
-        console.log(`   ✅ MATCH FOUND! Using Supabase image for ID key: "${idKey}"`);
-        return url;
+        return imageMap.get(idKey);
       }
 
       // Try with original ID format
       const originalIdKey = table.id.toLowerCase();
-      console.log(`   🔑 Trying ID key (original): "${originalIdKey}"`);
       if (imageMap.has(originalIdKey)) {
-        const url = imageMap.get(originalIdKey);
-        console.log(`   ✅ MATCH FOUND! Using Supabase image for original ID: "${originalIdKey}"`);
-        return url;
+        return imageMap.get(originalIdKey);
       }
     }
 
     // Try matching by table name
     if (table.name) {
       const nameKey = table.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      console.log(`   🔑 Trying Name key (alphanumeric): "${nameKey}"`);
       if (imageMap.has(nameKey)) {
-        const url = imageMap.get(nameKey);
-        console.log(`   ✅ MATCH FOUND! Using Supabase image for name key: "${nameKey}"`);
-        return url;
+        return imageMap.get(nameKey);
       }
 
       // Try with original name format
       const originalNameKey = table.name.toLowerCase().replace(/\s+/g, '-');
-      console.log(`   🔑 Trying Name key (with dashes): "${originalNameKey}"`);
       if (imageMap.has(originalNameKey)) {
-        const url = imageMap.get(originalNameKey);
-        console.log(`   ✅ MATCH FOUND! Using Supabase image for name: "${originalNameKey}"`);
-        return url;
+        return imageMap.get(originalNameKey);
       }
     }
 
     // Try matching by type if available
     if (table.type) {
       const typeKey = table.type.toLowerCase().replace(/[^a-z0-9]/g, '');
-      console.log(`   🔑 Trying Type key: "${typeKey}"`);
       if (imageMap.has(typeKey)) {
-        const url = imageMap.get(typeKey);
-        console.log(`   ✅ MATCH FOUND! Using Supabase image for type: "${typeKey}"`);
-        return url;
+        return imageMap.get(typeKey);
       }
     }
-
-    console.log(`   ❌ NO MATCH FOUND for table "${table.name || table.id}"`);
-    console.log(`   💡 Available keys in map: ${Array.from(imageMap.keys()).slice(0, 10).join(", ")}...`);
-    console.log(`   💡 Tip: Rename your image file to match table ID or name (e.g., "${table.id?.toLowerCase()}.jpg" or "${table.name?.toLowerCase().replace(/\s+/g, '-')}.jpg")`);
     
     return undefined;
   };
@@ -282,9 +234,6 @@ export const useDiamondCasino = () => {
       const { imageMap, imageList } = await imageMapPromise;
 
       if (data?.data?.tables && Array.isArray(data.data.tables) && data.data.tables.length > 0) {
-        console.log(`\n📋 [Live Tables] Processing ${data.data.tables.length} tables from API`);
-        console.log(`   Available images: ${imageList.length}`);
-        
         const tablesWithImages = data.data.tables.map((table: any, index: number) => {
           // First try to get image from Supabase storage (exact match)
           let supabaseImageUrl = getSupabaseImageUrl(table, imageMap);
@@ -294,10 +243,6 @@ export const useDiamondCasino = () => {
             // Use modulo to cycle through images if there are fewer images than tables
             const imageIndex = index % imageList.length;
             supabaseImageUrl = imageList[imageIndex];
-            // Only log first few for debugging
-            if (index < 5) {
-              console.log(`   📸 [Sequential] Table "${table.name || table.id}" -> Image ${imageIndex + 1}/${imageList.length}`);
-            }
           }
           
           // If Supabase image found, use it; otherwise fall back to proxied image
@@ -321,35 +266,11 @@ export const useDiamondCasino = () => {
           };
         });
         
-        // Count Supabase images (check for supabase.co in URL, not just 'supabase' which might match proxy URLs)
-        const supabaseImageCount = tablesWithImages.filter(t => 
-          t.imageUrl && (
-            t.imageUrl.includes('supabase.co/storage') || 
-            t.imageUrl.includes('supabase.co/storage/v1/object/public')
-          )
-        ).length;
-        
-        console.log(`\n📊 [Live Tables] Summary:`);
-        console.log(`   Total tables: ${tablesWithImages.length}`);
-        console.log(`   ✅ Supabase images assigned: ${supabaseImageCount}`);
-        console.log(`   ⚠️  Fallback/proxied images: ${tablesWithImages.length - supabaseImageCount}`);
-        console.log(`   📸 Images available in storage: ${imageList.length}`);
-        
-        if (imageList.length > 0 && supabaseImageCount > 0) {
-          console.log(`\n✅ SUCCESS! Images are being displayed using sequential assignment.`);
-          console.log(`   💡 Tip: For better matching, rename images to match table IDs (e.g., cmeter1.jpg)`);
-        } else if (imageList.length === 0) {
-          console.log(`\n⚠️  No images found in Supabase storage!`);
-          console.log(`   💡 Upload images to: Supabase Storage > game-assets bucket > casino-tables folder`);
-        }
-        
         setLiveTables(tablesWithImages);
       } else {
         // fallback to cached tables in supabase
-        console.log("\n📋 [Live Tables] Using cached tables from database");
         const { data: cachedTables } = await supabase.from("diamond_casino_tables").select("*").eq("status", "active").order("last_updated", { ascending: false });
         if (cachedTables && cachedTables.length > 0) {
-          console.log(`   Found ${cachedTables.length} cached tables`);
           const { imageMap: cachedImageMap, imageList: cachedImageList } = await imageMapPromise;
           const tables = cachedTables.map((ct: any, index: number) => {
             const table = {
@@ -367,16 +288,9 @@ export const useDiamondCasino = () => {
             if (!supabaseImageUrl && cachedImageList.length > 0) {
               const imageIndex = index % cachedImageList.length;
               supabaseImageUrl = cachedImageList[imageIndex];
-              console.log(`   📸 [Sequential] Table "${table.name || table.id}" -> Using image ${imageIndex + 1}/${cachedImageList.length}`);
             }
             
             const imageUrl = supabaseImageUrl || (ct.table_data as any)?.imageUrl;
-            
-            if (supabaseImageUrl) {
-              console.log(`   ✅ Using Supabase image`);
-            } else if ((ct.table_data as any)?.imageUrl) {
-              console.log(`   ⚠️  Using cached image from table_data`);
-            }
             
             return {
               ...table,
@@ -384,14 +298,8 @@ export const useDiamondCasino = () => {
             };
           });
           
-          const matchedCount = tables.filter(t => t.imageUrl && t.imageUrl.includes('supabase')).length;
-          console.log(`\n📊 [Cached Tables] Summary:`);
-          console.log(`   Total tables: ${tables.length}`);
-          console.log(`   Supabase images matched: ${matchedCount}`);
-          
           setLiveTables(tables);
         } else {
-          console.log("   ⚠️  No cached tables found");
           setLiveTables([]);
         }
       }
