@@ -7,7 +7,7 @@ interface MasterAdminUser {
   username: string;
   role: 'MASTER';
 }
-
+   
 interface MasterAdminAuthContextType {
   user: MasterAdminUser | null;
   session: Session | null;
