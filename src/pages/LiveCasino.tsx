@@ -1,3 +1,5 @@
+// src/pages/LiveCasino.tsx
+
 import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import { TableCard } from "@/components/live-casino/TableCard";
