@@ -83,16 +83,22 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
 
       // The proxy returns { success: true, data, streamUrl }
       // Check streamUrl first (extracted by proxy)
-      let url = data?.streamUrl || null;
+      let url: string | null = null;
       
-      // If streamUrl not found, try extracting from data object
+      // Validate streamUrl from proxy response
+      if (data?.streamUrl && typeof data.streamUrl === 'string') {
+        url = data.streamUrl.trim();
+        if (url.length === 0) url = null;
+      }
+      
+      // If streamUrl not found or invalid, try extracting from data object
       if (!url) {
         url = extractStreamUrl(data);
       }
       
       console.log(`[LiveStream] Extracted URL:`, url);
       
-      if (url) {
+      if (url && typeof url === 'string') {
         console.log(`[LiveStream] Setting stream URL:`, url);
         setStreamUrl(url);
         setIframeError(false);
@@ -223,7 +229,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
                 <div className="absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded max-w-xs break-all z-10">
                   <div className="font-bold mb-1">Stream Debug Info:</div>
                   <div className="break-all">Table ID: {tableId}</div>
-                  <div className="break-all mt-1">URL: {streamUrl?.substring(0, 100)}...</div>
+                  <div className="break-all mt-1">URL: {typeof streamUrl === 'string' ? streamUrl.substring(0, 100) + '...' : String(streamUrl)}</div>
                   <div className="mt-1">Loaded: {iframeLoaded ? 'Yes' : 'No'}</div>
                 </div>
               )}
