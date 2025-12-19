@@ -409,7 +409,7 @@ const Index = () => {
               </div>
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Phone className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span>+91 98765 43210</span>
+                <span>+91 0000000000</span>
               </div>
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
