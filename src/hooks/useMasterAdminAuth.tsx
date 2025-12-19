@@ -18,7 +18,7 @@ interface MasterAdminAuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
-   
+
 const MasterAdminAuthContext = createContext<MasterAdminAuthContextType | undefined>(undefined);
 
 export const MasterAdminAuthProvider = ({ children }: { children: React.ReactNode }) => {
