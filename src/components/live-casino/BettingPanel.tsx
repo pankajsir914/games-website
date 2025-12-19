@@ -44,18 +44,23 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
     if (!selectedBet || !amount || parseFloat(amount) <= 0) return;
     const bet = betTypes.find((b: any) => b.type === selectedBet);
     const selectedOdds = getSelectedBetOdds();
-    await onPlaceBet({
-      tableId: table.id,
-      tableName: table.name,
-      amount: parseFloat(amount),
-      betType: selectedBet,
-      odds: selectedOdds,
-      roundId: table.data?.currentRound || bet?.mid || undefined,
-      sid: bet?.sid,
-      side: betType,
-    });
-    setAmount("100");
-    setSelectedBet("");
+    try {
+      await onPlaceBet({
+        tableId: table.id,
+        tableName: table.name,
+        amount: parseFloat(amount),
+        betType: selectedBet,
+        odds: selectedOdds,
+        roundId: table.data?.currentRound || bet?.mid || undefined,
+        sid: bet?.sid,
+        side: betType,
+      });
+      setAmount("100");
+      setSelectedBet("");
+    } catch (error) {
+      // Error is already handled by onPlaceBet with toast
+      console.error("Bet placement error:", error);
+    }
   };
 
   return (
