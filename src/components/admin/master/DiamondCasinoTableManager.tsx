@@ -15,8 +15,11 @@ import {
   Save, 
   X, 
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  Download,
+  FileText
 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -61,6 +64,9 @@ export const DiamondCasinoTableManager = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [bulkImportText, setBulkImportText] = useState('');
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
 
   const [formData, setFormData] = useState({
     table_id: '',
@@ -69,6 +75,27 @@ export const DiamondCasinoTableManager = () => {
     player_count: 0,
     image_url: '',
   });
+
+  // Helper function to generate table name from ID
+  const generateTableName = (tableId: string): string => {
+    // Remove numbers and convert to readable format
+    const name = tableId
+      .replace(/\d+/g, ' ') // Replace numbers with space
+      .replace(/[_-]/g, ' ') // Replace _ and - with space
+      .split(' ')
+      .filter(word => word.length > 0)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return name || tableId;
+  };
+
+  // Helper function to get image path from table ID
+  const getImagePathFromId = (tableId: string): string => {
+    // Map common table IDs to their image paths
+    const imageExtension = '.jpg';
+    return `/Malya Diamond Casino_files/${tableId}${imageExtension}`;
+  };
 
   useEffect(() => {
     fetchTables();
@@ -301,6 +328,115 @@ export const DiamondCasinoTableManager = () => {
     setIsDialogOpen(true);
   };
 
+  const handleBulkImport = async () => {
+    try {
+      if (!bulkImportText.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Please enter table IDs',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setIsBulkImporting(true);
+
+      // Parse table IDs from text
+      let tableIds: string[] = [];
+      
+      // Try to parse as JSON array first
+      try {
+        const parsed = JSON.parse(bulkImportText);
+        if (Array.isArray(parsed)) {
+          tableIds = parsed;
+        } else if (parsed.tables && Array.isArray(parsed.tables)) {
+          tableIds = parsed.tables;
+        }
+      } catch {
+        // If not JSON, parse as plain text
+        tableIds = bulkImportText
+          .split(/[,\n\r]+/)
+          .map(id => id.trim())
+          .filter(id => id.length > 0);
+      }
+
+      if (tableIds.length === 0) {
+        toast({
+          title: 'Error',
+          description: 'No valid table IDs found',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Get existing table IDs to avoid duplicates
+      const { data: existingTables } = await supabase
+        .from('diamond_casino_tables')
+        .select('table_id');
+
+      const existingIds = new Set(existingTables?.map(t => t.table_id) || []);
+
+      // Prepare tables data
+      const tablesToInsert = tableIds
+        .filter(id => !existingIds.has(id))
+        .map(tableId => ({
+          table_id: tableId,
+          table_name: generateTableName(tableId),
+          image_url: getImagePathFromId(tableId),
+          status: 'active',
+          player_count: 0,
+          last_updated: new Date().toISOString(),
+        }));
+
+      if (tablesToInsert.length === 0) {
+        toast({
+          title: 'Info',
+          description: 'All tables already exist in database',
+          variant: 'default',
+        });
+        return;
+      }
+
+      // Insert in batches to avoid overwhelming the database
+      const batchSize = 20;
+      let inserted = 0;
+      let errors = 0;
+
+      for (let i = 0; i < tablesToInsert.length; i += batchSize) {
+        const batch = tablesToInsert.slice(i, i + batchSize);
+        
+        const { error } = await supabase
+          .from('diamond_casino_tables')
+          .insert(batch);
+
+        if (error) {
+          console.error('Batch insert error:', error);
+          errors += batch.length;
+        } else {
+          inserted += batch.length;
+        }
+      }
+
+      toast({
+        title: 'Success',
+        description: `Imported ${inserted} tables${errors > 0 ? `. ${errors} failed.` : ''}`,
+      });
+
+      // Reset and refresh
+      setBulkImportText('');
+      setIsBulkImportOpen(false);
+      fetchTables();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to import tables',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsBulkImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -312,10 +448,16 @@ export const DiamondCasinoTableManager = () => {
                 Manage casino tables, upload images, and update table data
               </CardDescription>
             </div>
-            <Button onClick={openAddDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Table
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsBulkImportOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Bulk Import
+              </Button>
+              <Button onClick={openAddDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Table
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -586,6 +728,88 @@ export const DiamondCasinoTableManager = () => {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Bulk Import Tables</DialogTitle>
+            <DialogDescription>
+              Paste table IDs (one per line or comma-separated). Each table will be created with auto-generated name and image path.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Table IDs</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const defaultTables = [
+                      "teen20v1", "mogambo", "lucky5", "roulette12", "roulette13", "roulette11",
+                      "teenunique", "poison", "poison20", "joker120", "joker20", "joker1",
+                      "teen20c", "btable2", "ourroullete", "superover3", "goal", "ab4",
+                      "lucky15", "superover2", "teen41", "teen42", "sicbo2", "teen33",
+                      "sicbo", "ballbyball", "teen32", "teen", "teen20", "teen9", "teen8",
+                      "poker", "poker20", "poker6", "baccarat", "baccarat2", "dt20", "dt6",
+                      "dtl20", "dt202", "card32", "card32eu", "ab20", "abj", "lucky7",
+                      "lucky7eu", "3cardj", "war", "worli", "worli2", "aaa", "btable",
+                      "lottcard", "cricketv3", "cmatch20", "cmeter", "teen6", "queen",
+                      "race20", "lucky7eu2", "superover", "trap", "patti2", "teensin",
+                      "teenmuf", "race17", "teen20b", "trio", "notenum", "kbc", "teen120",
+                      "teen1", "ab3", "aaa2", "race2", "teen3", "dum10", "cmeter1"
+                    ];
+                    setBulkImportText(JSON.stringify(defaultTables, null, 2));
+                  }}
+                >
+                  Use Default Tables
+                </Button>
+              </div>
+              <Textarea
+                value={bulkImportText}
+                onChange={(e) => setBulkImportText(e.target.value)}
+                placeholder={`Paste table IDs here (JSON array or one per line):\n\nJSON format:\n["table1", "table2", ...]\n\nOr plain text:\ntable1\ntable2\n...`}
+                className="min-h-[300px] font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Supports JSON array format or plain text (one ID per line or comma-separated)
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsBulkImportOpen(false);
+                  setBulkImportText('');
+                }}
+                disabled={isBulkImporting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleBulkImport}
+                disabled={isBulkImporting || !bulkImportText.trim()}
+              >
+                {isBulkImporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Import Tables
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
