@@ -129,12 +129,12 @@ export const DiamondCasinoTableManager = () => {
 
   const uploadImage = async (file: File): Promise<string> => {
     try {
-      // Upload to public folder - using simple path structure
+      // Upload to game-assets storage bucket
       const fileExt = file.name.split('.').pop();
       const fileName = `casino-tables/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('lovable-uploads')
+        .from('game-assets')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -144,7 +144,7 @@ export const DiamondCasinoTableManager = () => {
 
       // Get public URL
       const { data } = supabase.storage
-        .from('lovable-uploads')
+        .from('game-assets')
         .getPublicUrl(fileName);
 
       return data.publicUrl;
