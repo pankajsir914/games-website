@@ -6,12 +6,12 @@ import { ExternalLink, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Hls from "hls.js";
-  
+
 interface LiveStreamProps {
   tableId: string;
   tableName?: string;
-}  
-  
+}
+
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
