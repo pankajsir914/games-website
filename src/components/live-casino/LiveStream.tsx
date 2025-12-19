@@ -10,7 +10,7 @@ import Hls from "hls.js";
 interface LiveStreamProps {
   tableId: string;
   tableName?: string;
-}
+}  
   
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
