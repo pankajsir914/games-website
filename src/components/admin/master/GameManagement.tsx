@@ -13,6 +13,7 @@ import { GameConfigEditor } from './GameConfigEditor';
 import { GameContentManager } from './GameContentManager';
 import { GameScheduler } from './GameScheduler';
 import { GameAnalyticsDashboard } from './GameAnalyticsDashboard';
+import { DiamondCasinoTableManager } from './DiamondCasinoTableManager';
 import {
   Dialog,
   DialogContent,
@@ -494,6 +495,22 @@ export const GameManagement = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Diamond Casino Tables Management */}
+      <Card className="bg-gradient-card border-gaming-gold/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gamepad2 className="h-5 w-5 text-gaming-gold" />
+            Diamond Casino Tables
+          </CardTitle>
+          <CardDescription>
+            Manage live casino tables, upload images, and update table configurations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DiamondCasinoTableManager />
+        </CardContent>
+      </Card>
     </div>
   );
 };
