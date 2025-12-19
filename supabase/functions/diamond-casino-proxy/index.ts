@@ -17,9 +17,7 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!CASINO_API_URL || !CASINO_API_KEY) {
-      throw new Error('Casino API credentials not configured');
-    }
+    // Note: CASINO_API_URL and CASINO_API_KEY are optional - bets can be recorded locally
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
@@ -335,7 +333,7 @@ serve(async (req) => {
       result = { success: true, data };
     }
 
-    // Place bet
+    // Place bet - Only database, no external API
     else if (action === 'place-bet' && betData) {
       const authHeader = req.headers.get('authorization');
       if (!authHeader) throw new Error('No authorization header');
@@ -366,35 +364,7 @@ serve(async (req) => {
 
       if (walletError) throw new Error(`Wallet update failed: ${walletError.message}`);
 
-      // Place bet with casino API
-      const betResponse = await fetch(`${CASINO_API_URL}/casino/place-bet`, {
-        method: 'POST',
-        headers: {
-          'x-rapidapi-key': CASINO_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tableId: betData.tableId,
-          amount: betData.amount,
-          betType: betData.betType,
-          roundId: betData.roundId,
-          userId: user.id,
-        })
-      });
-
-      if (!betResponse.ok) {
-        await supabase.rpc('update_wallet_balance', {
-          p_user_id: user.id,
-          p_amount: betData.amount,
-          p_type: 'credit',
-          p_reason: 'Bet refund - API error',
-          p_game_type: 'live_casino'
-        });
-        throw new Error(`Bet placement failed`);
-      }
-
-      const betResult = await betResponse.json();
-
+      // Record bet in database
       const { data: bet, error: betError } = await supabase
         .from('diamond_casino_bets')
         .insert({
@@ -411,6 +381,7 @@ serve(async (req) => {
         .single();
 
       if (betError) {
+        // Refund if database insert fails
         await supabase.rpc('update_wallet_balance', {
           p_user_id: user.id,
           p_amount: betData.amount,
@@ -418,10 +389,14 @@ serve(async (req) => {
           p_reason: 'Bet refund - recording failed',
           p_game_type: 'live_casino'
         });
-        throw new Error(`Bet recording failed`);
+        throw new Error(`Bet recording failed: ${betError.message}`);
       }
 
-      result = { success: true, bet, message: 'Bet placed successfully' };
+      result = { 
+        success: true, 
+        bet, 
+        message: 'Bet placed successfully'
+      };
     }
 
     else {
