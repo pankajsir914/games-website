@@ -85,13 +85,15 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
           <div>
             <Label className="text-sm text-muted-foreground mb-2 block">Select Bet (Live Odds)</Label>
             <div className="grid gap-2">
-              {betTypes.map((bet: any) => {
+              {betTypes.map((bet: any, index: number) => {
                 const backVal = bet?.back ?? bet?.odds ?? 0;
                 const layVal = bet?.lay ?? 0;
                 const backText = backVal && Number(backVal) > 0 ? Number(backVal).toFixed(2) : bet?.odds && Number(bet.odds) > 0 ? Number(bet.odds).toFixed(2) : "-";
                 const layText = layVal && Number(layVal) > 0 ? Number(layVal).toFixed(2) : "-";
+                // Create unique key by always including index to ensure uniqueness
+                const uniqueKey = `${bet?.id || bet?.mid || bet?.type || 'bet'}-${index}`;
                 return (
-                  <div key={bet.type} className={`p-3 rounded-lg border transition-all cursor-pointer ${selectedBet === bet.type ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"} ${bet.status === "suspended" ? "opacity-50 pointer-events-none" : ""}`} onClick={() => bet.status !== "suspended" && setSelectedBet(bet.type)}>
+                  <div key={uniqueKey} className={`p-3 rounded-lg border transition-all cursor-pointer ${selectedBet === bet.type ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"} ${bet.status === "suspended" ? "opacity-50 pointer-events-none" : ""}`} onClick={() => bet.status !== "suspended" && setSelectedBet(bet.type)}>
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">{bet.type}</span>
                       {bet.status === "suspended" && <Badge variant="destructive" className="text-xs">Suspended</Badge>}
