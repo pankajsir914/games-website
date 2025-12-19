@@ -1,6 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+// src/hooks/useMasterAdminUsers.tsx
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface UserData {
   id: string;
@@ -15,9 +17,9 @@ interface UserData {
   total_deposits: number;
   total_withdrawals: number;
   games_played: number;
-  status: 'online' | 'recently_active' | 'offline';
+  status: "online" | "recently_active" | "offline";
   is_blocked?: boolean;
-  risk_level?: 'low' | 'medium' | 'high';
+  risk_level?: "low" | "medium" | "high";
   created_by?: string;
   creator_name?: string;
   user_role?: string;
@@ -37,37 +39,48 @@ export const useMasterAdminUsers = () => {
   const queryClient = useQueryClient();
 
   const getUsers = useQuery({
-    queryKey: ['master-admin-users'],
+    queryKey: ["master-admin-users"],
     queryFn: async () => {
       // Get current admin's ID and role first
-      const { data: { user: adminUser } } = await supabase.auth.getUser();
-      if (!adminUser) throw new Error('Not authenticated');
+      const {
+        data: { user: adminUser },
+      } = await supabase.auth.getUser();
+      if (!adminUser) throw new Error("Not authenticated");
 
-      const { data: highestRole } = await supabase
-        .rpc('get_user_highest_role', { _user_id: adminUser.id });
-      
-      const isMasterAdmin = highestRole === 'master_admin';
+      const { data: highestRole } = await supabase.rpc(
+        "get_user_highest_role",
+        { _user_id: adminUser.id }
+      );
+
+      const isMasterAdmin = highestRole === "master_admin";
 
       try {
         // Try the existing RPC function that works for all admins
-        const { data: userManagementData, error: userError } = await supabase
-          .rpc('get_users_management_data', {
+        const { data: userManagementData, error: userError } =
+          await supabase.rpc("get_users_management_data", {
             p_limit: 200,
             p_offset: 0,
             p_search: null,
-            p_status: 'all'
+            p_status: "all",
           });
 
-        if (!userError && userManagementData && typeof userManagementData === 'object') {
-          console.log('Fetched users from get_users_management_data:', userManagementData);
+        if (
+          !userError &&
+          userManagementData &&
+          typeof userManagementData === "object"
+        ) {
+          console.log(
+            "Fetched users from get_users_management_data:",
+            userManagementData
+          );
           const data = userManagementData as any;
-          
+
           // Map the data to our expected format
           let users = (data.users || []).map((user: any) => ({
             id: user.id,
             email: user.email,
-            full_name: user.full_name || 'Unknown User',
-            phone: user.phone || '',
+            full_name: user.full_name || "Unknown User",
+            phone: user.phone || "",
             avatar_url: user.avatar_url,
             created_at: user.created_at,
             last_sign_in_at: user.last_sign_in_at,
@@ -77,98 +90,125 @@ export const useMasterAdminUsers = () => {
             total_deposits: user.total_deposits || 0,
             total_withdrawals: user.total_withdrawals || 0,
             games_played: user.games_played || 0,
-            status: user.status || 'offline',
+            status: user.status || "offline",
             is_blocked: false,
-            risk_level: 'low' as const,
+            risk_level: "low" as const,
             created_by: user.created_by,
-            creator_name: user.creator_name,
-            user_role: user.user_role
+            created_by_name: user.creator_name || user.created_by_name || null,
+            created_by_email:
+              user.creator_email || user.created_by_email || null,
+
+            user_role: user.user_role,
           }));
 
           // Additional frontend filtering: Only show users created by current admin (if not master admin)
           if (!isMasterAdmin) {
-            users = users.filter((user: any) => user.created_by === adminUser.id);
-            console.log('Filtered users by created_by:', users.length, 'out of', data.users?.length || 0);
+            users = users.filter(
+              (user: any) => user.created_by === adminUser.id
+            );
+            console.log(
+              "Filtered users by created_by:",
+              users.length,
+              "out of",
+              data.users?.length || 0
+            );
           }
-          
+
           return {
             users,
             total_count: users.length,
             blocked_users: 0,
             high_risk_users: 0,
-            online_count: users.filter((u: any) => u.status === 'online').length,
-            recently_active_count: users.filter((u: any) => u.status === 'recently_active').length
+            online_count: users.filter((u: any) => u.status === "online")
+              .length,
+            recently_active_count: users.filter(
+              (u: any) => u.status === "recently_active"
+            ).length,
           } as UsersResponse;
         }
 
         // Try the master admin only function as fallback (only for master admin)
         if (isMasterAdmin) {
-          const { data: allUsersData, error: allUsersError } = await supabase
-            .rpc('get_all_users_for_master_admin');
+          const { data: allUsersData, error: allUsersError } =
+            await supabase.rpc("get_all_users_for_master_admin");
 
           if (!allUsersError && allUsersData) {
-            console.log('Fetched users from master admin function:', allUsersData);
+            console.log(
+              "Fetched users from master admin function:",
+              allUsersData
+            );
             const usersData = allUsersData as any;
-            
+
             return {
               users: usersData.users || [],
               total_count: usersData.total_count || 0,
               blocked_users: 0,
               high_risk_users: 0,
               online_count: usersData.online_count || 0,
-              recently_active_count: usersData.recently_active_count || 0
+              recently_active_count: usersData.recently_active_count || 0,
             } as UsersResponse;
           }
         }
       } catch (error) {
-        console.log('RPC functions not available, falling back to direct queries', error);
+        console.log(
+          "RPC functions not available, falling back to direct queries",
+          error
+        );
       }
 
       // Final fallback to direct queries
       const { data: adminUsers } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['admin', 'master_admin']);
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "master_admin"]);
 
-      const adminUserIds = adminUsers?.map(u => u.user_id) || [];
+      const adminUserIds = adminUsers?.map((u) => u.user_id) || [];
 
       // Get profiles - filter by created_by if regular admin
       let profilesQuery = supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
         .limit(100);
 
       if (!isMasterAdmin) {
         // Regular admin: only get users they created
-        profilesQuery = profilesQuery.eq('created_by', adminUser.id);
+        profilesQuery = profilesQuery.eq("created_by", adminUser.id);
       }
 
       const { data: profiles, error: profilesError } = await profilesQuery;
 
       if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
+        console.error("Error fetching profiles:", profilesError);
         throw profilesError;
       }
 
       // Filter out admin users from profiles
-      const userProfiles = profiles?.filter(p => !adminUserIds.includes(p.id)) || [];
-      const profileIds = userProfiles.map(p => p.id);
+      const userProfiles =
+        profiles?.filter((p) => !adminUserIds.includes(p.id)) || [];
+      const profileIds = userProfiles.map((p) => p.id);
 
       // Get wallet data
       const { data: wallets } = await supabase
-        .from('wallets')
-        .select('user_id, current_balance')
-        .in('user_id', profileIds.length > 0 ? profileIds : ['00000000-0000-0000-0000-000000000000']);
+        .from("wallets")
+        .select("user_id, current_balance")
+        .in(
+          "user_id",
+          profileIds.length > 0
+            ? profileIds
+            : ["00000000-0000-0000-0000-000000000000"]
+        );
 
-      const walletMap = new Map(wallets?.map(w => [w.user_id, w.current_balance]) || []);
+      const walletMap = new Map(
+        wallets?.map((w) => [w.user_id, w.current_balance]) || []
+      );
 
       // Format the data
-      const users = userProfiles.map(profile => ({
+      const users = userProfiles.map((profile) => ({
         id: profile.id,
         email: `user${profile.id.slice(0, 8)}@example.com`,
-        full_name: profile.full_name || 'Unknown User',
-        phone: profile.phone || '',
+        full_name: profile.full_name || "Unknown User",
+        phone: profile.phone || "",
         avatar_url: profile.avatar_url,
         created_at: profile.created_at,
         last_sign_in_at: null,
@@ -177,58 +217,66 @@ export const useMasterAdminUsers = () => {
         total_deposits: 0,
         total_withdrawals: 0,
         games_played: 0,
-        status: 'offline' as const,
+        status: "offline" as const,
         is_blocked: profile.is_blocked || false,
-        risk_level: 'low' as const,
-        created_by: profile.created_by
+        risk_level: "low" as const,
+        created_by: profile.created_by,
       }));
 
       return {
         users,
         total_count: users.length,
-        blocked_users: users.filter(u => u.is_blocked).length,
-        high_risk_users: 0
+        blocked_users: users.filter((u) => u.is_blocked).length,
+        high_risk_users: 0,
       } as UsersResponse;
     },
     refetchInterval: 60000, // Refetch every minute
   });
 
   const updateUserStatus = useMutation({
-    mutationFn: async ({ userId, action, reason }: { userId: string; action: 'block' | 'unblock' | 'activate' | 'suspend'; reason?: string }) => {
+    mutationFn: async ({
+      userId,
+      action,
+      reason,
+    }: {
+      userId: string;
+      action: "block" | "unblock" | "activate" | "suspend";
+      reason?: string;
+    }) => {
       // Update user status in profiles table
-      const isBlocking = action === 'block';
+      const isBlocking = action === "block";
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({ is_blocked: isBlocking })
-        .eq('id', userId);
+        .eq("id", userId);
 
       if (error) throw error;
 
       // Log the action
-      await supabase
-        .from('admin_alerts')
-        .insert({
-          alert_type: 'user_action',
-          severity: 'medium',
-          title: `User ${action} action`,
-          description: `Action: ${action} for user ${userId}. Reason: ${reason || 'No reason provided'}`,
-          data: { userId, action, reason }
-        });
+      await supabase.from("admin_alerts").insert({
+        alert_type: "user_action",
+        severity: "medium",
+        title: `User ${action} action`,
+        description: `Action: ${action} for user ${userId}. Reason: ${
+          reason || "No reason provided"
+        }`,
+        data: { userId, action, reason },
+      });
 
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['master-admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ["master-admin-users"] });
       toast({
-        title: 'Success',
-        description: 'User status updated successfully',
+        title: "Success",
+        description: "User status updated successfully",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
