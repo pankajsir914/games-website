@@ -91,7 +91,7 @@ const LiveCasino = () => {
 
         {/* Tables View */}
         {!loading && tables.length > 0 && (
-          <div className="grid grid-cols-6 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 md:gap-6">
             {tables.map((table) => (
               <TableCard
                 key={table.id}
