@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   tableId: string;
-  tableName?: string;
+  tableName?: string;  
 }
 
 export const LiveStream = ({ tableId, tableName }: Props) => {
