@@ -80,9 +80,23 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
         )}
 
         {!hasRealOdds && !isRestricted && (
-          <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-yellow-500" />
-            <span className="text-sm text-yellow-500">Waiting for live odds...</span>
+          <div className="flex items-center justify-between gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-yellow-500" />
+              <span className="text-sm text-yellow-500">
+                {odds?.error ? "Failed to load odds. Retrying..." : "Waiting for live odds..."}
+              </span>
+            </div>
+            {odds?.error && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.location.reload()}
+                className="text-xs"
+              >
+                Retry
+              </Button>
+            )}
           </div>
         )}
 
