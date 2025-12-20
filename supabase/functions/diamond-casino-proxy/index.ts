@@ -266,25 +266,54 @@ serve(async (req) => {
         // Get gmid from tableid endpoint
         let gmid = tableId;
         
-        const tableIdResponse = await fetch(`${HOSTINGER_PROXY_BASE}/tableid?id=${tableId}`, {
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (tableIdResponse.ok) {
-          const tableIdData = await tableIdResponse.json();
-          const extractedGmid = tableIdData?.data?.gmid || tableIdData?.gmid || 
-                               tableIdData?.data?.mid || tableIdData?.mid;
-          if (extractedGmid) gmid = extractedGmid;
+        try {
+          const tableIdResponse = await fetchWithTimeout(`${HOSTINGER_PROXY_BASE}/tableid?id=${tableId}`, {
+            headers: { 'Content-Type': 'application/json' }
+          }, 5000);
+          
+          if (tableIdResponse.ok) {
+            const tableIdData = await tableIdResponse.json();
+            const extractedGmid = tableIdData?.data?.gmid || tableIdData?.gmid || 
+                                 tableIdData?.data?.mid || tableIdData?.mid;
+            if (extractedGmid) {
+              gmid = extractedGmid;
+              console.log(`✅ Extracted gmid: ${gmid} for tableId: ${tableId}`);
+            }
+          }
+        } catch (tableIdError) {
+          console.log(`⚠️ Could not fetch gmid, using tableId as gmid:`, tableIdError);
         }
         
-        // Fetch odds from data endpoint
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/data?type=${tableId}&id=${gmid}`, {
-          headers: { 'Content-Type': 'application/json' }
-        });
+        // Try multiple endpoints for odds
+        const oddsEndpoints = [
+          `${HOSTINGER_PROXY_BASE}/data?type=${tableId}&id=${gmid}`,
+          `${HOSTINGER_PROXY_BASE}/data?type=${tableId}`,
+          `${HOSTINGER_PROXY_BASE}/odds?type=${tableId}&id=${gmid}`,
+          `${HOSTINGER_PROXY_BASE}/odds?type=${tableId}`,
+        ];
 
-        if (response.ok) {
-          const data = await response.json();
-          const oddsData = data?.data || data;
+        let oddsData: any = null;
+
+        for (const endpoint of oddsEndpoints) {
+          try {
+            console.log(`📡 Trying odds endpoint: ${endpoint}`);
+            const response = await fetchWithTimeout(endpoint, {
+              headers: { 'Content-Type': 'application/json' }
+            }, 8000);
+
+            if (response && response.ok) {
+              const data = await response.json();
+              oddsData = data?.data || data;
+              console.log(`✅ Odds fetched successfully from: ${endpoint}`);
+              break;
+            }
+          } catch (endpointError) {
+            console.log(`⚠️ Endpoint failed: ${endpoint}`, endpointError);
+            continue;
+          }
+        }
+
+        if (oddsData) {
           const bettingOptions: any[] = [];
           
           // Parse sub, t1, t2, t3 arrays for betting options
@@ -292,30 +321,68 @@ serve(async (req) => {
             if (oddsData[key] && Array.isArray(oddsData[key])) {
               oddsData[key].forEach((item: any) => {
                 if (item.nat || item.nation || item.name) {
-                  bettingOptions.push({
-                    type: item.nat || item.nation || item.name,
-                    back: parseFloat(item.b1 || item.b || '0') || 0,
-                    lay: parseFloat(item.l1 || item.l || '0') || 0,
-                    status: item.gstatus === 'SUSPENDED' || item.gstatus === '0' ? 'suspended' : 'active',
-                    min: item.min || 100,
-                    max: item.max || 100000,
-                    sid: item.sid,
-                    mid: oddsData.mid || item.mid,
-                    subtype: item.subtype,
-                    etype: item.etype,
-                  });
+                  const backVal = parseFloat(item.b1 || item.b || '0') || 0;
+                  const layVal = parseFloat(item.l1 || item.l || '0') || 0;
+                  
+                  // Only add if there's a valid back or lay value
+                  if (backVal > 0 || layVal > 0) {
+                    bettingOptions.push({
+                      type: item.nat || item.nation || item.name,
+                      back: backVal,
+                      lay: layVal,
+                      status: item.gstatus === 'SUSPENDED' || item.gstatus === '0' ? 'suspended' : 'active',
+                      min: item.min || 100,
+                      max: item.max || 100000,
+                      sid: item.sid,
+                      mid: oddsData.mid || item.mid,
+                      subtype: item.subtype,
+                      etype: item.etype,
+                    });
+                  }
                 }
               });
             }
           });
           
-          result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
+          // Also check if data is directly an array
+          if (Array.isArray(oddsData) && oddsData.length > 0) {
+            (oddsData as any[]).forEach((item: any) => {
+              if (item.nat || item.nation || item.name) {
+                const backVal = parseFloat(item.b1 || item.b || '0') || 0;
+                const layVal = parseFloat(item.l1 || item.l || '0') || 0;
+                
+                if (backVal > 0 || layVal > 0) {
+                  bettingOptions.push({
+                    type: item.nat || item.nation || item.name,
+                    back: backVal,
+                    lay: layVal,
+                    status: item.gstatus === 'SUSPENDED' || item.gstatus === '0' ? 'suspended' : 'active',
+                    min: item.min || 100,
+                    max: item.max || 100000,
+                    sid: item.sid,
+                    mid: item.mid,
+                    subtype: item.subtype,
+                    etype: item.etype,
+                  });
+                }
+              }
+            });
+          }
+          
+          if (bettingOptions.length > 0) {
+            console.log(`✅ Found ${bettingOptions.length} betting options`);
+            result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
+          } else {
+            console.log(`⚠️ No betting options found in odds data`);
+            result = { success: true, data: { bets: [], raw: oddsData, noOdds: true } };
+          }
         } else {
-          result = { success: true, data: null };
+          console.log(`⚠️ No odds data received from any endpoint`);
+          result = { success: true, data: { bets: [], raw: null, noOdds: true } };
         }
       } catch (fetchError) {
-        console.log(`⚠️ Odds fetch error:`, fetchError);
-        result = { success: true, data: null };
+        console.error(`❌ Odds fetch error:`, fetchError);
+        result = { success: true, data: { bets: [], raw: null, error: true } };
       }
     }
 
@@ -335,22 +402,63 @@ serve(async (req) => {
 
     // Place bet - Only database, no external API
     else if (action === 'place-bet' && betData) {
+      try {
+        console.log('📝 Place bet request:', { 
+          tableId: betData.tableId, 
+          amount: betData.amount, 
+          betType: betData.betType,
+          side: betData.side,
+          odds: betData.odds 
+        });
+      
       const authHeader = req.headers.get('authorization');
-      if (!authHeader) throw new Error('No authorization header');
+      if (!authHeader) {
+        console.error('❌ No authorization header');
+        throw new Error('No authorization header');
+      }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (!user) throw new Error('Unauthorized');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError) {
+        console.error('❌ Auth error:', authError);
+        throw new Error(`Authentication failed: ${authError.message}`);
+      }
+      
+      if (!user) {
+        console.error('❌ No user found');
+        throw new Error('Unauthorized');
+      }
+
+      // Validate bet data
+      if (!betData.amount || betData.amount <= 0) {
+        throw new Error('Invalid bet amount');
+      }
+      if (!betData.betType) {
+        throw new Error('Bet type is required');
+      }
+      if (!betData.tableId) {
+        throw new Error('Table ID is required');
+      }
 
       // Check wallet balance
-      const { data: wallet } = await supabase
+      const { data: wallet, error: walletFetchError } = await supabase
         .from('wallets')
-        .select('balance')
+        .select('current_balance')
         .eq('user_id', user.id)
         .single();
 
-      if (!wallet || wallet.balance < betData.amount) {
-        throw new Error('Insufficient balance');
+      if (walletFetchError) {
+        console.error('❌ Wallet fetch error:', walletFetchError);
+        throw new Error(`Failed to fetch wallet: ${walletFetchError.message}`);
+      }
+
+      if (!wallet) {
+        throw new Error('Wallet not found. Please contact support.');
+      }
+
+      if (wallet.current_balance < betData.amount) {
+        throw new Error(`Insufficient balance. You have ₹${wallet.current_balance}, but need ₹${betData.amount}`);
       }
 
       // Deduct from wallet
@@ -359,44 +467,255 @@ serve(async (req) => {
         p_amount: betData.amount,
         p_type: 'debit',
         p_reason: `Diamond Casino bet on ${betData.tableName}`,
-        p_game_type: 'live_casino'
+        p_game_type: 'casino'
       });
 
       if (walletError) throw new Error(`Wallet update failed: ${walletError.message}`);
 
       // Record bet in database
-      const { data: bet, error: betError } = await supabase
+      // Build insert data - only include side if it's provided and valid
+      let betInsertData: any = {
+        user_id: user.id,
+        table_id: betData.tableId,
+        table_name: betData.tableName || null,
+        bet_amount: betData.amount,
+        bet_type: betData.betType,
+        odds: betData.odds || null,
+        round_id: betData.roundId || null,
+        status: 'pending',
+      };
+
+      // Only add side if it's provided and is a valid value
+      if (betData.side && (betData.side === 'back' || betData.side === 'lay')) {
+        betInsertData.side = betData.side;
+      }
+
+      console.log('📝 Inserting bet with data:', { ...betInsertData, user_id: '[hidden]' });
+
+      // Try to insert - if side column doesn't exist, it will fail and we'll retry without it
+      let { data: bet, error: betError } = await supabase
         .from('diamond_casino_bets')
-        .insert({
-          user_id: user.id,
-          table_id: betData.tableId,
-          table_name: betData.tableName,
-          bet_amount: betData.amount,
-          bet_type: betData.betType,
-          odds: betData.odds,
-          round_id: betData.roundId,
-          status: 'pending',
-        })
+        .insert(betInsertData)
         .select()
         .single();
 
-      if (betError) {
-        // Refund if database insert fails
-        await supabase.rpc('update_wallet_balance', {
-          p_user_id: user.id,
-          p_amount: betData.amount,
-          p_type: 'credit',
-          p_reason: 'Bet refund - recording failed',
-          p_game_type: 'live_casino'
-        });
-        throw new Error(`Bet recording failed: ${betError.message}`);
+      // If error is about missing side column, retry without it
+      if (betError && betError.message && (
+        betError.message.toLowerCase().includes('column') && betError.message.toLowerCase().includes('side') ||
+        betError.message.toLowerCase().includes('does not exist') ||
+        betError.code === '42703' // PostgreSQL error code for undefined column
+      )) {
+        console.log('⚠️ Side column not found, retrying without it');
+        delete betInsertData.side;
+        const retryResult = await supabase
+          .from('diamond_casino_bets')
+          .insert(betInsertData)
+          .select()
+          .single();
+        bet = retryResult.data;
+        betError = retryResult.error;
       }
 
-      result = { 
-        success: true, 
-        bet, 
-        message: 'Bet placed successfully'
-      };
+      if (betError) {
+        console.error('❌ Bet insert error:', betError);
+        console.error('❌ Bet insert data:', betInsertData);
+        console.error('❌ Error code:', betError.code);
+        console.error('❌ Error message:', betError.message);
+        console.error('❌ Error details:', betError);
+        
+        // Refund if database insert fails
+        try {
+          await supabase.rpc('update_wallet_balance', {
+            p_user_id: user.id,
+            p_amount: betData.amount,
+            p_type: 'credit',
+            p_reason: 'Bet refund - recording failed',
+            p_game_type: 'casino'
+          });
+          console.log('✅ Refund processed');
+        } catch (refundError) {
+          console.error('❌ Refund failed:', refundError);
+        }
+        throw new Error(`Bet recording failed: ${betError.message || JSON.stringify(betError)}`);
+      }
+
+        console.log('✅ Bet inserted successfully:', bet?.id);
+
+        result = { 
+          success: true, 
+          bet, 
+          message: 'Bet placed successfully'
+        };
+      } catch (placeBetError: any) {
+        console.error('❌ Place bet error in try block:', placeBetError);
+        console.error('❌ Place bet error message:', placeBetError?.message);
+        console.error('❌ Place bet error stack:', placeBetError?.stack);
+        // Re-throw to be caught by outer catch block
+        throw placeBetError;
+      }
+    }
+
+    // Process/settle bets based on results
+    else if (action === 'process-bets' && tableId) {
+      // Get latest result for the table
+      let resultData = null;
+      try {
+        const resultResponse = await fetch(`${HOSTINGER_PROXY_BASE}/result?type=${tableId}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (resultResponse.ok) {
+          const resultJson = await resultResponse.json();
+          const resData = resultJson?.data?.data?.res || resultJson?.data?.res || resultJson?.res || [];
+          if (Array.isArray(resData) && resData.length > 0) {
+            resultData = resData[0]; // Latest result
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching result for settlement:', error);
+      }
+
+      if (!resultData || !(resultData as any).win) {
+        result = { 
+          success: false, 
+          error: 'No result available for settlement' 
+        };
+      } else {
+        // Get all pending bets for this table
+        const { data: pendingBets, error: betsError } = await supabase
+          .from('diamond_casino_bets')
+          .select('*')
+          .eq('table_id', tableId)
+          .eq('status', 'pending');
+
+        if (betsError) {
+          throw new Error(`Failed to fetch pending bets: ${betsError.message}`);
+        }
+
+        if (!pendingBets || pendingBets.length === 0) {
+          result = { 
+            success: true, 
+            message: 'No pending bets to process',
+            processed: 0
+          };
+        } else {
+          const winningValue = ((resultData as any).win || '').toString();
+          let processed = 0;
+          let won = 0;
+          let lost = 0;
+          let totalPayouts = 0;
+
+          // Process each pending bet
+          for (const bet of pendingBets) {
+            try {
+              // Determine if bet won based on bet_type and result
+              // Result win can be "1", "2", "Player A", "Player B", or selection name
+              const betSide = bet.side || 'back';
+              const betTypeLower = bet.bet_type.toLowerCase().trim();
+              const winLower = winningValue.toLowerCase().trim();
+              
+              // Try multiple matching strategies for flexible matching
+              let betWon = false;
+              
+              if (betSide === 'back') {
+                // Back bet wins if bet_type matches result
+                // Direct match
+                if (bet.bet_type === winningValue || betTypeLower === winLower) {
+                  betWon = true;
+                }
+                // Substring match (e.g., "Player A" contains "1" or vice versa)
+                else if (betTypeLower.includes(winLower) || winLower.includes(betTypeLower)) {
+                  betWon = true;
+                }
+                // Numeric mapping: "1" -> "Player A", "Team 1", etc.
+                else if (winningValue === '1' && (betTypeLower.includes('player a') || betTypeLower.includes('team 1') || betTypeLower.includes('1'))) {
+                  betWon = true;
+                }
+                else if (winningValue === '2' && (betTypeLower.includes('player b') || betTypeLower.includes('team 2') || betTypeLower.includes('2'))) {
+                  betWon = true;
+                }
+                // Check if bet_type matches common winner patterns
+                else if ((winLower === '1' || winLower === 'player a' || winLower === 'team 1') && 
+                         (betTypeLower.includes('1') || betTypeLower.includes('a') || betTypeLower.includes('first'))) {
+                  betWon = true;
+                }
+                else if ((winLower === '2' || winLower === 'player b' || winLower === 'team 2') && 
+                         (betTypeLower.includes('2') || betTypeLower.includes('b') || betTypeLower.includes('second'))) {
+                  betWon = true;
+                }
+              } else {
+                // Lay bet wins if bet_type doesn't match result (opposite of back)
+                // Direct mismatch
+                if (bet.bet_type !== winningValue && betTypeLower !== winLower) {
+                  // Check if they're clearly different
+                  const isDifferent = !betTypeLower.includes(winLower) && !winLower.includes(betTypeLower);
+                  
+                  // Also check numeric mappings
+                  const isNumericMismatch = !(
+                    (winningValue === '1' && (betTypeLower.includes('player a') || betTypeLower.includes('team 1') || betTypeLower.includes('1'))) ||
+                    (winningValue === '2' && (betTypeLower.includes('player b') || betTypeLower.includes('team 2') || betTypeLower.includes('2')))
+                  );
+                  
+                  betWon = isDifferent && isNumericMismatch;
+                }
+              }
+
+              const newStatus = betWon ? 'won' : 'lost';
+              const payoutAmount = betWon && bet.odds 
+                ? parseFloat((bet.bet_amount * bet.odds).toFixed(2))
+                : 0;
+
+              // Update bet status
+              const { error: updateError } = await supabase
+                .from('diamond_casino_bets')
+                .update({
+                  status: newStatus,
+                  payout_amount: payoutAmount,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', bet.id);
+
+              if (updateError) {
+                console.error(`Error updating bet ${bet.id}:`, updateError);
+                continue;
+              }
+
+              // Credit wallet if bet won
+              if (betWon && payoutAmount > 0) {
+                const { error: walletError } = await supabase.rpc('update_wallet_balance', {
+                  p_user_id: bet.user_id,
+                  p_amount: payoutAmount,
+                  p_type: 'credit',
+                  p_reason: `Diamond Casino win - ${bet.table_name || bet.table_id} (${bet.bet_type})`,
+                  p_game_type: 'casino'
+                });
+
+                if (walletError) {
+                  console.error(`Error crediting wallet for bet ${bet.id}:`, walletError);
+                } else {
+                  totalPayouts += payoutAmount;
+                  won++;
+                }
+              } else {
+                lost++;
+              }
+
+              processed++;
+            } catch (error) {
+              console.error(`Error processing bet ${bet.id}:`, error);
+            }
+          }
+
+          result = {
+            success: true,
+            message: `Processed ${processed} bets`,
+            processed,
+            won,
+            lost,
+            totalPayouts
+          };
+        }
+      }
     }
 
     else {
@@ -409,10 +728,20 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Diamond Casino API error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log full error details for debugging
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: error
+    });
     
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? errorStack : undefined,
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
