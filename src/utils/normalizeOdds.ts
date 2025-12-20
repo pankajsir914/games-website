@@ -2,7 +2,7 @@ export function normalizeOdds(apiData: any) {
   if (!apiData?.data?.sub) {
     return { bets: [] };
   }
-
+  
   const bets: any[] = [];
 
   apiData.data.sub.forEach((item: any) => {
