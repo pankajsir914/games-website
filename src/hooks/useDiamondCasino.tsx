@@ -328,45 +328,94 @@ export const useDiamondCasino = () => {
   // ----------------- Fetch odds -----------------
   const fetchOdds = async (tableId: string) => {
     try {
-      const { data: oddsResponse, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-odds", tableId } });
+      console.log(`📡 Fetching odds for table: ${tableId}`);
+      const { data: oddsResponse, error } = await supabase.functions.invoke("diamond-casino-proxy", { 
+        body: { action: "get-odds", tableId } 
+      });
+      
       if (error) {
         console.error("fetchOdds invoke error:", error);
         setOdds({ bets: [], rawData: {}, error: true });
         return;
       }
 
+      if (!oddsResponse) {
+        console.warn("No response from odds API");
+        setOdds({ bets: [], rawData: {}, noOdds: true });
+        return;
+      }
+
       let extractedBets: any[] = [];
       const payload = oddsResponse?.data || oddsResponse;
 
+      // Check if we have bets directly
       if (payload?.bets && Array.isArray(payload.bets)) {
-        extractedBets = payload.bets.map((bet: any) => ({
-          type: bet.type,
-          odds: bet.back > 0 ? bet.back : 1.98,
-          back: bet.back,
-          lay: bet.lay,
-          status: bet.status,
-          min: bet.min || 100,
-          max: bet.max || 100000,
-          sid: bet.sid,
-          mid: bet.mid,
-        }));
-      } else {
-        const rawData = payload?.raw || payload;
+        extractedBets = payload.bets
+          .filter((bet: any) => bet && (bet.back > 0 || bet.lay > 0))
+          .map((bet: any) => ({
+            type: bet.type,
+            odds: bet.back > 0 ? bet.back : (bet.lay > 0 ? bet.lay : 1.98),
+            back: bet.back || 0,
+            lay: bet.lay || 0,
+            status: bet.status || 'active',
+            min: bet.min || 100,
+            max: bet.max || 100000,
+            sid: bet.sid,
+            mid: bet.mid,
+          }));
+      } 
+      // Try parsing from raw data
+      else if (payload?.raw) {
+        const rawData = payload.raw;
         ["t1", "t2", "t3", "sub"].forEach((key) => {
-          if (rawData?.[key] && Array.isArray(rawData[key])) {
+          if (rawData[key] && Array.isArray(rawData[key])) {
             rawData[key].forEach((item: any) => {
-              if (item.nat || item.nation || item.name) {
-                extractedBets.push({
-                  type: item.nat || item.nation || item.name,
-                  odds: parseFloat(item.b1 || item.b || item.rate || "1.98") || 1.98,
-                  back: parseFloat(item.b1 || item.b || "0") || 0,
-                  lay: parseFloat(item.l1 || item.l || "0") || 0,
-                  status: item.gstatus === "0" ? "suspended" : "active",
-                  min: item.min || 100,
-                  max: item.max || 100000,
-                  sid: item.sid,
-                  mid: item.mid,
-                });
+              if (item && (item.nat || item.nation || item.name)) {
+                const backVal = parseFloat(item.b1 || item.b || "0") || 0;
+                const layVal = parseFloat(item.l1 || item.l || "0") || 0;
+                
+                // Only add if there's a valid back or lay value
+                if (backVal > 0 || layVal > 0) {
+                  extractedBets.push({
+                    type: item.nat || item.nation || item.name,
+                    odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 1.98),
+                    back: backVal,
+                    lay: layVal,
+                    status: item.gstatus === "0" || item.gstatus === "SUSPENDED" ? "suspended" : "active",
+                    min: item.min || 100,
+                    max: item.max || 100000,
+                    sid: item.sid,
+                    mid: item.mid || rawData.mid,
+                  });
+                }
+              }
+            });
+          }
+        });
+      }
+      // Try direct payload parsing
+      else {
+        const rawData = payload;
+        ["t1", "t2", "t3", "sub"].forEach((key) => {
+          if (rawData[key] && Array.isArray(rawData[key])) {
+            rawData[key].forEach((item: any) => {
+              if (item && (item.nat || item.nation || item.name)) {
+                const backVal = parseFloat(item.b1 || item.b || "0") || 0;
+                const layVal = parseFloat(item.l1 || item.l || "0") || 0;
+                
+                if (backVal > 0 || layVal > 0) {
+                  extractedBets.push({
+                    type: item.nat || item.nation || item.name,
+                    odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 1.98),
+                    back: backVal,
+                    lay: layVal,
+                    status: item.gstatus === "0" || item.gstatus === "SUSPENDED" ? "suspended" : "active",
+                    min: item.min || 100,
+                    max: item.max || 100000,
+                    sid: item.sid,
+                    mid: item.mid || rawData.mid,
+                  });
+                }
               }
             });
           }
@@ -374,11 +423,12 @@ export const useDiamondCasino = () => {
       }
 
       if (extractedBets.length > 0) {
-        setOdds({ bets: extractedBets, rawData: oddsResponse?.data || {} });
-        return;
+        console.log(`✅ Successfully extracted ${extractedBets.length} betting options`);
+        setOdds({ bets: extractedBets, rawData: payload || {} });
+      } else {
+        console.warn(`⚠️ No betting options extracted. Payload:`, payload);
+        setOdds({ bets: [], rawData: payload || {}, noOdds: true });
       }
-
-      setOdds({ bets: [], rawData: {}, noOdds: true });
     } catch (error) {
       console.error("Error fetching odds:", error);
       setOdds({ bets: [], rawData: {}, error: true });
@@ -402,26 +452,68 @@ export const useDiamondCasino = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("You must be logged in to place bets");
 
-      // call edge function, pass token
-      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
-        body: { action: "place-bet", betData },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (error) throw error;
-      if (!data) throw new Error("No response from bet API");
-      if (!data?.success) {
-        // provider may send descriptive message
-        throw new Error(data?.message || data?.error || "Bet rejected by casino API");
+      // Validate bet data
+      if (!betData.amount || betData.amount <= 0) {
+        throw new Error("Invalid bet amount");
+      }
+      if (!betData.betType) {
+        throw new Error("Please select a bet option");
       }
 
-      // success: data.bet should be the inserted row (or null)
-      toast({ title: "Bet Placed!", description: `You bet ₹${betData.amount} on ${betData.betType}` });
-      fetchUserBets();
-      return data.bet ?? data;
+      console.log("Placing bet:", { tableId: betData.tableId, amount: betData.amount, betType: betData.betType });
+
+      // call edge function, pass token
+      // Use fetch directly to get better error messages
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const response = await fetch(`${supabaseUrl}/functions/v1/diamond-casino-proxy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+          },
+          body: JSON.stringify({ action: "place-bet", betData })
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          const errorMsg = responseData?.error || responseData?.message || `Server error: ${response.status}`;
+          console.error("Edge function error response:", responseData);
+          throw new Error(errorMsg);
+        }
+
+        if (!responseData?.success) {
+          const errorMsg = responseData?.error || responseData?.message || "Bet rejected by casino API";
+          console.error("Bet placement failed:", responseData);
+          throw new Error(errorMsg);
+        }
+
+        // success: data.bet should be the inserted row (or null)
+        toast({ 
+          title: "Bet Placed!", 
+          description: `You bet ₹${betData.amount} on ${betData.betType}` 
+        });
+        fetchUserBets();
+        return responseData.bet ?? responseData;
+      } catch (fetchError: any) {
+        console.error("Fetch error:", fetchError);
+        // If it's already an Error with a message, re-throw it
+        if (fetchError instanceof Error) {
+          throw fetchError;
+        }
+        // Otherwise create a new error
+        throw new Error(fetchError?.message || "Failed to place bet");
+      }
     } catch (error: any) {
       console.error("Error placing bet:", error);
-      toast({ title: "Bet Failed", description: error.message || "Failed to place bet", variant: "destructive" });
+      const errorMessage = error?.message || error?.toString() || "Failed to place bet";
+      toast({ 
+        title: "Bet Failed", 
+        description: errorMessage, 
+        variant: "destructive" 
+      });
       throw error;
     } finally {
       setLoading(false);
@@ -527,6 +619,26 @@ export const useDiamondCasino = () => {
     };
   }, [selectedTable?.id]);
 
+  // ----------------- Process/settle bets -----------------
+  const processBets = async (tableId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { 
+        body: { action: "process-bets", tableId } 
+      });
+      if (error) {
+        console.error("processBets invoke error:", error);
+        return;
+      }
+      if (data?.success) {
+        // Refresh user bets after processing
+        fetchUserBets();
+        console.log(`Processed bets for ${tableId}:`, data);
+      }
+    } catch (error) {
+      console.error("Error processing bets:", error);
+    }
+  };
+
   // ----------------- Fetch current result -----------------
   const fetchCurrentResult = async (tableId: string) => {
     try {
@@ -549,6 +661,9 @@ export const useDiamondCasino = () => {
         setCurrentResult(resultData);
         setResults((prev) => ({ ...prev, [tableId]: resultData }));
         setResultHistory(resData);
+        
+        // Automatically process pending bets when new result is available
+        processBets(tableId);
       }
     } catch (error) {
       console.error("Error fetching result:", error);
@@ -611,5 +726,6 @@ export const useDiamondCasino = () => {
     fetchCurrentResult,
     fetchResultHistory,
     fetchAllTableIds,
+    processBets,
   };
 };
