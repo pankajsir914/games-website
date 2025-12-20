@@ -11,7 +11,7 @@ import { io, Socket } from "socket.io-client";
 interface LiveStreamProps {
   tableId: string;
   tableName?: string;
-}
+}  
 
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
