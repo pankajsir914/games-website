@@ -1,9 +1,6 @@
-// src/components/casino/LiveStream.tsx  
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PlayCircle, ExternalLink, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LiveStreamProps {
@@ -13,86 +10,61 @@ interface LiveStreamProps {
 
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
-  const [iframeError, setIframeError] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
+  // ================= STREAM URL =================
   const fetchStreamUrl = async () => {
-    if (!tableId) return;
-
-    setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke(
         "diamond-casino-proxy",
-        {
-          body: {
-            action: "get-stream-url",
-            tableId,
-          },
-        }
+        { body: { action: "get-stream-url", tableId } }
       );
 
       if (error) throw error;
 
-      const url = data?.data?.tv_url || null;
-
-      console.log("🎥 Stream URL:", url);
+      // ✅ CORRECT FIELD
+      const url = data?.streamUrl || null;
 
       setStreamUrl(url);
-      setIframeError(false);
+      setError(!url);
     } catch (err) {
-      console.error("❌ Stream fetch failed:", err);
+      console.error("Stream URL error:", err);
+      setError(true);
       setStreamUrl(null);
-      setIframeError(true);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!tableId) return;
+
     fetchStreamUrl();
 
-    // token refresh every 2 min
-    const interval = setInterval(fetchStreamUrl, 2 * 60 * 1000);
+    // 🔁 refresh token every 2 min
+    const interval = setInterval(fetchStreamUrl, 120000);
     return () => clearInterval(interval);
   }, [tableId]);
 
-  const openExternal = () => {
-    if (streamUrl) {
-      window.open(streamUrl, "_blank", "noopener,noreferrer");
-    }
-  };
-
+  // ================= UI =================
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <PlayCircle className="h-5 w-5 text-red-500" />
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+          </span>
           LIVE – {tableName}
         </CardTitle>
       </CardHeader>
 
       <CardContent>
         <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-          {!streamUrl || iframeError ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-4 px-4">
-              <AlertCircle className="h-12 w-12 text-yellow-500" />
-              <div>
-                <p className="text-white font-semibold">
-                  Live stream restricted
-                </p>
-                <p className="text-white/60 text-sm">
-                  Click below to watch stream in a new tab
-                </p>
-              </div>
-
-              <Button
-                onClick={openExternal}
-                disabled={!streamUrl}
-                className="gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Watch Live Stream
-              </Button>
+          {error || !streamUrl ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+              <AlertCircle className="h-10 w-10 text-yellow-500" />
+              <p className="text-white text-sm">
+                Live stream unavailable
+              </p>
             </div>
           ) : (
             <iframe
@@ -102,7 +74,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
               allow="autoplay; fullscreen; encrypted-media"
               allowFullScreen
               referrerPolicy="no-referrer"
-              onError={() => setIframeError(true)}
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             />
           )}
         </div>
