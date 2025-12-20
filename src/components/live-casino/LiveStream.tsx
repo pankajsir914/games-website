@@ -7,7 +7,7 @@ interface LiveStreamProps {
   tableId: string;
   tableName?: string;
 }
-
+  
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
