@@ -1,120 +1,110 @@
 // src/components/casino/LiveStream.tsx
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlayCircle, Timer, AlertCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { PlayCircle, ExternalLink, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Props {
+interface LiveStreamProps {
   tableId: string;
   tableName?: string;
 }
-  
-export const LiveStream = ({ tableId, tableName }: Props) => {
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const [bettingOpen, setBettingOpen] = useState(false);
-  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  /** 🔁 Fetch round status from API (SYNC ONLY) */
-  const syncFromServer = async () => {
+export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [iframeError, setIframeError] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const fetchStreamUrl = async () => {
+    if (!tableId) return;
+
+    setLoading(true);
     try {
-      const { data } = await supabase.functions.invoke(
+      const { data, error } = await supabase.functions.invoke(
         "diamond-casino-proxy",
         {
-          body: { action: "get-odds", tableId },
+          body: {
+            action: "get-stream-url",
+            tableId,
+          },
         }
       );
 
-      const raw = data?.data?.raw;
-      const lt = Number(raw?.lt || 0);
+      if (error) throw error;
 
-      const isOpen =
-        lt > 0 && raw?.sub?.some((s: any) => s.gstatus === "OPEN");
+      const url = data?.data?.tv_url || null;
 
-      setSecondsLeft(lt);
-      setBettingOpen(isOpen);
+      console.log("🎥 Stream URL:", url);
+
+      setStreamUrl(url);
+      setIframeError(false);
     } catch (err) {
-      console.error("Status sync failed", err);
+      console.error("❌ Stream fetch failed:", err);
+      setStreamUrl(null);
+      setIframeError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  /** ⏱️ Local countdown (REAL TIMER) */
-  const startLocalTimer = () => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
-
-    countdownRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownRef.current!);
-          setBettingOpen(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
   useEffect(() => {
-    if (!tableId) return;
+    fetchStreamUrl();
 
-    syncFromServer();
-    startLocalTimer();
-
-    // 🔄 resync every 10 sec
-    const syncInterval = setInterval(syncFromServer, 10000);
-
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      clearInterval(syncInterval);
-    };
+    // token refresh every 2 min
+    const interval = setInterval(fetchStreamUrl, 2 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [tableId]);
+
+  const openExternal = () => {
+    if (streamUrl) {
+      window.open(streamUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <PlayCircle className="text-red-500" />
+          <PlayCircle className="h-5 w-5 text-red-500" />
           LIVE – {tableName}
         </CardTitle>
       </CardHeader>
 
       <CardContent>
-        <div className="relative aspect-video rounded-lg bg-gradient-to-br from-black via-neutral-900 to-black overflow-hidden">
-
-          {/* STATUS BADGE */}
-          <div className="absolute top-3 left-3 z-10">
-            {bettingOpen ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-600/90 text-white text-xs font-semibold shadow">
-                <Timer className="w-4 h-4" />
-                {secondsLeft}s • Betting Open
+        <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
+          {!streamUrl || iframeError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-4 px-4">
+              <AlertCircle className="h-12 w-12 text-yellow-500" />
+              <div>
+                <p className="text-white font-semibold">
+                  Live stream restricted
+                </p>
+                <p className="text-white/60 text-sm">
+                  Click below to watch stream in a new tab
+                </p>
               </div>
-            ) : (
-              <div className="px-3 py-1.5 rounded-md bg-red-600/90 text-white text-xs font-semibold shadow">
-                Betting Closed
-              </div>
-            )}
-          </div>
 
-          {/* LIVE PLACEHOLDER (REAL CASINO STYLE) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-4 px-6">
-            <div className="relative">
-              <span className="absolute -inset-2 rounded-full bg-red-500/20 animate-ping" />
-              <PlayCircle className="relative w-16 h-16 text-red-500" />
+              <Button
+                onClick={openExternal}
+                disabled={!streamUrl}
+                className="gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Watch Live Stream
+              </Button>
             </div>
-
-            <div>
-              <p className="text-white font-semibold text-lg">
-                Live Game in Progress
-              </p>
-            </div>
-
-            {!bettingOpen && (
-              <div className="flex items-center gap-2 text-yellow-400 text-xs">
-                <AlertCircle className="w-4 h-4" />
-                Waiting for next round
-              </div>
-            )}
-          </div>
+          ) : (
+            <iframe
+              key={streamUrl}
+              src={streamUrl}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; encrypted-media"
+              allowFullScreen
+              referrerPolicy="no-referrer"
+              onError={() => setIframeError(true)}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
