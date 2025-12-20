@@ -9,7 +9,7 @@ interface Props {
   tableId: string;
   tableName?: string;
 }
-
+  
 export const LiveStream = ({ tableId, tableName }: Props) => {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [bettingOpen, setBettingOpen] = useState(false);
