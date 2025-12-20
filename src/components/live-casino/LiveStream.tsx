@@ -9,7 +9,7 @@ import Hls from "hls.js";
 import { io, Socket } from "socket.io-client";
 
 interface LiveStreamProps {
-  tableId: string;
+  tableId: string;   
   tableName?: string;
 }  
 
