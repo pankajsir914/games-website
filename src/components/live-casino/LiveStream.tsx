@@ -7,7 +7,7 @@ interface LiveStreamProps {
   tableId: string;
   tableName?: string;
 }
-   
+
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
@@ -16,13 +16,25 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
     try {
       const { data, error } = await supabase.functions.invoke(
         "diamond-casino-proxy",
-        { body: { action: "get-stream-url", tableId } }
+        {
+          body: {
+            action: "get-stream-url",
+            tableId,
+          },
+        }
       );
 
       if (error) throw error;
 
-      // ✅ tv_url is the real playable URL
-      const url = data?.data?.tv_url || null;
+      /**
+       * ✅ Backend normalized URL priority
+       * 1. streamUrl (BEST)
+       * 2. data.data.tv_url (fallback safety)
+       */
+      const url =
+        data?.streamUrl ||
+        data?.data?.tv_url ||
+        null;
 
       setStreamUrl(url);
       setError(!url);
@@ -38,7 +50,8 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
 
     fetchStreamUrl();
 
-    const interval = setInterval(fetchStreamUrl, 120000);
+    // 🔁 refresh token every 60s (hosting safe)
+    const interval = setInterval(fetchStreamUrl, 60 * 1000);
     return () => clearInterval(interval);
   }, [tableId]);
 
@@ -65,13 +78,22 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
             </div>
           ) : (
             <iframe
-              key={streamUrl}
+              key={streamUrl} // 🔄 reload on token refresh
               src={streamUrl}
+              title={`live-stream-${tableId}`}
               className="w-full h-full"
+              frameBorder="0"
               allow="autoplay; fullscreen; encrypted-media"
               allowFullScreen
               referrerPolicy="no-referrer"
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+              sandbox="
+                allow-scripts
+                allow-same-origin
+                allow-forms
+                allow-popups
+                allow-presentation
+                allow-top-navigation-by-user-activation
+              "
             />
           )}
         </div>
