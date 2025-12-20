@@ -7,12 +7,11 @@ interface LiveStreamProps {
   tableId: string;
   tableName?: string;
 }
-   
+
 export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
-  // ================= STREAM URL =================
   const fetchStreamUrl = async () => {
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -22,15 +21,15 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
 
       if (error) throw error;
 
-      // ✅ CORRECT FIELD
-      const url = data?.streamUrl || null;
+      // ✅ tv_url is the real playable URL
+      const url = data?.data?.tv_url || null;
 
       setStreamUrl(url);
       setError(!url);
     } catch (err) {
       console.error("Stream URL error:", err);
-      setError(true);
       setStreamUrl(null);
+      setError(true);
     }
   };
 
@@ -39,12 +38,10 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
 
     fetchStreamUrl();
 
-    // 🔁 refresh token every 2 min
     const interval = setInterval(fetchStreamUrl, 120000);
     return () => clearInterval(interval);
   }, [tableId]);
 
-  // ================= UI =================
   return (
     <Card>
       <CardHeader>
