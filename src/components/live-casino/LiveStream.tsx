@@ -1,29 +1,29 @@
+// src/components/live-casino/LiveStream.tsx
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Hls from "hls.js";
+import { io, Socket } from "socket.io-client";
 
 interface LiveStreamProps {
   tableId: string;
   tableName?: string;
-
-  /** NEW */
-  roundTimeLeft?: number; // seconds (lt)
 }
 
-export const LiveStream = ({
-  tableId,
-  tableName,
-  roundTimeLeft = 0,
-}: LiveStreamProps) => {
+export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState<number>(roundTimeLeft);
+
+  /** NEW */
+  const [secondsLeft, setSecondsLeft] = useState<number>(0);
+  const [bettingOpen, setBettingOpen] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   // ================= STREAM URL =================
   const fetchStreamUrl = async () => {
@@ -53,7 +53,7 @@ export const LiveStream = ({
     return () => clearInterval(interval);
   }, [tableId]);
 
-  // ================= HLS ATTACH =================
+  // ================= HLS =================
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !streamUrl) return;
@@ -78,10 +78,7 @@ export const LiveStream = ({
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.ERROR, () => {
-        setError(true);
-      });
-
+      hls.on(Hls.Events.ERROR, () => setError(true));
       hlsRef.current = hls;
     } else {
       setError(true);
@@ -95,26 +92,45 @@ export const LiveStream = ({
     };
   }, [streamUrl]);
 
-  // ================= TIMER LOGIC (NEW) =================
+  // ================= SOCKET TIMER (NEW) =================
   useEffect(() => {
-    setSecondsLeft(roundTimeLeft);
-  }, [roundTimeLeft]);
+    const socket = io("http://72.61.169.60:8000/casino", {
+      transports: ["websocket"],
+    });
 
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("join-table", tableId);
+    });
+
+    socket.on("round-timer", (payload: any) => {
+      if (payload.tableId !== tableId) return;
+
+      setSecondsLeft(Number(payload.lt || 0));
+      setBettingOpen(payload.status === "OPEN");
+    });
+
+    return () => {
+      socket.emit("leave-table", tableId);
+      socket.disconnect();
+    };
+  }, [tableId]);
+
+  // ================= LOCAL COUNTDOWN =================
   useEffect(() => {
-    if (secondsLeft <= 0) return;
+    if (!bettingOpen || secondsLeft <= 0) return;
 
     const t = setInterval(() => {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
     }, 1000);
 
     return () => clearInterval(t);
-  }, [secondsLeft]);
+  }, [secondsLeft, bettingOpen]);
 
   const openExternal = () => {
     if (streamUrl) window.open(streamUrl, "_blank");
   };
-
-  const bettingClosed = secondsLeft <= 0;
 
   // ================= UI =================
   return (
@@ -151,18 +167,26 @@ export const LiveStream = ({
                 controls={false}
               />
 
-              {/* ===== LEFT BOTTOM MESSAGE ===== */}
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs sm:text-sm px-3 py-1.5 rounded-md">
-                {bettingClosed
-                  ? "Betting closed. Waiting for next round…"
-                  : "Place your bets now"}
+              {/* LEFT BOTTOM */}
+              <div
+                className={`absolute bottom-2 left-2 px-3 py-1.5 rounded-md text-xs sm:text-sm text-white ${
+                  bettingOpen ? "bg-green-600/80" : "bg-red-600/80"
+                }`}
+              >
+                {bettingOpen
+                  ? "Place your bets now"
+                  : "Betting closed. Waiting for next round…"}
               </div>
 
-              {/* ===== RIGHT BOTTOM TIMER ===== */}
-              <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs sm:text-sm px-3 py-1.5 rounded-md font-mono">
-                {bettingClosed
-                  ? "Next round soon"
-                  : `Time left: ${secondsLeft}s`}
+              {/* RIGHT BOTTOM */}
+              <div
+                className={`absolute bottom-2 right-2 px-3 py-1.5 rounded-md text-xs sm:text-sm text-white font-mono ${
+                  bettingOpen ? "bg-green-600/80" : "bg-red-600/80"
+                }`}
+              >
+                {bettingOpen
+                  ? `Time left: ${secondsLeft}s`
+                  : "Next round soon"}
               </div>
             </>
           )}
