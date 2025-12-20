@@ -74,6 +74,21 @@ const LiveCasinoTable = () => {
     };
 
     fetchData();
+
+    // Set up periodic odds fetching (every 15 seconds)
+    const oddsInterval = setInterval(() => {
+      fetchOdds(tableId);
+    }, 15000);
+
+    // Set up periodic result checking and bet processing (every 30 seconds)
+    const resultInterval = setInterval(() => {
+      fetchCurrentResult(tableId);
+    }, 30000);
+
+    return () => {
+      clearInterval(oddsInterval);
+      clearInterval(resultInterval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId, navigate]);
 
