@@ -21,7 +21,7 @@ export const AndarBaharGameControl = () => {
   const [jokerCard, setJokerCard] = useState('');
   const [manipulationType, setManipulationType] = useState('side-control');
 
-  // Get Andar Bahar settings
+  // Get Andar Bahar Settings
   const andarBaharSettings = gameSettings?.find(g => g.game_type === 'andar_bahar');
   const gameIsPaused = isGamePaused('andar_bahar');
 
