@@ -56,6 +56,11 @@ export const BetHistory = ({ bets }: BetHistoryProps) => {
                     <div className="text-xs text-muted-foreground">
                       {bet.bet_type} • {bet.odds}x
                     </div>
+                    {bet.round_id && (
+                      <div className="text-xs text-muted-foreground/80 font-mono">
+                        Round ID: {bet.round_id}
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground">
                       {bet.created_at &&
                         formatDistanceToNow(new Date(bet.created_at), {
