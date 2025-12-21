@@ -13,7 +13,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
-  // ================= STREAM URL =================
+  // ================= FETCH STREAM URL =================
   const fetchStreamUrl = async () => {
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -68,18 +68,18 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
       <CardContent>
         <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
           {error || !streamUrl ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center p-4">
-              <AlertCircle className="h-12 w-12 text-yellow-500" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-4">
+              <AlertCircle className="h-10 w-10 text-yellow-500" />
               <p className="text-white font-semibold">
                 Stream unavailable
               </p>
               <p className="text-white/60 text-sm">
-                Live stream could not be loaded.
+                Stream server blocked the request (403 / CORS).
               </p>
             </div>
           ) : (
             <>
-              {/* ✅ CORRECT WAY: IFRAME */}
+              {/* ✅ ONLY CORRECT WAY FOR TURNKEY STREAM */}
               <iframe
                 src={streamUrl}
                 className="w-full h-full"
@@ -89,7 +89,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
                 style={{ border: 0 }}
               />
 
-              {/* OPEN EXTERNALLY */}
+              {/* OPEN IN NEW TAB */}
               <Button
                 onClick={openExternal}
                 size="sm"
