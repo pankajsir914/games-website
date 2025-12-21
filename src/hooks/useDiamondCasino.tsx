@@ -1,5 +1,5 @@
 // src/hooks/useDiamondCasino.ts
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -283,7 +283,7 @@ export const useDiamondCasino = () => {
   };
 
   // ----------------- Fetch live tables -----------------
-  const fetchLiveTables = async () => {
+  const fetchLiveTables = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -359,7 +359,7 @@ export const useDiamondCasino = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // ----------------- Fetch table details -----------------
   const fetchTableDetails = async (tableId: string) => {
@@ -425,12 +425,28 @@ export const useDiamondCasino = () => {
           .map((bet: any) => {
             // Try multiple field names for bet type
             const betType = bet.type || bet.nat || bet.nation || bet.name || bet.label || 'Unknown';
-            const backVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
-            const layVal = bet.lay || bet.l1 || bet.l || 0;
+            
+            // Convert odds from points format to decimal format
+            const convertToDecimal = (value: number): number => {
+              if (!value || value === 0) return 0;
+              // If value is very large (like 300000), it's in points format
+              // Convert to decimal odds (divide by 100000)
+              if (value > 1000) {
+                return value / 100000;
+              }
+              // Already in decimal format
+              return value;
+            };
+            
+            const rawBackVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
+            const rawLayVal = bet.lay || bet.l1 || bet.l || 0;
+            
+            const backVal = convertToDecimal(Number(rawBackVal));
+            const layVal = convertToDecimal(Number(rawLayVal));
             
             return {
               type: betType,
-              odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 1.98),
+              odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 0),
               back: backVal || 0,
               lay: layVal || 0,
               status: bet.status || 'active',
@@ -505,15 +521,30 @@ export const useDiamondCasino = () => {
               const shouldInclude = (finalBack > 0 || finalLay > 0) || (shouldShow && hasValidBetType);
               
               if (shouldInclude) {
+                // Convert odds from points format to decimal format
+                const convertToDecimal = (value: number): number => {
+                  if (!value || value === 0) return 0;
+                  // If value is very large (like 300000), it's in points format
+                  // Convert to decimal odds (divide by 100000)
+                  if (value > 1000) {
+                    return value / 100000;
+                  }
+                  // Already in decimal format
+                  return value;
+                };
+                
+                const convertedBack = convertToDecimal(finalBack);
+                const convertedLay = convertToDecimal(finalLay);
+                
                 // Only use actual odds, no dummy data
                 // If both are 0, use 0 (don't show dummy odds)
-                const oddsValue = finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : 0);
+                const oddsValue = convertedBack > 0 ? convertedBack : (convertedLay > 0 ? convertedLay : 0);
                 
                 extractedBets.push({
                   type: betType,
                   odds: oddsValue,
-                  back: finalBack,
-                  lay: finalLay,
+                  back: convertedBack,
+                  lay: convertedLay,
                   status: (item.gstatus === "0" || item.gstatus === "SUSPENDED" || item.status === "suspended" || item.suspended) ? "suspended" : "active",
                   min: item.min || rawData.min || 100,
                   max: item.max || rawData.max || 100000,
@@ -591,15 +622,30 @@ export const useDiamondCasino = () => {
               const shouldInclude = (finalBack > 0 || finalLay > 0) || (shouldShow && hasValidBetType);
               
               if (shouldInclude) {
+                // Convert odds from points format to decimal format
+                const convertToDecimal = (value: number): number => {
+                  if (!value || value === 0) return 0;
+                  // If value is very large (like 300000), it's in points format
+                  // Convert to decimal odds (divide by 100000)
+                  if (value > 1000) {
+                    return value / 100000;
+                  }
+                  // Already in decimal format
+                  return value;
+                };
+                
+                const convertedBack = convertToDecimal(finalBack);
+                const convertedLay = convertToDecimal(finalLay);
+                
                 // Only use actual odds, no dummy data
                 // If both are 0, use 0 (don't show dummy odds)
-                const oddsValue = finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : 0);
+                const oddsValue = convertedBack > 0 ? convertedBack : (convertedLay > 0 ? convertedLay : 0);
                 
                 extractedBets.push({
                   type: betType,
                   odds: oddsValue,
-                  back: finalBack,
-                  lay: finalLay,
+                  back: convertedBack,
+                  lay: convertedLay,
                   status: (item.gstatus === "0" || item.gstatus === "SUSPENDED" || item.status === "suspended" || item.suspended) ? "suspended" : "active",
                   min: item.min || rawData.min || 100,
                   max: item.max || rawData.max || 100000,
@@ -619,6 +665,16 @@ export const useDiamondCasino = () => {
         if (!silent) {
           console.log(`✅ Successfully extracted ${extractedBets.length} betting options`);
         }
+        
+        // Log odds data for debugging
+        console.log("🎲 useDiamondCasino - Odds Data Extracted:", {
+          tableId,
+          totalBets: extractedBets.length,
+          bets: extractedBets,
+          rawPayload: payload,
+          sampleBet: extractedBets[0] || null
+        });
+        
         setOdds({ bets: extractedBets, rawData: payload || {}, error: false, noOdds: false });
       } else {
         if (!silent) {
