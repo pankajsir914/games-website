@@ -13,7 +13,7 @@ interface TableCardProps {
   };
   onClick: () => void;
 }
-
+   
 export const TableCard = memo(({ table, onClick }: TableCardProps) => {
   const isRestricted = table.status === "restricted";
   const [imageError, setImageError] = useState(false);
