@@ -1,15 +1,31 @@
 // src/pages/LiveCasino.tsx
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { TableCard } from "@/components/live-casino/TableCard";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 const LiveCasino = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<any>(null);
   const {
     liveTables,
     loading,
@@ -20,10 +36,31 @@ const LiveCasino = () => {
     fetchLiveTables();
   }, [fetchLiveTables]);
 
+  // Navigate to selected table after successful login
+  useEffect(() => {
+    if (user && selectedTable && !showAuthModal) {
+      navigate(`/live-casino/${selectedTable.id}`);
+      setSelectedTable(null);
+      setShowLoginDialog(false);
+    }
+  }, [user, selectedTable, navigate, showAuthModal]);
+
   const handleSelectTable = (table: any) => {
+    // Check if user is logged in
+    if (!user && !authLoading) {
+      setSelectedTable(table);
+      setShowLoginDialog(true);
+      return;
+    }
+
     // Navigate to separate page for better UX
     // Benefits: Shareable URLs, browser back button, bookmarking, better for 80+ games
     navigate(`/live-casino/${table.id}`);
+  };
+
+  const handleLoginClick = () => {
+    setShowLoginDialog(false);
+    setShowAuthModal(true);
   };
 
   return (
@@ -89,6 +126,30 @@ const LiveCasino = () => {
           </div>
         )}
       </div>
+
+      {/* Login Required Dialog */}
+      <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Login Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please login to access live casino games. Without login, you cannot open or play any game.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLoginClick}>
+              Login
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        open={showAuthModal} 
+        onOpenChange={setShowAuthModal}
+      />
     </div>
   );
 };
