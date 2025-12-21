@@ -1,14 +1,37 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
+// Constants
+const TIMEOUTS = {
+  ODDS_FETCH: 8000,
+  TABLE_FETCH: 8000,
+  STREAM_FETCH: 10000,
+  TABLE_ID_FETCH: 5000,
+} as const;
+
+const HOSTINGER_PROXY_BASE = 'http://72.61.169.60:8000/api/casino';
+const CASINO_IMAGE_BASE = 'https://sitethemedata.com/casino-games';
+
+// CORS headers - use environment variable for production
+const getAllowedOrigin = () => {
+  const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN');
+  return allowedOrigin || '*';
+};
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders
+    });
   }
 
   try {
@@ -16,19 +39,422 @@ serve(async (req) => {
     const CASINO_API_KEY = Deno.env.get('DIAMOND_CASINO_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Whitelisted domain for stream server CORS
+    const WHITELISTED_DOMAIN = Deno.env.get('WHITELISTED_STREAM_DOMAIN') || 'https://www.rrbexchange.com';
 
     // Note: CASINO_API_URL and CASINO_API_KEY are optional - bets can be recorded locally
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    
-    // Hostinger proxy base URL for all casino API calls
-    const HOSTINGER_PROXY_BASE = 'http://72.61.169.60:8000/api/casino';
 
-    // Handle image proxy requests (GET requests with image path)
+    // Handle GET requests (image proxy and HLS stream proxy)
     if (req.method === 'GET') {
       const url = new URL(req.url);
       const imagePath = url.searchParams.get('image');
+      const streamUrl = url.searchParams.get('stream');
       
+      // Handle HLS stream proxy
+      if (streamUrl) {
+        console.log(`🎬 HLS Stream Proxy Handler - Starting`);
+        console.log(`📥 Received stream URL parameter: ${streamUrl}`);
+        try {
+          let decodedStreamUrl: string;
+          try {
+            decodedStreamUrl = decodeURIComponent(streamUrl);
+            console.log(`📺 Proxying HLS stream: ${decodedStreamUrl}`);
+          } catch (decodeError) {
+            console.error(`❌ URL decode error:`, decodeError);
+            return new Response(JSON.stringify({ 
+              error: 'Invalid stream URL encoding',
+              message: decodeError instanceof Error ? decodeError.message : 'Unknown decode error',
+              originalUrl: streamUrl
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          
+          // Validate URL format
+          let streamUrlObj: URL;
+          try {
+            streamUrlObj = new URL(decodedStreamUrl);
+          } catch (urlError) {
+            console.error(`❌ Invalid URL format:`, urlError);
+            return new Response(JSON.stringify({ 
+              error: 'Invalid stream URL format',
+              message: urlError instanceof Error ? urlError.message : 'Invalid URL',
+              originalUrl: decodedStreamUrl
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          
+          // Try to fetch the stream with whitelisted domain as Origin
+          // Since domain is whitelisted, use the whitelisted domain as Origin header
+          let streamResponse: Response;
+          try {
+            // Get whitelisted domain - priority: env variable > request origin > default
+            let whitelistedOrigin: string | undefined;
+            
+            // First try environment variable (most reliable)
+            if (WHITELISTED_DOMAIN) {
+              try {
+                const domainUrl = new URL(WHITELISTED_DOMAIN);
+                whitelistedOrigin = domainUrl.origin;
+                console.log(`✅ Using whitelisted domain from env: ${whitelistedOrigin}`);
+              } catch (e) {
+                console.warn(`⚠️ Invalid WHITELISTED_STREAM_DOMAIN: ${WHITELISTED_DOMAIN}`);
+              }
+            }
+            
+            // Fallback to request origin if env variable not set
+            if (!whitelistedOrigin) {
+              const requestOrigin = req.headers.get('origin') || req.headers.get('referer');
+              if (requestOrigin) {
+                try {
+                  const originUrl = new URL(requestOrigin);
+                  whitelistedOrigin = originUrl.origin;
+                  console.log(`✅ Using whitelisted origin from request: ${whitelistedOrigin}`);
+                } catch (e) {
+                  console.warn(`⚠️ Could not parse origin: ${requestOrigin}`);
+                }
+              }
+            }
+            
+            // Build headers - ALWAYS include Origin and Referer with whitelisted domain
+            const fetchHeaders: HeadersInit = {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*',
+              'Accept-Language': 'en-US,en;q=0.9',
+            };
+            
+            // CRITICAL: Always send Origin and Referer headers with whitelisted domain
+            if (whitelistedOrigin) {
+              fetchHeaders['Origin'] = whitelistedOrigin;
+              fetchHeaders['Referer'] = whitelistedOrigin;
+              console.log(`✅ Sending Origin header: ${whitelistedOrigin}`);
+              console.log(`✅ Sending Referer header: ${whitelistedOrigin}`);
+            } else {
+              // If no whitelisted origin, still try with stream URL origin
+              fetchHeaders['Referer'] = decodedStreamUrl;
+              console.log(`⚠️ No whitelisted origin, using stream URL as Referer`);
+            }
+            
+            // Log all headers being sent (for debugging)
+            console.log(`📡 Fetching stream with headers:`, JSON.stringify(Object.fromEntries(Object.entries(fetchHeaders))));
+            console.log(`🔄 Starting fetch to: ${decodedStreamUrl}`);
+            
+            
+            
+            streamResponse = await fetch(decodedStreamUrl, {
+              headers: fetchHeaders,
+              redirect: 'follow',
+              // Don't include credentials to avoid CORS preflight issues
+            });
+            
+            console.log(`📥 Fetch completed. Status: ${streamResponse.status} ${streamResponse.statusText}`);
+            
+            // Log response headers to see what server returned
+            const responseHeadersObj = Object.fromEntries(streamResponse.headers.entries());
+            console.log(`📥 Response headers:`, JSON.stringify(responseHeadersObj));
+            
+            // Log specific CORS headers if present
+            if (streamResponse.headers.get('access-control-allow-origin')) {
+              console.log(`✅ CORS header present: access-control-allow-origin = ${streamResponse.headers.get('access-control-allow-origin')}`);
+            }
+          } catch (fetchError) {
+            console.error(`❌ Fetch error:`, fetchError);
+            const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
+            const errorStack = fetchError instanceof Error ? fetchError.stack : undefined;
+            console.error(`❌ Fetch error details:`, { message: errorMessage, stack: errorStack });
+            
+            return new Response(JSON.stringify({ 
+              error: 'Failed to fetch stream',
+              message: errorMessage,
+              originalUrl: decodedStreamUrl
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          console.log(`📊 Response status check: ${streamResponse.status} (ok: ${streamResponse.ok})`);
+          
+          if (!streamResponse.ok) {
+            console.error(`❌ Stream fetch failed: ${streamResponse.status} ${streamResponse.statusText}`);
+            let errorText = 'Unknown error';
+            try {
+              errorText = await streamResponse.text();
+              console.error(`❌ Error response body (first 500 chars): ${errorText.substring(0, 500)}`);
+            } catch (e) {
+              console.error(`❌ Could not read error response:`, e);
+            }
+            console.error(`❌ Full error response: ${errorText}`);
+            
+            // If it's a 403, return a helpful error message
+            if (streamResponse.status === 403) {
+              return new Response(JSON.stringify({ 
+                error: 'Stream access forbidden (403)', 
+                message: 'The stream server is blocking access. This may be due to CORS restrictions or authentication requirements.',
+                originalUrl: decodedStreamUrl,
+                status: 403
+              }), {
+                status: 403,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              });
+            }
+            
+            return new Response(JSON.stringify({ 
+              error: `Stream not accessible: ${streamResponse.status}`,
+              status: streamResponse.status,
+              originalUrl: decodedStreamUrl
+            }), {
+              status: streamResponse.status,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          const contentType = streamResponse.headers.get('content-type') || 'application/vnd.apple.mpegurl';
+          console.log(`📦 Response content-type: ${contentType}`);
+          console.log(`📦 All response headers:`, Object.fromEntries(streamResponse.headers.entries()));
+          
+          let streamText: string;
+          
+          try {
+            console.log(`📖 Reading response body...`);
+            streamText = await streamResponse.text();
+            console.log(`✅ Stream content fetched successfully!`);
+            console.log(`✅ Content length: ${streamText.length} bytes`);
+            console.log(`✅ Content preview (first 300 chars): ${streamText.substring(0, 300)}`);
+          } catch (textError) {
+            console.error(`❌ Error reading stream text:`, textError);
+            return new Response(JSON.stringify({ 
+              error: 'Failed to read stream content',
+              message: textError instanceof Error ? textError.message : 'Unknown error',
+              originalUrl: decodedStreamUrl
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          
+          // Check if response is HTML (might be error page or redirect)
+          if (contentType.includes('text/html')) {
+            console.log(`⚠️ Server returned HTML instead of HLS manifest`);
+            console.log(`📄 Full HTML response: ${streamText}`);
+            
+            // Try to extract stream URL from HTML (common patterns)
+            let extractedUrl: string | null = null;
+            try {
+              const urlPatterns = [
+                /https?:\/\/[^\s"']+\.m3u8[^\s"']*/gi,
+                /https?:\/\/[^\s"']+tvop[^\s"']*/gi,
+                /"url":\s*"([^"]+)"/gi,
+                /'url':\s*'([^']+)'/gi,
+              ];
+              
+              for (const pattern of urlPatterns) {
+                try {
+                  const match = streamText.match(pattern);
+                  if (match && match[0]) {
+                    extractedUrl = match[0].replace(/["']/g, '').trim();
+                    // Validate that it's a valid URL
+                    try {
+                      new URL(extractedUrl);
+                      console.log(`✅ Extracted stream URL from HTML: ${extractedUrl}`);
+                      break;
+                    } catch (urlValidationError) {
+                      console.warn(`⚠️ Extracted URL is invalid: ${extractedUrl}`);
+                      extractedUrl = null;
+                    }
+                  }
+                } catch (patternError) {
+                  console.warn(`⚠️ Error matching pattern:`, patternError);
+                  continue;
+                }
+              }
+            } catch (extractionError) {
+              console.error(`❌ Error during URL extraction:`, extractionError);
+            }
+            
+            if (extractedUrl) {
+              // Recursively fetch the extracted URL
+              console.log(`🔄 Fetching extracted stream URL: ${extractedUrl}`);
+              try {
+                // Safely get whitelisted origin
+                let whitelistedOriginForFetch = 'https://www.rrbexchange.com';
+                if (WHITELISTED_DOMAIN) {
+                  try {
+                    whitelistedOriginForFetch = new URL(WHITELISTED_DOMAIN).origin;
+                  } catch (urlParseError) {
+                    console.warn(`⚠️ Could not parse WHITELISTED_DOMAIN, using default: ${WHITELISTED_DOMAIN}`);
+                  }
+                }
+                
+                const extractedResponse = await fetch(extractedUrl, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': '*/*',
+                    'Origin': whitelistedOriginForFetch,
+                    'Referer': whitelistedOriginForFetch,
+                  },
+                  redirect: 'follow',
+                });
+                
+                if (extractedResponse.ok) {
+                  const extractedContent = await extractedResponse.text();
+                  const extractedContentType = extractedResponse.headers.get('content-type') || 'application/vnd.apple.mpegurl';
+                  console.log(`✅ Extracted stream fetched successfully. Content-type: ${extractedContentType}`);
+                  
+                  // Use the extracted content
+                  streamText = extractedContent;
+                  // Update content type for processing
+                  const reqUrlObj = new URL(req.url);
+                  const proxyBase = `${reqUrlObj.origin}${reqUrlObj.pathname}?stream=`;
+                  
+                  // Rewrite URLs in the manifest
+                  // Cache URL object to avoid multiple instantiations
+                  const extractedUrlObj = new URL(extractedUrl!);
+                  const extractedBasePath = extractedUrlObj.pathname.substring(0, extractedUrlObj.pathname.lastIndexOf('/') + 1);
+                  const extractedOrigin = extractedUrlObj.origin;
+                  
+                  let processedContent = streamText.replace(
+                    /(https?:\/\/[^\s]+|\.\/[^\s]+|\/[^\s]+\.(ts|m3u8))/g,
+                    (match) => {
+                      try {
+                        if (match.startsWith('http://') || match.startsWith('https://')) {
+                          return `${proxyBase}${encodeURIComponent(match)}`;
+                        }
+                        const absoluteUrl = new URL(match, extractedOrigin + extractedBasePath).href;
+                        return `${proxyBase}${encodeURIComponent(absoluteUrl)}`;
+                      } catch (urlError) {
+                        console.warn(`⚠️ Could not rewrite URL: ${match}`, urlError);
+                        return match;
+                      }
+                    }
+                  );
+                  
+                  return new Response(processedContent, {
+                    headers: {
+                      ...corsHeaders,
+                      'Content-Type': extractedContentType,
+                      'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    }
+                  });
+                }
+              } catch (extractError) {
+                console.error(`❌ Error fetching extracted URL:`, extractError);
+              }
+            }
+            
+            // Check if it's a token expiration error (case-insensitive, handle HTML encoding)
+            const streamTextLower = streamText.toLowerCase();
+            const isTokenExpired = streamTextLower.includes('invalid stream token') || 
+                                   streamTextLower.includes('token is invalid') || 
+                                   streamTextLower.includes('token has expired') ||
+                                   (streamTextLower.includes('expired') && streamTextLower.includes('token'));
+            
+            if (isTokenExpired) {
+              console.error(`❌ Stream token expired or invalid detected in HTML response`);
+              console.log(`📄 HTML content preview: ${streamText.substring(0, 300)}`);
+              return new Response(JSON.stringify({
+                error: 'Stream token expired',
+                message: 'The stream token has expired or is invalid. Please refresh the stream URL.',
+                tokenExpired: true,
+                htmlPreview: streamText.substring(0, 500),
+                originalUrl: decodedStreamUrl
+              }), {
+                status: 401, // Use 401 to indicate authentication/token issue
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              });
+            }
+            
+            // If we can't extract a URL, return error
+            return new Response(JSON.stringify({
+              error: 'Stream server returned HTML instead of HLS manifest',
+              message: 'The stream URL may be incorrect or the server is returning an error page',
+              htmlPreview: streamText.substring(0, 500),
+              originalUrl: decodedStreamUrl
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          
+          // If it's a manifest (.m3u8), rewrite URLs to use proxy
+          let processedContent = streamText;
+          if (contentType.includes('mpegurl') || contentType.includes('x-mpegurl') || decodedStreamUrl.includes('.m3u8') || decodedStreamUrl.includes('tvop')) {
+            try {
+              const reqUrlObj = new URL(req.url);
+              const proxyBase = `${reqUrlObj.origin}${reqUrlObj.pathname}?stream=`;
+              
+              console.log(`🔄 Rewriting manifest URLs with proxy base: ${proxyBase}`);
+              
+              // Rewrite relative URLs to use proxy
+              processedContent = streamText.replace(
+                /(https?:\/\/[^\s]+|\.\/[^\s]+|\/[^\s]+\.(ts|m3u8))/g,
+                (match) => {
+                  try {
+                    // If it's already absolute, use it
+                    if (match.startsWith('http://') || match.startsWith('https://')) {
+                      return `${proxyBase}${encodeURIComponent(match)}`;
+                    }
+                    // If it's relative, make it absolute first
+                    const basePath = streamUrlObj.pathname.substring(0, streamUrlObj.pathname.lastIndexOf('/') + 1);
+                    const absoluteUrl = new URL(match, streamUrlObj.origin + basePath).href;
+                    return `${proxyBase}${encodeURIComponent(absoluteUrl)}`;
+                  } catch (urlError) {
+                    console.warn(`⚠️ Could not rewrite URL: ${match}`, urlError);
+                    return match;
+                  }
+                }
+              );
+              console.log(`✅ Manifest URLs rewritten`);
+            } catch (rewriteError) {
+              console.error(`❌ Error rewriting manifest:`, rewriteError);
+              const errorMessage = rewriteError instanceof Error ? rewriteError.message : String(rewriteError);
+              console.error(`❌ Rewrite error details:`, { message: errorMessage, error: rewriteError });
+              // Continue with original content if rewriting fails
+            }
+          }
+          
+          return new Response(processedContent, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': contentType,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, OPTIONS',
+              'Access-Control-Allow-Headers': '*',
+            }
+          });
+        } catch (proxyError) {
+          console.error('❌ HLS stream proxy error:', proxyError);
+          const errorMessage = proxyError instanceof Error ? proxyError.message : String(proxyError);
+          const errorStack = proxyError instanceof Error ? proxyError.stack : undefined;
+          const errorName = proxyError instanceof Error ? proxyError.name : 'UnknownError';
+          console.error('❌ Error details:', { 
+            name: errorName,
+            message: errorMessage, 
+            stack: errorStack,
+            error: proxyError
+          });
+          
+          // Return detailed error for debugging
+          return new Response(JSON.stringify({ 
+            error: 'Failed to proxy stream', 
+            message: errorMessage,
+            name: errorName,
+            details: errorStack,
+            timestamp: new Date().toISOString()
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      
+      // Handle image proxy
       if (imagePath) {
         console.log(`🖼️ Proxying image: ${imagePath}`);
         
@@ -72,7 +498,7 @@ serve(async (req) => {
         });
       }
       
-      return new Response(JSON.stringify({ error: 'Missing image parameter' }), {
+      return new Response(JSON.stringify({ error: 'Missing stream or image parameter' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -85,7 +511,7 @@ serve(async (req) => {
     let result;
 
     // Helper function to fetch with timeout
-    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 8000) => {
+    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs: number = TIMEOUTS.ODDS_FETCH) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -94,13 +520,15 @@ serve(async (req) => {
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Fetch timeout error for ${url}:`, errorMessage);
         throw error;
       }
     };
 
     // Get live tables from Hostinger VPS proxy
     if (action === 'get-tables') {
-      const HOSTINGER_PROXY_URL = 'http://72.61.169.60:8000/api/casino/tableid';
+      const HOSTINGER_PROXY_URL = `${HOSTINGER_PROXY_BASE}/tableid`;
       console.log(`📡 Fetching tables from: ${HOSTINGER_PROXY_URL}`);
       
       let tables: any[] = [];
@@ -109,14 +537,13 @@ serve(async (req) => {
       try {
         const response = await fetchWithTimeout(HOSTINGER_PROXY_URL, {
           headers: { 'Content-Type': 'application/json' }
-        }, 8000);
+        }, TIMEOUTS.TABLE_FETCH);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch tables: ${response.status}`);
         }
 
         const apiData = await response.json();
-        const CASINO_IMAGE_BASE = 'https://sitethemedata.com/casino-games';
         
         let rawTables: any[] = [];
         
@@ -163,7 +590,8 @@ serve(async (req) => {
             }, { onConflict: 'table_id' });
         }
       } catch (fetchError) {
-        console.log(`⚠️ VPS unreachable, falling back to cached tables:`, fetchError);
+        const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        console.log(`⚠️ VPS unreachable, falling back to cached tables:`, errorMessage);
         fromCache = true;
         
         // Fallback to cached data from database
@@ -206,19 +634,83 @@ serve(async (req) => {
     // Get live stream URL
     else if (action === 'get-stream-url' && tableId) {
       try {
-        const response = await fetch(`${HOSTINGER_PROXY_BASE}/tv_url?id=${tableId}`, {
+        // Option 1: Use Hostinger proxy URL directly as stream URL
+        const hostingerStreamUrl = `${HOSTINGER_PROXY_BASE}/tv_url?id=${tableId}`;
+        
+        // Option 2: Fetch the actual stream URL from Hostinger proxy and proxy through edge function
+        const response = await fetch(hostingerStreamUrl, {
           headers: { 'Content-Type': 'application/json' }
         });
 
         if (response.ok) {
           const data = await response.json();
-          const streamUrl = data.url || data.tv_url || data.stream_url || data.data?.url || data.data;
-          result = { success: true, data, streamUrl };
+          console.log(`📺 Raw stream response from Hostinger:`, JSON.stringify(data, null, 2));
+          
+          // Extract the actual stream URL from response
+          const actualStreamUrl = data.url || data.tv_url || data.stream_url || data.data?.url || data.data?.tv_url || data.data || (typeof data === 'string' ? data : null);
+          
+          if (actualStreamUrl) {
+            // Try to create a proxied URL through our edge function
+            // But if the stream server blocks proxy requests, use Hostinger proxy directly
+            const reqUrl = new URL(req.url);
+            const origin = reqUrl.origin.replace('http://', 'https://');
+            const functionPath = reqUrl.pathname.includes('/functions/v1/') 
+              ? reqUrl.pathname 
+              : `/functions/v1${reqUrl.pathname}`;
+            const edgeFunctionBase = `${origin}${functionPath}`;
+            const proxiedUrl = `${edgeFunctionBase}?stream=${encodeURIComponent(actualStreamUrl)}`;
+            
+            console.log(`✅ Actual stream URL: ${actualStreamUrl}`);
+            console.log(`✅ Hostinger proxy URL: ${hostingerStreamUrl}`);
+            console.log(`✅ Edge function proxied URL: ${proxiedUrl}`);
+            
+            // Return both options - frontend can try proxied first, fallback to Hostinger proxy
+            result = { 
+              success: true, 
+              data, 
+              streamUrl: actualStreamUrl,
+              proxiedUrl: proxiedUrl,
+              hostingerProxyUrl: hostingerStreamUrl, // Alternative: use Hostinger proxy directly
+            };
+          } else {
+            // If no stream URL found, try using Hostinger proxy directly
+            console.log(`⚠️ No stream URL in response, using Hostinger proxy directly`);
+            result = { 
+              success: true, 
+              data, 
+              streamUrl: hostingerStreamUrl,
+              proxiedUrl: hostingerStreamUrl,
+              hostingerProxyUrl: hostingerStreamUrl,
+            };
+          }
         } else {
-          result = { success: true, data: null, streamUrl: null };
+          console.error(`❌ Hostinger proxy returned ${response.status}`);
+          // Fallback: use Hostinger proxy URL directly
+          result = { 
+            success: true, 
+            data: null, 
+            streamUrl: hostingerStreamUrl,
+            proxiedUrl: hostingerStreamUrl,
+            hostingerProxyUrl: hostingerStreamUrl,
+          };
         }
       } catch (fetchError) {
-        result = { success: true, data: null, streamUrl: null };
+        const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        const errorStack = fetchError instanceof Error ? fetchError.stack : undefined;
+        console.error('Stream URL fetch error:', {
+          tableId,
+          message: errorMessage,
+          stack: errorStack
+        });
+        // Fallback: use Hostinger proxy URL directly
+        const hostingerStreamUrl = `${HOSTINGER_PROXY_BASE}/tv_url?id=${tableId}`;
+        result = { 
+          success: true, 
+          data: null, 
+          streamUrl: hostingerStreamUrl,
+          proxiedUrl: hostingerStreamUrl,
+          hostingerProxyUrl: hostingerStreamUrl,
+        };
       }
     }
 
@@ -236,6 +728,11 @@ serve(async (req) => {
           result = { success: true, data: null };
         }
       } catch (fetchError) {
+        const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        console.error('Error fetching result:', {
+          tableId,
+          message: errorMessage
+        });
         result = { success: true, data: null };
       }
     }
@@ -255,6 +752,12 @@ serve(async (req) => {
           result = { success: true, data: [] };
         }
       } catch (fetchError) {
+        const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        console.error('Error fetching result history:', {
+          tableId,
+          date: targetDate,
+          message: errorMessage
+        });
         result = { success: true, data: [] };
       }
     }
@@ -269,7 +772,7 @@ serve(async (req) => {
         try {
           const tableIdResponse = await fetchWithTimeout(`${HOSTINGER_PROXY_BASE}/tableid?id=${tableId}`, {
             headers: { 'Content-Type': 'application/json' }
-          }, 5000);
+          }, TIMEOUTS.TABLE_ID_FETCH);
           
           if (tableIdResponse.ok) {
             const tableIdData = await tableIdResponse.json();
@@ -281,7 +784,8 @@ serve(async (req) => {
             }
           }
         } catch (tableIdError) {
-          console.log(`⚠️ Could not fetch gmid, using tableId as gmid:`, tableIdError);
+          const errorMessage = tableIdError instanceof Error ? tableIdError.message : String(tableIdError);
+          console.log(`⚠️ Could not fetch gmid, using tableId as gmid:`, errorMessage);
         }
         
         // Try multiple endpoints for odds
@@ -299,7 +803,7 @@ serve(async (req) => {
             console.log(`📡 Trying odds endpoint: ${endpoint}`);
             const response = await fetchWithTimeout(endpoint, {
               headers: { 'Content-Type': 'application/json' }
-            }, 8000);
+            }, TIMEOUTS.ODDS_FETCH);
 
             if (response && response.ok) {
               const data = await response.json();
@@ -308,7 +812,8 @@ serve(async (req) => {
               break;
             }
           } catch (endpointError) {
-            console.log(`⚠️ Endpoint failed: ${endpoint}`, endpointError);
+            const errorMessage = endpointError instanceof Error ? endpointError.message : String(endpointError);
+            console.log(`⚠️ Endpoint failed: ${endpoint}`, errorMessage);
             continue;
           }
         }
@@ -381,7 +886,13 @@ serve(async (req) => {
           result = { success: true, data: { bets: [], raw: null, noOdds: true } };
         }
       } catch (fetchError) {
-        console.error(`❌ Odds fetch error:`, fetchError);
+        const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        const errorStack = fetchError instanceof Error ? fetchError.stack : undefined;
+        console.error(`❌ Odds fetch error:`, {
+          tableId,
+          message: errorMessage,
+          stack: errorStack
+        });
         result = { success: true, data: { bets: [], raw: null, error: true } };
       }
     }
@@ -572,7 +1083,11 @@ serve(async (req) => {
           }
         }
       } catch (error) {
-        console.error('Error fetching result for settlement:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error fetching result for settlement:', {
+          tableId,
+          message: errorMessage
+        });
       }
 
       if (!resultData || !(resultData as any).win) {
@@ -702,7 +1217,14 @@ serve(async (req) => {
 
               processed++;
             } catch (error) {
-              console.error(`Error processing bet ${bet.id}:`, error);
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const errorStack = error instanceof Error ? error.stack : undefined;
+              console.error(`Error processing bet ${bet.id}:`, {
+                betId: bet.id,
+                tableId: bet.table_id,
+                message: errorMessage,
+                stack: errorStack
+              });
             }
           }
 
