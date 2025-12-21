@@ -12,7 +12,7 @@ interface TableCardProps {
     imageUrl?: string;
   };
   onClick: () => void;
-} 
+}
 
 export const TableCard = memo(({ table, onClick }: TableCardProps) => {
   const isRestricted = table.status === "restricted";
@@ -36,15 +36,22 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
 
   return (
     <Card
-      className={`cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 border-primary/20 overflow-hidden ${isRestricted ? "opacity-60 pointer-events-none" : ""}`}
+      className={`cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 border-primary/20 overflow-hidden ${
+        isRestricted ? "opacity-60 pointer-events-none" : ""
+      }`}
       onClick={() => !isRestricted && onClick()}
     >
-      <div className={`relative w-full aspect-square bg-gradient-to-br ${getGradientClass()} flex items-center justify-center`}>
+      {/* IMAGE SECTION */}
+      <div
+        className={`relative w-full aspect-square bg-gradient-to-br ${getGradientClass()} flex items-center justify-center`}
+      >
         {table.imageUrl && !imageError && (
           <img
             src={table.imageUrl}
             alt={table.name}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
+              imageLoaded ? "opacity-100" : "opacity-0"
+            }`}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageError(true)}
@@ -57,10 +64,17 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
           </div>
         )}
       </div>
+
+      
+      <div className="px-3 py-2 bg-background/90 backdrop-blur border-t">
+        <p className="text-sm font-semibold truncate">{table.name}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          ID: {table.id}
+        </p>
+      </div>
     </Card>
   );
 }, (prevProps, nextProps) => {
-  // Only re-render if table data actually changed
   return (
     prevProps.table.id === nextProps.table.id &&
     prevProps.table.name === nextProps.table.name &&
