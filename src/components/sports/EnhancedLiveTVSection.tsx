@@ -127,6 +127,7 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
                   allowFullScreen
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   title="Live Match Stream"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               </div>
             ) : (
@@ -149,6 +150,7 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
                   className="w-full h-full"
                   style={{ minHeight: '600px' }}
                   title="Live Scorecard"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               </div>
             ) : (
@@ -171,6 +173,7 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
                   className="w-full h-full"
                   style={{ minHeight: '500px' }}
                   title="Live Commentary"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               </div>
             ) : (
@@ -193,6 +196,7 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
                   className="w-full h-full"
                   style={{ minHeight: '500px' }}
                   title="Match Statistics"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               </div>
             ) : (
@@ -215,6 +219,7 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
                   className="absolute top-0 left-0 w-full h-full"
                   allowFullScreen
                   title="Match Highlights"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               </div>
             ) : (
