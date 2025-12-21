@@ -8,7 +8,7 @@ interface LiveStreamProps {
   tableId: string;
   tableName?: string;
 }
-
+   
 type BetStatus = "OPEN" | "CLOSED";
 
 export const LiveStream = ({ tableId }: LiveStreamProps) => {
