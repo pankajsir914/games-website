@@ -91,7 +91,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
                 style={{ border: 0 }}
               />
 
-              <Button
+              {/* <Button
                 onClick={openExternal}
                 size="sm"
                 variant="secondary"
@@ -99,7 +99,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
               >
                 <ExternalLink className="h-4 w-4" />
                 Open
-              </Button>
+              </Button> */}
             </>
           )}
 
