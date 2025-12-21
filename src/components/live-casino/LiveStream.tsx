@@ -1,3 +1,5 @@
+// src/components/live-casino/LiveStream.tsx
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -13,7 +15,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
-  // ================= FETCH STREAM URL =================
+  // ================= STREAM URL =================
   const fetchStreamUrl = async () => {
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -23,10 +25,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
 
       if (error) throw error;
 
-      const url =
-        data?.streamUrl ||
-        data?.data?.streamUrl ||
-        null;
+      const url = data?.streamUrl || data?.data?.streamUrl || null;
 
       if (!url || !url.startsWith("http")) {
         setError(true);
@@ -68,18 +67,18 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
       <CardContent>
         <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
           {error || !streamUrl ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-4">
-              <AlertCircle className="h-10 w-10 text-yellow-500" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center p-4">
+              <AlertCircle className="h-12 w-12 text-yellow-500" />
               <p className="text-white font-semibold">
                 Stream unavailable
               </p>
               <p className="text-white/60 text-sm">
-                Stream server blocked the request (403 / CORS).
+                Live stream could not be loaded.
               </p>
             </div>
           ) : (
             <>
-              {/* ✅ ONLY CORRECT WAY FOR TURNKEY STREAM */}
+              {/* ✅ IFRAME PLAYER: ORB errors ignored */}
               <iframe
                 src={streamUrl}
                 className="w-full h-full"
@@ -89,7 +88,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
                 style={{ border: 0 }}
               />
 
-              {/* OPEN IN NEW TAB */}
+              {/* OPEN STREAM EXTERNALLY */}
               <Button
                 onClick={openExternal}
                 size="sm"
