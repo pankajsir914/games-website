@@ -1,96 +1,29 @@
 // src/pages/LiveCasino.tsx
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { TableCard } from "@/components/live-casino/TableCard";
-import { BettingPanel } from "@/components/live-casino/BettingPanel";
-import { OddsDisplay } from "@/components/live-casino/OddsDisplay";
-import { BetHistory } from "@/components/live-casino/BetHistory";
-import { LiveStream } from "@/components/live-casino/LiveStream";
-import { ResultHistory } from "@/components/live-casino/ResultHistory";
-import { CurrentResult } from "@/components/live-casino/CurrentResult";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const LiveCasino = () => {
+  const navigate = useNavigate();
   const {
     liveTables,
-    selectedTable,
-    odds,
-    bets,
     loading,
-    streamUrls,
-    resultHistory,
-    currentResult,
-    fetchTableDetails,
-    fetchOdds,
-    placeBet,
-    setSelectedTable,
-    fetchStreamUrl,
-    fetchCurrentResult,
-    fetchResultHistory
+    fetchLiveTables
   } = useDiamondCasino();
 
-  const [viewMode, setViewMode] = useState<'tables' | 'betting'>('tables');
-  const [streamUrl, setStreamUrl] = useState<string>();
-  const fetchingRef = useRef(false);
-
-  const handleSelectTable = async (table: any) => {
-    setSelectedTable(table);
-    setViewMode('betting');
-    
-    // Prevent duplicate concurrent fetches
-    if (fetchingRef.current) {
-      return;
-    }
-    fetchingRef.current = true;
-    
-    try {
-      // Fetch all data in parallel
-      await Promise.allSettled([
-        fetchTableDetails(table.id),
-        fetchOdds(table.id),
-        fetchStreamUrl(table.id).then(url => setStreamUrl(url)),
-        fetchCurrentResult(table.id),
-        fetchResultHistory(table.id)
-      ]);
-    } finally {
-      fetchingRef.current = false;
-    }
-  };
-
-  // Set up polling intervals when a table is selected
   useEffect(() => {
-    if (!selectedTable || viewMode !== 'betting') {
-      return;
-    }
+    fetchLiveTables();
+  }, [fetchLiveTables]);
 
-    // Set up periodic odds fetching (every 10 seconds) - use silent mode to avoid console spam
-    const oddsInterval = setInterval(() => {
-      if (selectedTable?.id) {
-        fetchOdds(selectedTable.id, true); // silent = true for polling
-      }
-    }, 10000);
-
-    // Set up periodic result checking (every 30 seconds)
-    const resultInterval = setInterval(() => {
-      if (selectedTable?.id) {
-        fetchCurrentResult(selectedTable.id);
-      }
-    }, 30000);
-
-    return () => {
-      clearInterval(oddsInterval);
-      clearInterval(resultInterval);
-    };
-  }, [selectedTable?.id, viewMode, fetchOdds, fetchCurrentResult]);
-
-  const handleBack = () => {
-    setViewMode('tables');
-    setSelectedTable(null);
+  const handleSelectTable = (table: any) => {
+    // Navigate to separate page for better UX
+    // Benefits: Shareable URLs, browser back button, bookmarking, better for 80+ games
+    navigate(`/live-casino/${table.id}`);
   };
 
   return (
@@ -134,7 +67,7 @@ const LiveCasino = () => {
         )}
 
         {/* Tables View */}
-        {viewMode === 'tables' && !loading && liveTables.length === 0 && (
+        {!loading && liveTables.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
@@ -144,7 +77,7 @@ const LiveCasino = () => {
           </Card>
         )}
 
-        {viewMode === 'tables' && liveTables.length > 0 && (
+        {liveTables.length > 0 && (
           <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-4 md:gap-6">
             {liveTables.map((table) => (
               <TableCard
@@ -154,68 +87,6 @@ const LiveCasino = () => {
               />
             ))}
           </div>
-        )}
-
-        {/* Betting View */}
-        {viewMode === 'betting' && selectedTable && (
-          <Tabs defaultValue="live" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6 h-8 sm:h-10 md:h-12">
-              <TabsTrigger value="live" className="text-xs sm:text-sm">Live Game</TabsTrigger>
-              <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
-              <TabsTrigger value="history" className="text-xs sm:text-sm">My Bets</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="live" className="space-y-3 sm:space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
-                {/* Main area - Stream + Betting */}
-                <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-                  {/* Live Stream */}
-                  <LiveStream 
-                    tableId={selectedTable.id} 
-                    tableName={selectedTable.name}
-                  />
-
-                  {/* Current Result */}
-                  {currentResult && (
-                    <CurrentResult 
-                      result={currentResult}
-                      tableName={selectedTable.name}
-                    />
-                  )}
-
-                  {/* Odds Display */}
-                  
-
-                  {/* Betting Panel */}
-                  <BettingPanel
-                    table={selectedTable}
-                    odds={odds}
-                    onPlaceBet={placeBet}
-                    loading={loading}
-                  />
-                </div>
-
-                {/* Sidebar - Result History */}
-                <div className="lg:col-span-1">
-                  <ResultHistory 
-                    results={resultHistory}
-                    tableId={selectedTable.id}
-                  />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="results">
-              <ResultHistory 
-                results={resultHistory}
-                tableId={selectedTable.id}
-              />
-            </TabsContent>
-
-            <TabsContent value="history">
-              <BetHistory bets={bets} />
-            </TabsContent>
-          </Tabs>
         )}
       </div>
     </div>
