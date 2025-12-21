@@ -44,67 +44,22 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
       // Log full response for debugging
       console.log("📥 Full response from edge function:", JSON.stringify(data, null, 2));
       
-      // Extract stream URL from response - prioritize Hostinger proxy URL if edge function proxy fails
-      const hostingerProxyUrl = data?.hostingerProxyUrl || data?.data?.hostingerProxyUrl;
-      const proxiedUrl = data?.proxiedUrl || data?.data?.proxiedUrl;
-      const streamUrl = data?.streamUrl || data?.data?.streamUrl;
-      const url = hostingerProxyUrl || proxiedUrl || streamUrl || data?.data?.url || data?.data?.data?.tv_url || data?.data?.tv_url || null;
+      // Extract stream URL - Edge Function now returns direct URL only
+      const streamUrl = data?.streamUrl || data?.data?.streamUrl || data?.url || data?.data?.url || data?.data?.data?.tv_url || null;
       
-      console.log("🔍 Extracted values:", {
-        hostingerProxyUrl,
-        proxiedUrl,
-        streamUrl,
-        url,
-        'data.hostingerProxyUrl': data?.hostingerProxyUrl,
-        'data.proxiedUrl': data?.proxiedUrl,
-        'data.streamUrl': data?.streamUrl,
-      });
+      console.log("🔍 Stream URL from Edge Function:", streamUrl);
       
-      if (!url) {
-        console.warn("❌ No stream URL available for table:", tableId);
+      if (!streamUrl || !streamUrl.startsWith('http')) {
+        console.warn("❌ No valid stream URL available for table:", tableId);
         console.warn("Response data:", data);
         setError(true);
         setStreamUrl(null);
         return;
       }
 
-      // IMPORTANT: Even if domain is whitelisted, server might check actual request origin
-      // Browser sends request from browser's origin, which server might reject
-      // Solution: Use proxied URL first - edge function can send proper Origin/Referer headers
-      // Note: Hostinger proxy returns JSON, so it can't be used directly for HLS
-      let streamUrlToUse: string | null = null;
+      console.log("✅ Using direct stream URL:", streamUrl);
       
-      // Use proxied URL first - ensures proper Origin/Referer headers are sent
-      // Edge function will send whitelisted domain as Origin header
-      if (proxiedUrl) {
-        streamUrlToUse = proxiedUrl;
-        console.log("✅ Using edge function proxied URL (ensures proper Origin headers)");
-      } else if (streamUrl && streamUrl.startsWith('http')) {
-        streamUrlToUse = streamUrl;
-        console.log("⚠️ Using direct stream URL (may have Origin header issues)");
-      } else {
-        streamUrlToUse = url;
-        console.log("⚠️ Using fallback URL");
-      }
-      
-      console.log("✅ Using stream URL:", streamUrlToUse);
-      console.log("📺 Original stream URL:", streamUrl);
-      console.log("🔗 Edge function proxied URL:", proxiedUrl);
-      console.log("🌐 Hostinger proxy URL:", hostingerProxyUrl);
-      if (data?.note || data?.data?.note) {
-        console.log("📝 Stream note:", data?.note || data?.data?.note);
-      }
-      
-      if (!streamUrlToUse) {
-        console.warn("❌ No valid stream URL found");
-        setError(true);
-        setStreamUrl(null);
-        return;
-      }
-      
-      // Store original data for fallback if direct URL fails
-      setOriginalStreamData({ streamUrl, proxiedUrl, hostingerProxyUrl });
-      setStreamUrl(streamUrlToUse);
+      setStreamUrl(streamUrl);
       setError(false);
     } catch (err) {
       console.error("Stream URL error:", err);
@@ -145,14 +100,7 @@ export const LiveStream = ({ tableId, tableName }: LiveStreamProps) => {
           // Add CORS headers for all requests
           xhr.withCredentials = false;
           
-          // If using direct stream URL (not proxied), add Origin and Referer headers
-          // This ensures the whitelisted domain is sent to the stream server
-          if (streamUrl && streamUrl.startsWith('http') && !streamUrl.includes('diamond-casino-proxy')) {
-            const whitelistedDomain = 'https://www.rrbexchange.com';
-            xhr.setRequestHeader('Origin', whitelistedDomain);
-            xhr.setRequestHeader('Referer', whitelistedDomain);
-            console.log('✅ Added Origin/Referer headers for direct stream:', whitelistedDomain);
-          }
+          // Simple CORS setup - no special headers needed
         },
         enableWorker: true,
         debug: false,
