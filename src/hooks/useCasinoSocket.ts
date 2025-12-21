@@ -1,125 +1,119 @@
-// src/hooks/useCasinoSocket.ts   
-
 import { useEffect, useRef, useState } from "react";
 import { getCasinoSocket } from "@/lib/socket";
 
-
-export const useCasinoTimerSocket = (tableId?: string) => {
+/**
+ * Casino Socket Hook
+ * - Handles timer, odds, bet status, result
+ * - Safe socket cleanup
+ * - Smooth local timer countdown
+ */
+export const useCasinoSocket = (tableId?: string) => {
+  /* ================= TIMER ================= */
   const [timer, setTimer] = useState(0);
-  const runningRef = useRef(false);
+  const timerRunningRef = useRef(false);
 
-  // local countdown
+  // Smooth local countdown (UI purpose only)
   useEffect(() => {
-    if (!runningRef.current || timer <= 0) return;
+    if (!timerRunningRef.current || timer <= 0) return;
 
-    const id = setInterval(() => {
+    const intervalId = setInterval(() => {
       setTimer((t) => (t > 0 ? t - 1 : 0));
     }, 1000);
 
-    return () => clearInterval(id);
+    return () => clearInterval(intervalId);
   }, [timer]);
 
-  // socket
+  /* ================= BET STATUS ================= */
+  const [betStatus, setBetStatus] = useState<"OPEN" | "CLOSED">("CLOSED");
+
+  /* ================= ODDS ================= */
+  const [odds, setOdds] = useState<any>(null);
+
+  /* ================= RESULT ================= */
+  const [result, setResult] = useState<any>(null);
+
+  /* ================= SOCKET ================= */
   useEffect(() => {
     if (!tableId) return;
 
     const socket = getCasinoSocket();
+
+    /* ---------- JOIN ROOM ---------- */
     socket.emit("join", { tableId });
 
-    socket.on("timer:start", (payload: any) => {
-      if (payload.tableId !== tableId) return;
-      setTimer(payload.duration);
-      runningRef.current = true;
-    });
+    /* ---------- TIMER UPDATE ---------- */
+    const onTimerUpdate = (payload: any) => {
+      if (payload?.tableId !== tableId) return;
 
+      const remaining = Number(payload?.remaining ?? 0);
+
+      if (remaining > 0) {
+        setTimer(remaining);
+        timerRunningRef.current = true;
+      } else {
+        setTimer(0);
+        timerRunningRef.current = false;
+      }
+    };
+
+    /* ---------- BET STATUS ---------- */
+    const onBetStatus = (payload: any) => {
+      if (payload?.tableId !== tableId) return;
+      setBetStatus(payload?.status === "OPEN" ? "OPEN" : "CLOSED");
+    };
+
+    /* ---------- ODDS UPDATE ---------- */
+    const onOddsUpdate = (payload: any) => {
+      if (payload?.tableId !== tableId) return;
+      setOdds(payload?.data ?? null);
+    };
+
+    /* ---------- RESULT UPDATE ---------- */
+    const onResultUpdate = (payload: any) => {
+      if (payload?.tableId !== tableId) return;
+      setResult(payload?.data ?? null);
+    };
+
+    /* ---------- REGISTER EVENTS ---------- */
+    socket.on("timer:update", onTimerUpdate);
+    socket.on("bet:status", onBetStatus);
+    socket.on("odds:update", onOddsUpdate);
+    socket.on("result:update", onResultUpdate);
+
+    /* ---------- CLEANUP ---------- */
     return () => {
       socket.emit("leave", { tableId });
-      socket.off("timer:start");
+
+      socket.off("timer:update", onTimerUpdate);
+      socket.off("bet:status", onBetStatus);
+      socket.off("odds:update", onOddsUpdate);
+      socket.off("result:update", onResultUpdate);
     };
   }, [tableId]);
 
-  return { timer };
+  return {
+    timer,
+    betStatus,
+    odds,
+    result,
+  };
 };
 
-
-export const useCasinoBetStatusSocket = (
-  tableId: string | undefined,
-  setBetStatus: (v: "OPEN" | "CLOSED") => void
-) => {
-  useEffect(() => {
-    if (!tableId) return;
-
-    const socket = getCasinoSocket();
-    socket.emit("join", { tableId });
-
-    socket.on("bet:status", (payload: any) => {
-      if (payload.tableId !== tableId) return;
-      setBetStatus(payload.status);
-    });
-
-    return () => {
-      socket.emit("leave", { tableId });
-      socket.off("bet:status");
-    };
-  }, [tableId]);
-};
-
-export const useCasinoOddsSocket = (
-  tableId: string | undefined,
-  onUpdate: (data: any) => void
-) => {
-  useEffect(() => {
-    if (!tableId) return;
-
-    const socket = getCasinoSocket();
-    socket.emit("join", { tableId });
-
-    socket.on("odds:update", (payload: any) => {
-      if (payload.tableId !== tableId) return;
-      onUpdate(payload.data);
-    });
-
-    return () => {
-      socket.emit("leave", { tableId });
-      socket.off("odds:update");
-    };
-  }, [tableId]);
-};
-
-
-export const useCasinoResultSocket = (
-  tableId: string | undefined,
-  onUpdate: (data: any) => void
-) => {
-  useEffect(() => {
-    if (!tableId) return;
-
-    const socket = getCasinoSocket();
-    socket.emit("join", { tableId });
-
-    socket.on("result:update", (payload: any) => {
-      if (payload.tableId !== tableId) return;
-      onUpdate(payload.data);
-    });
-
-    return () => {
-      socket.emit("leave", { tableId });
-      socket.off("result:update");
-    };
-  }, [tableId]);
-};
-
-
+/* =====================================================
+   TABLE LIST SOCKET (GLOBAL REFRESH)
+===================================================== */
 export const useCasinoTableSocket = (onRefresh: () => void) => {
   useEffect(() => {
     const socket = getCasinoSocket();
 
-    socket.on("table:update", () => {
+    const onTableUpdate = () => {
       onRefresh();
-    });
+    };
+
+    socket.on("table:update", onTableUpdate);
 
     return () => {
-      socket.off("table:update");
+      socket.off("table:update", onTableUpdate);
     };
-  }, []);
+  }, [onRefresh]);
 };
