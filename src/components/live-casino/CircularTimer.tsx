@@ -6,7 +6,7 @@ interface CircularTimerProps {
   value: number; // seconds
   max?: number;
 }
-
+    
 export const CircularTimer: React.FC<CircularTimerProps> = ({
   value,
   max = 20,
