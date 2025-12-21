@@ -89,7 +89,12 @@ export const useDiamondCasino = () => {
         .select("table_id, table_name, table_data")
         .eq("status", "active");
       
+      if (dbError) {
+        console.warn('⚠️ Error fetching cached tables:', dbError);
+      }
+      
       if (!dbError && cachedTables) {
+        console.log(`📊 Found ${cachedTables.length} cached tables in database`);
         for (const table of cachedTables) {
           const tableData = table.table_data as any;
           if (tableData?.imageUrl && typeof tableData.imageUrl === 'string') {
@@ -101,15 +106,19 @@ export const useDiamondCasino = () => {
               if (tableId) {
                 imageMap.set(tableId, tableData.imageUrl);
                 imageMap.set(tableId.replace(/[^a-z0-9]/g, ''), tableData.imageUrl);
+                console.log(`✅ Added image from database for table ID: ${tableId}`);
               }
               if (tableName) {
                 imageMap.set(tableName, tableData.imageUrl);
                 imageMap.set(tableName.replace(/[^a-z0-9]/g, ''), tableData.imageUrl);
                 imageMap.set(tableName.replace(/\s+/g, '-'), tableData.imageUrl);
+                console.log(`✅ Added image from database for table name: ${tableName}`);
               }
             }
           }
         }
+      } else {
+        console.log('⚠️ No cached tables found in database');
       }
       
       // Also check game_assets table for live-casino images
@@ -121,10 +130,17 @@ export const useDiamondCasino = () => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       
+      if (assetsError) {
+        console.warn('⚠️ Error fetching game_assets:', assetsError);
+      }
+      
       if (!assetsError && gameAssets && gameAssets.length > 0) {
+        console.log(`📦 Found ${gameAssets.length} images in game_assets table`);
         for (const asset of gameAssets) {
           imageList.push(asset.asset_url);
         }
+      } else {
+        console.log('⚠️ No images found in game_assets table');
       }
       
       // List all files in the casino-tables folder
@@ -218,31 +234,39 @@ export const useDiamondCasino = () => {
       return undefined;
     }
 
-    // Try matching by table ID
+    // Try matching by table ID (multiple variations)
     if (table.id) {
-      const idKey = table.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (imageMap.has(idKey)) {
-        return imageMap.get(idKey);
-      }
-
-      // Try with original ID format
-      const originalIdKey = table.id.toLowerCase();
-      if (imageMap.has(originalIdKey)) {
-        return imageMap.get(originalIdKey);
+      const variations = [
+        table.id.toLowerCase().replace(/[^a-z0-9]/g, ''), // alphanumeric only
+        table.id.toLowerCase(), // original lowercase
+        table.id.toLowerCase().replace(/[_-]/g, ''), // no dashes/underscores
+        table.id.toLowerCase().replace(/[_-]/g, '-'), // dashes
+        table.id.toLowerCase().replace(/[_-]/g, '_'), // underscores
+      ];
+      
+      for (const key of variations) {
+        if (imageMap.has(key)) {
+          console.log(`✅ Matched image for table ${table.id} using key: ${key}`);
+          return imageMap.get(key);
+        }
       }
     }
 
-    // Try matching by table name
+    // Try matching by table name (multiple variations)
     if (table.name) {
-      const nameKey = table.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (imageMap.has(nameKey)) {
-        return imageMap.get(nameKey);
-      }
-
-      // Try with original name format
-      const originalNameKey = table.name.toLowerCase().replace(/\s+/g, '-');
-      if (imageMap.has(originalNameKey)) {
-        return imageMap.get(originalNameKey);
+      const variations = [
+        table.name.toLowerCase().replace(/[^a-z0-9]/g, ''), // alphanumeric only
+        table.name.toLowerCase(), // original lowercase
+        table.name.toLowerCase().replace(/\s+/g, '-'), // spaces to dashes
+        table.name.toLowerCase().replace(/\s+/g, '_'), // spaces to underscores
+        table.name.toLowerCase().replace(/[_-]/g, ''), // no dashes/underscores
+      ];
+      
+      for (const key of variations) {
+        if (imageMap.has(key)) {
+          console.log(`✅ Matched image for table ${table.name} using key: ${key}`);
+          return imageMap.get(key);
+        }
       }
     }
 
@@ -250,6 +274,7 @@ export const useDiamondCasino = () => {
     if (table.type) {
       const typeKey = table.type.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (imageMap.has(typeKey)) {
+        console.log(`✅ Matched image for table type ${table.type} using key: ${typeKey}`);
         return imageMap.get(typeKey);
       }
     }
@@ -271,29 +296,28 @@ export const useDiamondCasino = () => {
         // Use cached images
         imageMap = cachedImageMap;
         imageList = cachedImageList;
-        console.log('✅ Using cached image map');
+        console.log('✅ Using cached image map', { size: imageMap.size, listLength: imageList.length });
       } else {
-        // Fetch images in background (non-blocking)
-        fetchSupabaseImages().then(({ imageMap: newImageMap, imageList: newImageList }) => {
+        // Fetch images FIRST (blocking) to ensure images are available when tables load
+        console.log('📸 Fetching images from database and storage...');
+        try {
+          const { imageMap: newImageMap, imageList: newImageList } = await fetchSupabaseImages();
           cachedImageMap = newImageMap;
           cachedImageList = newImageList;
           imageCacheTimestamp = now;
-          console.log('✅ Image map cached');
-          
-          // Update tables with new images if tables are already loaded
-          setLiveTables(prevTables => {
-            if (prevTables.length > 0) {
-              return updateTablesWithImages(prevTables, newImageMap, newImageList);
-            }
-            return prevTables;
+          imageMap = newImageMap;
+          imageList = newImageList;
+          console.log('✅ Images fetched successfully', { 
+            mapSize: imageMap.size, 
+            listLength: imageList.length,
+            sampleKeys: Array.from(imageMap.keys()).slice(0, 5)
           });
-        }).catch(err => {
-          console.warn('⚠️ Error fetching images (non-blocking):', err);
-        });
-        
-        // Use empty map initially - images will be added later
-        imageMap = cachedImageMap || new Map();
-        imageList = cachedImageList || [];
+        } catch (err) {
+          console.warn('⚠️ Error fetching images:', err);
+          // Use empty map if fetch fails
+          imageMap = cachedImageMap || new Map();
+          imageList = cachedImageList || [];
+        }
       }
       
       // Fetch tables from API (don't wait for images)
