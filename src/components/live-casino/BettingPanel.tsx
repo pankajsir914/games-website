@@ -1,5 +1,5 @@
 // src/components/live-casino/BettingPanel.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,37 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
   const quickAmounts = [100, 500, 1000, 5000];
   const betTypes = odds?.bets || [];
 
+  // Log odds data for debugging
+  useEffect(() => {
+    if (odds) {
+      console.log("🎲 BettingPanel - Odds Data:", {
+        tableId: table?.id,
+        tableName: table?.name,
+        totalBets: betTypes.length,
+        oddsObject: odds,
+        betsArray: betTypes,
+        sampleBet: betTypes[0] || null
+      });
+      
+      // Log each bet with its odds
+      if (betTypes.length > 0) {
+        console.log("📊 BettingPanel - Individual Bet Odds:");
+        betTypes.forEach((bet: any, index: number) => {
+          console.log(`  Bet ${index + 1}:`, {
+            type: bet.type,
+            back: bet.back,
+            lay: bet.lay,
+            odds: bet.odds,
+            status: bet.status,
+            rawData: bet
+          });
+        });
+      }
+    } else {
+      console.log("⚠️ BettingPanel - No odds data available");
+    }
+  }, [odds, table, betTypes]);
+
   // Check if we have betting options (even with 0 odds, they should be shown)
   // Suspended items should also be displayed with their odds
   const hasRealOdds = betTypes.length > 0 && betTypes.some((b: any) => {
@@ -36,11 +67,29 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
   const getSelectedBetOdds = () => {
     const bet = betTypes.find((b: any) => b.type === selectedBet);
     if (!bet) return 1;
-    const backVal = bet?.back ?? bet?.odds ?? 1;
-    const layVal = bet?.lay ?? backVal;
-    const raw = betType === "back" ? backVal : layVal;
-    const num = typeof raw === "number" ? raw : Number(raw);
-    return num > 0 ? num : 1;
+    
+    // Format odds properly - convert from points to decimal if needed
+    const formatOdds = (oddsValue: any) => {
+      if (!oddsValue || oddsValue === 0) return 1;
+      
+      const num = Number(oddsValue);
+      
+      // If odds is very large (like 300000), it's in points format
+      // Convert to decimal odds (divide by 100000)
+      if (num > 1000) {
+        const decimal = num / 100000;
+        return decimal > 0 ? decimal : 1;
+      }
+      
+      // Already in decimal format
+      return num > 0 ? num : 1;
+    };
+    
+    const rawBackVal = bet?.back ?? bet?.odds ?? 1;
+    const rawLayVal = bet?.lay ?? rawBackVal;
+    const raw = betType === "back" ? rawBackVal : rawLayVal;
+    
+    return formatOdds(raw);
   };
 
   const handlePlaceBet = async () => {
@@ -108,13 +157,41 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
             <Label className="text-xs text-muted-foreground mb-1.5 block">Select Bet (Live Odds)</Label>
             <div className="grid grid-cols-4 gap-0.5 sm:gap-1">
               {betTypes.map((bet: any, index: number) => {
-                const backVal = bet?.back ?? bet?.odds ?? 0;
-                const layVal = bet?.lay ?? 0;
-                // Show actual odds only, no dummy data
-                // If odds are 0, show "-" (don't show dummy odds like 1.98)
-                const backText = (backVal && Number(backVal) > 0) ? Number(backVal).toFixed(2) : 
-                                (bet?.odds && Number(bet.odds) > 0) ? Number(bet.odds).toFixed(2) : "-";
-                const layText = (layVal && Number(layVal) > 0) ? Number(layVal).toFixed(2) : "-";
+                // Format odds properly - convert from points to decimal if needed
+                const formatOdds = (oddsValue: any) => {
+                  // Check for null, undefined, or empty string
+                  if (oddsValue === null || oddsValue === undefined || oddsValue === '') return "0.00";
+                  
+                  const num = Number(oddsValue);
+                  
+                  // Check if it's a valid number - if NaN, return 0.00
+                  if (isNaN(num)) return "0.00";
+                  
+                  // If odds is 0, still show 0.00 (not null)
+                  if (num === 0) return "0.00";
+                  
+                  // If odds is very large (like 300000), it's in points format
+                  // Convert to decimal odds (divide by 100000)
+                  if (num > 1000) {
+                    const decimal = num / 100000;
+                    return decimal > 0 ? decimal.toFixed(2) : "0.00";
+                  }
+                  
+                  // Already in decimal format, just format to 2 decimal places
+                  return num > 0 ? num.toFixed(2) : "0.00";
+                };
+                
+                // Try multiple field names for back/lay values
+                const rawBackVal = bet?.back ?? bet?.b1 ?? bet?.b ?? bet?.odds ?? 0;
+                const rawLayVal = bet?.lay ?? bet?.l1 ?? bet?.l ?? 0;
+                
+                const backVal = formatOdds(rawBackVal);
+                const layVal = formatOdds(rawLayVal);
+                
+                // Always show odds value (even if 0.00)
+                const backText = backVal;
+                const layText = layVal;
+                
                 // Create unique key by always including index to ensure uniqueness
                 const uniqueKey = `${bet?.id || bet?.mid || bet?.type || 'bet'}-${index}`;
                 return (
@@ -123,18 +200,17 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
                       <span className={`font-medium text-[9px] sm:text-xs truncate text-center ${bet.status === "suspended" ? "text-muted-foreground" : ""}`}>{bet.type}</span>
                       {bet.status === "suspended" && <Badge variant="destructive" className="text-[9px] px-0.5 py-0 h-3 hidden sm:inline-flex ml-1">Suspended</Badge>}
                     </div>
+                    {/* Always show odds even if suspended - odds are still visible */}
                     <div className="flex flex-col sm:flex-row gap-0.5 sm:gap-1">
-                      <Button size="sm" variant={selectedBet === bet.type && betType === "back" ? "default" : "outline"} className={`w-full sm:flex-1 h-4 sm:h-6 text-[8px] sm:text-[10px] px-0.5 sm:px-1 py-0 ${bet.status === "suspended" ? "opacity-60" : ""}`} onClick={(e) => { e.stopPropagation(); if (bet.status !== "suspended") { setSelectedBet(bet.type); setBetType("back"); } }} disabled={bet.status === "suspended" || !(Number(backVal) > 0 || Number(bet?.odds ?? 0) > 0)}>
+                      <Button size="sm" variant={selectedBet === bet.type && betType === "back" ? "default" : "outline"} className={`w-full sm:flex-1 h-4 sm:h-6 text-[8px] sm:text-[10px] px-0.5 sm:px-1 py-0 ${bet.status === "suspended" ? "opacity-60" : ""}`} onClick={(e) => { e.stopPropagation(); if (bet.status !== "suspended") { setSelectedBet(bet.type); setBetType("back"); } }} disabled={bet.status === "suspended" || backText === "0.00"}>
                         <span className="hidden sm:inline"><TrendingUp className="w-2.5 h-2.5 mr-0.5" /></span>
                         <span className="font-semibold">{backText}</span>
                       </Button>
 
-                      {Number(layVal) > 0 && (
-                        <Button size="sm" variant={selectedBet === bet.type && betType === "lay" ? "default" : "outline"} className={`w-full sm:flex-1 h-4 sm:h-6 text-[8px] sm:text-[10px] px-0.5 sm:px-1 py-0 ${bet.status === "suspended" ? "opacity-60" : ""}`} onClick={(e) => { e.stopPropagation(); if (bet.status !== "suspended") { setSelectedBet(bet.type); setBetType("lay"); } }} disabled={bet.status === "suspended"}>
-                          <span className="hidden sm:inline"><TrendingDown className="w-2.5 h-2.5 mr-0.5" /></span>
-                          <span className="font-semibold">{layText}</span>
-                        </Button>
-                      )}
+                      <Button size="sm" variant={selectedBet === bet.type && betType === "lay" ? "default" : "outline"} className={`w-full sm:flex-1 h-4 sm:h-6 text-[8px] sm:text-[10px] px-0.5 sm:px-1 py-0 ${bet.status === "suspended" ? "opacity-60" : ""}`} onClick={(e) => { e.stopPropagation(); if (bet.status !== "suspended") { setSelectedBet(bet.type); setBetType("lay"); } }} disabled={bet.status === "suspended" || layText === "0.00"}>
+                        <span className="hidden sm:inline"><TrendingDown className="w-2.5 h-2.5 mr-0.5" /></span>
+                        <span className="font-semibold">{layText}</span>
+                      </Button>
                     </div>
                   </div>
                 );
