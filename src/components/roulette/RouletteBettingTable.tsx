@@ -175,7 +175,7 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
                 onMouseEnter={() => setHoveredBet(`column-${col}`)}
                 onMouseLeave={() => setHoveredBet(null)}
               >
-                2:1
+                <span className="text-sm">2:1</span>
                 {renderChipStack(`column_${col}` as BetType)}
               </div>
             ))}
@@ -187,7 +187,7 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
           {/* Dozens */}
           <div
             className={cn(
-              "col-span-2 h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "col-span-2 h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'dozen-1' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -195,12 +195,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('dozen-1')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            1st 12
+            <span className="text-sm">1st 12</span>
+            <span className="text-xs opacity-90">2:1</span>
             {renderChipStack('dozen_1')}
           </div>
           <div
             className={cn(
-              "col-span-2 h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "col-span-2 h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'dozen-2' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -208,12 +209,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('dozen-2')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            2nd 12
+            <span className="text-sm">2nd 12</span>
+            <span className="text-xs opacity-90">2:1</span>
             {renderChipStack('dozen_2')}
           </div>
           <div
             className={cn(
-              "col-span-2 h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "col-span-2 h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'dozen-3' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -221,14 +223,15 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('dozen-3')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            3rd 12
+            <span className="text-sm">3rd 12</span>
+            <span className="text-xs opacity-90">2:1</span>
             {renderChipStack('dozen_3')}
           </div>
 
           {/* Even Money Bets */}
           <div
             className={cn(
-              "h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'low' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -236,12 +239,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('low')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            1-18
+            <span className="text-sm">1-18</span>
+            <span className="text-xs opacity-90">1:1</span>
             {renderChipStack('low')}
           </div>
           <div
             className={cn(
-              "h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'even' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -249,12 +253,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('even')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            EVEN
+            <span className="text-sm">EVEN</span>
+            <span className="text-xs opacity-90">1:1</span>
             {renderChipStack('even')}
           </div>
           <div
             className={cn(
-              "h-12 bg-red-600 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "h-12 bg-red-600 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'red' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -262,12 +267,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('red')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            RED
+            <span className="text-sm">RED</span>
+            <span className="text-xs opacity-90">1:1</span>
             {renderChipStack('red')}
           </div>
           <div
             className={cn(
-              "h-12 bg-gray-900 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "h-12 bg-gray-900 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'black' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -275,12 +281,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('black')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            BLACK
+            <span className="text-sm">BLACK</span>
+            <span className="text-xs opacity-90">1:1</span>
             {renderChipStack('black')}
           </div>
           <div
             className={cn(
-              "h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'odd' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -288,12 +295,13 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('odd')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            ODD
+            <span className="text-sm">ODD</span>
+            <span className="text-xs opacity-90">1:1</span>
             {renderChipStack('odd')}
           </div>
           <div
             className={cn(
-              "h-12 bg-green-700 border-2 border-amber-500 rounded flex items-center justify-center text-white font-bold cursor-pointer transition-all relative",
+              "h-12 bg-green-700 border-2 border-amber-500 rounded flex flex-col items-center justify-center text-white font-bold cursor-pointer transition-all relative",
               hoveredBet === 'high' && "ring-2 ring-white shadow-lg scale-105",
               disabled && "cursor-not-allowed opacity-50"
             )}
@@ -301,7 +309,8 @@ const RouletteBettingTable: React.FC<RouletteBettingTableProps> = ({
             onMouseEnter={() => setHoveredBet('high')}
             onMouseLeave={() => setHoveredBet(null)}
           >
-            19-36
+            <span className="text-sm">19-36</span>
+            <span className="text-xs opacity-90">1:1</span>
             {renderChipStack('high')}
           </div>
         </div>
