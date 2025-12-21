@@ -24,6 +24,12 @@ interface DiamondBet {
   created_at: string;
 }
 
+// Cache for image map to avoid refetching on every load
+let cachedImageMap: Map<string, string> | null = null;
+let cachedImageList: string[] = [];
+let imageCacheTimestamp: number = 0;
+const IMAGE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export const useDiamondCasino = () => {
   const [liveTables, setLiveTables] = useState<DiamondTable[]>([]);
   const [selectedTable, setSelectedTable] = useState<DiamondTable | null>(null);
@@ -171,6 +177,41 @@ export const useDiamondCasino = () => {
     return { imageMap, imageList };
   };
 
+  // ----------------- Helper: Update tables with images -----------------
+  const updateTablesWithImages = (tables: any[], imageMap: Map<string, string>, imageList: string[]): DiamondTable[] => {
+    return tables.map((table: any, index: number) => {
+      // First try to get image from Supabase storage (exact match)
+      let supabaseImageUrl = getSupabaseImageUrl(table, imageMap);
+      
+      // If no exact match found, use sequential assignment from imageList
+      if (!supabaseImageUrl && imageList.length > 0) {
+        // Use modulo to cycle through images if there are fewer images than tables
+        const imageIndex = index % imageList.length;
+        supabaseImageUrl = imageList[imageIndex];
+      }
+      
+      // If Supabase image found, use it; otherwise fall back to proxied image
+      let imageUrl = supabaseImageUrl;
+      
+      if (!imageUrl) {
+        // Fallback to proxied image
+        let imgPath = "";
+        if (table.imageUrl && typeof table.imageUrl === "string") {
+          const parts = table.imageUrl.split("/");
+          imgPath = parts[parts.length - 1];
+        }
+        imageUrl = imgPath
+          ? `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, "")}/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(imgPath)}`
+          : undefined;
+      }
+
+      return {
+        ...table,
+        imageUrl,
+      };
+    });
+  };
+
   // ----------------- Helper: Match table to Supabase image -----------------
   const getSupabaseImageUrl = (table: any, imageMap: Map<string, string>): string | undefined => {
     if (!imageMap || imageMap.size === 0) {
@@ -221,84 +262,68 @@ export const useDiamondCasino = () => {
     try {
       setLoading(true);
       
-      // Fetch images from Supabase storage in parallel
-      const imageMapPromise = fetchSupabaseImages();
+      // Check if we have cached images (within cache duration)
+      const now = Date.now();
+      let imageMap: Map<string, string>;
+      let imageList: string[];
       
+      if (cachedImageMap && (now - imageCacheTimestamp) < IMAGE_CACHE_DURATION) {
+        // Use cached images
+        imageMap = cachedImageMap;
+        imageList = cachedImageList;
+        console.log('✅ Using cached image map');
+      } else {
+        // Fetch images in background (non-blocking)
+        fetchSupabaseImages().then(({ imageMap: newImageMap, imageList: newImageList }) => {
+          cachedImageMap = newImageMap;
+          cachedImageList = newImageList;
+          imageCacheTimestamp = now;
+          console.log('✅ Image map cached');
+          
+          // Update tables with new images if tables are already loaded
+          setLiveTables(prevTables => {
+            if (prevTables.length > 0) {
+              return updateTablesWithImages(prevTables, newImageMap, newImageList);
+            }
+            return prevTables;
+          });
+        }).catch(err => {
+          console.warn('⚠️ Error fetching images (non-blocking):', err);
+        });
+        
+        // Use empty map initially - images will be added later
+        imageMap = cachedImageMap || new Map();
+        imageList = cachedImageList || [];
+      }
+      
+      // Fetch tables from API (don't wait for images)
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-tables" } });
 
       if (error) throw error;
       if (!data) throw new Error("No data received from casino API");
       if (!data.success) throw new Error(data.error || "Casino API request failed");
 
-      // Wait for image map to be ready
-      const { imageMap, imageList } = await imageMapPromise;
-
       if (data?.data?.tables && Array.isArray(data.data.tables) && data.data.tables.length > 0) {
-        const tablesWithImages = data.data.tables.map((table: any, index: number) => {
-          // First try to get image from Supabase storage (exact match)
-          let supabaseImageUrl = getSupabaseImageUrl(table, imageMap);
-          
-          // If no exact match found, use sequential assignment from imageList
-          if (!supabaseImageUrl && imageList.length > 0) {
-            // Use modulo to cycle through images if there are fewer images than tables
-            const imageIndex = index % imageList.length;
-            supabaseImageUrl = imageList[imageIndex];
-          }
-          
-          // If Supabase image found, use it; otherwise fall back to proxied image
-          let imageUrl = supabaseImageUrl;
-          
-          if (!imageUrl) {
-            // Fallback to proxied image
-            let imgPath = "";
-            if (table.imageUrl && typeof table.imageUrl === "string") {
-              const parts = table.imageUrl.split("/");
-              imgPath = parts[parts.length - 1];
-            }
-            imageUrl = imgPath
-              ? `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, "")}/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(imgPath)}`
-              : undefined;
-          }
-
-          return {
-            ...table,
-            imageUrl,
-          };
-        });
+        // Show tables immediately with available images (don't wait for full image load)
+        const tablesWithImages = updateTablesWithImages(data.data.tables, imageMap, imageList);
         
         setLiveTables(tablesWithImages);
       } else {
         // fallback to cached tables in supabase
         const { data: cachedTables } = await supabase.from("diamond_casino_tables").select("*").eq("status", "active").order("last_updated", { ascending: false });
         if (cachedTables && cachedTables.length > 0) {
-          const { imageMap: cachedImageMap, imageList: cachedImageList } = await imageMapPromise;
-          const tables = cachedTables.map((ct: any, index: number) => {
-            const table = {
-              id: ct.table_id,
-              name: ct.table_name,
-              status: ct.status,
-              players: ct.player_count,
-              data: ct.table_data,
-            };
-            
-            // Try to get image from Supabase storage (exact match)
-            let supabaseImageUrl = getSupabaseImageUrl(table, cachedImageMap);
-            
-            // If no exact match, use sequential assignment
-            if (!supabaseImageUrl && cachedImageList.length > 0) {
-              const imageIndex = index % cachedImageList.length;
-              supabaseImageUrl = cachedImageList[imageIndex];
-            }
-            
-            const imageUrl = supabaseImageUrl || (ct.table_data as any)?.imageUrl;
-            
-            return {
-              ...table,
-              imageUrl,
-            };
-          });
+          const tables = cachedTables.map((ct: any) => ({
+            id: ct.table_id,
+            name: ct.table_name,
+            status: ct.status,
+            players: ct.player_count,
+            data: ct.table_data,
+            imageUrl: (ct.table_data as any)?.imageUrl,
+          }));
           
-          setLiveTables(tables);
+          // Update with images if available
+          const tablesWithImages = updateTablesWithImages(tables, imageMap, imageList);
+          setLiveTables(tablesWithImages);
         } else {
           setLiveTables([]);
         }
@@ -473,7 +498,8 @@ export const useDiamondCasino = () => {
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
           },
-          body: JSON.stringify({ action: "place-bet", betData })
+          body: JSON.stringify({ action: "place-bet", betData }),
+          referrerPolicy: 'strict-origin-when-cross-origin'
         });
 
         const responseData = await response.json();
