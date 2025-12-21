@@ -260,50 +260,40 @@ const LiveCasinoTable = () => {
     );
   }
 
-  return (
+return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 overflow-x-hidden">
       <Navigation />
-      
+
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 mt-2 sm:mt-2">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={handleBack}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={handleBack} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Tables
         </Button>
 
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6 h-8 sm:h-10 md:h-12">
-            <TabsTrigger value="live" className="text-xs sm:text-sm">Live Game</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs sm:text-sm">Results</TabsTrigger>
-            <TabsTrigger value="history" className="text-xs sm:text-sm">My Bets</TabsTrigger>
+            <TabsTrigger value="live">Live Game</TabsTrigger>
+            <TabsTrigger value="results">Results</TabsTrigger>
+            <TabsTrigger value="history">My Bets</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="live" className="space-y-3 sm:space-y-6">
+          {/* ---------------- LIVE TAB ---------------- */}
+          <TabsContent value="live">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
-              {/* Main area - Stream + Betting */}
+              
+              {/* LEFT SIDE */}
               <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-                {/* Live Stream */}
-                <LiveStream 
-                  tableId={tableId} 
-                  tableName={tableData.name}
-                />
+                <LiveStream tableId={tableId} tableName={tableData.name} />
 
-                {/* Current Result */}
                 {currentResult && (
-                  <CurrentResult 
+                  <CurrentResult
                     result={currentResult}
                     tableName={tableData.name}
                   />
                 )}
 
-                {/* Odds Display */}
                 {odds && <OddsDisplay odds={odds} />}
 
-                {/* Betting Panel */}
                 <BettingPanel
                   table={tableData}
                   odds={odds}
@@ -312,23 +302,22 @@ const LiveCasinoTable = () => {
                 />
               </div>
 
-              {/* Sidebar - Result History */}
+              {/* 🔁 RIGHT SIDE (SWAPPED) */}
               <div className="lg:col-span-1">
-                <ResultHistory 
-                  results={resultHistory}
-                  tableId={tableId}
-                />
+                <BetHistory bets={bets} />
               </div>
             </div>
           </TabsContent>
 
+          {/* ---------------- RESULTS TAB ---------------- */}
           <TabsContent value="results">
-            <ResultHistory 
+            <ResultHistory
               results={resultHistory}
               tableId={tableId}
             />
           </TabsContent>
 
+          {/* ---------------- MY BETS TAB ---------------- */}
           <TabsContent value="history">
             <BetHistory bets={bets} />
           </TabsContent>
