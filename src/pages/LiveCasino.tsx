@@ -34,7 +34,9 @@ const LiveCasino = () => {
 
   useEffect(() => {
     fetchLiveTables();
-  }, [fetchLiveTables]);
+    // Only fetch once on mount, not on every fetchLiveTables change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Navigate to selected table after successful login
   useEffect(() => {
