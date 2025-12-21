@@ -1,5 +1,5 @@
 // src/components/live-casino/TableCard.tsx
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Card } from "@/components/ui/card";
 
 interface TableCardProps {
@@ -14,7 +14,7 @@ interface TableCardProps {
   onClick: () => void;
 } 
 
-export const TableCard = ({ table, onClick }: TableCardProps) => {
+export const TableCard = memo(({ table, onClick }: TableCardProps) => {
   const isRestricted = table.status === "restricted";
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -59,4 +59,13 @@ export const TableCard = ({ table, onClick }: TableCardProps) => {
       </div>
     </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if table data actually changed
+  return (
+    prevProps.table.id === nextProps.table.id &&
+    prevProps.table.name === nextProps.table.name &&
+    prevProps.table.status === nextProps.table.status &&
+    prevProps.table.imageUrl === nextProps.table.imageUrl &&
+    prevProps.table.players === nextProps.table.players
+  );
+});
