@@ -375,21 +375,33 @@ export const useDiamondCasino = () => {
   };
 
   // ----------------- Fetch odds -----------------
-  const fetchOdds = async (tableId: string) => {
+  const fetchOdds = async (tableId: string, silent = false) => {
     try {
-      console.log(`📡 Fetching odds for table: ${tableId}`);
+      if (!silent) {
+        console.log(`📡 Fetching odds for table: ${tableId}`);
+      }
+      
+      // Clear previous error state when retrying
+      if (odds?.error || odds?.noOdds) {
+        setOdds({ bets: [], rawData: {}, error: false, noOdds: false });
+      }
+      
       const { data: oddsResponse, error } = await supabase.functions.invoke("diamond-casino-proxy", { 
         body: { action: "get-odds", tableId } 
       });
       
       if (error) {
-        console.error("fetchOdds invoke error:", error);
+        if (!silent) {
+          console.error("fetchOdds invoke error:", error);
+        }
         setOdds({ bets: [], rawData: {}, error: true });
         return;
       }
 
       if (!oddsResponse) {
-        console.warn("No response from odds API");
+        if (!silent) {
+          console.warn("No response from odds API");
+        }
         setOdds({ bets: [], rawData: {}, noOdds: true });
         return;
       }
@@ -399,72 +411,168 @@ export const useDiamondCasino = () => {
 
       // Check if we have bets directly
       if (payload?.bets && Array.isArray(payload.bets)) {
+        if (!silent) {
+          console.log(`📊 Found bets array with ${payload.bets.length} items`);
+        }
         extractedBets = payload.bets
-          .filter((bet: any) => bet && (bet.back > 0 || bet.lay > 0))
-          .map((bet: any) => ({
-            type: bet.type,
-            odds: bet.back > 0 ? bet.back : (bet.lay > 0 ? bet.lay : 1.98),
-            back: bet.back || 0,
-            lay: bet.lay || 0,
-            status: bet.status || 'active',
-            min: bet.min || 100,
-            max: bet.max || 100000,
-            sid: bet.sid,
-            mid: bet.mid,
-          }));
-      } 
-      // Try parsing from raw data
-      else if (payload?.raw) {
+          .filter((bet: any) => {
+            if (!bet) return false;
+            // Check multiple field names for back/lay values
+            const backVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
+            const layVal = bet.lay || bet.l1 || bet.l || 0;
+            return (backVal > 0 || layVal > 0);
+          })
+          .map((bet: any) => {
+            // Try multiple field names for bet type
+            const betType = bet.type || bet.nat || bet.nation || bet.name || bet.label || 'Unknown';
+            const backVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
+            const layVal = bet.lay || bet.l1 || bet.l || 0;
+            
+            return {
+              type: betType,
+              odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 1.98),
+              back: backVal || 0,
+              lay: layVal || 0,
+              status: bet.status || 'active',
+              min: bet.min || 100,
+              max: bet.max || 100000,
+              sid: bet.sid,
+              mid: bet.mid,
+            };
+          });
+        
+        if (!silent && extractedBets.length === 0 && payload.bets.length > 0) {
+          console.log(`⚠️ Bets array has ${payload.bets.length} items but none passed filter. Sample:`, payload.bets[0]);
+        }
+      }
+      
+      // If no bets extracted from bets array, try parsing from raw data
+      if (extractedBets.length === 0 && payload?.raw) {
+        if (!silent) {
+          console.log(`📊 Trying to parse from raw data`);
+        }
         const rawData = payload.raw;
-        ["t1", "t2", "t3", "sub"].forEach((key) => {
+        ["t1", "t2", "t3", "sub", "grp", "bets", "options", "markets"].forEach((key) => {
           if (rawData[key] && Array.isArray(rawData[key])) {
-            rawData[key].forEach((item: any) => {
-              if (item && (item.nat || item.nation || item.name)) {
-                const backVal = parseFloat(item.b1 || item.b || "0") || 0;
-                const layVal = parseFloat(item.l1 || item.l || "0") || 0;
-                
-                // Only add if there's a valid back or lay value
-                if (backVal > 0 || layVal > 0) {
-                  extractedBets.push({
-                    type: item.nat || item.nation || item.name,
-                    odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 1.98),
-                    back: backVal,
-                    lay: layVal,
-                    status: item.gstatus === "0" || item.gstatus === "SUSPENDED" ? "suspended" : "active",
-                    min: item.min || 100,
-                    max: item.max || 100000,
-                    sid: item.sid,
-                    mid: item.mid || rawData.mid,
-                  });
-                }
+            if (!silent && rawData[key].length > 0) {
+              console.log(`📊 Found ${rawData[key].length} items in ${key} array. Sample:`, rawData[key][0]);
+            }
+            rawData[key].forEach((item: any, index: number) => {
+              if (!item || typeof item !== 'object') return;
+              
+              // Try multiple field names for bet type
+              const betType = item.nat || item.nation || item.name || item.type || item.label || item.title || 
+                             item.n || item.txt || item.text || item.val || item.value || 
+                             `Option ${index + 1}`;
+              
+              // Try multiple field names for back/lay values - check all possible numeric fields
+              // Note: Check bs/ls as well (might be the actual odds)
+              const backVal = parseFloat(
+                item.b1 || item.bs || item.b || item.back || item.odds || item.o || item.odd || 
+                item.bet || item.bet1 || item.bet_back || item.back_odds || "0"
+              ) || 0;
+              const layVal = parseFloat(
+                item.l1 || item.ls || item.l || item.lay || item.lay_odds || item.lay1 || "0"
+              ) || 0;
+              
+              // Also check if there are nested objects with odds
+              let nestedBack = 0;
+              let nestedLay = 0;
+              if (item.data && typeof item.data === 'object') {
+                nestedBack = parseFloat(item.data.b1 || item.data.bs || item.data.b || item.data.back || item.data.odds || "0") || 0;
+                nestedLay = parseFloat(item.data.l1 || item.data.ls || item.data.l || item.data.lay || "0") || 0;
+              }
+              
+              const finalBack = backVal || nestedBack;
+              const finalLay = layVal || nestedLay;
+              
+              // Check if item should be visible (some items might be hidden)
+              const isVisible = item.visible !== false && item.visible !== 0;
+              
+              // Add if there's a valid back or lay value, OR if the item is visible and has a bet type
+              // (some games might show options even with 0 odds initially)
+              if ((finalBack > 0 || finalLay > 0) || (isVisible && betType && betType !== `Option ${index + 1}`)) {
+                extractedBets.push({
+                  type: betType,
+                  odds: finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : 1.98),
+                  back: finalBack,
+                  lay: finalLay,
+                  status: (item.gstatus === "0" || item.gstatus === "SUSPENDED" || item.status === "suspended" || item.suspended) ? "suspended" : "active",
+                  min: item.min || rawData.min || 100,
+                  max: item.max || rawData.max || 100000,
+                  sid: item.sid,
+                  mid: item.mid || rawData.mid,
+                });
+              } else if (!silent && index === 0) {
+                // Log first item structure for debugging
+                console.log(`⚠️ Item in ${key} has no valid odds. Item keys:`, Object.keys(item), 'Item:', item);
               }
             });
           }
         });
       }
-      // Try direct payload parsing
-      else {
+      // If still no bets, try direct payload parsing
+      if (extractedBets.length === 0) {
+        if (!silent) {
+          console.log(`📊 Trying direct payload parsing`);
+        }
         const rawData = payload;
-        ["t1", "t2", "t3", "sub"].forEach((key) => {
+        ["t1", "t2", "t3", "sub", "grp", "bets", "options", "markets"].forEach((key) => {
           if (rawData[key] && Array.isArray(rawData[key])) {
-            rawData[key].forEach((item: any) => {
-              if (item && (item.nat || item.nation || item.name)) {
-                const backVal = parseFloat(item.b1 || item.b || "0") || 0;
-                const layVal = parseFloat(item.l1 || item.l || "0") || 0;
+            if (!silent && rawData[key].length > 0) {
+              console.log(`📊 Found ${rawData[key].length} items in ${key} array. Sample:`, rawData[key][0]);
+            }
+            rawData[key].forEach((item: any, index: number) => {
+              if (!item || typeof item !== 'object') return;
+              
+              // Try multiple field names for bet type
+              const betType = item.nat || item.nation || item.name || item.type || item.label || item.title || 
+                             item.n || item.txt || item.text || item.val || item.value || 
+                             `Option ${index + 1}`;
+              
+              // Try multiple field names for back/lay values - check bs/ls as well
+              const backVal = parseFloat(
+                item.b1 || item.bs || item.b || item.back || item.odds || item.o || item.odd || 
+                item.bet || item.bet1 || item.bet_back || item.back_odds || "0"
+              ) || 0;
+              const layVal = parseFloat(
+                item.l1 || item.ls || item.l || item.lay || item.lay_odds || item.lay1 || "0"
+              ) || 0;
+              
+              // Also check if there are nested objects with odds
+              let nestedBack = 0;
+              let nestedLay = 0;
+              if (item.data && typeof item.data === 'object') {
+                nestedBack = parseFloat(item.data.b1 || item.data.bs || item.data.b || item.data.back || item.data.odds || "0") || 0;
+                nestedLay = parseFloat(item.data.l1 || item.data.ls || item.data.l || item.data.lay || "0") || 0;
+              }
+              
+              const finalBack = backVal || nestedBack;
+              const finalLay = layVal || nestedLay;
+              
+              // Check if item should be visible
+              const isVisible = item.visible !== false && item.visible !== 0;
+              
+              // Add if there's a valid back or lay value, OR if the item is visible and has a bet type
+              if ((finalBack > 0 || finalLay > 0) || (isVisible && betType && betType !== `Option ${index + 1}`)) {
+                // Use default odds of 1.98 if both are 0 (waiting for odds)
+                const defaultOdds = 1.98;
+                const oddsValue = finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : defaultOdds);
                 
-                if (backVal > 0 || layVal > 0) {
-                  extractedBets.push({
-                    type: item.nat || item.nation || item.name,
-                    odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 1.98),
-                    back: backVal,
-                    lay: layVal,
-                    status: item.gstatus === "0" || item.gstatus === "SUSPENDED" ? "suspended" : "active",
-                    min: item.min || 100,
-                    max: item.max || 100000,
-                    sid: item.sid,
-                    mid: item.mid || rawData.mid,
-                  });
-                }
+                extractedBets.push({
+                  type: betType,
+                  odds: oddsValue,
+                  back: finalBack,
+                  lay: finalLay,
+                  status: (item.gstatus === "0" || item.gstatus === "SUSPENDED" || item.status === "suspended" || item.suspended) ? "suspended" : "active",
+                  min: item.min || rawData.min || 100,
+                  max: item.max || rawData.max || 100000,
+                  sid: item.sid,
+                  mid: item.mid || rawData.mid,
+                });
+              } else if (!silent && index === 0) {
+                // Log first item structure for debugging
+                console.log(`⚠️ Item in ${key} has no valid odds. Item keys:`, Object.keys(item), 'Item:', item);
               }
             });
           }
@@ -472,14 +580,26 @@ export const useDiamondCasino = () => {
       }
 
       if (extractedBets.length > 0) {
-        console.log(`✅ Successfully extracted ${extractedBets.length} betting options`);
-        setOdds({ bets: extractedBets, rawData: payload || {} });
+        if (!silent) {
+          console.log(`✅ Successfully extracted ${extractedBets.length} betting options`);
+        }
+        setOdds({ bets: extractedBets, rawData: payload || {}, error: false, noOdds: false });
       } else {
-        console.warn(`⚠️ No betting options extracted. Payload:`, payload);
-        setOdds({ bets: [], rawData: payload || {}, noOdds: true });
+        if (!silent) {
+          console.warn(`⚠️ No betting options extracted for table ${tableId}. Payload keys:`, Object.keys(payload || {}));
+          if (payload?.bets && Array.isArray(payload.bets)) {
+            console.warn(`📊 Bets array length: ${payload.bets.length}, Sample item:`, payload.bets[0]);
+          }
+          if (payload?.raw) {
+            console.warn(`📊 Raw data keys:`, Object.keys(payload.raw));
+          }
+        }
+        setOdds({ bets: [], rawData: payload || {}, noOdds: true, error: false });
       }
     } catch (error) {
-      console.error("Error fetching odds:", error);
+      if (!silent) {
+        console.error("Error fetching odds:", error);
+      }
       setOdds({ bets: [], rawData: {}, error: true });
     }
   };
