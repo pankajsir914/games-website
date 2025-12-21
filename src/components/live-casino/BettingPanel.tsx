@@ -103,7 +103,7 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
         {hasRealOdds && !isRestricted && (
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Select Bet (Live Odds)</Label>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-0.5 sm:gap-1">
               {betTypes.map((bet: any, index: number) => {
                 const backVal = bet?.back ?? bet?.odds ?? 0;
                 const layVal = bet?.lay ?? 0;
@@ -112,20 +112,20 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
                 // Create unique key by always including index to ensure uniqueness
                 const uniqueKey = `${bet?.id || bet?.mid || bet?.type || 'bet'}-${index}`;
                 return (
-                  <div key={uniqueKey} className={`p-1.5 rounded-md border transition-all cursor-pointer ${selectedBet === bet.type ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"} ${bet.status === "suspended" ? "opacity-50 pointer-events-none" : ""}`} onClick={() => bet.status !== "suspended" && setSelectedBet(bet.type)}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-xs truncate">{bet.type}</span>
-                      {bet.status === "suspended" && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-3.5">Suspended</Badge>}
+                  <div key={uniqueKey} className={`p-0.5 sm:p-1.5 rounded border transition-all cursor-pointer ${selectedBet === bet.type ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"} ${bet.status === "suspended" ? "opacity-50 pointer-events-none" : ""}`} onClick={() => bet.status !== "suspended" && setSelectedBet(bet.type)}>
+                    <div className="flex items-center justify-center mb-0.5 sm:mb-1">
+                      <span className="font-medium text-[9px] sm:text-xs truncate text-center">{bet.type}</span>
+                      {bet.status === "suspended" && <Badge variant="destructive" className="text-[9px] px-0.5 py-0 h-3 hidden sm:inline-flex">Suspended</Badge>}
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant={selectedBet === bet.type && betType === "back" ? "default" : "outline"} className={`flex-1 h-6 text-[10px] px-1`} onClick={(e) => { e.stopPropagation(); setSelectedBet(bet.type); setBetType("back"); }} disabled={bet.status === "suspended" || !(Number(backVal) > 0 || Number(bet?.odds ?? 0) > 0)}>
-                        <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
+                    <div className="flex flex-col sm:flex-row gap-0.5 sm:gap-1">
+                      <Button size="sm" variant={selectedBet === bet.type && betType === "back" ? "default" : "outline"} className={`w-full sm:flex-1 h-4 sm:h-6 text-[8px] sm:text-[10px] px-0.5 sm:px-1 py-0`} onClick={(e) => { e.stopPropagation(); setSelectedBet(bet.type); setBetType("back"); }} disabled={bet.status === "suspended" || !(Number(backVal) > 0 || Number(bet?.odds ?? 0) > 0)}>
+                        <span className="hidden sm:inline"><TrendingUp className="w-2.5 h-2.5 mr-0.5" /></span>
                         <span className="font-semibold">{backText}</span>
                       </Button>
 
                       {Number(layVal) > 0 && (
-                        <Button size="sm" variant={selectedBet === bet.type && betType === "lay" ? "default" : "outline"} className={`flex-1 h-6 text-[10px] px-1`} onClick={(e) => { e.stopPropagation(); setSelectedBet(bet.type); setBetType("lay"); }} disabled={bet.status === "suspended"}>
-                          <TrendingDown className="w-2.5 h-2.5 mr-0.5" />
+                        <Button size="sm" variant={selectedBet === bet.type && betType === "lay" ? "default" : "outline"} className={`w-full sm:flex-1 h-4 sm:h-6 text-[8px] sm:text-[10px] px-0.5 sm:px-1 py-0`} onClick={(e) => { e.stopPropagation(); setSelectedBet(bet.type); setBetType("lay"); }} disabled={bet.status === "suspended"}>
+                          <span className="hidden sm:inline"><TrendingDown className="w-2.5 h-2.5 mr-0.5" /></span>
                           <span className="font-semibold">{layText}</span>
                         </Button>
                       )}
