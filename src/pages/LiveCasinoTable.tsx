@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { BettingPanel } from "@/components/live-casino/BettingPanel";
@@ -17,11 +17,11 @@ const LiveCasinoTable = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
   const {
-    odds,
+    odds: initialOdds,
     bets,
     loading,
-    resultHistory,
-    currentResult,
+    resultHistory: initialResultHistory,
+    currentResult: initialCurrentResult,
     fetchTableDetails,
     fetchOdds,
     placeBet,
@@ -32,6 +32,157 @@ const LiveCasinoTable = () => {
 
   const [tableData, setTableData] = useState<any>(null);
   const fetchingRef = useRef(false);
+  
+  // Real-time state from sockets
+  const [odds, setOdds] = useState<any>(null);
+  const [currentResult, setCurrentResult] = useState<any>(null);
+  const [resultHistory, setResultHistory] = useState<any[]>([]);
+
+  // Format odds data properly
+  const formatOddsData = useCallback((rawOdds: any) => {
+    if (!rawOdds) return null;
+
+    // If already formatted, return as is
+    if (rawOdds.bets && Array.isArray(rawOdds.bets)) {
+      return rawOdds;
+    }
+
+    // Extract bets from raw data
+    const payload = rawOdds?.data || rawOdds;
+    let extractedBets: any[] = [];
+
+    // Check if we have bets directly
+    if (payload?.bets && Array.isArray(payload.bets)) {
+      extractedBets = payload.bets
+        .filter((bet: any) => {
+          if (!bet) return false;
+          const backVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
+          const layVal = bet.lay || bet.l1 || bet.l || 0;
+          return (backVal > 0 || layVal > 0);
+        })
+        .map((bet: any) => {
+          const betType = bet.type || bet.nat || bet.nation || bet.name || bet.label || 'Unknown';
+          
+          // Convert odds from points format to decimal format
+          const convertToDecimal = (value: number): number => {
+            if (!value || value === 0) return 0;
+            // If value is very large (like 300000), it's in points format
+            // Convert to decimal odds (divide by 100000)
+            if (value > 1000) {
+              return value / 100000;
+            }
+            // Already in decimal format
+            return value;
+          };
+          
+          const rawBackVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
+          const rawLayVal = bet.lay || bet.l1 || bet.l || 0;
+          
+          const backVal = convertToDecimal(Number(rawBackVal));
+          const layVal = convertToDecimal(Number(rawLayVal));
+          
+          return {
+            type: betType,
+            odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 0),
+            back: backVal || 0,
+            lay: layVal || 0,
+            status: bet.status || 'active',
+            min: bet.min || 100,
+            max: bet.max || 100000,
+            sid: bet.sid,
+            mid: bet.mid,
+          };
+        });
+    }
+
+    // If no bets extracted, try parsing from raw data
+    if (extractedBets.length === 0 && payload?.raw) {
+      const rawData = payload.raw;
+      ["t1", "t2", "t3", "sub", "grp", "bets", "options", "markets"].forEach((key) => {
+        if (rawData[key] && Array.isArray(rawData[key])) {
+          rawData[key].forEach((item: any) => {
+            if (!item || typeof item !== 'object') return;
+            
+            const betType = item.nat || item.nation || item.name || item.type || item.label || 'Unknown';
+            
+            // Convert odds from points format to decimal format
+            const convertToDecimal = (value: number): number => {
+              if (!value || value === 0) return 0;
+              // If value is very large (like 300000), it's in points format
+              // Convert to decimal odds (divide by 100000)
+              if (value > 1000) {
+                return value / 100000;
+              }
+              // Already in decimal format
+              return value;
+            };
+            
+            const rawBackVal = parseFloat(item.b1 || item.bs || item.b || item.back || item.odds || "0") || 0;
+            const rawLayVal = parseFloat(item.l1 || item.ls || item.l || item.lay || "0") || 0;
+            
+            const backVal = convertToDecimal(rawBackVal);
+            const layVal = convertToDecimal(rawLayVal);
+            
+            if (backVal > 0 || layVal > 0) {
+              extractedBets.push({
+                type: betType,
+                odds: backVal > 0 ? backVal : layVal,
+                back: backVal,
+                lay: layVal,
+                status: 'active',
+                min: item.min || 100,
+                max: item.max || 100000,
+                sid: item.sid,
+                mid: item.mid,
+              });
+            }
+          });
+        }
+      });
+    }
+
+    return extractedBets.length > 0 
+      ? { bets: extractedBets, rawData: payload || {} }
+      : null;
+  }, []);
+
+
+  // Sync data from useDiamondCasino hook (updated via API polling)
+  useEffect(() => {
+    if (initialOdds) {
+      console.log("🎯 LiveCasinoTable - Initial Odds Received:", {
+        tableId,
+        rawOdds: initialOdds,
+        hasBets: initialOdds?.bets?.length > 0,
+        betsCount: initialOdds?.bets?.length || 0
+      });
+      
+      const formatted = formatOddsData(initialOdds);
+      if (formatted) {
+        console.log("✅ LiveCasinoTable - Formatted Odds:", {
+          tableId,
+          formattedOdds: formatted,
+          betsCount: formatted.bets?.length || 0,
+          sampleBets: formatted.bets?.slice(0, 3) || []
+        });
+        setOdds(formatted);
+      } else {
+        console.warn("⚠️ LiveCasinoTable - Failed to format odds:", initialOdds);
+      }
+    }
+  }, [initialOdds, formatOddsData, tableId]);
+
+  useEffect(() => {
+    if (initialCurrentResult) {
+      setCurrentResult(initialCurrentResult);
+    }
+  }, [initialCurrentResult]);
+
+  useEffect(() => {
+    if (initialResultHistory && initialResultHistory.length > 0) {
+      setResultHistory(initialResultHistory);
+    }
+  }, [initialResultHistory]);
 
   useEffect(() => {
     if (!tableId) {
@@ -58,7 +209,7 @@ const LiveCasinoTable = () => {
         };
         setTableData(table);
 
-        // Fetch all related data in parallel with error handling
+        // Fetch initial data
         await Promise.allSettled([
           fetchTableDetails(tableId),
           fetchOdds(tableId),
@@ -75,15 +226,14 @@ const LiveCasinoTable = () => {
 
     fetchData();
 
-    // Set up periodic odds fetching (every 15 seconds)
+    // Set up polling for real-time updates (no sockets needed)
     const oddsInterval = setInterval(() => {
-      fetchOdds(tableId);
-    }, 15000);
+      fetchOdds(tableId, true); // silent = true
+    }, 5000); // Every 5 seconds
 
-    // Set up periodic result checking and bet processing (every 30 seconds)
     const resultInterval = setInterval(() => {
       fetchCurrentResult(tableId);
-    }, 30000);
+    }, 10000); // Every 10 seconds
 
     return () => {
       clearInterval(oddsInterval);
