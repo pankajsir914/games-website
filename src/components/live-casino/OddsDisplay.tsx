@@ -51,17 +51,41 @@ export const OddsDisplay = ({ odds }: OddsDisplayProps) => {
             <p className="text-sm text-muted-foreground">No odds available</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
-              {oddsArray.map((bet: any, idx: number) => (
-                <div 
-                  key={idx}
-                  className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-secondary/50"
-                >
-                  <span className="text-xs sm:text-sm font-medium">{bet.type || 'Bet'}</span>
-                  <Badge variant="outline" className="ml-2 text-xs">
-                    {bet.odds || '0.00'}x
-                  </Badge>
-                </div>
-              ))}
+              {oddsArray.map((bet: any, idx: number) => {
+                // Format odds properly - convert to decimal if needed
+                const formatOdds = (oddsValue: any) => {
+                  if (!oddsValue || oddsValue === 0) return '0.00';
+                  
+                  const num = Number(oddsValue);
+                  
+                  // If odds is very large (like 300000), it might be in points format
+                  // Convert to decimal odds (divide by 100000 or appropriate factor)
+                  if (num > 1000) {
+                    // Likely points format - convert to decimal
+                    const decimal = num / 100000;
+                    return decimal > 0 ? decimal.toFixed(2) : '0.00';
+                  }
+                  
+                  // Already in decimal format, just format to 2 decimal places
+                  return num > 0 ? num.toFixed(2) : '0.00';
+                };
+                
+                const backVal = bet?.back ?? bet?.odds ?? 0;
+                const layVal = bet?.lay ?? 0;
+                const displayOdds = backVal > 0 ? backVal : (layVal > 0 ? layVal : bet?.odds ?? 0);
+                
+                return (
+                  <div 
+                    key={idx}
+                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-secondary/50"
+                  >
+                    <span className="text-xs sm:text-sm font-medium">{bet.type || 'Bet'}</span>
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {formatOdds(displayOdds)}
+                    </Badge>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
