@@ -1,6 +1,6 @@
 // src/pages/LiveCasino.tsx
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import { TableCard } from "@/components/live-casino/TableCard";
 import { BettingPanel } from "@/components/live-casino/BettingPanel";
@@ -36,20 +36,57 @@ const LiveCasino = () => {
 
   const [viewMode, setViewMode] = useState<'tables' | 'betting'>('tables');
   const [streamUrl, setStreamUrl] = useState<string>();
+  const fetchingRef = useRef(false);
 
   const handleSelectTable = async (table: any) => {
     setSelectedTable(table);
     setViewMode('betting');
     
-    // Fetch all data in parallel
-    await Promise.all([
-      fetchTableDetails(table.id),
-      fetchOdds(table.id),
-      fetchStreamUrl(table.id).then(url => setStreamUrl(url)),
-      fetchCurrentResult(table.id),
-      fetchResultHistory(table.id)
-    ]);
+    // Prevent duplicate concurrent fetches
+    if (fetchingRef.current) {
+      return;
+    }
+    fetchingRef.current = true;
+    
+    try {
+      // Fetch all data in parallel
+      await Promise.allSettled([
+        fetchTableDetails(table.id),
+        fetchOdds(table.id),
+        fetchStreamUrl(table.id).then(url => setStreamUrl(url)),
+        fetchCurrentResult(table.id),
+        fetchResultHistory(table.id)
+      ]);
+    } finally {
+      fetchingRef.current = false;
+    }
   };
+
+  // Set up polling intervals when a table is selected
+  useEffect(() => {
+    if (!selectedTable || viewMode !== 'betting') {
+      return;
+    }
+
+    // Set up periodic odds fetching (every 10 seconds) - use silent mode to avoid console spam
+    const oddsInterval = setInterval(() => {
+      if (selectedTable?.id) {
+        fetchOdds(selectedTable.id, true); // silent = true for polling
+      }
+    }, 10000);
+
+    // Set up periodic result checking (every 30 seconds)
+    const resultInterval = setInterval(() => {
+      if (selectedTable?.id) {
+        fetchCurrentResult(selectedTable.id);
+      }
+    }, 30000);
+
+    return () => {
+      clearInterval(oddsInterval);
+      clearInterval(resultInterval);
+    };
+  }, [selectedTable?.id, viewMode, fetchOdds, fetchCurrentResult]);
 
   const handleBack = () => {
     setViewMode('tables');
@@ -147,7 +184,7 @@ const LiveCasino = () => {
                   )}
 
                   {/* Odds Display */}
-                 
+                  
 
                   {/* Betting Panel */}
                   <BettingPanel
