@@ -47,6 +47,7 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
       >
         {table.imageUrl && !imageError && (
           <img
+            key={table.imageUrl}
             src={table.imageUrl}
             alt={table.name}
             className={`w-full h-full object-cover transition-opacity duration-300 ${
@@ -54,7 +55,10 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
             }`}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(false);
+            }}
           />
         )}
 
