@@ -486,15 +486,32 @@ export const useDiamondCasino = () => {
               const finalBack = backVal || nestedBack;
               const finalLay = layVal || nestedLay;
               
-              // Check if item should be visible (some items might be hidden)
-              const isVisible = item.visible !== false && item.visible !== 0;
+              // Check if item has a meaningful bet type (not just a generic "Option X")
+              // If nat/nation/name exists, it's definitely a valid bet type
+              const hasValidBetType = betType && 
+                                     betType !== `Option ${index + 1}` && 
+                                     betType.trim() !== '' &&
+                                     (item.nat || item.nation || item.name || item.type || item.label || item.title);
               
-              // Add if there's a valid back or lay value, OR if the item is visible and has a bet type
-              // (some games might show options even with 0 odds initially)
-              if ((finalBack > 0 || finalLay > 0) || (isVisible && betType && betType !== `Option ${index + 1}`)) {
+              // Check if item should be visible
+              // For items with valid bet types (like 'Player A'), include them even if visible is 0
+              // because visible: 0 might just mean odds are not available yet, not that item is hidden
+              const isExplicitlyHidden = item.visible === false;
+              // If item has a valid bet type name, include it even if visible is 0 (odds might be loading)
+              const shouldShow = hasValidBetType ? (item.visible !== false) : (!isExplicitlyHidden && item.visible !== 0 && item.visible !== '0');
+              
+              // Add if there's a valid back or lay value, OR if the item should be shown and has a valid bet type name
+              // (some games might show options even with 0 odds initially - they'll update when odds become available)
+              const shouldInclude = (finalBack > 0 || finalLay > 0) || (shouldShow && hasValidBetType);
+              
+              if (shouldInclude) {
+                // Only use actual odds, no dummy data
+                // If both are 0, use 0 (don't show dummy odds)
+                const oddsValue = finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : 0);
+                
                 extractedBets.push({
                   type: betType,
-                  odds: finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : 1.98),
+                  odds: oddsValue,
                   back: finalBack,
                   lay: finalLay,
                   status: (item.gstatus === "0" || item.gstatus === "SUSPENDED" || item.status === "suspended" || item.suspended) ? "suspended" : "active",
@@ -505,7 +522,12 @@ export const useDiamondCasino = () => {
                 });
               } else if (!silent && index === 0) {
                 // Log first item structure for debugging
-                console.log(`⚠️ Item in ${key} has no valid odds. Item keys:`, Object.keys(item), 'Item:', item);
+                console.log(`⚠️ Item in ${key} excluded. Keys:`, Object.keys(item), 
+                  'betType:', betType, 
+                  'shouldShow:', shouldShow, 
+                  'hasValidBetType:', hasValidBetType,
+                  'visible:', item.visible,
+                  'nat:', item.nat);
               }
             });
           }
@@ -550,14 +572,28 @@ export const useDiamondCasino = () => {
               const finalBack = backVal || nestedBack;
               const finalLay = layVal || nestedLay;
               
-              // Check if item should be visible
-              const isVisible = item.visible !== false && item.visible !== 0;
+              // Check if item has a meaningful bet type (not just a generic "Option X")
+              // If nat/nation/name exists, it's definitely a valid bet type
+              const hasValidBetType = betType && 
+                                     betType !== `Option ${index + 1}` && 
+                                     betType.trim() !== '' &&
+                                     (item.nat || item.nation || item.name || item.type || item.label || item.title);
               
-              // Add if there's a valid back or lay value, OR if the item is visible and has a bet type
-              if ((finalBack > 0 || finalLay > 0) || (isVisible && betType && betType !== `Option ${index + 1}`)) {
-                // Use default odds of 1.98 if both are 0 (waiting for odds)
-                const defaultOdds = 1.98;
-                const oddsValue = finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : defaultOdds);
+              // Check if item should be visible
+              // For items with valid bet types (like 'Player A'), include them even if visible is 0
+              // because visible: 0 might just mean odds are not available yet, not that item is hidden
+              const isExplicitlyHidden = item.visible === false;
+              // If item has a valid bet type name, include it even if visible is 0 (odds might be loading)
+              const shouldShow = hasValidBetType ? (item.visible !== false) : (!isExplicitlyHidden && item.visible !== 0 && item.visible !== '0');
+              
+              // Add if there's a valid back or lay value, OR if the item should be shown and has a valid bet type name
+              // (some games might show options even with 0 odds initially - they'll update when odds become available)
+              const shouldInclude = (finalBack > 0 || finalLay > 0) || (shouldShow && hasValidBetType);
+              
+              if (shouldInclude) {
+                // Only use actual odds, no dummy data
+                // If both are 0, use 0 (don't show dummy odds)
+                const oddsValue = finalBack > 0 ? finalBack : (finalLay > 0 ? finalLay : 0);
                 
                 extractedBets.push({
                   type: betType,
@@ -572,7 +608,7 @@ export const useDiamondCasino = () => {
                 });
               } else if (!silent && index === 0) {
                 // Log first item structure for debugging
-                console.log(`⚠️ Item in ${key} has no valid odds. Item keys:`, Object.keys(item), 'Item:', item);
+                console.log(`⚠️ Item in ${key} has no valid odds. Item keys:`, Object.keys(item), 'Item:', item, 'shouldShow:', shouldShow, 'hasValidBetType:', hasValidBetType);
               }
             });
           }
