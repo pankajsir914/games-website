@@ -8,6 +8,7 @@ import { LiveStream } from "@/components/live-casino/LiveStream";
 import { ResultHistory } from "@/components/live-casino/ResultHistory";
 import { CurrentResult } from "@/components/live-casino/CurrentResult";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
+import { useCasinoResultSocket } from "@/hooks/useCasinoSocket";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,18 @@ const LiveCasinoTable = () => {
   const [odds, setOdds] = useState<any>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [resultHistory, setResultHistory] = useState<any[]>([]);
+
+  // Real-time result updates via WebSocket + API polling
+  useCasinoResultSocket(tableId, (result) => {
+    if (result) {
+      console.log('🔄 Real-time result update received:', result);
+      // Force state update by creating new object reference
+      setCurrentResult({ ...result, _updated: Date.now() });
+      if (result.results && Array.isArray(result.results)) {
+        setResultHistory([...result.results]);
+      }
+    }
+  });
 
   const formatOddsData = useCallback((rawOdds: any) => {
     if (!rawOdds) return null;
@@ -117,14 +130,18 @@ const LiveCasinoTable = () => {
 
     fetchData();
 
-    const oddsInterval = setInterval(() => fetchOdds(tableId, true), 5000);
-    const resultInterval = setInterval(() => fetchCurrentResult(tableId), 10000);
+    const oddsInterval = setInterval(() => {
+      console.log('🔄 Polling odds...');
+      fetchOdds(tableId, true);
+    }, 5000);
+    
+    // Result fetching is now handled by useCasinoResultSocket (WebSocket + polling every 8s)
+    // No need for duplicate manual polling
 
     return () => {
       clearInterval(oddsInterval);
-      clearInterval(resultInterval);
     };
-  }, [tableId]);
+  }, [tableId, fetchOdds]);
 
   if (!tableId || !tableData) {
     return (
@@ -185,14 +202,11 @@ const LiveCasinoTable = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-5">
               {/* LEFT */}
               <div className="lg:col-span-2 space-y-3 md:space-y-5">
-                <LiveStream tableId={tableId} tableName={tableData.name} />
-
-                {currentResult && (
-                  <CurrentResult
-                    result={currentResult}
-                    tableName={tableData.name}
-                  />
-                )}
+                <LiveStream 
+                  tableId={tableId} 
+                  tableName={tableData.name}
+                  currentRoundId={currentResult?.latestResult?.mid || currentResult?.latestResult?.round || null}
+                />
 
                 {odds && <OddsDisplay odds={odds} />}
 
@@ -202,6 +216,14 @@ const LiveCasinoTable = () => {
                   onPlaceBet={placeBet}
                   loading={loading}
                 />
+
+                {currentResult && (
+                  <CurrentResult
+                    result={currentResult}
+                    tableName={tableData.name}
+                    tableId={tableId}
+                  />
+                )}
               </div>
 
               {/* RIGHT */}
