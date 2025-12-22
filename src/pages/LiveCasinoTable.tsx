@@ -177,7 +177,7 @@ const LiveCasinoTable = () => {
             <Card className="border-muted/40 shadow-sm">
               <TabsList
                 className="
-                  grid grid-cols-3
+                  grid grid-cols-2
                   h-10 sm:h-11
                   p-1
                   bg-muted/40
@@ -186,9 +186,6 @@ const LiveCasinoTable = () => {
               >
                 <TabsTrigger value="live" className="text-xs sm:text-sm">
                   Live
-                </TabsTrigger>
-                <TabsTrigger value="results" className="text-xs sm:text-sm">
-                  Results
                 </TabsTrigger>
                 <TabsTrigger value="history" className="text-xs sm:text-sm">
                   My Bets
@@ -231,11 +228,6 @@ const LiveCasinoTable = () => {
                 <BetHistory bets={bets} />
               </div>
             </div>
-          </TabsContent>
-
-          {/* RESULTS */}
-          <TabsContent value="results">
-            <ResultHistory results={resultHistory} tableId={tableId} />
           </TabsContent>
 
           {/* MY BETS */}
