@@ -8,7 +8,7 @@ interface LiveStreamProps {
   tableId: string;
   tableName?: string;
 }
-   
+
 type BetStatus = "OPEN" | "CLOSED";
 
 export const LiveStream = ({ tableId }: LiveStreamProps) => {
@@ -26,19 +26,14 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
     if (!tableId) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { data } = await supabase.functions.invoke(
         "diamond-casino-proxy",
-        {
-          body: { action: "get-odds", tableId },
-        }
+        { body: { action: "get-odds", tableId } }
       );
-
-      if (error) return;
 
       const oddsData = data?.data || data;
       const rawData = oddsData?.raw || oddsData;
 
-      /* ================= TIMER (UI ONLY) ================= */
       let remaining =
         rawData?.remaining ||
         rawData?.timeRemaining ||
@@ -67,29 +62,22 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
         }, 1000);
       }
 
-      /* ================= BET STATUS (SOURCE OF TRUTH) ================= */
       const subs = rawData?.sub || oddsData?.sub || [];
-
       const hasOpenMarket = Array.isArray(subs)
         ? subs.some((s: any) => s?.gstatus === "OPEN")
         : false;
 
       setBetStatus(hasOpenMarket ? "OPEN" : "CLOSED");
-
-    } catch {
-      // silent fail
-    }
+    } catch {}
   };
 
   /* ================= STREAM URL ================= */
   const fetchStreamUrl = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { data } = await supabase.functions.invoke(
         "diamond-casino-proxy",
         { body: { action: "get-stream-url", tableId } }
       );
-
-      if (error) throw error;
 
       const url = data?.streamUrl || data?.data?.streamUrl || null;
 
@@ -117,24 +105,25 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
     apiPollIntervalRef.current = setInterval(fetchOddsAndTimer, 3000);
 
     return () => {
-      if (apiPollIntervalRef.current) {
-        clearInterval(apiPollIntervalRef.current);
-      }
-      if (countdownIntervalRef.current) {
+      if (apiPollIntervalRef.current) clearInterval(apiPollIntervalRef.current);
+      if (countdownIntervalRef.current)
         clearInterval(countdownIntervalRef.current);
-      }
     };
   }, [tableId]);
 
   /* ================= UI ================= */
   return (
-    <Card>
-      <CardContent>
-        <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
+    <Card className="border border-white/10 bg-gradient-to-b from-neutral-900 to-black">
+      <CardContent className="p-0 sm:p-4">
+        <div className="relative aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+          
+          {/* STREAM / ERROR */}
           {error || !streamUrl ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <AlertCircle className="h-10 w-10 text-yellow-500" />
-              <p className="text-white text-sm">Stream unavailable</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70">
+              <AlertCircle className="h-10 w-10 text-yellow-400" />
+              <p className="text-sm text-muted-foreground">
+                Live stream unavailable
+              </p>
             </div>
           ) : (
             <iframe
@@ -147,10 +136,13 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
             />
           )}
 
+          {/* DARK OVERLAY FOR READABILITY */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30" />
+
           {/* BET STATUS */}
           <div className="absolute top-3 left-3">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow ${
                 betStatus === "OPEN"
                   ? "bg-green-600 text-white animate-pulse"
                   : "bg-red-600 text-white"
@@ -160,8 +152,8 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
             </span>
           </div>
 
-          {/* TIMER (UI ONLY) */}
-          <div className="absolute bottom-3 right-3">
+          {/* TIMER */}
+          <div className="absolute bottom-3 right-3 rounded-full bg-black/60 backdrop-blur-md p-1 shadow">
             <CircularTimer value={timer} max={20} />
           </div>
         </div>
