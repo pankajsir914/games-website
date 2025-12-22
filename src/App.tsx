@@ -14,13 +14,8 @@ import Ludo from "./pages/Ludo";
 import LudoGame from "./pages/LudoGame";
 import Aviator from "./pages/Aviator";
 import ColorPrediction from "./pages/ColorPrediction";
-import AndarBahar from "./pages/AndarBahar";
-import Roulette from "./pages/Roulette";
 import RouletteAdmin from "./pages/RouletteAdmin";
-import Rummy from "./pages/Rummy";
-import Poker from "./pages/Poker";
 import PokerTable from "./pages/PokerTable";
-import Jackpot from "./pages/Jackpot";
 import TeenPatti from "./pages/TeenPatti";
 import ChickenRun from "./pages/ChickenRun";
 import LiveCasino from "./pages/LiveCasino";
@@ -72,12 +67,7 @@ const App = () => (
               <Route path="/ludo-game" element={<LudoGame />} />
               <Route path="/aviator" element={<Aviator />} />
               <Route path="/color-prediction" element={<ColorPrediction />} />
-              <Route path="/andar-bahar" element={<AndarBahar />} />
-              <Route path="/roulette" element={<Roulette />} />
-              <Route path="/rummy" element={<Rummy />} />
-              <Route path="/poker" element={<Poker />} />
               <Route path="/poker/table/:tableId" element={<PokerTable />} />
-              <Route path="/jackpot" element={<Jackpot />} />
               <Route path="/teen-patti" element={<TeenPatti />} />
               <Route path="/chicken-run" element={<ChickenRun />} />
               <Route path="/live-casino" element={<LiveCasino />} />
