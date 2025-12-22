@@ -452,7 +452,9 @@ export const useCasinoResultSocket = (
         body: { action: "get-result", tableId }
       });
 
-      if (error) return;
+      if (error) {
+        return;
+      }
 
       // Format result data properly
       const resultData = data?.data || data;
@@ -461,11 +463,15 @@ export const useCasinoResultSocket = (
         const tableName = resultData?.data?.data?.res1?.cname || resultData?.data?.res1?.cname || "";
         
         if (Array.isArray(resData) && resData.length > 0) {
-          setResult({
+          const latestResult = resData[0];
+          const newResult = {
             tableName,
-            latestResult: resData[0],
-            results: resData
-          });
+            latestResult,
+            results: resData,
+            _timestamp: Date.now() // Add timestamp to force update
+          };
+          // Always update to ensure UI refreshes
+          setResult(newResult);
         }
       }
     } catch (error) {
@@ -475,13 +481,23 @@ export const useCasinoResultSocket = (
 
   useEffect(() => {
     if (!tableId || !setResult) return;
-
+    
     const socket = getCasinoSocket();
+    
+    // Socket connection handlers
+    socket.on("connect", () => {
+      socket.emit("join", { tableId });
+    });
+
     socket.emit("join", { tableId });
 
     const onResultUpdate = (payload: any) => {
-      if (payload?.tableId !== tableId) return;
-      setResult(payload?.data ?? null);
+      if (payload?.tableId !== tableId) {
+        return;
+      }
+      if (payload?.data) {
+        setResult(payload.data);
+      }
     };
 
     socket.on("result:update", onResultUpdate);
@@ -489,8 +505,10 @@ export const useCasinoResultSocket = (
     // Initial fetch
     fetchResultFromAPI();
 
-    // Poll API every 10 seconds for result updates
-    apiPollIntervalRef.current = setInterval(fetchResultFromAPI, 10000);
+    // Poll API every 8 seconds for faster result updates
+    apiPollIntervalRef.current = setInterval(() => {
+      fetchResultFromAPI();
+    }, 8000);
 
     return () => {
       if (apiPollIntervalRef.current) {
@@ -498,6 +516,9 @@ export const useCasinoResultSocket = (
       }
       socket.emit("leave", { tableId });
       socket.off("result:update", onResultUpdate);
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
     };
   }, [tableId, setResult, fetchResultFromAPI]);
 };
