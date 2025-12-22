@@ -7,16 +7,18 @@ import { CircularTimer } from "./CircularTimer";
 interface LiveStreamProps {
   tableId: string;
   tableName?: string;
+  currentRoundId?: string | number;
 }
 
 type BetStatus = "OPEN" | "CLOSED";
 
-export const LiveStream = ({ tableId }: LiveStreamProps) => {
+export const LiveStream = ({ tableId, currentRoundId }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   const [betStatus, setBetStatus] = useState<BetStatus>("CLOSED");
   const [timer, setTimer] = useState(0);
+  const [roundId, setRoundId] = useState<string | number | null>(null);
 
   const apiPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -33,6 +35,25 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
 
       const oddsData = data?.data || data;
       const rawData = oddsData?.raw || oddsData;
+
+      // Extract round ID from odds data (current active round)
+      // Check multiple possible locations in the response
+      const extractedRoundId = rawData?.mid || rawData?.round_id || rawData?.round || 
+                               rawData?.gmid || rawData?.game_id ||
+                               oddsData?.mid || oddsData?.round_id || oddsData?.round ||
+                               oddsData?.gmid || oddsData?.game_id ||
+                               null;
+      
+      // Always update if we found a round ID (this is the current active round)
+      // Only update if the value actually changed to avoid unnecessary re-renders
+      if (extractedRoundId) {
+        // Compare as strings to handle number/string mismatches
+        const currentRoundIdStr = String(roundId || '');
+        const extractedRoundIdStr = String(extractedRoundId);
+        if (currentRoundIdStr !== extractedRoundIdStr) {
+          setRoundId(extractedRoundId);
+        }
+      }
 
       let remaining =
         rawData?.remaining ||
@@ -140,7 +161,7 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30" />
 
           {/* BET STATUS */}
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             <span
               className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow ${
                 betStatus === "OPEN"
@@ -150,6 +171,11 @@ export const LiveStream = ({ tableId }: LiveStreamProps) => {
             >
               BETTING {betStatus}
             </span>
+            {(roundId || currentRoundId) && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/60 text-white/90 backdrop-blur-sm">
+                Round #{roundId || currentRoundId}
+              </span>
+            )}
           </div>
 
           {/* TIMER */}
