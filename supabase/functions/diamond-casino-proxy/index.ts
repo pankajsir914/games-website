@@ -102,7 +102,8 @@ serve(async (req) => {
     }
     
     // Handle POST requests for API actions
-    const { action, tableId, betData, date } = await req.json();
+    const reqBody = await req.json();
+    const { action, tableId, betData, date } = reqBody;
     console.log(`Casino API request: action=${action}, tableId=${tableId}`);
 
     let result;
@@ -631,9 +632,17 @@ serve(async (req) => {
 
         if (resultResponse.ok) {
           const resultJson = await resultResponse.json();
+          console.log('📊 Raw result JSON:', JSON.stringify(resultJson, null, 2));
+          
+          // Try multiple paths to extract result data
           const resData = resultJson?.data?.data?.res || resultJson?.data?.res || resultJson?.res || [];
           if (Array.isArray(resData) && resData.length > 0) {
             resultData = resData[0]; // Latest result
+            console.log('✅ Extracted result data:', JSON.stringify(resultData, null, 2));
+          } else {
+            // Try direct result object
+            resultData = resultJson?.data?.data || resultJson?.data || resultJson;
+            console.log('✅ Using direct result data:', JSON.stringify(resultData, null, 2));
           }
         }
       } catch (error) {
@@ -644,10 +653,19 @@ serve(async (req) => {
         });
       }
 
-      if (!resultData || !(resultData as any).win) {
+      // Extract winning value from multiple possible fields
+      const winningValue = resultData 
+        ? ((resultData as any).win || (resultData as any).winner || (resultData as any).result || (resultData as any).name || (resultData as any).nat || '').toString().trim()
+        : '';
+
+      console.log('🎯 Winning value extracted:', winningValue);
+      console.log('📋 Full result data:', JSON.stringify(resultData, null, 2));
+
+      if (!resultData || !winningValue) {
         result = { 
           success: false, 
-          error: 'No result available for settlement' 
+          error: 'No result available for settlement',
+          debug: { resultData, winningValue }
         };
       } else {
         // Get all pending bets for this table
@@ -668,112 +686,206 @@ serve(async (req) => {
             processed: 0
           };
         } else {
-          const winningValue = ((resultData as any).win || '').toString();
-          let processed = 0;
-          let won = 0;
-          let lost = 0;
-          let totalPayouts = 0;
-
-          // Process each pending bet
-          for (const bet of pendingBets) {
-            try {
-              // Determine if bet won based on bet_type and result
-              // Result win can be "1", "2", "Player A", "Player B", or selection name
-              const betSide = bet.side || 'back';
-              const betTypeLower = bet.bet_type.toLowerCase().trim();
-              const winLower = winningValue.toLowerCase().trim();
-              
-              // Try multiple matching strategies for flexible matching
-              let betWon = false;
-              
-              if (betSide === 'back') {
-                // Back bet wins if bet_type matches result
-                // Direct match
-                if (bet.bet_type === winningValue || betTypeLower === winLower) {
-                  betWon = true;
-                }
-                // Substring match (e.g., "Player A" contains "1" or vice versa)
-                else if (betTypeLower.includes(winLower) || winLower.includes(betTypeLower)) {
-                  betWon = true;
-                }
-                // Numeric mapping: "1" -> "Player A", "Team 1", etc.
-                else if (winningValue === '1' && (betTypeLower.includes('player a') || betTypeLower.includes('team 1') || betTypeLower.includes('1'))) {
-                  betWon = true;
-                }
-                else if (winningValue === '2' && (betTypeLower.includes('player b') || betTypeLower.includes('team 2') || betTypeLower.includes('2'))) {
-                  betWon = true;
-                }
-                // Check if bet_type matches common winner patterns
-                else if ((winLower === '1' || winLower === 'player a' || winLower === 'team 1') && 
-                         (betTypeLower.includes('1') || betTypeLower.includes('a') || betTypeLower.includes('first'))) {
-                  betWon = true;
-                }
-                else if ((winLower === '2' || winLower === 'player b' || winLower === 'team 2') && 
-                         (betTypeLower.includes('2') || betTypeLower.includes('b') || betTypeLower.includes('second'))) {
-                  betWon = true;
-                }
-              } else {
-                // Lay bet wins if bet_type doesn't match result (opposite of back)
-                // Direct mismatch
-                if (bet.bet_type !== winningValue && betTypeLower !== winLower) {
-                  // Check if they're clearly different
-                  const isDifferent = !betTypeLower.includes(winLower) && !winLower.includes(betTypeLower);
-                  
-                  // Also check numeric mappings
-                  const isNumericMismatch = !(
-                    (winningValue === '1' && (betTypeLower.includes('player a') || betTypeLower.includes('team 1') || betTypeLower.includes('1'))) ||
-                    (winningValue === '2' && (betTypeLower.includes('player b') || betTypeLower.includes('team 2') || betTypeLower.includes('2')))
-                  );
-                  
-                  betWon = isDifferent && isNumericMismatch;
-                }
+          console.log(`🔄 Processing ${pendingBets.length} pending bets for table ${tableId}`);
+          
+          // Extract result timestamp if available to filter bets
+          const resultDataAny = resultData as any;
+          const resultTimestamp = resultDataAny?.time || resultDataAny?.timestamp || resultDataAny?.created_at || null;
+          const resultRound = resultDataAny?.round || resultDataAny?.round_id || resultDataAny?.round_number || null;
+          
+          console.log('📅 Result info:', { 
+            winningValue, 
+            resultTimestamp, 
+            resultRound,
+            resultDataKeys: Object.keys(resultDataAny || {})
+          });
+          
+          // Filter bets: Only process bets that were placed BEFORE the result timestamp
+          // This prevents processing bets that were placed after the result was announced
+          let betsToProcess = pendingBets;
+          if (resultTimestamp) {
+            const resultTime = new Date(resultTimestamp).getTime();
+            betsToProcess = pendingBets.filter(bet => {
+              const betTime = new Date(bet.created_at).getTime();
+              const isValid = betTime < resultTime;
+              if (!isValid) {
+                console.log(`⏭️ Skipping bet ${bet.id} - placed after result (bet: ${bet.created_at}, result: ${resultTimestamp})`);
               }
+              return isValid;
+            });
+            console.log(`📊 Filtered ${pendingBets.length} bets to ${betsToProcess.length} valid bets`);
+          }
+          
+          if (betsToProcess.length === 0) {
+            result = {
+              success: true,
+              message: 'No valid bets to process (all bets placed after result)',
+              processed: 0,
+              won: 0,
+              lost: 0,
+              totalPayouts: 0,
+              winningValue
+            };
+          } else {
+            let processed = 0;
+            let won = 0;
+            let lost = 0;
+            let totalPayouts = 0;
 
-              const newStatus = betWon ? 'won' : 'lost';
-              const payoutAmount = betWon && bet.odds 
-                ? parseFloat((bet.bet_amount * bet.odds).toFixed(2))
-                : 0;
+            // Normalize winning value for comparison
+            const winLower = winningValue.toLowerCase().trim();
+            const winUpper = winningValue.toUpperCase().trim();
 
-              // Update bet status
-              const { error: updateError } = await supabase
-                .from('diamond_casino_bets')
-                .update({
-                  status: newStatus,
-                  payout_amount: payoutAmount,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', bet.id);
+            // Process each valid bet
+            for (const bet of betsToProcess) {
+              try {
+                const betSide = bet.side || 'back';
+                const betType = (bet.bet_type || '').toString().trim();
+                const betTypeLower = betType.toLowerCase().trim();
+                const betTypeUpper = betType.toUpperCase().trim();
 
-              if (updateError) {
-                console.error(`Error updating bet ${bet.id}:`, updateError);
-                continue;
-              }
-
-              // Credit wallet if bet won
-              if (betWon && payoutAmount > 0) {
-                const { error: walletError } = await supabase.rpc('update_wallet_balance', {
-                  p_user_id: bet.user_id,
-                  p_amount: payoutAmount,
-                  p_type: 'credit',
-                  p_reason: `Diamond Casino win - ${bet.table_name || bet.table_id} (${bet.bet_type})`,
-                  p_game_type: 'casino'
+                console.log(`\n🎲 Processing bet ${bet.id}:`, {
+                  betType,
+                  betTypeLower,
+                  winningValue,
+                  winLower,
+                  betSide,
+                  tableId: bet.table_id
                 });
 
-                if (walletError) {
-                  console.error(`Error crediting wallet for bet ${bet.id}:`, walletError);
+                // Improved matching logic
+                let betWon = false;
+                
+                if (betSide === 'back') {
+                  // Back bet wins if bet_type matches result
+                  
+                  // 1. Exact match (case-insensitive)
+                  if (betTypeLower === winLower || betTypeUpper === winUpper) {
+                    betWon = true;
+                    console.log('  ✅ Exact match');
+                  }
+                  // 2. Direct string match (case-sensitive)
+                  else if (betType === winningValue) {
+                    betWon = true;
+                    console.log('  ✅ Direct string match');
+                  }
+                  // 3. Check if bet_type contains winning value or vice versa (but be careful with partial matches)
+                  else if (betTypeLower.includes(winLower) && winLower.length >= 2) {
+                    betWon = true;
+                    console.log('  ✅ Bet type contains winning value');
+                  }
+                  else if (winLower.includes(betTypeLower) && betTypeLower.length >= 2) {
+                    betWon = true;
+                    console.log('  ✅ Winning value contains bet type');
+                  }
+                  // 4. Numeric mapping: "1" <-> "Player A", "Team 1", etc.
+                  else if (winningValue === '1' || winLower === '1') {
+                    if (betTypeLower.includes('player a') || 
+                        betTypeLower.includes('team 1') || 
+                        betTypeLower === '1' ||
+                        betTypeLower.includes(' first') ||
+                        betTypeLower.startsWith('1 ')) {
+                      betWon = true;
+                      console.log('  ✅ Numeric mapping: 1 -> Player A/Team 1');
+                    }
+                  }
+                  else if (winningValue === '2' || winLower === '2') {
+                    if (betTypeLower.includes('player b') || 
+                        betTypeLower.includes('team 2') || 
+                        betTypeLower === '2' ||
+                        betTypeLower.includes(' second') ||
+                        betTypeLower.startsWith('2 ')) {
+                      betWon = true;
+                      console.log('  ✅ Numeric mapping: 2 -> Player B/Team 2');
+                    }
+                  }
+                  // 5. Reverse numeric mapping: "Player A" -> "1"
+                  else if ((winLower === 'player a' || winLower === 'team 1' || winLower.includes('player a') || winLower.includes('team 1')) &&
+                           (betTypeLower === '1' || betTypeLower.includes('1') || betTypeLower.includes('first'))) {
+                    betWon = true;
+                    console.log('  ✅ Reverse numeric mapping: Player A -> 1');
+                  }
+                  else if ((winLower === 'player b' || winLower === 'team 2' || winLower.includes('player b') || winLower.includes('team 2')) &&
+                           (betTypeLower === '2' || betTypeLower.includes('2') || betTypeLower.includes('second'))) {
+                    betWon = true;
+                    console.log('  ✅ Reverse numeric mapping: Player B -> 2');
+                  }
                 } else {
-                  totalPayouts += payoutAmount;
-                  won++;
+                  // Lay bet wins if bet_type does NOT match result
+                  // First check if they match (using same logic as back)
+                  let isMatch = false;
+                  
+                  if (betTypeLower === winLower || betTypeUpper === winUpper || betType === winningValue) {
+                    isMatch = true;
+                  }
+                  else if (betTypeLower.includes(winLower) && winLower.length >= 2) {
+                    isMatch = true;
+                  }
+                  else if (winLower.includes(betTypeLower) && betTypeLower.length >= 2) {
+                    isMatch = true;
+                  }
+                  else if ((winningValue === '1' || winLower === '1') && 
+                           (betTypeLower.includes('player a') || betTypeLower.includes('team 1') || betTypeLower === '1')) {
+                    isMatch = true;
+                  }
+                  else if ((winningValue === '2' || winLower === '2') && 
+                           (betTypeLower.includes('player b') || betTypeLower.includes('team 2') || betTypeLower === '2')) {
+                    isMatch = true;
+                  }
+                  
+                  // Lay bet wins if NOT a match
+                  betWon = !isMatch;
+                  console.log(`  ${betWon ? '✅' : '❌'} Lay bet: ${isMatch ? 'MATCH (loses)' : 'NO MATCH (wins)'}`);
                 }
-              } else {
-                lost++;
-              }
 
-              processed++;
-            } catch (error) {
+                const newStatus = betWon ? 'won' : 'lost';
+                const payoutAmount = betWon && bet.odds 
+                  ? parseFloat((bet.bet_amount * bet.odds).toFixed(2))
+                  : 0;
+
+                console.log(`  📊 Result: ${newStatus}, Payout: ₹${payoutAmount}`);
+
+                // Update bet status
+                const { error: updateError } = await supabase
+                  .from('diamond_casino_bets')
+                  .update({
+                    status: newStatus,
+                    payout_amount: payoutAmount,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', bet.id);
+
+                if (updateError) {
+                  console.error(`❌ Error updating bet ${bet.id}:`, updateError);
+                  continue;
+                }
+
+                // Credit wallet if bet won
+                if (betWon && payoutAmount > 0) {
+                  const { error: walletError } = await supabase.rpc('update_wallet_balance', {
+                    p_user_id: bet.user_id,
+                    p_amount: payoutAmount,
+                    p_type: 'credit',
+                    p_reason: `Diamond Casino win - ${bet.table_name || bet.table_id} (${bet.bet_type})`,
+                    p_game_type: 'casino'
+                  });
+
+                  if (walletError) {
+                    console.error(`❌ Error crediting wallet for bet ${bet.id}:`, walletError);
+                  } else {
+                    totalPayouts += payoutAmount;
+                    won++;
+                    console.log(`  💰 Wallet credited: ₹${payoutAmount}`);
+                  }
+                } else {
+                  lost++;
+                }
+
+                processed++;
+              } catch (error) {
               const errorMessage = error instanceof Error ? error.message : String(error);
               const errorStack = error instanceof Error ? error.stack : undefined;
-              console.error(`Error processing bet ${bet.id}:`, {
+              console.error(`❌ Error processing bet ${bet.id}:`, {
                 betId: bet.id,
                 tableId: bet.table_id,
                 message: errorMessage,
@@ -782,18 +894,68 @@ serve(async (req) => {
             }
           }
 
+          console.log(`\n📈 Settlement Summary:`, {
+            processed,
+            won,
+            lost,
+            totalPayouts
+          });
+
           result = {
             success: true,
             message: `Processed ${processed} bets`,
             processed,
             won,
             lost,
-            totalPayouts
+            totalPayouts,
+            winningValue
           };
         }
       }
+      }
     }
+    else if (action === 'get-detail-result' && tableId) {
+      // Get detailed result for a specific round
+      const mid = reqBody?.mid;
+      if (!mid) {
+        result = { success: false, error: 'Missing mid parameter', data: null };
+      } else {
+        try {
+          // Use the endpoint: detail_result?mid={mid}&type={type}
+          // HOSTINGER_PROXY_BASE already includes /api/casino
+          const detailUrl = `${HOSTINGER_PROXY_BASE}/detail_result?mid=${mid}&type=${tableId}`;
+          console.log('📡 Fetching detail result from:', detailUrl);
+          
+          const response = await fetch(detailUrl, {
+            headers: { 'Content-Type': 'application/json' }
+          });
 
+          console.log('📊 Detail result response status:', response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Detail result data received:', JSON.stringify(data, null, 2));
+            result = { success: true, data };
+          } else {
+            const errorText = await response.text();
+            console.error('❌ Detail result API error:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText
+            });
+            result = { success: false, error: `API returned ${response.status}`, data: null };
+          }
+        } catch (fetchError) {
+          const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+          console.error('❌ Error fetching detail result:', {
+            tableId,
+            mid,
+            message: errorMessage
+          });
+          result = { success: false, error: errorMessage, data: null };
+        }
+      }
+    }
     else {
       throw new Error('Invalid action');
     }
