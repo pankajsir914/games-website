@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const LiveCasinoTable = () => {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
+
   const {
     odds: initialOdds,
     bets,
@@ -32,184 +33,76 @@ const LiveCasinoTable = () => {
 
   const [tableData, setTableData] = useState<any>(null);
   const fetchingRef = useRef(false);
-  
-  // Real-time state from sockets
+
   const [odds, setOdds] = useState<any>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [resultHistory, setResultHistory] = useState<any[]>([]);
 
-  // Format odds data properly
   const formatOddsData = useCallback((rawOdds: any) => {
     if (!rawOdds) return null;
+    if (rawOdds.bets && Array.isArray(rawOdds.bets)) return rawOdds;
 
-    // If already formatted, return as is
-    if (rawOdds.bets && Array.isArray(rawOdds.bets)) {
-      return rawOdds;
-    }
-
-    // Extract bets from raw data
     const payload = rawOdds?.data || rawOdds;
     let extractedBets: any[] = [];
 
-    // Check if we have bets directly
     if (payload?.bets && Array.isArray(payload.bets)) {
       extractedBets = payload.bets
         .filter((bet: any) => {
-          if (!bet) return false;
           const backVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
           const layVal = bet.lay || bet.l1 || bet.l || 0;
-          return (backVal > 0 || layVal > 0);
+          return backVal > 0 || layVal > 0;
         })
         .map((bet: any) => {
-          const betType = bet.type || bet.nat || bet.nation || bet.name || bet.label || 'Unknown';
-          
-          // Convert odds from points format to decimal format
-          const convertToDecimal = (value: number): number => {
-            if (!value || value === 0) return 0;
-            // If value is very large (like 300000), it's in points format
-            // Convert to decimal odds (divide by 100000)
-            if (value > 1000) {
-              return value / 100000;
-            }
-            // Already in decimal format
-            return value;
-          };
-          
-          const rawBackVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
-          const rawLayVal = bet.lay || bet.l1 || bet.l || 0;
-          
-          const backVal = convertToDecimal(Number(rawBackVal));
-          const layVal = convertToDecimal(Number(rawLayVal));
-          
+          const convert = (v: number) => (v > 1000 ? v / 100000 : v || 0);
+          const back = convert(Number(bet.back || bet.b1 || bet.b || 0));
+          const lay = convert(Number(bet.lay || bet.l1 || bet.l || 0));
+
           return {
-            type: betType,
-            odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 0),
-            back: backVal || 0,
-            lay: layVal || 0,
-            status: bet.status || 'active',
+            type: bet.type || bet.nation || "Unknown",
+            odds: back || lay,
+            back,
+            lay,
+            status: "active",
             min: bet.min || 100,
             max: bet.max || 100000,
             sid: bet.sid,
-            mid: bet.mid,
+            mid: bet.mid
           };
         });
     }
 
-    // If no bets extracted, try parsing from raw data
-    if (extractedBets.length === 0 && payload?.raw) {
-      const rawData = payload.raw;
-      ["t1", "t2", "t3", "sub", "grp", "bets", "options", "markets"].forEach((key) => {
-        if (rawData[key] && Array.isArray(rawData[key])) {
-          rawData[key].forEach((item: any) => {
-            if (!item || typeof item !== 'object') return;
-            
-            const betType = item.nat || item.nation || item.name || item.type || item.label || 'Unknown';
-            
-            // Convert odds from points format to decimal format
-            const convertToDecimal = (value: number): number => {
-              if (!value || value === 0) return 0;
-              // If value is very large (like 300000), it's in points format
-              // Convert to decimal odds (divide by 100000)
-              if (value > 1000) {
-                return value / 100000;
-              }
-              // Already in decimal format
-              return value;
-            };
-            
-            const rawBackVal = parseFloat(item.b1 || item.bs || item.b || item.back || item.odds || "0") || 0;
-            const rawLayVal = parseFloat(item.l1 || item.ls || item.l || item.lay || "0") || 0;
-            
-            const backVal = convertToDecimal(rawBackVal);
-            const layVal = convertToDecimal(rawLayVal);
-            
-            if (backVal > 0 || layVal > 0) {
-              extractedBets.push({
-                type: betType,
-                odds: backVal > 0 ? backVal : layVal,
-                back: backVal,
-                lay: layVal,
-                status: 'active',
-                min: item.min || 100,
-                max: item.max || 100000,
-                sid: item.sid,
-                mid: item.mid,
-              });
-            }
-          });
-        }
-      });
-    }
-
-    return extractedBets.length > 0 
-      ? { bets: extractedBets, rawData: payload || {} }
+    return extractedBets.length
+      ? { bets: extractedBets, rawData: payload }
       : null;
   }, []);
 
-
-  // Sync data from useDiamondCasino hook (updated via API polling)
   useEffect(() => {
     if (initialOdds) {
-      console.log("🎯 LiveCasinoTable - Initial Odds Received:", {
-        tableId,
-        rawOdds: initialOdds,
-        hasBets: initialOdds?.bets?.length > 0,
-        betsCount: initialOdds?.bets?.length || 0
-      });
-      
       const formatted = formatOddsData(initialOdds);
-      if (formatted) {
-        console.log("✅ LiveCasinoTable - Formatted Odds:", {
-          tableId,
-          formattedOdds: formatted,
-          betsCount: formatted.bets?.length || 0,
-          sampleBets: formatted.bets?.slice(0, 3) || []
-        });
-        setOdds(formatted);
-      } else {
-        console.warn("⚠️ LiveCasinoTable - Failed to format odds:", initialOdds);
-      }
+      if (formatted) setOdds(formatted);
     }
-  }, [initialOdds, formatOddsData, tableId]);
+  }, [initialOdds, formatOddsData]);
 
   useEffect(() => {
-    if (initialCurrentResult) {
-      setCurrentResult(initialCurrentResult);
-    }
+    if (initialCurrentResult) setCurrentResult(initialCurrentResult);
   }, [initialCurrentResult]);
 
   useEffect(() => {
-    if (initialResultHistory && initialResultHistory.length > 0) {
-      setResultHistory(initialResultHistory);
-    }
+    if (initialResultHistory?.length) setResultHistory(initialResultHistory);
   }, [initialResultHistory]);
 
   useEffect(() => {
-    if (!tableId) {
-      navigate('/live-casino');
-      return;
-    }
+    if (!tableId || fetchingRef.current) return;
 
-    // Prevent duplicate concurrent fetches
-    if (fetchingRef.current) {
-      return;
-    }
-
-    // Fetch all table data based on tableId
     const fetchData = async () => {
-      if (fetchingRef.current) return;
       fetchingRef.current = true;
-
       try {
-        // Set basic table data from tableId
-        const table = {
+        setTableData({
           id: tableId,
-          name: tableId.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-          status: 'active',
-        };
-        setTableData(table);
+          name: tableId.replace(/-/g, " ").toUpperCase(),
+          status: "active"
+        });
 
-        // Fetch initial data
         await Promise.allSettled([
           fetchTableDetails(tableId),
           fetchOdds(tableId),
@@ -217,8 +110,6 @@ const LiveCasinoTable = () => {
           fetchCurrentResult(tableId),
           fetchResultHistory(tableId)
         ]);
-      } catch (error) {
-        console.error('Error fetching table data:', error);
       } finally {
         fetchingRef.current = false;
       }
@@ -226,63 +117,74 @@ const LiveCasinoTable = () => {
 
     fetchData();
 
-    // Set up polling for real-time updates (no sockets needed)
-    const oddsInterval = setInterval(() => {
-      fetchOdds(tableId, true); // silent = true
-    }, 5000); // Every 5 seconds
-
-    const resultInterval = setInterval(() => {
-      fetchCurrentResult(tableId);
-    }, 10000); // Every 10 seconds
+    const oddsInterval = setInterval(() => fetchOdds(tableId, true), 5000);
+    const resultInterval = setInterval(() => fetchCurrentResult(tableId), 10000);
 
     return () => {
       clearInterval(oddsInterval);
       clearInterval(resultInterval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId, navigate]);
-
-  const handleBack = () => {
-    navigate('/live-casino');
-  };
+  }, [tableId]);
 
   if (!tableId || !tableData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      <div className="min-h-screen bg-background">
         <Navigation />
-        <Card>
+        <Card className="mx-4 mt-10">
           <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">Loading table...</span>
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="ml-2">Loading table…</span>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 overflow-x-hidden">
+  return (
+    <div className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 mt-2 sm:mt-2">
-        <Button variant="ghost" onClick={handleBack} className="mb-4">
+      <div className="max-w-[1400px] mx-auto px-2 sm:px-4 md:px-6 py-4">
+        {/* BACK BUTTON */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/live-casino")}
+          className="mb-2 sm:mb-4"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Tables
+          Back
         </Button>
 
-        <Tabs defaultValue="live" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-3 sm:mb-6 h-8 sm:h-10 md:h-12">
-            <TabsTrigger value="live">Live Game</TabsTrigger>
-            <TabsTrigger value="results">Results</TabsTrigger>
-            <TabsTrigger value="history">My Bets</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="live">
+          <div className="mb-4 sm:mb-6 pt-2">
+            <Card className="border-muted/40 shadow-sm">
+              <TabsList
+                className="
+                  grid grid-cols-3
+                  h-10 sm:h-11
+                  p-1
+                  bg-muted/40
+                  rounded-md
+                "
+              >
+                <TabsTrigger value="live" className="text-xs sm:text-sm">
+                  Live
+                </TabsTrigger>
+                <TabsTrigger value="results" className="text-xs sm:text-sm">
+                  Results
+                </TabsTrigger>
+                <TabsTrigger value="history" className="text-xs sm:text-sm">
+                  My Bets
+                </TabsTrigger>
+              </TabsList>
+            </Card>
+          </div>
 
-          {/* ---------------- LIVE TAB ---------------- */}
+          {/* LIVE TAB */}
           <TabsContent value="live">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
-              
-              {/* LEFT SIDE */}
-              <div className="lg:col-span-2 space-y-3 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-5">
+              {/* LEFT */}
+              <div className="lg:col-span-2 space-y-3 md:space-y-5">
                 <LiveStream tableId={tableId} tableName={tableData.name} />
 
                 {currentResult && (
@@ -302,22 +204,19 @@ return (
                 />
               </div>
 
-              {/* 🔁 RIGHT SIDE (SWAPPED) */}
+              {/* RIGHT */}
               <div className="lg:col-span-1">
                 <BetHistory bets={bets} />
               </div>
             </div>
           </TabsContent>
 
-          {/* ---------------- RESULTS TAB ---------------- */}
+          {/* RESULTS */}
           <TabsContent value="results">
-            <ResultHistory
-              results={resultHistory}
-              tableId={tableId}
-            />
+            <ResultHistory results={resultHistory} tableId={tableId} />
           </TabsContent>
 
-          {/* ---------------- MY BETS TAB ---------------- */}
+          {/* MY BETS */}
           <TabsContent value="history">
             <BetHistory bets={bets} />
           </TabsContent>
@@ -328,4 +227,3 @@ return (
 };
 
 export default LiveCasinoTable;
-
