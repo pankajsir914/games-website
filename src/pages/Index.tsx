@@ -210,7 +210,6 @@ const Index = () => {
             { name: "Color Prediction", path: "/color-prediction", icon: Target, gradient: "from-red-500 to-pink-500" },
             { name: "Aviator", path: "/aviator", icon: Zap, gradient: "from-blue-500 to-cyan-500" },
             { name: "Ludo", path: "/ludo", icon: Gamepad2, gradient: "from-green-500 to-emerald-500" },
-            { name: "Roulette", path: "/roulette", icon: TrendingUp, gradient: "from-purple-500 to-indigo-500" }
           ].map((game) => (
             <Card key={game.name} className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-primary/20" onClick={() => navigate(game.path)}>
               <CardContent className="p-4 sm:p-6 text-center">
