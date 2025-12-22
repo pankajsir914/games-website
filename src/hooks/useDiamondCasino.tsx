@@ -919,13 +919,35 @@ export const useDiamondCasino = () => {
       const resData = data?.data?.data?.res || data?.data?.res || data?.res || [];
       const tableName = data?.data?.data?.res1?.cname || data?.data?.res1?.cname || "";
       if (Array.isArray(resData) && resData.length > 0) {
-        const resultData = { tableName, latestResult: resData[0] || null, results: resData };
+        const latestResult = resData[0] || null;
+        const resultData = { tableName, latestResult, results: resData };
+        
+        // Get previous result to check if it's actually new
+        const previousResult = results[tableId]?.latestResult;
+        const isNewResult = !previousResult || 
+          (latestResult && (
+            previousResult.win !== latestResult.win ||
+            previousResult.time !== latestResult.time ||
+            previousResult.round !== latestResult.round
+          ));
+        
         setCurrentResult(resultData);
         setResults((prev) => ({ ...prev, [tableId]: resultData }));
         setResultHistory(resData);
         
-        // Automatically process pending bets when new result is available
-        processBets(tableId);
+        // Only process bets if:
+        // 1. We have a valid result with a winning value
+        // 2. It's actually a new result (not the same one we just processed)
+        // 3. The result has a timestamp/round info to validate against bets
+        if (isNewResult && latestResult && latestResult.win) {
+          console.log('🔄 New result detected, processing bets for table:', tableId);
+          // Small delay to ensure result is fully available
+          setTimeout(() => {
+            processBets(tableId);
+          }, 1000);
+        } else {
+          console.log('⏸️ Skipping bet processing - no new valid result');
+        }
       }
     } catch (error) {
       console.error("Error fetching result:", error);
