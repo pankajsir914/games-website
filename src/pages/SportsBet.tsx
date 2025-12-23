@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
@@ -476,9 +477,32 @@ const SportsBet: React.FC = () => {
 
     setIsPlacingBet(true);
     try {
-      // Here you would normally call your bet placement API
-      // For now, we'll simulate it
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call Supabase RPC to place and store the bet
+      const payload = {
+        p_sport: sport || match?.sport || 'unknown',
+        p_event_id: matchId || match?.id || match?.eventId,
+        p_market_type: selectedBet.marketType || 'unknown',
+        p_selection: selectedBet.selection || selectedBet.matchName || 'selection',
+        p_bet_type: selectedBet.type,
+        p_odds: selectedBet.rate,
+        p_stake: amount,
+        p_provider: match?.provider || 'diamond',
+        p_meta: {
+          matchName: selectedBet.matchName,
+          marketType: selectedBet.marketType,
+          selection: selectedBet.selection,
+          raw: selectedBet
+        }
+      };
+
+      const { data, error: rpcError } = await (supabase as any).rpc('place_sports_bet', payload);
+      if (rpcError) {
+        throw new Error(rpcError.message || 'Bet placement failed');
+      }
+      const rpcData = data as any;
+      if (!rpcData?.success) {
+        throw new Error(rpcData?.error || 'Bet placement failed');
+      }
       
       toast({
         title: "Bet placed successfully!",
@@ -494,7 +518,7 @@ const SportsBet: React.FC = () => {
     } catch (error) {
       toast({
         title: "Failed to place bet",
-        description: "Please try again later",
+        description: error instanceof Error ? error.message : "Please try again later",
         variant: "destructive"
       });
     } finally {
