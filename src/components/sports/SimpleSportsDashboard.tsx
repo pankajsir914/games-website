@@ -23,6 +23,7 @@ export const SimpleSportsDashboard: React.FC = () => {
 
   const [activeCategory, setActiveCategory] = useState('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [matchFilter, setMatchFilter] = useState<'live' | 'upcoming' | 'results'>('live');
 
   // Categorize sports
   const popularSports = sports.filter(s => 
@@ -49,8 +50,32 @@ export const SimpleSportsDashboard: React.FC = () => {
     !ballSports.includes(s) && !racingSports.includes(s) && !combatSports.includes(s) && !eSports.includes(s)
   );
 
-  const liveMatches = matches.filter(m => m.isLive);
-  const upcomingMatches = matches.filter(m => !m.isLive);
+  const liveMatches = matches.filter(m => {
+    const status = (m.status || '').toLowerCase();
+    return m.isLive || status.includes('live') || status.includes('inplay') || status.includes('running');
+  });
+
+  const upcomingMatches = matches.filter(m => {
+    const status = (m.status || '').toLowerCase();
+    return !liveMatches.includes(m) && (
+      status.includes('upcoming') ||
+      status.includes('scheduled') ||
+      status.includes('not started') ||
+      status.includes('ns')
+    );
+  });
+
+  const pastMatches = matches.filter(m => {
+    const status = (m.status || '').toLowerCase();
+    return !liveMatches.includes(m) && !upcomingMatches.includes(m) && (
+      status.includes('finished') ||
+      status.includes('result') ||
+      status.includes('completed') ||
+      status.includes('ended') ||
+      status.includes('full') ||
+      status.includes('ft')
+    );
+  });
 
   const SportButton = ({ sport }: { sport: any }) => (
     <Card
@@ -256,62 +281,116 @@ export const SimpleSportsDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Matches Display */}
+      {/* Matches Display with filter tabs */}
       {!loading && !error && selectedSport && (
-        <div className="space-y-6">
-          {/* Live Matches */}
-          {liveMatches.length > 0 && (
-            <div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive/60 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+        <div className="space-y-4">
+          <Tabs value={matchFilter} onValueChange={(v) => setMatchFilter(v as 'live' | 'upcoming' | 'results')} className="space-y-4">
+            <TabsList className="grid w-full sm:w-[420px] grid-cols-3">
+              <TabsTrigger value="live" className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive/60 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
                 </span>
-                Live Matches
-              </h3>
-              <div className={cn(
-                viewMode === 'grid' 
-                  ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                  : "space-y-3"
-              )}>
-                {liveMatches.map((match) => (
-                  <EnhancedSportsMatchCard 
-                    key={match.id} 
-                    match={match} 
-                    sport={selectedSport.label} 
-                    isLive 
-                    variant={viewMode === 'list' ? 'compact' : 'default'}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+                Live
+                {liveMatches.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
+                    {liveMatches.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="upcoming" className="flex items-center gap-2">
+                Upcoming
+                {upcomingMatches.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {upcomingMatches.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="results" className="flex items-center gap-2">
+                Results
+                {pastMatches.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground">
+                    {pastMatches.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Upcoming Matches */}
-          {upcomingMatches.length > 0 && (
-            <div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-                Upcoming Matches
-              </h3>
-              <div className={cn(
-                viewMode === 'grid' 
-                  ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                  : "space-y-3"
-              )}>
-                {upcomingMatches.map((match) => (
-                  <EnhancedSportsMatchCard 
-                    key={match.id} 
-                    match={match} 
-                    sport={selectedSport.label}
-                    variant={viewMode === 'list' ? 'compact' : 'default'}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+            <TabsContent value="live">
+              {liveMatches.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No live {selectedSport.label} matches right now</p>
+                </Card>
+              ) : (
+                <div className={cn(
+                  viewMode === 'grid' 
+                    ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "space-y-3"
+                )}>
+                  {liveMatches.map((match) => (
+                    <EnhancedSportsMatchCard 
+                      key={match.id} 
+                      match={match} 
+                      sport={selectedSport.label} 
+                      isLive 
+                      variant={viewMode === 'list' ? 'compact' : 'default'}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
 
-          {/* No Matches */}
+            <TabsContent value="upcoming">
+              {upcomingMatches.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No upcoming {selectedSport.label} matches scheduled</p>
+                </Card>
+              ) : (
+                <div className={cn(
+                  viewMode === 'grid' 
+                    ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "space-y-3"
+                )}>
+                  {upcomingMatches.map((match) => (
+                    <EnhancedSportsMatchCard 
+                      key={match.id} 
+                      match={match} 
+                      sport={selectedSport.label}
+                      variant={viewMode === 'list' ? 'compact' : 'default'}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="results">
+              {pastMatches.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No past {selectedSport.label} results available</p>
+                </Card>
+              ) : (
+                <div className={cn(
+                  viewMode === 'grid' 
+                    ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "space-y-3"
+                )}>
+                  {pastMatches.map((match) => (
+                    <EnhancedSportsMatchCard 
+                      key={match.id} 
+                      match={match} 
+                      sport={selectedSport.label}
+                      variant={viewMode === 'list' ? 'compact' : 'default'}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {/* No Matches at all */}
           {matches.length === 0 && (
             <Card className="p-12 text-center">
               <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
