@@ -6,6 +6,9 @@ import { Clock, MapPin, Trophy, TrendingUp, Eye } from 'lucide-react';
 import { SportsMatch } from '@/hooks/useSportsData';
 import { useBettingOdds } from '@/hooks/useSportsBetting';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 interface MatchCardProps {
   match: SportsMatch;
@@ -19,6 +22,21 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
   const navigate = useNavigate();
   const [showOdds, setShowOdds] = useState(false);
   const { odds } = useBettingOdds(match.sport, match.id);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const ensureAuthenticated = (onSuccess: () => void) => {
+    if (!user) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to view match details and odds.',
+      });
+      setAuthModalOpen(true);
+      return;
+    }
+    onSuccess();
+  };
 
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -32,25 +50,26 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
   };
 
   const handleViewDetails = () => {
-    navigate(`/match-details/${match.sport}/${match.id}`);
+    ensureAuthenticated(() => navigate(`/match-details/${match.sport}/${match.id}`));
   };
 
   return (
-    <Card className="bg-card border border-border hover:border-primary/20 transition-colors duration-200">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold text-foreground mb-2">
-              {match.league}
-            </CardTitle>
-            <Badge variant={getStatusColor(match.status)} className="text-xs">
-              {match.status}
-            </Badge>
+    <>
+      <Card className="bg-card border border-border hover:border-primary/20 transition-colors duration-200">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="text-lg font-semibold text-foreground mb-2">
+                {match.league}
+              </CardTitle>
+              <Badge variant={getStatusColor(match.status)} className="text-xs">
+                {match.status}
+              </Badge>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
         {/* Match Info */}
         <div className="space-y-2 text-sm text-muted-foreground">
           {match.date && (
@@ -117,7 +136,7 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/sports/bet/${match.sport}/${match.id}`)}
+            onClick={() => ensureAuthenticated(() => navigate(`/sports/bet/${match.sport}/${match.id}`))}
             disabled={match.status.toLowerCase().includes('completed') || match.status.toLowerCase().includes('won')}
             className="text-xs"
           >
@@ -160,6 +179,8 @@ export function MatchCard({ match, sportBackground, onBetSelect, showBetting = t
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+    </>
   );
 }
