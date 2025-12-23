@@ -1038,6 +1038,41 @@ export const useDiamondCasino = () => {
     }
   };
 
+  // ----------------- Fetch casino rules -----------------
+    const fetchCasinoRules = async (tableId: string) => {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "diamond-casino-proxy",
+          {
+            body: {
+              action: "get-casino-rules",
+              tableId,
+            },
+          }
+        );
+
+        if (error) {
+          console.error("fetchCasinoRules invoke error:", error);
+          return { rules: [], error: error.message };
+        }
+
+        if (!data || !data.success) {
+          console.error("fetchCasinoRules failed:", data);
+          return { rules: [], error: data?.error || "Rules not available" };
+        }
+
+        // Provider usually returns { success, data }
+        const rulesArray =
+          data?.data?.data || data?.data || [];
+
+        return { rules: rulesArray, error: null };
+      } catch (err: any) {
+        console.error("fetchCasinoRules error:", err);
+        return { rules: [], error: err.message };
+      }
+    };
+
+
   return {
     liveTables,
     selectedTable,
@@ -1058,5 +1093,6 @@ export const useDiamondCasino = () => {
     fetchResultHistory,
     fetchAllTableIds,
     processBets,
+    fetchCasinoRules,
   };
 };
