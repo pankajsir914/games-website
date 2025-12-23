@@ -284,6 +284,59 @@ const SportsBet: React.FC = () => {
       );
     };
 
+    // Convert provider odds array into b1/b2/b3 & l1/l2/l3 shape used by EnhancedOddsDisplay
+    const normalizeBackLay = (payload: any) => {
+      const data = payload?.data || payload;
+      const transformMarket = (market: any) => {
+        if (!market?.section || !Array.isArray(market.section)) return market;
+        const section = market.section.map((team: any) => {
+          if (!team || team.b1 || team.l1) return team; // already in expected shape
+          if (!Array.isArray(team.odds)) return team;
+
+          const backs = team.odds.filter((o: any) => o?.otype?.toLowerCase() === 'back');
+          const lays = team.odds.filter((o: any) => o?.otype?.toLowerCase() === 'lay');
+
+          // Sort backs descending (higher odds first), lays ascending (lower liability first)
+          backs.sort((a: any, b: any) => (b?.odds || 0) - (a?.odds || 0));
+          lays.sort((a: any, b: any) => (a?.odds || 0) - (b?.odds || 0));
+
+          return {
+            ...team,
+            b1: backs[0]?.odds,
+            b2: backs[1]?.odds,
+            b3: backs[2]?.odds,
+            l1: lays[0]?.odds,
+            l2: lays[1]?.odds,
+            l3: lays[2]?.odds,
+            // carry existing sizes/min/max if present
+            bs1: backs[0]?.size,
+            bs2: backs[1]?.size,
+            bs3: backs[2]?.size,
+            ls1: lays[0]?.size,
+            ls2: lays[1]?.size,
+            ls3: lays[2]?.size,
+          };
+        });
+        return { ...market, section };
+      };
+
+      const wrapData = Array.isArray(data)
+        ? { t1: data }
+        : data;
+
+      const normalized = {
+        ...payload,
+        data: {
+          ...wrapData,
+          t1: (wrapData?.t1 || []).map(transformMarket),
+          t2: (wrapData?.t2 || []).map(transformMarket),
+          t3: (wrapData?.t3 || []).map(transformMarket),
+        }
+      };
+
+      return normalized;
+    };
+
     // Sequential fetch with fallbacks to avoid rate limiting and wrong IDs
     const fetchDataSequentially = async () => {
       try {
@@ -316,8 +369,10 @@ const SportsBet: React.FC = () => {
                   ? { data: { t1: rawOdds.data } }
                   : rawOdds;
 
-              if (hasMarkets(normalizedOdds)) {
-                setOdds(normalizedOdds);
+              const shapedOdds = normalizeBackLay(normalizedOdds);
+
+              if (hasMarkets(shapedOdds)) {
+                setOdds(shapedOdds);
                 setOddsError(null);
                 found = true;
                 break;
