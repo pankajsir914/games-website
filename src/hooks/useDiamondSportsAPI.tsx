@@ -39,7 +39,14 @@ export function useDiamondSportsAPI() {
       'sports/virtual/tvurl': 'virtual-tv',
       'sports/welcomebanner': 'banner',
       'sports/topevents': 'top-events',
-      'sports/posted-market-result': 'market-result'
+      'sports/posted-market-result': 'market-result',
+      'sports/sportsScore': 'sports-score',
+      'sports/allGameDetails': 'all-game-details',
+      'sports/odds': 'odds',
+      'sports/livetv': 'livetv',
+      'sports/diamondIframeTV': 'diamond-iframe-tv',
+      'sports/hlstv': 'hls-tv',
+      'sports/matchOdds': 'match-odds'
     };
 
     try {
@@ -61,7 +68,7 @@ export function useDiamondSportsAPI() {
         const eventid = options.params?.eventid || options.params?.eventId;
 
         if (action === 'esid' && sid) body.sid = sid;
-        if (['details', 'private', 'score-tv', 'virtual-tv'].includes(action)) {
+        if (['details', 'private', 'score-tv', 'virtual-tv', 'sports-score', 'all-game-details', 'odds', 'livetv', 'diamond-iframe-tv', 'hls-tv', 'match-odds'].includes(action)) {
           if (sid) body.sid = sid;
           if (gmid) body.gmid = gmid;
         }
