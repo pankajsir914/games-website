@@ -50,7 +50,7 @@ BEGIN
     p_stake,
     'debit',
     'Sports bet - ' || coalesce(p_sport, 'sport') || ' ' || coalesce(p_event_id, ''),
-    'sports',
+    'casino',
     NULL::uuid
   );
 
