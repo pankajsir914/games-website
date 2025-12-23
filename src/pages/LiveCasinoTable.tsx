@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import GameRules from "@/components/live-casino/GameRules";
 
 const LiveCasinoTable = () => {
   const { tableId } = useParams<{ tableId: string }>();
@@ -177,7 +178,7 @@ const LiveCasinoTable = () => {
             <Card className="border-muted/40 shadow-sm">
               <TabsList
                 className="
-                  grid grid-cols-2
+                  grid grid-cols-3
                   h-10 sm:h-11
                   p-1
                   bg-muted/40
@@ -190,6 +191,10 @@ const LiveCasinoTable = () => {
                 <TabsTrigger value="history" className="text-xs sm:text-sm">
                   My Bets
                 </TabsTrigger>
+                <TabsTrigger value="gamerules" className="text-xs sm:text-sm">
+                  Game Rules
+                </TabsTrigger>
+
               </TabsList>
             </Card>
           </div>
@@ -234,6 +239,11 @@ const LiveCasinoTable = () => {
           <TabsContent value="history">
             <BetHistory bets={bets} />
           </TabsContent>
+
+          <TabsContent value="gamerules">
+            <GameRules tableId={tableId} />
+          </TabsContent>
+
         </Tabs>
       </div>
     </div>
