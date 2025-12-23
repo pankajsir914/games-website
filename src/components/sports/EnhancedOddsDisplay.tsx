@@ -84,7 +84,7 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
           <span className={cn("font-bold", isMobile ? "text-sm" : "text-base")}>
             {parseFloat(rate.toString()).toFixed(2)}
           </span>
-          {size && !isMobile && <span className="text-xs opacity-80">{size}</span>}
+          {size && <span className="text-xs opacity-80">{size}</span>}
         </div>
       </TableCell>
     );
