@@ -19,10 +19,14 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useSportsData, SportsMatch } from '@/hooks/useSportsData';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 export default function MatchDetails() {
   const { sport, matchId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   
   // Fetch match data from all categories to find the specific match
   const { data: liveData } = useSportsData(sport || 'cricket', 'live');
@@ -30,6 +34,14 @@ export default function MatchDetails() {
   const { data: resultsData } = useSportsData(sport || 'cricket', 'results');
   
   const [match, setMatch] = useState<SportsMatch | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setAuthModalOpen(true);
+    } else {
+      setAuthModalOpen(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Find the match from all data sources
@@ -53,8 +65,34 @@ export default function MatchDetails() {
     return score !== null ? score.toString() : '-';
   };
 
-  const isLive = match?.status.toLowerCase().includes('live') || match?.status.toLowerCase().includes('in progress');
-  const isCompleted = match?.status.toLowerCase().includes('completed') || match?.status.toLowerCase().includes('won');
+  const statusLower = match?.status?.toLowerCase() || '';
+  const isLive = statusLower.includes('live') || statusLower.includes('in progress');
+  const isCompleted = statusLower.includes('completed') || statusLower.includes('won');
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          <Card className="p-6">
+            <CardHeader className="p-0 pb-4">
+              <CardTitle className="text-xl">Sign in to view match details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-0">
+              <p className="text-muted-foreground">
+                Please sign in to see detailed scorecards and odds.
+              </p>
+              <div className="flex gap-3">
+                <Button onClick={() => setAuthModalOpen(true)}>Sign In</Button>
+                <Button variant="outline" onClick={() => navigate('/sports')}>Back to Sports</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+      </div>
+    );
+  }
 
   if (!match) {
     return (
