@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,6 +67,7 @@ const SportsBet: React.FC = () => {
   const [matchDetails, setMatchDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingMatch, setIsLoadingMatch] = useState(false);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
   
   useEffect(() => {
     if (!user) {
@@ -501,24 +502,29 @@ const SportsBet: React.FC = () => {
     }
   };
 
-  const calculatePotentialWin = () => {
-    if (!betAmount || !selectedBet) return 0;
-    const amount = parseFloat(betAmount);
-    if (selectedBet.type === 'back') {
-      return amount * selectedBet.rate;
-    } else {
-      // For lay bets, you win the stake amount
-      return amount;
+  // Keep a numeric version handy for calculations
+  const numericAmount = Number.isFinite(parseFloat(betAmount)) ? parseFloat(betAmount) : 0;
+
+  // Auto-focus bet amount when slip opens
+  useEffect(() => {
+    if ((isBetSlipOpen || isBetSlipDialogOpen) && selectedBet) {
+      const id = requestAnimationFrame(() => amountInputRef.current?.focus());
+      return () => cancelAnimationFrame(id);
     }
+  }, [isBetSlipOpen, isBetSlipDialogOpen, selectedBet]);
+
+  const calculatePotentialWin = () => {
+    if (!betAmount || !selectedBet || !numericAmount) return 0;
+    return selectedBet.type === 'back'
+      ? numericAmount * selectedBet.rate
+      : numericAmount; // lay wins stake
   };
 
   const calculateLiability = () => {
-    if (!betAmount || !selectedBet) return 0;
-    const amount = parseFloat(betAmount);
-    if (selectedBet.type === 'lay') {
-      return amount * (selectedBet.rate - 1);
-    }
-    return amount;
+    if (!betAmount || !selectedBet || !numericAmount) return 0;
+    return selectedBet.type === 'lay'
+      ? numericAmount * Math.max(selectedBet.rate - 1, 0)
+      : numericAmount;
   };
 
   if (!match) {
@@ -562,10 +568,24 @@ const SportsBet: React.FC = () => {
             <Label htmlFor="bet-amount" className="text-sm">Stake Amount (₹)</Label>
             <Input
               id="bet-amount"
-              type="number"
+              type="text"
               placeholder="Enter amount"
+              inputMode="decimal"
+              autoComplete="off"
+              autoFocus
+              ref={amountInputRef}
               value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value.replace(/[^0-9.]/g, '');
+                const sanitized = next.split('.').slice(0, 2).join('.');
+                setBetAmount(sanitized);
+              }}
+              onBlur={() => {
+                // Prevent accidental blur on quick re-renders while slip is open
+                if (isBetSlipOpen || isBetSlipDialogOpen) {
+                  requestAnimationFrame(() => amountInputRef.current?.focus());
+                }
+              }}
               className="mt-1 h-12 text-base"
             />
             
