@@ -62,6 +62,7 @@ const SportsBet: React.FC = () => {
   const [liveDetails, setLiveDetails] = useState<any>(null);
   const [matchDetails, setMatchDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isLoadingMatch, setIsLoadingMatch] = useState(false);
 
   // Helper: Get SID from sport type
   const getSportSID = (sportType: string): string => {
@@ -72,6 +73,44 @@ const SportsBet: React.FC = () => {
       'Soccer': '1'
     };
     return sidMap[sportType] || '4'; // Default to cricket
+  };
+
+  // Fallback: fetch match info from Diamond list when state.match missing
+  const fetchMatchFromDiamond = async () => {
+    if (match || !matchId) return;
+    const sid = getSportSID(sport || 'Cricket');
+    try {
+      setIsLoadingMatch(true);
+      const resp = await callAPI<any>('sports/esid', { sid });
+      const list =
+        resp?.data?.data?.t1 ||
+        resp?.data?.t1 ||
+        (Array.isArray(resp?.data) ? resp?.data : []) ||
+        [];
+      if (Array.isArray(list)) {
+        const found = list.find((m: any) => String(m.gmid) === String(matchId));
+        if (found) {
+          setMatch({
+            id: found.gmid || found.id,
+            eventId: found.gmid || found.id,
+            name: found.ename || found.name,
+            team1: found.team1 || found.section?.[0]?.nat || 'Team A',
+            team2: found.team2 || found.section?.[1]?.nat || 'Team B',
+            score: found.score || '',
+            status: found.iplay ? 'live' : (found.status || 'upcoming'),
+            date: found.stime || found.date || new Date().toISOString(),
+            isLive: found.iplay === true || found.status === 'live',
+            league: found.cname,
+            cname: found.cname,
+            raw: found,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch match from Diamond list', err);
+    } finally {
+      setIsLoadingMatch(false);
+    }
   };
 
   // Fetch all Betfair Score TV data (TV, Scorecard, Commentary, Statistics, Highlights)
@@ -167,6 +206,11 @@ const SportsBet: React.FC = () => {
   useEffect(() => {
     fetchMatchDetailsData();
   }, [matchId, sport, getDetailsData]);
+
+  // Fetch match info if not passed via navigation state
+  useEffect(() => {
+    fetchMatchFromDiamond();
+  }, [matchId, sport, match]);
 
   // Fetch live match details and score (lower priority, delayed)
   useEffect(() => {
