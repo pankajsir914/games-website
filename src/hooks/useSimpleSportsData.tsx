@@ -126,94 +126,8 @@ export function useSimpleSportsData() {
     let success = false;
     let lastError: any = null;
 
-    // Strategy 1: Try Supabase sports-proxy function (supports multiple sports)
-    try {
-      console.log(`Fetching ${targetSport.sport_type} matches from sports-proxy API...`);
-      
-      // Fetch live, upcoming, and results in parallel
-      const [liveResponse, upcomingResponse, resultsResponse] = await Promise.allSettled([
-        supabase.functions.invoke('sports-proxy', {
-          body: { sport: targetSport.sport_type, kind: 'live' }
-        }),
-        supabase.functions.invoke('sports-proxy', {
-          body: { sport: targetSport.sport_type, kind: 'upcoming' }
-        }),
-        supabase.functions.invoke('sports-proxy', {
-          body: { sport: targetSport.sport_type, kind: 'results' }
-        })
-      ]);
-
-      // Process live matches
-      if (liveResponse.status === 'fulfilled' && liveResponse.value.data && !liveResponse.value.error) {
-        const liveData = liveResponse.value.data.items || liveResponse.value.data.data || [];
-        const liveMatches = liveData.map((item: any) => ({
-          id: item.id || `live_${Math.random().toString(36).substr(2, 9)}`,
-          name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
-          team1: item.teams?.home || 'Team A',
-          team2: item.teams?.away || 'Team B',
-          score: item.scores ? `${item.scores.home || 0}-${item.scores.away || 0}` : '',
-          status: 'live',
-          date: item.date || new Date().toISOString(),
-          time: item.time,
-          isLive: true,
-          eventId: item.id,
-          league: item.league?.name || item.league || item.cname || item.competition || selectedSport?.label,
-          cname: item.cname
-        }));
-        allMatches = [...allMatches, ...liveMatches];
-      }
-
-      // Process upcoming matches
-      if (upcomingResponse.status === 'fulfilled' && upcomingResponse.value.data && !upcomingResponse.value.error) {
-        const upcomingData = upcomingResponse.value.data.items || upcomingResponse.value.data.data || [];
-        const upcomingMatches = upcomingData.map((item: any) => ({
-          id: item.id || `upcoming_${Math.random().toString(36).substr(2, 9)}`,
-          name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
-          team1: item.teams?.home || 'Team A',
-          team2: item.teams?.away || 'Team B',
-          score: '',
-          status: 'upcoming',
-          date: item.date || new Date().toISOString(),
-          time: item.time,
-          isLive: false,
-          eventId: item.id,
-          league: item.league?.name || item.league || item.cname || item.competition || selectedSport?.label,
-          cname: item.cname
-        }));
-        allMatches = [...allMatches, ...upcomingMatches];
-      }
-
-      // Process results
-      if (resultsResponse.status === 'fulfilled' && resultsResponse.value.data && !resultsResponse.value.error) {
-        const resultsData = resultsResponse.value.data.items || resultsResponse.value.data.data || [];
-        const resultMatches = resultsData.slice(0, 20).map((item: any) => ({
-          id: item.id || `result_${Math.random().toString(36).substr(2, 9)}`,
-          name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
-          team1: item.teams?.home || 'Team A',
-          team2: item.teams?.away || 'Team B',
-          score: item.scores ? `${item.scores.home || 0}-${item.scores.away || 0}` : '',
-          status: 'finished',
-          date: item.date || new Date().toISOString(),
-          time: item.time,
-          isLive: false,
-          eventId: item.id,
-          league: item.league?.name || item.league || item.cname || item.competition || selectedSport?.label,
-          cname: item.cname
-        }));
-        allMatches = [...allMatches, ...resultMatches];
-      }
-
-      if (allMatches.length > 0) {
-        success = true;
-        console.log(`Successfully fetched ${allMatches.length} matches from sports-proxy API`);
-      }
-    } catch (err: any) {
-      console.error('Error fetching from sports-proxy:', err);
-      lastError = err;
-    }
-
-    // Strategy 2: Fallback to Diamond API (sports-diamond-proxy) if sports-proxy fails
-    if (!success && targetSport.sid) {
+    // Only use Diamond API (sports-diamond-proxy) for fetching matches
+    if (targetSport.sid) {
       try {
         console.log(`Trying Diamond API (sports-diamond-proxy) for ${targetSport.sport_type} with SID ${targetSport.sid}...`);
         
@@ -339,9 +253,20 @@ export function useSimpleSportsData() {
             };
           });
 
-          allMatches = parsedMatches;
-          success = true;
-          console.log(`Successfully fetched ${parsedMatches.length} matches from Diamond API (sports-diamond-proxy)`);
+          // Merge with existing matches, prefer existing ids; dedupe by eventId/id/name
+          const merged = [...allMatches];
+          parsedMatches.forEach(pm => {
+            const exists = merged.find(m => 
+              (m.eventId && pm.eventId && m.eventId === pm.eventId) ||
+              (m.id && pm.id && m.id === pm.id) ||
+              (m.name && pm.name && m.name === pm.name)
+            );
+            if (!exists) merged.push(pm);
+          });
+
+          allMatches = merged;
+          success = success || parsedMatches.length > 0;
+          console.log(`Successfully fetched ${parsedMatches.length} matches from Diamond API (sports-diamond-proxy). Merged total: ${allMatches.length}`);
         } else {
           console.error('Diamond API error:', fnError || response?.error);
           lastError = fnError || response?.error;
