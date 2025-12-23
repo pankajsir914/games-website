@@ -31,12 +31,24 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    
+    // Try to get params from body first (for POST requests), then fallback to URL params
+    let bodyParams: any = {};
+    try {
+      const bodyText = await req.text();
+      if (bodyText) {
+        bodyParams = JSON.parse(bodyText);
+      }
+    } catch {
+      // Body parsing failed, will use URL params
+    }
 
     /**
      * Frontend will call like:
      * /functions/v1/sports-proxy?action=esid&sid=4
+     * OR with body: { action: "esid", sid: "4" }
      */
-    const action = url.searchParams.get("action");
+    const action = bodyParams.action || url.searchParams.get("action");
 
     if (!action) {
       return new Response(
@@ -51,7 +63,7 @@ serve(async (req) => {
 
     switch (action) {
       case "esid": {
-        const sid = url.searchParams.get("sid");
+        const sid = bodyParams.sid || url.searchParams.get("sid");
         if (!sid) throw new Error("sid required");
         targetUrl = `${HOSTINGER_BASE}/sports/esid?sid=${sid}`;
         break;
@@ -62,24 +74,24 @@ serve(async (req) => {
         break;
 
       case "details": {
-        const sid = url.searchParams.get("sid");
-        const gmid = url.searchParams.get("gmid");
+        const sid = bodyParams.sid || url.searchParams.get("sid");
+        const gmid = bodyParams.gmid || url.searchParams.get("gmid");
         if (!sid || !gmid) throw new Error("sid & gmid required");
         targetUrl = `${HOSTINGER_BASE}/sports/getDetailsData?sid=${sid}&gmid=${gmid}`;
         break;
       }
 
       case "private": {
-        const sid = url.searchParams.get("sid");
-        const gmid = url.searchParams.get("gmid");
+        const sid = bodyParams.sid || url.searchParams.get("sid");
+        const gmid = bodyParams.gmid || url.searchParams.get("gmid");
         if (!sid || !gmid) throw new Error("sid & gmid required");
         targetUrl = `${HOSTINGER_BASE}/sports/getPriveteData?sid=${sid}&gmid=${gmid}`;
         break;
       }
 
       case "score-tv": {
-        const eventId = url.searchParams.get("gmid");
-        const sid = url.searchParams.get("sid");
+        const eventId = bodyParams.gmid || url.searchParams.get("gmid");
+        const sid = bodyParams.sid || url.searchParams.get("sid");
         if (!eventId || !sid) throw new Error("gmid & sid required");
         targetUrl =
           `${HOSTINGER_BASE}/sports/betfairscorecardandtv?` +
@@ -88,7 +100,7 @@ serve(async (req) => {
       }
 
       case "virtual-tv": {
-        const gmid = url.searchParams.get("gmid");
+        const gmid = bodyParams.gmid || url.searchParams.get("gmid");
         if (!gmid) throw new Error("gmid required");
         targetUrl = `${HOSTINGER_BASE}/sports/virtual/tvurl?gmid=${gmid}`;
         break;
@@ -103,7 +115,7 @@ serve(async (req) => {
         break;
 
       case "market-result": {
-        const eventId = url.searchParams.get("eventid");
+        const eventId = bodyParams.eventid || url.searchParams.get("eventid");
         if (!eventId) throw new Error("eventid required");
         targetUrl = `${HOSTINGER_BASE}/sports/posted-market-result?eventid=${eventId}`;
         break;
