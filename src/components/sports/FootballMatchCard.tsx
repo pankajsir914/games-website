@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,9 @@ import { Clock, MapPin, Trophy, TrendingUp, Eye, Activity, Users } from 'lucide-
 import { SportsMatch } from '@/hooks/useSportsData';
 import { useBettingOdds } from '@/hooks/useSportsBetting';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 interface FootballMatchCardProps {
   match: SportsMatch;
@@ -16,6 +19,21 @@ interface FootballMatchCardProps {
 export function FootballMatchCard({ match, onBetSelect, showBetting = true }: FootballMatchCardProps) {
   const navigate = useNavigate();
   const { odds } = useBettingOdds(match.sport, match.id);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const ensureAuthenticated = (onSuccess: () => void) => {
+    if (!user) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to view match details and odds.',
+      });
+      setAuthModalOpen(true);
+      return;
+    }
+    onSuccess();
+  };
 
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -40,7 +58,8 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
   const isCompleted = match.status.toLowerCase().includes('full time') || match.status.toLowerCase().includes('completed');
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-br from-card to-card/95 border-border hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
+    <>
+      <Card className="overflow-hidden bg-gradient-to-br from-card to-card/95 border-border hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
       {/* Header with League Info */}
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-4 py-3 border-b border-border/50">
         <div className="flex items-center justify-between">
@@ -146,7 +165,7 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
           <Button
             variant="default"
             size="sm"
-            onClick={() => navigate(`/sports/bet/${match.sport}/${match.id}`)}
+            onClick={() => ensureAuthenticated(() => navigate(`/sports/bet/${match.sport}/${match.id}`))}
             disabled={isCompleted}
             className="relative overflow-hidden group"
           >
@@ -159,7 +178,7 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/match-details/${match.sport}/${match.id}`)}
+            onClick={() => ensureAuthenticated(() => navigate(`/match-details/${match.sport}/${match.id}`))}
             className="text-xs"
           >
             <Eye className="h-3.5 w-3.5 mr-1" />
@@ -174,7 +193,7 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onBetSelect?.(odds[0], 'home-win')}
+              onClick={() => ensureAuthenticated(() => onBetSelect?.(odds[0], 'home-win'))}
                 className="flex flex-col py-2 h-auto hover:bg-primary/10 hover:border-primary/50"
               >
                 <span className="text-xs text-muted-foreground">Home</span>
@@ -183,7 +202,7 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onBetSelect?.(odds[0], 'draw')}
+              onClick={() => ensureAuthenticated(() => onBetSelect?.(odds[0], 'draw'))}
                 className="flex flex-col py-2 h-auto hover:bg-primary/10 hover:border-primary/50"
               >
                 <span className="text-xs text-muted-foreground">Draw</span>
@@ -192,7 +211,7 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onBetSelect?.(odds[0], 'away-win')}
+              onClick={() => ensureAuthenticated(() => onBetSelect?.(odds[0], 'away-win'))}
                 className="flex flex-col py-2 h-auto hover:bg-primary/10 hover:border-primary/50"
               >
                 <span className="text-xs text-muted-foreground">Away</span>
@@ -202,6 +221,8 @@ export function FootballMatchCard({ match, onBetSelect, showBetting = true }: Fo
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+    </>
   );
 }
