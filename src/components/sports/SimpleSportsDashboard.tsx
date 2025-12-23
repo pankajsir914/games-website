@@ -55,26 +55,23 @@ export const SimpleSportsDashboard: React.FC = () => {
     return m.isLive || status.includes('live') || status.includes('inplay') || status.includes('running');
   });
 
-  const upcomingMatches = matches.filter(m => {
-    const status = (m.status || '').toLowerCase();
-    return !liveMatches.includes(m) && (
-      status.includes('upcoming') ||
-      status.includes('scheduled') ||
-      status.includes('not started') ||
-      status.includes('ns')
-    );
-  });
-
   const pastMatches = matches.filter(m => {
     const status = (m.status || '').toLowerCase();
-    return !liveMatches.includes(m) && !upcomingMatches.includes(m) && (
+    return (
       status.includes('finished') ||
       status.includes('result') ||
       status.includes('completed') ||
       status.includes('ended') ||
       status.includes('full') ||
-      status.includes('ft')
+      status.includes('ft') ||
+      status.includes('won') ||
+      (m.score && !m.isLive && status !== 'upcoming' && status !== 'live' && status !== 'scheduled')
     );
+  });
+
+  // Upcoming matches: Not live and not past (default category)
+  const upcomingMatches = matches.filter(m => {
+    return !liveMatches.includes(m) && !pastMatches.includes(m);
   });
 
   const SportButton = ({ sport }: { sport: any }) => (
