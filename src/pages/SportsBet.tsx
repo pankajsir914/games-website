@@ -72,6 +72,8 @@ const SportsBet: React.FC = () => {
   const [myBets, setMyBets] = useState<any[]>([]);
   const [isLoadingMyBets, setIsLoadingMyBets] = useState(false);
   const [myBetsError, setMyBetsError] = useState<string | null>(null);
+  const oddsWebSocketRef = useRef<WebSocket | null>(null);
+  const oddsFetchedRef = useRef<string | null>(null); // Track which matchId has been fetched
   
   useEffect(() => {
     if (!user) {
@@ -93,7 +95,7 @@ const SportsBet: React.FC = () => {
   };
 
   // Fallback: fetch match info from Diamond list when state.match missing
-  const fetchMatchFromDiamond = async () => {
+  const fetchMatchFromDiamond = useCallback(async () => {
     if (match || !matchId) return;
     const sid = getSportSID(sport || 'Cricket');
     try {
@@ -128,7 +130,7 @@ const SportsBet: React.FC = () => {
     } finally {
       setIsLoadingMatch(false);
     }
-  };
+  }, [matchId, sport, match, callAPI, getSportSID]);
 
   // Fetch all Betfair Score TV data (TV, Scorecard, Commentary, Statistics, Highlights)
   useEffect(() => {
@@ -177,10 +179,20 @@ const SportsBet: React.FC = () => {
     };
 
     fetchLiveTv();
-  }, [matchId, match?.status, sport, getBetfairScoreTv, user]);
+  }, [matchId, sport, getBetfairScoreTv, user]); // Removed match?.status to prevent refresh loop
 
-  // Fetch detailed match data using getDetailsData
-  const fetchMatchDetailsData = async () => {
+
+  // Fetch match info if not passed via navigation state
+  useEffect(() => {
+    if (!user) return;
+    fetchMatchFromDiamond();
+  }, [matchId, sport, user, fetchMatchFromDiamond]); // Removed 'match' from dependencies to prevent refresh loop
+
+  // Fetch live match details and score (lower priority, delayed) - REMOVED: Now handled by WebSocket
+  // This useEffect was causing refresh loops and is no longer needed since WebSocket handles real-time updates
+
+  // Fetch match details data
+  const fetchMatchDetailsData = useCallback(async () => {
     if (!matchId || matchId === 'undefined') return;
     
     setIsLoadingDetails(true);
@@ -189,13 +201,11 @@ const SportsBet: React.FC = () => {
       const response = await getDetailsData(sid, matchId);
       
       if (response?.success && response.data?.data) {
-        // Extract the first match from the array and map fields
         const rawMatch = Array.isArray(response.data.data) 
           ? response.data.data[0] 
           : response.data.data;
         
         if (rawMatch) {
-          // Map Diamond API fields to expected UI fields
           const mappedDetails = {
             matchName: rawMatch.ename || `Match #${rawMatch.gmid}`,
             series: rawMatch.cname || 'N/A',
@@ -205,7 +215,6 @@ const SportsBet: React.FC = () => {
             matchId: rawMatch.gmid,
             eventId: rawMatch.etid,
             competitionId: rawMatch.cid,
-            // Additional flags
             hasTv: rawMatch.tv || false,
             hasBookmaker: rawMatch.bm || false,
             hasFancy: rawMatch.f || false,
@@ -220,73 +229,20 @@ const SportsBet: React.FC = () => {
     } finally {
       setIsLoadingDetails(false);
     }
-  };
+  }, [matchId, sport, getDetailsData, getSportSID]);
 
+  // Fetch odds once on mount (only initial fetch, WebSocket handles updates)
   useEffect(() => {
-    if (!user) return;
-    fetchMatchDetailsData();
-  }, [matchId, sport, getDetailsData, user]);
+    // Reset fetch flag if matchId changed
+    if (oddsFetchedRef.current && oddsFetchedRef.current !== matchId) {
+      oddsFetchedRef.current = null;
+      setOdds(null); // Clear old odds
+      setOddsError(null);
+    }
+    
+    // Skip if already fetched for this match
+    if (oddsFetchedRef.current === matchId) return;
 
-  // Fetch match info if not passed via navigation state
-  useEffect(() => {
-    if (!user) return;
-    fetchMatchFromDiamond();
-  }, [matchId, sport, match, user]);
-
-  // Fetch live match details and score (lower priority, delayed)
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchLiveMatchData = async () => {
-      if (!matchId || matchId === 'undefined') return;
-
-      // Delay significantly to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 12000));
-
-      try {
-        // Fetch one at a time with delays between each
-        const scoreResponse = await callAPI(`sports/sportsScore`, { params: { eventId: matchId } });
-        await new Promise(resolve => setTimeout(resolve, 6000));
-        
-        const detailsResponse = await callAPI(`sports/allGameDetails`, { params: { eventId: matchId } });
-        await new Promise(resolve => setTimeout(resolve, 6000));
-        
-        const matchResponse = await callAPI(`sports/esid`, { sid: '4' });
-
-        if (scoreResponse?.success) {
-          setLiveScore(scoreResponse.data);
-        }
-
-        if (detailsResponse?.success) {
-          setLiveDetails(detailsResponse.data);
-        }
-
-        // Update match info if available
-        if (matchResponse?.success && matchResponse.data?.t1) {
-          const liveMatch = matchResponse.data.t1.find((m: any) => 
-            m.eid === matchId || m.gmid === matchId
-          );
-          if (liveMatch) {
-            setMatch(prev => ({
-              ...prev,
-              team1: liveMatch.t1 || prev?.team1,
-              team2: liveMatch.t2 || prev?.team2,
-              status: liveMatch.status === '1' ? 'Live' : prev?.status,
-              score: liveMatch.score || prev?.score
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching live match data:', error);
-      }
-    };
-
-    // Initial fetch only, no auto-refresh
-    fetchLiveMatchData();
-  }, [matchId, callAPI, user]);
-
-  // Fetch odds once on mount (no auto-refresh or WebSocket)
-  useEffect(() => {
     if (!user) {
       setOdds(null);
       setOddsError('Please sign in to view match odds.');
@@ -297,9 +253,12 @@ const SportsBet: React.FC = () => {
     if (!matchId || matchId === 'undefined') {
       const errorMsg = 'Invalid match ID. Please select a valid match.';
       setOddsError(errorMsg);
+      setIsLoadingOdds(false);
       return;
     }
     
+    // Mark as fetching to prevent duplicate calls
+    oddsFetchedRef.current = matchId;
     setIsLoadingOdds(true);
     setOddsError(null);
     
@@ -370,28 +329,38 @@ const SportsBet: React.FC = () => {
     // Sequential fetch with fallbacks to avoid rate limiting and wrong IDs
     const fetchDataSequentially = async () => {
       try {
-        const sidCandidates = [
-          getSportSID(sport || 'Cricket'),
-          match?.sid
-        ].filter(Boolean);
-
+        const sid = getSportSID(sport || 'Cricket');
+        // Use matchId first, then try match data if available
         const idCandidates = [
           matchId,
-          match?.id,
-          match?.eventId,
-          match?.raw?.gmid,
-          match?.raw?.id,
-          match?.raw?.eventId
-        ].map(String).filter(id => id && id !== 'undefined');
+          ...(match ? [
+            match.id,
+            match.eventId,
+            match.raw?.gmid,
+            match.raw?.id,
+            match.raw?.eventId
+          ] : [])
+        ]
+          .map(String)
+          .filter(id => id && id !== 'undefined' && id !== 'null' && id !== '')
+          .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+
+        console.log('Fetching odds for:', { sid, matchId, idCandidates, sport, hasMatch: !!match });
 
         let found = false;
         let lastError: string | null = null;
 
-        for (const sid of sidCandidates) {
-          for (const id of idCandidates) {
+        for (const id of idCandidates) {
+          try {
+            console.log(`Trying to fetch odds with sid: ${sid}, id: ${id}`);
             const oddsResponse = await getPriveteData(String(sid), String(id));
+            
+            console.log('Odds response:', { success: oddsResponse?.success, hasData: !!oddsResponse?.data, error: oddsResponse?.error });
+            
             if (oddsResponse?.success && oddsResponse.data) {
               const rawOdds = oddsResponse.data;
+              console.log('Raw odds received:', rawOdds);
+              
               // Provider sometimes returns { data: [...] } without t1/t2/t3.
               const normalizedOdds = Array.isArray(rawOdds)
                 ? { data: { t1: rawOdds } }
@@ -400,45 +369,297 @@ const SportsBet: React.FC = () => {
                   : rawOdds;
 
               const shapedOdds = normalizeBackLay(normalizedOdds);
+              console.log('Shaped odds:', shapedOdds);
 
               if (hasMarkets(shapedOdds)) {
-                setOdds(shapedOdds);
+                // Only update if odds haven't been set yet or are different
+                setOdds(prevOdds => {
+                  const prevJson = JSON.stringify(prevOdds);
+                  const newJson = JSON.stringify(shapedOdds);
+                  if (prevJson !== newJson) {
+                    return shapedOdds;
+                  }
+                  return prevOdds;
+                });
                 setOddsError(null);
                 found = true;
+                console.log('Odds successfully loaded!');
                 break;
               } else {
                 lastError = 'No betting markets available from provider.';
+                console.log('No markets found in odds data');
               }
             } else if (oddsResponse?.error) {
               lastError = oddsResponse.error;
+              console.error('Odds API error:', oddsResponse.error);
+            } else {
+              lastError = 'Invalid response from odds API';
+              console.error('Invalid odds response:', oddsResponse);
             }
-            
-            // Small delay between attempts to be polite to the API
+          } catch (err: any) {
+            console.error(`Error fetching odds for id ${id}:`, err);
+            lastError = err.message || 'Failed to fetch odds';
+          }
+          
+          // Small delay between attempts to be polite to the API
+          if (!found) {
             await new Promise(resolve => setTimeout(resolve, 500));
           }
-          if (found) break;
         }
 
         if (!found) {
           setOdds(null);
-          setOddsError(lastError || 'No betting markets available. Please try again later.');
+          const finalError = lastError || 'No betting markets available. Please try again later.';
+          setOddsError(finalError);
+          console.error('Failed to fetch odds:', finalError);
         }
 
-        // Wait before next request to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 4000));
-        
-        // Fetch match details
-        await fetchMatchDetailsData();
+        // Fetch match details after odds (if found or not)
+        try {
+          await fetchMatchDetailsData();
+        } catch (err) {
+          console.error('Error fetching match details:', err);
+        }
         
       } catch (error: any) {
-        setOddsError('Unable to load odds right now. Please retry.');
+        console.error('Fatal error in fetchDataSequentially:', error);
+        setOddsError(error.message || 'Unable to load odds right now. Please retry.');
       } finally {
         setIsLoadingOdds(false);
       }
     };
     
     fetchDataSequentially();
-  }, [matchId, sport, match, getPriveteData, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId, sport, user?.id]); // Functions are stable from hooks, no need to include them
+
+  // Real-time updates via WebSocket (odds, scores, match info) - Real-time updates every second!
+  useEffect(() => {
+    if (!user || !matchId) return;
+
+    // Only connect WebSocket once per matchId
+    if (oddsWebSocketRef.current) {
+      // If matchId changed, close old connection and reconnect
+      const currentMatchId = (oddsWebSocketRef.current as any).matchId;
+      if (currentMatchId === matchId) return;
+      
+      oddsWebSocketRef.current.close();
+      oddsWebSocketRef.current = null;
+    }
+
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000; // 2 seconds
+
+    const connectWebSocket = () => {
+      try {
+        const ws = connectOddsWebSocket(matchId, {
+          onOddsUpdate: (updatedOdds: any) => {
+          if (updatedOdds) {
+            // Normalize WebSocket odds data same way as initial fetch
+            const normalizeBackLay = (payload: any) => {
+              const data = payload?.data || payload;
+              const transformMarket = (market: any) => {
+                if (!market?.section || !Array.isArray(market.section)) return market;
+                const section = market.section.map((team: any) => {
+                  if (!team || team.b1 || team.l1) return team; // already in expected shape
+                  if (!Array.isArray(team.odds)) return team;
+
+                  const backs = team.odds.filter((o: any) => o?.otype?.toLowerCase() === 'back');
+                  const lays = team.odds.filter((o: any) => o?.otype?.toLowerCase() === 'lay');
+
+                  backs.sort((a: any, b: any) => (b?.odds || 0) - (a?.odds || 0));
+                  lays.sort((a: any, b: any) => (a?.odds || 0) - (b?.odds || 0));
+
+                  return {
+                    ...team,
+                    b1: backs[0]?.odds,
+                    b2: backs[1]?.odds,
+                    b3: backs[2]?.odds,
+                    l1: lays[0]?.odds,
+                    l2: lays[1]?.odds,
+                    l3: lays[2]?.odds,
+                    bs1: backs[0]?.size,
+                    bs2: backs[1]?.size,
+                    bs3: backs[2]?.size,
+                    ls1: lays[0]?.size,
+                    ls2: lays[1]?.size,
+                    ls3: lays[2]?.size,
+                  };
+                });
+                return { ...market, section };
+              };
+
+              const wrapData = Array.isArray(data)
+                ? { t1: data }
+                : data;
+
+              return {
+                ...payload,
+                data: {
+                  ...wrapData,
+                  t1: (wrapData?.t1 || []).map(transformMarket),
+                  t2: (wrapData?.t2 || []).map(transformMarket),
+                  t3: (wrapData?.t3 || []).map(transformMarket),
+                }
+              };
+            };
+
+            // Normalize the odds data
+            const rawOdds = updatedOdds;
+            const normalizedOdds = Array.isArray(rawOdds)
+              ? { data: { t1: rawOdds } }
+              : Array.isArray(rawOdds?.data)
+                ? { data: { t1: rawOdds.data } }
+                : rawOdds;
+
+            const shapedOdds = normalizeBackLay(normalizedOdds);
+
+            // Smooth update without causing re-render of WebSocket connection
+            setOdds(prevOdds => {
+              // Deep comparison to prevent unnecessary updates
+              const prevJson = JSON.stringify(prevOdds);
+              const newJson = JSON.stringify(shapedOdds);
+              if (prevJson !== newJson) {
+                return shapedOdds;
+              }
+              return prevOdds;
+            });
+          }
+        },
+        onScoreUpdate: (updatedScore: any) => {
+          if (updatedScore) {
+            // Update live score from WebSocket
+            setLiveScore(prev => {
+              // Only update if score actually changed
+              if (JSON.stringify(prev) !== JSON.stringify(updatedScore)) {
+                return updatedScore;
+              }
+              return prev;
+            });
+          }
+        },
+        onMatchInfoUpdate: (updatedMatchInfo: any) => {
+          if (updatedMatchInfo) {
+            // Update match info from WebSocket
+            setMatch(prev => {
+              const newScore = updatedMatchInfo.score || prev?.score;
+              const newStatus = updatedMatchInfo.status === '1' ? 'Live' : prev?.status;
+              // Only update if something actually changed
+              if (prev?.score !== newScore || prev?.status !== newStatus) {
+                return {
+                  ...prev,
+                  team1: updatedMatchInfo.t1 || prev?.team1,
+                  team2: updatedMatchInfo.t2 || prev?.team2,
+                  status: newStatus,
+                  score: newScore
+                };
+              }
+              return prev;
+            });
+          }
+        }
+        });
+        
+        // Store matchId with WebSocket for comparison
+        (ws as any).matchId = matchId;
+        oddsWebSocketRef.current = ws as any;
+        
+        // Handle WebSocket close - auto reconnect
+        ws.onclose = (event) => {
+          console.log('WebSocket closed:', event.code, event.reason);
+          oddsWebSocketRef.current = null;
+          
+          // Auto-reconnect if not a normal closure and we haven't exceeded max attempts
+          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            console.log(`Reconnecting WebSocket... Attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+            reconnectTimeout = setTimeout(() => {
+              connectWebSocket();
+            }, reconnectDelay);
+          }
+        };
+        
+        // Handle WebSocket errors
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+        
+        // Reset reconnect attempts on successful connection
+        reconnectAttempts = 0;
+      } catch (error) {
+        console.error('Failed to connect WebSocket:', error);
+        // Retry connection after delay
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          reconnectTimeout = setTimeout(() => {
+            connectWebSocket();
+          }, reconnectDelay);
+        }
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (oddsWebSocketRef.current) {
+        oddsWebSocketRef.current.close();
+        oddsWebSocketRef.current = null;
+      }
+    };
+  }, [matchId, user?.id, connectOddsWebSocket]); // Use user.id instead of user object
+
+  // Fetch user's bets for this match
+  const fetchMyBets = useCallback(async () => {
+    if (!user || !matchId) return;
+    setIsLoadingMyBets(true);
+    setMyBetsError(null);
+    try {
+      const { data, error } = await (supabase as any)
+        .from('sports_bets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('event_id', matchId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setMyBets(data || []);
+    } catch (err: any) {
+      setMyBetsError(err.message || 'Unable to load your bets');
+    } finally {
+      setIsLoadingMyBets(false);
+    }
+  }, [user, matchId]);
+
+  // Real-time subscription for user's bets
+  useEffect(() => {
+    if (!user || !matchId) return;
+
+    const channel = supabase
+      .channel(`sports-bets-${matchId}-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sports_bets',
+          filter: `user_id=eq.${user.id} AND event_id=eq.${matchId}`
+        },
+        () => {
+          // Refresh bets list when any change occurs
+          fetchMyBets();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, matchId]); // Removed fetchMyBets from dependencies, using user.id instead of user object
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({
@@ -546,27 +767,6 @@ const SportsBet: React.FC = () => {
       : numericAmount;
   };
 
-  const fetchMyBets = useCallback(async () => {
-    if (!user || !matchId) return;
-    setIsLoadingMyBets(true);
-    setMyBetsError(null);
-    try {
-      const { data, error } = await (supabase as any)
-        .from('sports_bets')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('event_id', matchId)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      setMyBets(data || []);
-    } catch (err: any) {
-      setMyBetsError(err.message || 'Unable to load your bets');
-    } finally {
-      setIsLoadingMyBets(false);
-    }
-  }, [user, matchId]);
-
   // Auto-focus bet amount when slip opens
   useEffect(() => {
     if ((isBetSlipOpen || isBetSlipDialogOpen) && selectedBet) {
@@ -575,9 +775,12 @@ const SportsBet: React.FC = () => {
     }
   }, [isBetSlipOpen, isBetSlipDialogOpen, selectedBet]);
 
+  // Initial fetch of user's bets
   useEffect(() => {
-    fetchMyBets();
-  }, [fetchMyBets]);
+    if (user && matchId) {
+      fetchMyBets();
+    }
+  }, [user?.id, matchId]); // Use user.id instead of fetchMyBets to prevent recreation loop
 
   if (!match) {
     return (
@@ -896,42 +1099,38 @@ const SportsBet: React.FC = () => {
         </div>
 
         <Tabs defaultValue="odds" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto">
-            <TabsTrigger value="odds" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
-              <TrendingUp className="h-5 w-5 sm:h-4 sm:w-4" />
-              <span className="text-xs sm:text-sm">ODDS</span>
-            </TabsTrigger>
-            <TabsTrigger value="livetv" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
-              <Tv className="h-5 w-5 sm:h-4 sm:w-4" />
-              <span className="text-xs sm:text-sm">Live TV</span>
-            </TabsTrigger>
-            <TabsTrigger value="details" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
-              <FileText className="h-5 w-5 sm:h-4 sm:w-4" />
-              <span className="text-xs sm:text-sm hidden sm:inline">Details</span>
-              <span className="text-xs sm:text-sm sm:hidden">Info</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger value="odds" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+                <TrendingUp className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">ODDS</span>
+              </TabsTrigger>
+              <TabsTrigger value="livetv" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+                <Tv className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">Live TV</span>
+              </TabsTrigger>
+              <TabsTrigger value="details" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+                <FileText className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm hidden sm:inline">Details</span>
+                <span className="text-xs sm:text-sm sm:hidden">Info</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ODDS Tab */}
           <TabsContent value="odds" className="space-y-4 sm:space-y-6">
-            {/* Error Alert with Refresh */}
+            {/* Header */}
+            <div>
+              <h3 className="text-lg font-semibold">Betting Odds</h3>
+            </div>
+
+            {/* Error Alert */}
             {oddsError && (
-              <Alert className="text-sm">
+              <Alert className="text-sm" variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="font-semibold mb-1">{oddsError}</p>
-                    <p className="text-xs text-muted-foreground">The API has rate limits. Please wait a moment before refreshing.</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.location.reload()}
-                    className="w-full sm:w-auto"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Retry
-                  </Button>
+                <AlertDescription>
+                  <p className="font-semibold mb-1">{oddsError}</p>
+                  <p className="text-xs text-muted-foreground">Please try refreshing or check back later.</p>
                 </AlertDescription>
               </Alert>
             )}
@@ -943,37 +1142,6 @@ const SportsBet: React.FC = () => {
                 onSelectBet={handleSelectBet}
                 isLoading={isLoadingOdds}
               />
-              
-              {/* Desktop Bet Slip Button - Floating button */}
-              {!isMobile && (
-                <div className="flex justify-end">
-                  <Dialog open={isBetSlipDialogOpen} onOpenChange={setIsBetSlipDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="default" 
-                        size="lg"
-                        className="h-14 px-6 shadow-lg"
-                      >
-                        <Receipt className="h-5 w-5 mr-2" />
-                        Bet Slip
-                        {selectedBet && (
-                          <span className="ml-2 h-5 w-5 rounded-full bg-background text-foreground text-xs flex items-center justify-center">
-                            1
-                          </span>
-                        )}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Bet Slip</DialogTitle>
-                      </DialogHeader>
-                      <div className="mt-4">
-                        <BetSlipContent />
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              )}
             </div>
           </TabsContent>
 
@@ -1371,6 +1539,35 @@ const SportsBet: React.FC = () => {
               </div>
             </DrawerContent>
           </Drawer>
+        )}
+
+        {/* Desktop Sticky Bet Slip Button - Fixed at bottom */}
+        {!isMobile && (
+          <Dialog open={isBetSlipDialogOpen} onOpenChange={setIsBetSlipDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="default" 
+                size="default"
+                className="fixed bottom-4 right-4 z-50 h-10 px-4 shadow-lg"
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                Bet Slip
+                {selectedBet && (
+                  <span className="ml-2 h-5 w-5 rounded-full bg-background text-foreground text-xs flex items-center justify-center">
+                    1
+                  </span>
+                )}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Bet Slip</DialogTitle>
+              </DialogHeader>
+              <div className="mt-4">
+                <BetSlipContent />
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>
