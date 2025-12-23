@@ -273,33 +273,87 @@ const SportsBet: React.FC = () => {
     setIsLoadingOdds(true);
     setOddsError(null);
     
-    // Sequential fetch to avoid rate limiting
+    // Helper to detect if odds payload has at least one market
+    const hasMarkets = (payload: any) => {
+      const data = payload?.data || payload;
+      return Boolean(
+        Array.isArray(data) && data.length ||
+        (Array.isArray(data?.t1) && data.t1.length) ||
+        (Array.isArray(data?.t2) && data.t2.length) ||
+        (Array.isArray(data?.t3) && data.t3.length)
+      );
+    };
+
+    // Sequential fetch with fallbacks to avoid rate limiting and wrong IDs
     const fetchDataSequentially = async () => {
       try {
-        // 1. Fetch odds first (highest priority)
-        const sid = getSportSID(sport || 'Cricket');
-        const oddsResponse = await getPriveteData(sid, matchId);
-        
-        if (oddsResponse?.success && oddsResponse.data) {
-          setOdds(oddsResponse.data);
-          setOddsError(null);
+        const sidCandidates = [
+          getSportSID(sport || 'Cricket'),
+          match?.sid
+        ].filter(Boolean);
+
+        const idCandidates = [
+          matchId,
+          match?.id,
+          match?.eventId,
+          match?.raw?.gmid,
+          match?.raw?.id,
+          match?.raw?.eventId
+        ].map(String).filter(id => id && id !== 'undefined');
+
+        let found = false;
+        let lastError: string | null = null;
+
+        for (const sid of sidCandidates) {
+          for (const id of idCandidates) {
+            const oddsResponse = await getPriveteData(String(sid), String(id));
+            if (oddsResponse?.success && oddsResponse.data) {
+              const rawOdds = oddsResponse.data;
+              // Provider sometimes returns { data: [...] } without t1/t2/t3.
+              const normalizedOdds = Array.isArray(rawOdds)
+                ? { data: { t1: rawOdds } }
+                : Array.isArray(rawOdds?.data)
+                  ? { data: { t1: rawOdds.data } }
+                  : rawOdds;
+
+              if (hasMarkets(normalizedOdds)) {
+                setOdds(normalizedOdds);
+                setOddsError(null);
+                found = true;
+                break;
+              } else {
+                lastError = 'No betting markets available from provider.';
+              }
+            } else if (oddsResponse?.error) {
+              lastError = oddsResponse.error;
+            }
+            
+            // Small delay between attempts to be polite to the API
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          if (found) break;
         }
+
+        if (!found) {
+          setOdds(null);
+          setOddsError(lastError || 'No betting markets available. Please try again later.');
+        }
+
+        // Wait before next request to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 4000));
         
-        // 2. Wait before next request to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 6000));
-        
-        // 3. Fetch match details
+        // Fetch match details
         await fetchMatchDetailsData();
         
       } catch (error: any) {
-        // Error handling without logging
+        setOddsError('Unable to load odds right now. Please retry.');
       } finally {
         setIsLoadingOdds(false);
       }
     };
     
     fetchDataSequentially();
-  }, [matchId, sport, getPriveteData]);
+  }, [matchId, sport, match, getPriveteData]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({
