@@ -24,6 +24,8 @@ export interface SportMatch {
   time?: string;
   isLive?: boolean;
   eventId?: string;
+  league?: string;
+  cname?: string;
 }
 
 export function useSimpleSportsData() {
@@ -137,7 +139,7 @@ export function useSimpleSportsData() {
           body: { sport: targetSport.sport_type, kind: 'upcoming' }
         }),
         supabase.functions.invoke('sports-proxy', {
-          body: { sport: targetSport.sport_type, kind: 'past' }
+          body: { sport: targetSport.sport_type, kind: 'results' }
         })
       ]);
 
@@ -154,7 +156,9 @@ export function useSimpleSportsData() {
           date: item.date || new Date().toISOString(),
           time: item.time,
           isLive: true,
-          eventId: item.id
+          eventId: item.id,
+          league: item.league?.name || item.league || item.cname || item.competition || selectedSport?.label,
+          cname: item.cname
         }));
         allMatches = [...allMatches, ...liveMatches];
       }
@@ -172,7 +176,9 @@ export function useSimpleSportsData() {
           date: item.date || new Date().toISOString(),
           time: item.time,
           isLive: false,
-          eventId: item.id
+          eventId: item.id,
+          league: item.league?.name || item.league || item.cname || item.competition || selectedSport?.label,
+          cname: item.cname
         }));
         allMatches = [...allMatches, ...upcomingMatches];
       }
@@ -190,7 +196,9 @@ export function useSimpleSportsData() {
           date: item.date || new Date().toISOString(),
           time: item.time,
           isLive: false,
-          eventId: item.id
+          eventId: item.id,
+          league: item.league?.name || item.league || item.cname || item.competition || selectedSport?.label,
+          cname: item.cname
         }));
         allMatches = [...allMatches, ...resultMatches];
       }
@@ -220,21 +228,37 @@ export function useSimpleSportsData() {
         if (!fnError && response?.success && response?.data) {
           console.log('Diamond API response:', response);
           
-          let rawMatches = [];
+          let rawMatches: any[] = [];
           
-          // Handle Diamond API's nested response structure
-          // Response structure: { success: true, data: { data: { t1: [...] } } }
-          if (response.data?.data?.t1 && Array.isArray(response.data.data.t1)) {
-            rawMatches = response.data.data.t1;
-            console.log('Found matches in response.data.data.t1:', rawMatches.length);
-          } else if (response.data?.t1 && Array.isArray(response.data.t1)) {
-            rawMatches = response.data.t1;
-            console.log('Found matches in response.data.t1:', rawMatches.length);
-          } else if (Array.isArray(response.data)) {
-            rawMatches = response.data;
-            console.log('Found matches in response.data (array):', rawMatches.length);
-          } else {
-            console.warn('Unexpected response structure:', response.data);
+          // Handle Diamond API's nested response structure (cricket/other sports can differ)
+          const candidates = [
+            response.data?.data?.t1,
+            response.data?.data?.t2,
+            response.data?.t1,
+            response.data?.t2,
+            response.data?.data,
+            response.data
+          ];
+
+          for (const c of candidates) {
+            if (Array.isArray(c) && c.length > 0) {
+              rawMatches = c;
+              break;
+            }
+            // Sometimes data is an object with first array value
+            if (c && !Array.isArray(c) && typeof c === 'object') {
+              const firstArray = Object.values(c).find(v => Array.isArray(v)) as any[] | undefined;
+              if (firstArray && firstArray.length > 0) {
+                rawMatches = firstArray;
+                break;
+              }
+            }
+          }
+
+          console.log('Diamond raw matches count:', rawMatches.length);
+          
+          if (rawMatches.length === 0) {
+            console.warn('No matches extracted from Diamond response', response.data);
           }
           
           const parsedMatches: SportMatch[] = rawMatches.map((match: any) => {
@@ -271,17 +295,47 @@ export function useSimpleSportsData() {
             // Determine if match is live
             const isLiveMatch = match.iplay === true || match.iplay === 1 || match.status === 'live' || match.status === 'Live';
             
+            // Determine status - check if match is finished/past
+            let matchStatus = 'upcoming'; // Default to upcoming
+            const matchStatusLower = (match.status || '').toLowerCase();
+            
+            if (isLiveMatch) {
+              matchStatus = 'live';
+            } else if (
+              matchStatusLower.includes('finished') ||
+              matchStatusLower.includes('result') ||
+              matchStatusLower.includes('completed') ||
+              matchStatusLower.includes('ended') ||
+              matchStatusLower.includes('ft') ||
+              matchStatusLower.includes('won')
+            ) {
+              matchStatus = 'finished';
+            } else if (
+              matchStatusLower.includes('upcoming') ||
+              matchStatusLower.includes('scheduled') ||
+              matchStatusLower.includes('not started') ||
+              matchStatusLower.includes('ns')
+            ) {
+              matchStatus = 'upcoming';
+            } else {
+              // If no clear status, check if there's a score without live flag = likely finished
+              const hasScore = match.score || match.result || (match.section?.find((s: any) => s.score)?.score);
+              matchStatus = hasScore ? 'finished' : 'upcoming';
+            }
+            
             return {
               id: match.gmid || match.eventId || match.id || Math.random().toString(),
               name: match.ename || match.name || `${team1} vs ${team2}`,
               team1,
               team2,
               score: match.score || match.result || (match.section?.find((s: any) => s.score)?.score) || '',
-              status: isLiveMatch ? 'live' : (match.status || 'upcoming'),
+              status: matchStatus,
               date: match.stime || match.date || match.eventDate || new Date().toISOString(),
               time: match.time || match.eventTime,
               isLive: isLiveMatch,
-              eventId: match.gmid || match.eventId || match.id
+              eventId: match.gmid || match.eventId || match.id,
+              league: match.cname || match.league || match.tour || selectedSport?.label,
+              cname: match.cname
             };
           });
 
