@@ -19,12 +19,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = location;
+  const { user } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const { getPriveteData, callAPI, getBetfairScoreTv, getDetailsData } = useDiamondSportsAPI();
   const { connectOddsWebSocket } = useDiamondSportsData();
   const { wallet } = useWallet();
@@ -63,6 +67,14 @@ const SportsBet: React.FC = () => {
   const [matchDetails, setMatchDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingMatch, setIsLoadingMatch] = useState(false);
+  
+  useEffect(() => {
+    if (!user) {
+      setAuthModalOpen(true);
+    } else {
+      setAuthModalOpen(false);
+    }
+  }, [user]);
 
   // Helper: Get SID from sport type
   const getSportSID = (sportType: string): string => {
@@ -115,6 +127,8 @@ const SportsBet: React.FC = () => {
 
   // Fetch all Betfair Score TV data (TV, Scorecard, Commentary, Statistics, Highlights)
   useEffect(() => {
+    if (!user) return;
+
     const fetchLiveTv = async () => {
       if (!matchId || matchId === 'undefined') return;
       
@@ -158,7 +172,7 @@ const SportsBet: React.FC = () => {
     };
 
     fetchLiveTv();
-  }, [matchId, match?.status, sport, getBetfairScoreTv]);
+  }, [matchId, match?.status, sport, getBetfairScoreTv, user]);
 
   // Fetch detailed match data using getDetailsData
   const fetchMatchDetailsData = async () => {
@@ -204,16 +218,20 @@ const SportsBet: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!user) return;
     fetchMatchDetailsData();
-  }, [matchId, sport, getDetailsData]);
+  }, [matchId, sport, getDetailsData, user]);
 
   // Fetch match info if not passed via navigation state
   useEffect(() => {
+    if (!user) return;
     fetchMatchFromDiamond();
-  }, [matchId, sport, match]);
+  }, [matchId, sport, match, user]);
 
   // Fetch live match details and score (lower priority, delayed)
   useEffect(() => {
+    if (!user) return;
+
     const fetchLiveMatchData = async () => {
       if (!matchId || matchId === 'undefined') return;
 
@@ -260,10 +278,17 @@ const SportsBet: React.FC = () => {
 
     // Initial fetch only, no auto-refresh
     fetchLiveMatchData();
-  }, [matchId, callAPI]);
+  }, [matchId, callAPI, user]);
 
   // Fetch odds once on mount (no auto-refresh or WebSocket)
   useEffect(() => {
+    if (!user) {
+      setOdds(null);
+      setOddsError('Please sign in to view match odds.');
+      setIsLoadingOdds(false);
+      return;
+    }
+
     if (!matchId || matchId === 'undefined') {
       const errorMsg = 'Invalid match ID. Please select a valid match.';
       setOddsError(errorMsg);
@@ -408,7 +433,7 @@ const SportsBet: React.FC = () => {
     };
     
     fetchDataSequentially();
-  }, [matchId, sport, match, getPriveteData]);
+  }, [matchId, sport, match, getPriveteData, user]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => {
     setSelectedBet({
@@ -612,6 +637,31 @@ const SportsBet: React.FC = () => {
       </div>
     </>
   );
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          <Card className="p-6">
+            <CardHeader className="p-0 pb-4">
+              <CardTitle className="text-xl">Sign in to view match details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-0">
+              <p className="text-muted-foreground">
+                You need an account to access sports match details and odds.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => setAuthModalOpen(true)}>Sign In</Button>
+                <Button variant="outline" onClick={() => navigate('/sports')}>Back to Sports</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
