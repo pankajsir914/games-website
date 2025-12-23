@@ -119,7 +119,16 @@ export function useDiamondSportsAPI() {
       setError('Both SID and GMID are required');
       return null;
     }
-    return callAPI<any>('sports/getPriveteData', { sid, gmid });
+    const resp = await callAPI<any>('sports/getPriveteData', { sid, gmid });
+    console.log('getPriveteData response', {
+      sid,
+      gmid,
+      success: resp?.success,
+      provider: resp?.provider,
+      hasData: Boolean(resp?.data),
+      dataSample: resp?.data
+    });
+    return resp;
   }, [callAPI]);
 
   const getOdds = useCallback((eventId: string) => 
