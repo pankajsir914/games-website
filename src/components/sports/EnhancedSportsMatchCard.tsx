@@ -77,7 +77,7 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
               </Badge>
             )}
             <span className="text-[10px] sm:text-xs text-muted-foreground truncate ml-2">
-              {match.league || sport.toUpperCase()}
+            {match.cname || match.league || sport.toUpperCase()}
             </span>
           </div>
           
@@ -118,7 +118,7 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
             <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-primary opacity-60 shrink-0" />
             <span className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">
-              {match.league || sport.toUpperCase()}
+              {match.cname || match.league || sport.toUpperCase()}
             </span>
           </div>
           
