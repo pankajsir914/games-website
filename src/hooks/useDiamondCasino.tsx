@@ -882,22 +882,65 @@ export const useDiamondCasino = () => {
   }, [selectedTable?.id]);
 
   // ----------------- Process/settle bets -----------------
-  const processBets = async (tableId: string) => {
+  const processBets = async (tableId: string, mid?: string | number) => {
     try {
+      const requestBody: any = { action: "process-bets", tableId };
+      
+      // Pass mid if available for more accurate round-based settlement
+      if (mid) {
+        requestBody.mid = mid.toString();
+        console.log(`📊 Processing bets with mid: ${mid}`);
+      }
+      
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { 
-        body: { action: "process-bets", tableId } 
+        body: requestBody
       });
+      
       if (error) {
         console.error("processBets invoke error:", error);
+        toast({
+          title: "Settlement Error",
+          description: error.message || "Failed to process bets",
+          variant: "destructive"
+        });
         return;
       }
+      
       if (data?.success) {
         // Refresh user bets after processing
         fetchUserBets();
-        console.log(`Processed bets for ${tableId}:`, data);
+        
+        // Show user feedback
+        if (data.processed > 0) {
+          toast({
+            title: "Bets Settled",
+            description: `Processed ${data.processed} bet(s). ${data.won || 0} won, ${data.lost || 0} lost.`,
+            variant: "default"
+          });
+        }
+        
+        console.log(`✅ Processed bets for ${tableId}:`, {
+          processed: data.processed,
+          won: data.won,
+          lost: data.lost,
+          totalPayouts: data.totalPayouts,
+          winningValue: data.winningValue,
+          resultSource: data.resultSource
+        });
+      } else {
+        toast({
+          title: "Settlement Failed",
+          description: data?.error || "No result available for settlement",
+          variant: "destructive"
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing bets:", error);
+      toast({
+        title: "Settlement Error",
+        description: error.message || "Failed to process bets",
+        variant: "destructive"
+      });
     }
   };
 
@@ -939,11 +982,15 @@ export const useDiamondCasino = () => {
         // 1. We have a valid result with a winning value
         // 2. It's actually a new result (not the same one we just processed)
         // 3. The result has a timestamp/round info to validate against bets
-        if (isNewResult && latestResult && latestResult.win) {
+        if (isNewResult && latestResult && (latestResult.win || tableName)) {
           console.log('🔄 New result detected, processing bets for table:', tableId);
+          
+          // Extract mid from latest result for accurate round-based settlement
+          const resultMid = latestResult.mid || latestResult.round || latestResult.round_id;
+          
           // Small delay to ensure result is fully available
           setTimeout(() => {
-            processBets(tableId);
+            processBets(tableId, resultMid);
           }, 1000);
         } else {
           console.log('⏸️ Skipping bet processing - no new valid result');
