@@ -221,8 +221,15 @@ export function useDiamondSportsData() {
     }
   }, [diamondAPI]);
 
-  // WebSocket connection for live odds
-  const connectOddsWebSocket = useCallback((eventId: string, onOddsUpdate: (odds: any) => void) => {
+  // WebSocket connection for real-time data (odds, scores, match info)
+  const connectOddsWebSocket = useCallback((
+    eventId: string, 
+    callbacks: {
+      onOddsUpdate?: (odds: any) => void;
+      onScoreUpdate?: (score: any) => void;
+      onMatchInfoUpdate?: (matchInfo: any) => void;
+    }
+  ) => {
     const sid = sidConfigs.find(c => c.sport_type === selectedSport?.sport_type)?.sid || '4';
     const ws = new WebSocket(
       `wss://foiojihgpeehvpwejeqw.supabase.co/functions/v1/sports-odds-websocket?matchId=${eventId}&sid=${sid}`
@@ -231,8 +238,12 @@ export function useDiamondSportsData() {
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        if (message.type === 'odds_update') {
-          onOddsUpdate(message.data);
+        if (message.type === 'odds_update' && callbacks.onOddsUpdate) {
+          callbacks.onOddsUpdate(message.data);
+        } else if (message.type === 'score_update' && callbacks.onScoreUpdate) {
+          callbacks.onScoreUpdate(message.data);
+        } else if (message.type === 'match_info_update' && callbacks.onMatchInfoUpdate) {
+          callbacks.onMatchInfoUpdate(message.data);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
