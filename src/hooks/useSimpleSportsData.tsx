@@ -106,7 +106,7 @@ export function useSimpleSportsData() {
     }
   }, []);
 
-  // Fetch matches for selected sport
+  // Fetch matches for selected sport from API
   const fetchMatches = useCallback(async (sport?: SportConfig) => {
     const targetSport = sport || selectedSport;
     if (!targetSport) return;
@@ -118,63 +118,142 @@ export function useSimpleSportsData() {
     const cachedData = getCachedMatches(targetSport.id);
     if (cachedData && cachedData.length > 0) {
       setMatches(cachedData);
-      toast.info('Showing cached matches (updating in background)');
     }
 
-    let attempts = 0;
-    const maxAttempts = 2;
+    let allMatches: SportMatch[] = [];
+    let success = false;
     let lastError: any = null;
 
-    while (attempts < maxAttempts) {
-      attempts++;
+    // Strategy 1: Try Supabase sports-proxy function (supports multiple sports)
+    try {
+      console.log(`Fetching ${targetSport.sport_type} matches from sports-proxy API...`);
       
+      // Fetch live, upcoming, and results in parallel
+      const [liveResponse, upcomingResponse, resultsResponse] = await Promise.allSettled([
+        supabase.functions.invoke('sports-proxy', {
+          body: { sport: targetSport.sport_type, kind: 'live' }
+        }),
+        supabase.functions.invoke('sports-proxy', {
+          body: { sport: targetSport.sport_type, kind: 'upcoming' }
+        }),
+        supabase.functions.invoke('sports-proxy', {
+          body: { sport: targetSport.sport_type, kind: 'past' }
+        })
+      ]);
+
+      // Process live matches
+      if (liveResponse.status === 'fulfilled' && liveResponse.value.data && !liveResponse.value.error) {
+        const liveData = liveResponse.value.data.items || liveResponse.value.data.data || [];
+        const liveMatches = liveData.map((item: any) => ({
+          id: item.id || `live_${Math.random().toString(36).substr(2, 9)}`,
+          name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
+          team1: item.teams?.home || 'Team A',
+          team2: item.teams?.away || 'Team B',
+          score: item.scores ? `${item.scores.home || 0}-${item.scores.away || 0}` : '',
+          status: 'live',
+          date: item.date || new Date().toISOString(),
+          time: item.time,
+          isLive: true,
+          eventId: item.id
+        }));
+        allMatches = [...allMatches, ...liveMatches];
+      }
+
+      // Process upcoming matches
+      if (upcomingResponse.status === 'fulfilled' && upcomingResponse.value.data && !upcomingResponse.value.error) {
+        const upcomingData = upcomingResponse.value.data.items || upcomingResponse.value.data.data || [];
+        const upcomingMatches = upcomingData.map((item: any) => ({
+          id: item.id || `upcoming_${Math.random().toString(36).substr(2, 9)}`,
+          name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
+          team1: item.teams?.home || 'Team A',
+          team2: item.teams?.away || 'Team B',
+          score: '',
+          status: 'upcoming',
+          date: item.date || new Date().toISOString(),
+          time: item.time,
+          isLive: false,
+          eventId: item.id
+        }));
+        allMatches = [...allMatches, ...upcomingMatches];
+      }
+
+      // Process results
+      if (resultsResponse.status === 'fulfilled' && resultsResponse.value.data && !resultsResponse.value.error) {
+        const resultsData = resultsResponse.value.data.items || resultsResponse.value.data.data || [];
+        const resultMatches = resultsData.slice(0, 20).map((item: any) => ({
+          id: item.id || `result_${Math.random().toString(36).substr(2, 9)}`,
+          name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
+          team1: item.teams?.home || 'Team A',
+          team2: item.teams?.away || 'Team B',
+          score: item.scores ? `${item.scores.home || 0}-${item.scores.away || 0}` : '',
+          status: 'finished',
+          date: item.date || new Date().toISOString(),
+          time: item.time,
+          isLive: false,
+          eventId: item.id
+        }));
+        allMatches = [...allMatches, ...resultMatches];
+      }
+
+      if (allMatches.length > 0) {
+        success = true;
+        console.log(`Successfully fetched ${allMatches.length} matches from sports-proxy API`);
+      }
+    } catch (err: any) {
+      console.error('Error fetching from sports-proxy:', err);
+      lastError = err;
+    }
+
+    // Strategy 2: Fallback to Diamond API (sports-diamond-proxy) if sports-proxy fails
+    if (!success && targetSport.sid) {
       try {
-        // Try primary API first
+        console.log(`Trying Diamond API (sports-diamond-proxy) for ${targetSport.sport_type} with SID ${targetSport.sid}...`);
+        
+        // Call sports-diamond-proxy with action=esid and sid parameter
         const { data: response, error: fnError } = await supabase.functions.invoke('sports-diamond-proxy', {
           body: {
-            path: 'sports/esid',
+            action: 'esid',
             sid: targetSport.sid
           }
         });
 
         if (!fnError && response?.success && response?.data) {
-          // Parse the response - Diamond API has nested structure
+          console.log('Diamond API response:', response);
+          
           let rawMatches = [];
           
-          // Handle Diamond API's nested response structure: data.data.t1
+          // Handle Diamond API's nested response structure
+          // Response structure: { success: true, data: { data: { t1: [...] } } }
           if (response.data?.data?.t1 && Array.isArray(response.data.data.t1)) {
-            console.log('Diamond API response structure detected: data.data.t1');
             rawMatches = response.data.data.t1;
+            console.log('Found matches in response.data.data.t1:', rawMatches.length);
           } else if (response.data?.t1 && Array.isArray(response.data.t1)) {
-            console.log('Diamond API response structure detected: data.t1');
             rawMatches = response.data.t1;
+            console.log('Found matches in response.data.t1:', rawMatches.length);
           } else if (Array.isArray(response.data)) {
-            console.log('Direct array structure detected');
             rawMatches = response.data;
+            console.log('Found matches in response.data (array):', rawMatches.length);
+          } else {
+            console.warn('Unexpected response structure:', response.data);
           }
           
-          console.log(`Processing ${rawMatches.length} matches from Diamond API`);
-          
           const parsedMatches: SportMatch[] = rawMatches.map((match: any) => {
-            // Extract teams from section array (Diamond API structure)
             let team1 = 'Team A';
             let team2 = 'Team B';
             
+            // Extract teams from section array (Diamond API structure)
             if (match.section && Array.isArray(match.section)) {
-              // Diamond API structure: Teams are in section array
-              // Look for objects with 'nat' property for team names
               const teams = match.section.filter((item: any) => item?.nat);
               if (teams.length >= 2) {
                 team1 = teams[0].nat || team1;
                 team2 = teams[1].nat || team2;
               } else if (teams.length === 1) {
                 team1 = teams[0].nat || team1;
-                // Try to find second team in other positions
                 team2 = match.section[2]?.nat || match.section[1]?.nat || team2;
               }
             } 
             
-            // Also check ename field which often contains "Team1 vs Team2" format
+            // Check ename field which often contains "Team1 vs Team2" format
             if (match.ename && match.ename.includes(' vs ')) {
               const [t1, t2] = match.ename.split(' vs ').map((t: string) => t.trim());
               if (t1) team1 = t1;
@@ -189,83 +268,115 @@ export function useSimpleSportsData() {
             team1 = team1 === 'Team A' ? (match.team1 || match.home || team1) : team1;
             team2 = team2 === 'Team B' ? (match.team2 || match.away || team2) : team2;
             
+            // Determine if match is live
+            const isLiveMatch = match.iplay === true || match.iplay === 1 || match.status === 'live' || match.status === 'Live';
+            
             return {
               id: match.gmid || match.eventId || match.id || Math.random().toString(),
               name: match.ename || match.name || `${team1} vs ${team2}`,
               team1,
               team2,
-              score: match.score || match.result || '',
-              status: match.iplay ? 'live' : (match.status || 'upcoming'),
+              score: match.score || match.result || (match.section?.find((s: any) => s.score)?.score) || '',
+              status: isLiveMatch ? 'live' : (match.status || 'upcoming'),
               date: match.stime || match.date || match.eventDate || new Date().toISOString(),
               time: match.time || match.eventTime,
-              isLive: match.iplay === true || match.status === 'live',
+              isLive: isLiveMatch,
               eventId: match.gmid || match.eventId || match.id
             };
           });
 
-          setMatches(parsedMatches);
-          setCachedMatches(targetSport.id, parsedMatches);
-          
-          if (parsedMatches.length === 0) {
-            toast.info(`No matches found for ${targetSport.label}`);
-          }
-          
-          setError(null);
-          break; // Success, exit loop
-        }
-
-        // If rate limited or error, try fallback
-        if (response?.error?.includes('429') || response?.error || fnError) {
-          lastError = response?.error || fnError;
-          
-          if (attempts === 1) {
-            console.log('Primary API failed, trying fallback...');
-            
-            // Don't use fallback mock data, just show error
-            setMatches([]);
-            setError('Sports data service is temporarily unavailable. Please try again later.');
-            toast.warning('API rate limit reached. Please wait a moment and try again.', {
-              duration: 5000
-            });
-            break;
-          }
+          allMatches = parsedMatches;
+          success = true;
+          console.log(`Successfully fetched ${parsedMatches.length} matches from Diamond API (sports-diamond-proxy)`);
+        } else {
+          console.error('Diamond API error:', fnError || response?.error);
+          lastError = fnError || response?.error;
         }
       } catch (err: any) {
-        console.error(`Attempt ${attempts} failed:`, err);
+        console.error('Error fetching from Diamond API (sports-diamond-proxy):', err);
         lastError = err;
       }
     }
 
-    // If all attempts failed and no cached data
-    if (attempts >= maxAttempts && (!cachedData || cachedData.length === 0)) {
+    // Strategy 3: Try server-side API as last resort (if available)
+    if (!success) {
+      try {
+        console.log(`Trying server API for ${targetSport.sport_type}...`);
+        const { apiFetch } = await import('@/lib/api');
+        
+        // Map sport types to server API supported sports
+        const serverSportMap: Record<string, string> = {
+          'cricket': 'cricket',
+          'football': 'football',
+          'hockey': 'hockey'
+        };
+        
+        const serverSport = serverSportMap[targetSport.sport_type];
+        if (serverSport) {
+          const [liveRes, upcomingRes] = await Promise.allSettled([
+            apiFetch(`/api/${serverSport}/live`),
+            apiFetch(`/api/${serverSport}/upcoming`)
+          ]);
+
+          if (liveRes.status === 'fulfilled' && liveRes.value.ok) {
+            const liveData = await liveRes.value.json();
+            const liveMatches = (liveData.items || []).map((item: any) => ({
+              id: item.id || `server_live_${Math.random().toString(36).substr(2, 9)}`,
+              name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
+              team1: item.teams?.home || 'Team A',
+              team2: item.teams?.away || 'Team B',
+              score: item.scores ? `${item.scores.home || 0}-${item.scores.away || 0}` : '',
+              status: 'live',
+              date: item.date || new Date().toISOString(),
+              isLive: true,
+              eventId: item.id
+            }));
+            allMatches = [...allMatches, ...liveMatches];
+          }
+
+          if (upcomingRes.status === 'fulfilled' && upcomingRes.value.ok) {
+            const upcomingData = await upcomingRes.value.json();
+            const upcomingMatches = (upcomingData.items || []).map((item: any) => ({
+              id: item.id || `server_upcoming_${Math.random().toString(36).substr(2, 9)}`,
+              name: `${item.teams?.home || 'Team A'} vs ${item.teams?.away || 'Team B'}`,
+              team1: item.teams?.home || 'Team A',
+              team2: item.teams?.away || 'Team B',
+              score: '',
+              status: 'upcoming',
+              date: item.date || new Date().toISOString(),
+              isLive: false,
+              eventId: item.id
+            }));
+            allMatches = [...allMatches, ...upcomingMatches];
+          }
+
+          if (allMatches.length > 0) {
+            success = true;
+            console.log(`Successfully fetched ${allMatches.length} matches from server API`);
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching from server API:', err);
+        lastError = err;
+      }
+    }
+
+    // Update state based on results
+    if (success && allMatches.length > 0) {
+      setMatches(allMatches);
+      setCachedMatches(targetSport.id, allMatches);
+      setError(null);
+      toast.success(`Loaded ${allMatches.length} matches for ${targetSport.label}`);
+    } else if (cachedData && cachedData.length > 0) {
+      // Use cached data if API fails
+      setMatches(cachedData);
+      toast.warning('Using cached data - API temporarily unavailable');
+      setError('API temporarily unavailable. Showing cached data.');
+    } else {
+      // No data available
+      setMatches([]);
       setError('Unable to load matches. Please try again later.');
       toast.error('Failed to load matches. API services are temporarily unavailable.');
-      
-      // Use fallback mock data as last resort
-      const fallbackMatches: SportMatch[] = [
-        {
-          id: 'fallback1',
-          name: 'Sample Match 1',
-          team1: 'Team A',
-          team2: 'Team B',
-          score: '',
-          status: 'upcoming',
-          date: new Date().toISOString(),
-          time: '15:00',
-          isLive: false,
-        },
-        {
-          id: 'fallback2',
-          name: 'Sample Match 2',
-          team1: 'Team C',
-          team2: 'Team D',
-          score: '1-0',
-          status: 'live',
-          date: new Date().toISOString(),
-          isLive: true,
-        }
-      ];
-      setMatches(fallbackMatches);
     }
 
     setLoading(false);
