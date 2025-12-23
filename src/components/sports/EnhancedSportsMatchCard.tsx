@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthModal } from '@/components/auth/AuthModal';
 import { 
   Trophy, 
   MapPin, 
@@ -31,12 +34,28 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
   variant = 'default' 
 }) => {
   const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const ensureAuthenticated = (onSuccess: () => void) => {
+    if (!user) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to view match details and odds.',
+      });
+      setAuthModalOpen(true);
+      return;
+    }
+    onSuccess();
+  };
 
   const handleClick = () => {
     const matchId = match.eventId || match.id;
-    navigate(`/sports/bet/${sport}/${matchId}`, {
-      state: { match, sport }
+    ensureAuthenticated(() => {
+      navigate(`/sports/bet/${sport}/${matchId}`, {
+        state: { match, sport }
+      });
     });
   };
 
@@ -58,49 +77,43 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
 
   const odds = getRandomOdds();
 
-  if (variant === 'compact') {
-    return (
-      <Card 
-        onClick={handleClick}
-        className={cn(
-          "overflow-hidden cursor-pointer transition-all duration-300 active:scale-95",
-          "hover:shadow-xl hover:scale-[1.02] hover:border-primary/50",
-          "bg-gradient-to-br from-card via-card to-card/95",
-          isLive && "border-destructive/50 animate-pulse-slow"
-        )}
-      >
-        <div className="p-3 sm:p-4">
-          <div className="flex items-center justify-between mb-2">
-            {isLive && (
-              <Badge variant="destructive" className="animate-pulse text-[10px] sm:text-xs px-1.5 sm:px-2">
-                <span className="mr-1">●</span> LIVE
-              </Badge>
-            )}
-            <span className="text-[10px] sm:text-xs text-muted-foreground truncate ml-2">
-            {match.cname || match.league || sport.toUpperCase()}
-            </span>
-          </div>
-          
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="flex justify-between items-center gap-2">
-              <span className="font-medium text-sm sm:text-base truncate max-w-[140px] sm:max-w-none">{match.team1}</span>
-              {scores && <span className="font-bold text-primary text-lg sm:text-xl shrink-0">{scores.home}</span>}
-            </div>
-            <div className="flex justify-between items-center gap-2">
-              <span className="font-medium text-sm sm:text-base truncate max-w-[140px] sm:max-w-none">{match.team2}</span>
-              {scores && <span className="font-bold text-primary text-lg sm:text-xl shrink-0">{scores.away}</span>}
-            </div>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
+  const cardContent = variant === 'compact' ? (
     <Card 
       onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        "overflow-hidden cursor-pointer transition-all duration-300 active:scale-95",
+        "hover:shadow-xl hover:scale-[1.02] hover:border-primary/50",
+        "bg-gradient-to-br from-card via-card to-card/95",
+        isLive && "border-destructive/50 animate-pulse-slow"
+      )}
+    >
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-2">
+          {isLive && (
+            <Badge variant="destructive" className="animate-pulse text-[10px] sm:text-xs px-1.5 sm:px-2">
+              <span className="mr-1">●</span> LIVE
+            </Badge>
+          )}
+          <span className="text-[10px] sm:text-xs text-muted-foreground truncate ml-2">
+          {match.cname || match.league || sport.toUpperCase()}
+          </span>
+        </div>
+        
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="flex justify-between items-center gap-2">
+            <span className="font-medium text-sm sm:text-base truncate max-w-[140px] sm:max-w-none">{match.team1}</span>
+            {scores && <span className="font-bold text-primary text-lg sm:text-xl shrink-0">{scores.home}</span>}
+          </div>
+          <div className="flex justify-between items-center gap-2">
+            <span className="font-medium text-sm sm:text-base truncate max-w-[140px] sm:max-w-none">{match.team2}</span>
+            {scores && <span className="font-bold text-primary text-lg sm:text-xl shrink-0">{scores.away}</span>}
+          </div>
+        </div>
+      </div>
+    </Card>
+  ) : (
+    <Card 
+      onClick={handleClick}
       className={cn(
         "overflow-hidden cursor-pointer transition-all duration-500 group",
         "hover:shadow-2xl hover:scale-[1.02] hover:border-primary/30",
@@ -267,6 +280,13 @@ export const EnhancedSportsMatchCard: React.FC<EnhancedSportsMatchCardProps> = (
         )} />
       </CardContent>
     </Card>
+  );
+
+  return (
+    <>
+      {cardContent}
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
+    </>
   );
 };
 
