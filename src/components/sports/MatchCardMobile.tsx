@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, TrendingUp, Eye, Trophy, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 interface MatchCardMobileProps {
   match: any;
@@ -21,6 +24,21 @@ export const MatchCardMobile: React.FC<MatchCardMobileProps> = ({
   isCompleted = false 
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const ensureAuthenticated = (onSuccess: () => void) => {
+    if (!user) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to view match details and odds.',
+      });
+      setAuthModalOpen(true);
+      return;
+    }
+    onSuccess();
+  };
 
   const getStatusColor = () => {
     if (isLive) return 'destructive';
@@ -143,7 +161,7 @@ export const MatchCardMobile: React.FC<MatchCardMobileProps> = ({
               <Button
                 size="sm"
                 variant={isLive ? "default" : "outline"}
-                onClick={() => navigate(`/sports/bet/${sport}/${match.id}`)}
+                onClick={() => ensureAuthenticated(() => navigate(`/sports/bet/${sport}/${match.id}`))}
                 className={cn(
                   "w-full",
                   isLive && "bg-gradient-to-r from-primary to-primary/80"
@@ -156,7 +174,7 @@ export const MatchCardMobile: React.FC<MatchCardMobileProps> = ({
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => navigate(`/match-details/${sport}/${match.id}`)}
+              onClick={() => ensureAuthenticated(() => navigate(`/match-details/${sport}/${match.id}`))}
               className={cn(
                 "w-full",
                 isCompleted && "col-span-2"
@@ -168,6 +186,7 @@ export const MatchCardMobile: React.FC<MatchCardMobileProps> = ({
           </div>
         </CardContent>
       </Card>
+      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
     </motion.div>
   );
 };
