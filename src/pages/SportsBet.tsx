@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,6 +69,9 @@ const SportsBet: React.FC = () => {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingMatch, setIsLoadingMatch] = useState(false);
   const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const [myBets, setMyBets] = useState<any[]>([]);
+  const [isLoadingMyBets, setIsLoadingMyBets] = useState(false);
+  const [myBetsError, setMyBetsError] = useState<string | null>(null);
   
   useEffect(() => {
     if (!user) {
@@ -529,14 +532,6 @@ const SportsBet: React.FC = () => {
   // Keep a numeric version handy for calculations
   const numericAmount = Number.isFinite(parseFloat(betAmount)) ? parseFloat(betAmount) : 0;
 
-  // Auto-focus bet amount when slip opens
-  useEffect(() => {
-    if ((isBetSlipOpen || isBetSlipDialogOpen) && selectedBet) {
-      const id = requestAnimationFrame(() => amountInputRef.current?.focus());
-      return () => cancelAnimationFrame(id);
-    }
-  }, [isBetSlipOpen, isBetSlipDialogOpen, selectedBet]);
-
   const calculatePotentialWin = () => {
     if (!betAmount || !selectedBet || !numericAmount) return 0;
     return selectedBet.type === 'back'
@@ -550,6 +545,39 @@ const SportsBet: React.FC = () => {
       ? numericAmount * Math.max(selectedBet.rate - 1, 0)
       : numericAmount;
   };
+
+  const fetchMyBets = useCallback(async () => {
+    if (!user || !matchId) return;
+    setIsLoadingMyBets(true);
+    setMyBetsError(null);
+    try {
+      const { data, error } = await (supabase as any)
+        .from('sports_bets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('event_id', matchId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setMyBets(data || []);
+    } catch (err: any) {
+      setMyBetsError(err.message || 'Unable to load your bets');
+    } finally {
+      setIsLoadingMyBets(false);
+    }
+  }, [user, matchId]);
+
+  // Auto-focus bet amount when slip opens
+  useEffect(() => {
+    if ((isBetSlipOpen || isBetSlipDialogOpen) && selectedBet) {
+      const id = requestAnimationFrame(() => amountInputRef.current?.focus());
+      return () => cancelAnimationFrame(id);
+    }
+  }, [isBetSlipOpen, isBetSlipDialogOpen, selectedBet]);
+
+  useEffect(() => {
+    fetchMyBets();
+  }, [fetchMyBets]);
 
   if (!match) {
     return (
@@ -680,6 +708,50 @@ const SportsBet: React.FC = () => {
         </div>
       </div>
     </>
+  );
+
+  const MyBetsCard = () => (
+    <Card className="bg-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Receipt className="h-4 w-4" />
+          My Bets
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {isLoadingMyBets && (
+          <div className="text-sm text-muted-foreground">Loading your bets...</div>
+        )}
+        {myBetsError && (
+          <div className="text-sm text-destructive">{myBetsError}</div>
+        )}
+        {!isLoadingMyBets && !myBetsError && myBets.length === 0 && (
+          <div className="text-sm text-muted-foreground">No bets for this match yet.</div>
+        )}
+        {myBets.map((bet) => (
+          <div key={bet.id} className="p-3 border rounded-md space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="font-semibold capitalize">{bet.bet_type}</span>
+              <span className="text-muted-foreground">{new Date(bet.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>{bet.selection}</span>
+              <span className="font-medium text-primary">{bet.odds} @ ₹{bet.stake}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Status: {bet.status || 'placed'}</span>
+              <span>Potential: ₹{bet.potential_win}</span>
+            </div>
+          </div>
+        ))}
+        <div className="flex justify-end">
+          <Button size="sm" variant="outline" onClick={fetchMyBets}>
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 
   if (!user) {
@@ -824,15 +896,10 @@ const SportsBet: React.FC = () => {
         </div>
 
         <Tabs defaultValue="odds" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto">
+          <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto">
             <TabsTrigger value="odds" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
               <TrendingUp className="h-5 w-5 sm:h-4 sm:w-4" />
               <span className="text-xs sm:text-sm">ODDS</span>
-            </TabsTrigger>
-            <TabsTrigger value="matchbet" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
-              <Target className="h-5 w-5 sm:h-4 sm:w-4" />
-              <span className="text-xs sm:text-sm hidden sm:inline">Match Bet</span>
-              <span className="text-xs sm:text-sm sm:hidden">Bet</span>
             </TabsTrigger>
             <TabsTrigger value="livetv" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
               <Tv className="h-5 w-5 sm:h-4 sm:w-4" />
@@ -1272,6 +1339,11 @@ const SportsBet: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* My Bets */}
+        <div className="mt-6">
+          <MyBetsCard />
+        </div>
 
         {/* Mobile Floating Bet Slip Drawer */}
         {isMobile && (
