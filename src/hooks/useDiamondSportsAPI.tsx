@@ -30,7 +30,54 @@ export function useDiamondSportsAPI() {
     setLoading(true);
     setError(null);
 
+    // Map existing path strings to the edge function's expected "action" values
+    const pathToAction: Record<string, string> = {
+      'sports/esid': 'esid',
+      'sports/getDetailsData': 'details',
+      'sports/getPriveteData': 'private',
+      'sports/betfairscorecardandtv': 'score-tv',
+      'sports/virtual/tvurl': 'virtual-tv',
+      'sports/welcomebanner': 'banner',
+      'sports/topevents': 'top-events',
+      'sports/posted-market-result': 'market-result'
+    };
+
     try {
+      const action = pathToAction[path];
+
+      // Build request body expected by the Supabase edge function
+      if (action) {
+        const body: Record<string, any> = { action };
+
+        // Populate common identifiers
+        const sid = options.sid 
+          || options.params?.sid 
+          || options.params?.diamondsportsid;
+        const gmid = options.gmid 
+          || options.params?.gmid 
+          || options.params?.eventId 
+          || options.params?.matchId
+          || options.params?.diamondeventid;
+        const eventid = options.params?.eventid || options.params?.eventId;
+
+        if (action === 'esid' && sid) body.sid = sid;
+        if (['details', 'private', 'score-tv', 'virtual-tv'].includes(action)) {
+          if (sid) body.sid = sid;
+          if (gmid) body.gmid = gmid;
+        }
+        if (action === 'market-result' && eventid) body.eventid = eventid;
+
+        const { data, error: fnError } = await supabase.functions.invoke('sports-diamond-proxy', { body });
+
+        if (fnError) throw new Error(fnError.message);
+        if (!data?.success) {
+          throw new Error(data?.error || 'API call failed');
+        }
+
+        return data as DiamondAPIResponse<T>;
+      }
+
+      // Fallback: keep previous behavior for any unsupported paths
       const { data, error: fnError } = await supabase.functions.invoke('sports-diamond-proxy', {
         body: {
           path,
