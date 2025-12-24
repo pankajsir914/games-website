@@ -7,8 +7,6 @@ interface DiamondTable {
   id: string;
   name: string;
   status: string;
-  players: number;
-  data: any;
   imageUrl?: string;
 } 
 
@@ -24,11 +22,7 @@ interface DiamondBet {
   created_at: string;
 }
 
-// Cache for image map to avoid refetching on every load
-let cachedImageMap: Map<string, string> | null = null;
-let cachedImageList: string[] = [];
-let imageCacheTimestamp: number = 0;
-const IMAGE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// All data comes from diamond_casino_tables table - no caching needed
 
 export const useDiamondCasino = () => {
   const [liveTables, setLiveTables] = useState<DiamondTable[]>([]);
@@ -77,280 +71,66 @@ export const useDiamondCasino = () => {
     return null;
   };
 
-  // ----------------- Helper: Fetch images from Supabase storage -----------------
-  const fetchSupabaseImages = async (): Promise<{ imageMap: Map<string, string>, imageList: string[] }> => {
-    const imageMap = new Map<string, string>();
-    const imageList: string[] = [];
-    
-    try {
-      // First, check if there are image URLs stored in diamond_casino_tables table
-      const { data: cachedTables, error: dbError } = await supabase
-        .from("diamond_casino_tables")
-        .select("table_id, table_name, table_data")
-        .eq("status", "active");
-      
-      if (dbError) {
-        console.warn('⚠️ Error fetching cached tables:', dbError);
-      }
-      
-      if (!dbError && cachedTables) {
-        console.log(`📊 Found ${cachedTables.length} cached tables in database`);
-        for (const table of cachedTables) {
-          const tableData = table.table_data as any;
-          if (tableData?.imageUrl && typeof tableData.imageUrl === 'string') {
-            // Check if it's a Supabase storage URL
-            if (tableData.imageUrl.includes('supabase') || tableData.imageUrl.includes('storage')) {
-              const tableId = table.table_id?.toLowerCase();
-              const tableName = table.table_name?.toLowerCase();
-              
-              if (tableId) {
-                imageMap.set(tableId, tableData.imageUrl);
-                imageMap.set(tableId.replace(/[^a-z0-9]/g, ''), tableData.imageUrl);
-                console.log(`✅ Added image from database for table ID: ${tableId}`);
-              }
-              if (tableName) {
-                imageMap.set(tableName, tableData.imageUrl);
-                imageMap.set(tableName.replace(/[^a-z0-9]/g, ''), tableData.imageUrl);
-                imageMap.set(tableName.replace(/\s+/g, '-'), tableData.imageUrl);
-                console.log(`✅ Added image from database for table name: ${tableName}`);
-              }
-            }
-          }
-        }
-      } else {
-        console.log('⚠️ No cached tables found in database');
-      }
-      
-      // Also check game_assets table for live-casino images
-      const { data: gameAssets, error: assetsError } = await supabase
-        .from('game_assets')
-        .select('*')
-        .eq('game_type', 'live-casino')
-        .eq('asset_type', 'cover_image')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-      
-      if (assetsError) {
-        console.warn('⚠️ Error fetching game_assets:', assetsError);
-      }
-      
-      if (!assetsError && gameAssets && gameAssets.length > 0) {
-        console.log(`📦 Found ${gameAssets.length} images in game_assets table`);
-        for (const asset of gameAssets) {
-          imageList.push(asset.asset_url);
-        }
-      } else {
-        console.log('⚠️ No images found in game_assets table');
-      }
-      
-      // List all files in the casino-tables folder
-      const { data: files, error } = await supabase.storage
-        .from('game-assets')
-        .list('casino-tables', {
-          limit: 1000,
-          sortBy: { column: 'name', order: 'asc' }
-        });
-
-      if (!error && files && files.length > 0) {
-        // Create a map of table ID/name to image URL AND a list for sequential assignment
-        for (const file of files) {
-          if (file.name && (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') || file.name.endsWith('.png') || file.name.endsWith('.webp'))) {
-            // Get public URL for the image
-            const { data: { publicUrl } } = supabase.storage
-              .from('game-assets')
-              .getPublicUrl(`casino-tables/${file.name}`);
-
-            // Add to list for sequential assignment
-            imageList.push(publicUrl);
-
-            // Extract potential table identifier from filename
-            // Remove extension and use as key
-            const key = file.name.replace(/\.(jpg|jpeg|png|webp)$/i, '').toLowerCase();
-            
-            // Only add if not already in map (database URLs take priority)
-            if (!imageMap.has(key)) {
-              imageMap.set(key, publicUrl);
-            }
-
-            // Also try matching with common variations
-            const variations = [
-              key.replace(/[_-]/g, ''),
-              key.replace(/[_-]/g, '-'),
-              key.replace(/[_-]/g, '_'),
-            ];
-            variations.forEach(variation => {
-              if (variation !== key && !imageMap.has(variation)) {
-                imageMap.set(variation, publicUrl);
-              }
-            });
-          }
-        }
-      }
-    } catch (error) {
-      // Silent error handling
-    }
-
-    return { imageMap, imageList };
-  };
-
-  // ----------------- Helper: Update tables with images -----------------
-  const updateTablesWithImages = (tables: any[], imageMap: Map<string, string>, imageList: string[]): DiamondTable[] => {
-    return tables.map((table: any, index: number) => {
-      // First try to get image from Supabase storage (exact match)
-      let supabaseImageUrl = getSupabaseImageUrl(table, imageMap);
-      
-      // If no exact match found, use sequential assignment from imageList
-      if (!supabaseImageUrl && imageList.length > 0) {
-        // Use modulo to cycle through images if there are fewer images than tables
-        const imageIndex = index % imageList.length;
-        supabaseImageUrl = imageList[imageIndex];
-      }
-      
-      // If Supabase image found, use it; otherwise fall back to proxied image
-      let imageUrl = supabaseImageUrl;
-      
-      if (!imageUrl) {
-        // Fallback to proxied image
-        let imgPath = "";
-        if (table.imageUrl && typeof table.imageUrl === "string") {
-          const parts = table.imageUrl.split("/");
-          imgPath = parts[parts.length - 1];
-        }
-        imageUrl = imgPath
-          ? `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, "")}/functions/v1/diamond-casino-proxy?image=${encodeURIComponent(imgPath)}`
-          : undefined;
-      }
-
-      return {
-        ...table,
-        imageUrl,
-      };
-    });
-  };
-
-  // ----------------- Helper: Match table to Supabase image -----------------
-  const getSupabaseImageUrl = (table: any, imageMap: Map<string, string>): string | undefined => {
-    if (!imageMap || imageMap.size === 0) {
-      return undefined;
-    }
-
-    // Try matching by table ID (multiple variations)
-    if (table.id) {
-      const variations = [
-        table.id.toLowerCase().replace(/[^a-z0-9]/g, ''), // alphanumeric only
-        table.id.toLowerCase(), // original lowercase
-        table.id.toLowerCase().replace(/[_-]/g, ''), // no dashes/underscores
-        table.id.toLowerCase().replace(/[_-]/g, '-'), // dashes
-        table.id.toLowerCase().replace(/[_-]/g, '_'), // underscores
-      ];
-      
-      for (const key of variations) {
-        if (imageMap.has(key)) {
-          console.log(`✅ Matched image for table ${table.id} using key: ${key}`);
-          return imageMap.get(key);
-        }
-      }
-    }
-
-    // Try matching by table name (multiple variations)
-    if (table.name) {
-      const variations = [
-        table.name.toLowerCase().replace(/[^a-z0-9]/g, ''), // alphanumeric only
-        table.name.toLowerCase(), // original lowercase
-        table.name.toLowerCase().replace(/\s+/g, '-'), // spaces to dashes
-        table.name.toLowerCase().replace(/\s+/g, '_'), // spaces to underscores
-        table.name.toLowerCase().replace(/[_-]/g, ''), // no dashes/underscores
-      ];
-      
-      for (const key of variations) {
-        if (imageMap.has(key)) {
-          console.log(`✅ Matched image for table ${table.name} using key: ${key}`);
-          return imageMap.get(key);
-        }
-      }
-    }
-
-    // Try matching by type if available
-    if (table.type) {
-      const typeKey = table.type.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (imageMap.has(typeKey)) {
-        console.log(`✅ Matched image for table type ${table.type} using key: ${typeKey}`);
-        return imageMap.get(typeKey);
-      }
-    }
-    
-    return undefined;
-  };
-
-  // ----------------- Fetch live tables -----------------
+  // ----------------- Fetch live tables directly from diamond_casino_tables -----------------
   const fetchLiveTables = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Check if we have cached images (within cache duration)
-      const now = Date.now();
-      let imageMap: Map<string, string>;
-      let imageList: string[];
-      
-      if (cachedImageMap && (now - imageCacheTimestamp) < IMAGE_CACHE_DURATION) {
-        // Use cached images
-        imageMap = cachedImageMap;
-        imageList = cachedImageList;
-        console.log('✅ Using cached image map', { size: imageMap.size, listLength: imageList.length });
-      } else {
-        // Fetch images FIRST (blocking) to ensure images are available when tables load
-        console.log('📸 Fetching images from database and storage...');
-        try {
-          const { imageMap: newImageMap, imageList: newImageList } = await fetchSupabaseImages();
-          cachedImageMap = newImageMap;
-          cachedImageList = newImageList;
-          imageCacheTimestamp = now;
-          imageMap = newImageMap;
-          imageList = newImageList;
-          console.log('✅ Images fetched successfully', { 
-            mapSize: imageMap.size, 
-            listLength: imageList.length,
-            sampleKeys: Array.from(imageMap.keys()).slice(0, 5)
-          });
-        } catch (err) {
-          console.warn('⚠️ Error fetching images:', err);
-          // Use empty map if fetch fails
-          imageMap = cachedImageMap || new Map();
-          imageList = cachedImageList || [];
-        }
-      }
-      
-      // Fetch tables from API (don't wait for images)
-      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-tables" } });
+      // Fetch only required fields: table_id, table_name, status, image_url column, and image URL from table_data
+      const { data: tablesData, error } = await supabase
+        .from("diamond_casino_tables")
+        .select("table_id, table_name, status, image_url, table_data")
+        .eq("status", "active")
+        .order("last_updated", { ascending: false });
 
       if (error) throw error;
-      if (!data) throw new Error("No data received from casino API");
-      if (!data.success) throw new Error(data.error || "Casino API request failed");
 
-      if (data?.data?.tables && Array.isArray(data.data.tables) && data.data.tables.length > 0) {
-        // Show tables immediately with available images (don't wait for full image load)
-        const tablesWithImages = updateTablesWithImages(data.data.tables, imageMap, imageList);
-        
-        setLiveTables(tablesWithImages);
-      } else {
-        // fallback to cached tables in supabase
-        const { data: cachedTables } = await supabase.from("diamond_casino_tables").select("*").eq("status", "active").order("last_updated", { ascending: false });
-        if (cachedTables && cachedTables.length > 0) {
-          const tables = cachedTables.map((ct: any) => ({
-            id: ct.table_id,
-            name: ct.table_name,
-            status: ct.status,
-            players: ct.player_count,
-            data: ct.table_data,
-            imageUrl: (ct.table_data as any)?.imageUrl,
-          }));
+      if (tablesData && tablesData.length > 0) {
+        // Format tables - only fetch table_id, table_name, status, and imageUrl
+        const tables = tablesData.map((ct: any) => {
+          const tableData = ct.table_data || {};
           
-          // Update with images if available
-          const tablesWithImages = updateTablesWithImages(tables, imageMap, imageList);
-          setLiveTables(tablesWithImages);
-        } else {
-          setLiveTables([]);
-        }
+          // Extract image URL with priority:
+          // 1. image_url column (direct column)
+          // 2. table_data.imageUrl
+          // 3. table_data.imgpath
+          // 4. table_data.img
+          let imageUrl = '';
+          
+          if (ct.image_url && typeof ct.image_url === 'string' && ct.image_url.trim()) {
+            imageUrl = ct.image_url.trim();
+          } else if (tableData?.imageUrl && typeof tableData.imageUrl === 'string' && tableData.imageUrl.trim()) {
+            imageUrl = tableData.imageUrl.trim();
+          } else if (tableData?.imgpath && typeof tableData.imgpath === 'string' && tableData.imgpath.trim()) {
+            imageUrl = `https://sitethemedata.com/casino-games/${tableData.imgpath.trim()}`;
+          } else if (tableData?.img && typeof tableData.img === 'string' && tableData.img.trim()) {
+            const imgValue = tableData.img.trim();
+            imageUrl = imgValue.startsWith('http') 
+              ? imgValue 
+              : `https://sitethemedata.com/casino-games/${imgValue}`;
+          }
+
+          return {
+            id: ct.table_id,
+            name: ct.table_name || ct.table_id,
+            status: ct.status || 'active',
+            imageUrl: imageUrl || undefined
+          };
+        });
+        
+        // Debug: Log image URLs for troubleshooting
+        console.log('📊 Fetched tables:', tables.length);
+        tables.forEach(t => {
+          if (t.imageUrl) {
+            console.log(`✅ Table ${t.id} (${t.name}): ${t.imageUrl}`);
+          } else {
+            console.log(`⚠️ Table ${t.id} (${t.name}): No image URL found`);
+          }
+        });
+        
+        setLiveTables(tables);
+      } else {
+        setLiveTables([]);
       }
     } catch (error: any) {
       console.error("❌ Error fetching live tables:", error);
@@ -367,7 +147,11 @@ export const useDiamondCasino = () => {
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-table", tableId } });
       if (error) throw error;
       if (data?.success && data?.data?.data) {
-        setSelectedTable((prev) => (prev ? { ...prev, data: { ...prev.data, ...data.data.data } } : prev));
+        // Update selected table without data property
+        setSelectedTable((prev) => prev ? {
+          ...prev,
+          // Keep existing properties, don't add data
+        } : null);
       }
     } catch (error) {
       console.error("Error fetching table details:", error);
