@@ -37,6 +37,13 @@ import {
   isTeen3Table,
   type Teen3Result
 } from './teen3Settlement.ts';
+import {
+  parseAAA2Result,
+  isAAA2WinningBet,
+  settleAAA2Bets,
+  isAAA2Table,
+  type AAA2Result
+} from './aaa2Settlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -923,7 +930,15 @@ serve(async (req) => {
               isTeen3 = false;
             }
             
-            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : 'Generic'}`);
+            // Check if this is an AAA2 table
+            let isAAA2 = false;
+            try {
+              isAAA2 = isAAA2Table(tableId);
+            } catch (error) {
+              isAAA2 = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
@@ -1082,6 +1097,31 @@ serve(async (req) => {
                 } catch (error) {
                   teen3ParseError = error instanceof Error ? error.message : String(error);
                   console.error(`❌ [Teen3] Parse error:`, teen3ParseError);
+                }
+              }
+            }
+            
+            // For AAA2: Parse result from detail result data
+            let aaa2Result: AAA2Result | null = null;
+            let aaa2ParseError: string | null = null;
+            
+            if (isAAA2) {
+              if (!resultData) {
+                aaa2ParseError = 'No result data available for AAA2 table';
+                console.warn(`⚠️ [AAA2] No result data found for table ${tableId}`);
+              } else {
+                try {
+                  // AAA2 uses detail result structure directly (not rdesc)
+                  aaa2Result = parseAAA2Result(resultData);
+                  if (aaa2Result) {
+                    console.log(`✅ [AAA2] Parsed: winner=${aaa2Result.winnerName} (${aaa2Result.winnerId}), card=${aaa2Result.cardValue}`);
+                  } else {
+                    aaa2ParseError = 'Could not parse AAA2 result from result data';
+                    console.warn(`⚠️ [AAA2] Parsing failed`);
+                  }
+                } catch (error) {
+                  aaa2ParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ [AAA2] Parse error:`, aaa2ParseError);
                 }
               }
             }
@@ -1244,7 +1284,7 @@ serve(async (req) => {
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
