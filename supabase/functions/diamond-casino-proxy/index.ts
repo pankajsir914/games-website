@@ -30,6 +30,13 @@ import {
   isDT6Table,
   type DT6Result
 } from './dt6Sattlement.ts';
+import {
+  parseTeen3Result,
+  isTeen3WinningBet,
+  settleTeen3Bets,
+  isTeen3Table,
+  type Teen3Result
+} from './teen3Settlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -115,7 +122,7 @@ serve(async (req) => {
               });
             }
           } catch (error) {
-            console.error(`Fetch error for ${imageUrl}:`, error);
+           // console.error(`Fetch error for ${imageUrl}:`, error);
           }
         }
 
@@ -156,7 +163,7 @@ serve(async (req) => {
     // Get live tables from Hostinger VPS proxy
     if (action === 'get-tables') {
       const HOSTINGER_PROXY_URL = `${HOSTINGER_PROXY_BASE}/tableid`;
-      console.log(`📡 Fetching tables from: ${HOSTINGER_PROXY_URL}`);
+      //console.log(`📡 Fetching tables from: ${HOSTINGER_PROXY_URL}`);
       
       let tables: any[] = [];
       let fromCache = false;
@@ -218,7 +225,7 @@ serve(async (req) => {
         }
       } catch (fetchError) {
         const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-        console.log(`⚠️ VPS unreachable, falling back to cached tables:`, errorMessage);
+        //console.log(`⚠️ VPS unreachable, falling back to cached tables:`, errorMessage);
         fromCache = true;
         
         // Fallback to cached data from database
@@ -271,13 +278,13 @@ serve(async (req) => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`📺 Stream URL response from Hostinger:`, JSON.stringify(data, null, 2));
+          //console.log(`📺 Stream URL response from Hostinger:`, JSON.stringify(data, null, 2));
           
           // Extract the actual stream URL from response
           const actualStreamUrl = data.url || data.tv_url || data.stream_url || data.data?.url || data.data?.tv_url || data.data || (typeof data === 'string' ? data : null);
           
           if (actualStreamUrl) {
-            console.log(`✅ Stream URL: ${actualStreamUrl}`);
+            //console.log(`✅ Stream URL: ${actualStreamUrl}`);
             // Return direct URL - frontend will use it directly
             result = { 
               success: true, 
@@ -390,7 +397,7 @@ serve(async (req) => {
             if (response && response.ok) {
               const data = await response.json();
               oddsData = data?.data || data;
-              console.log(`✅ Odds fetched successfully from: ${endpoint}`);
+              //console.log(`✅ Odds fetched successfully from: ${endpoint}`);
               break;
             }
           } catch (endpointError) {
@@ -457,7 +464,7 @@ serve(async (req) => {
           }
           
           if (bettingOptions.length > 0) {
-            console.log(`✅ Found ${bettingOptions.length} betting options`);
+            //console.log(`✅ Found ${bettingOptions.length} betting options`);
             result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
           } else {
             console.log(`⚠️ No betting options found in odds data`);
@@ -667,22 +674,6 @@ serve(async (req) => {
     // Safety: Round-based matching, duplicate prevention, transaction safety
     // ============================================
     else if (action === 'process-bets' && tableId) {
-      // VERIFY: Check if settlement functions are properly imported
-      console.log(`\n🚀 [PROCESS-BETS] Starting settlement for table: ${tableId}`, {
-        tableId,
-        tableIdType: typeof tableId,
-        tableIdLower: tableId?.toLowerCase(),
-        mid: reqBody?.mid || 'not provided',
-        // Verify functions are available
-        functionsAvailable: {
-          isLucky5Table: typeof isLucky5Table === 'function',
-          isDT6Table: typeof isDT6Table === 'function',
-          parseLucky5Result: typeof parseLucky5Result === 'function',
-          parseDT6Result: typeof parseDT6Result === 'function',
-          isLucky5WinningBet: typeof isLucky5WinningBet === 'function',
-          isDT6WinningBet: typeof isDT6WinningBet === 'function'
-        }
-      });
       let resultData: any = null;
       let resultMid: string | null = null;
       let winnat: string | null = null;
@@ -717,12 +708,13 @@ serve(async (req) => {
           console.log('⚠️ Could not extract mid from latest result');
         }
       }
+      
+      console.log(`🚀 [PROCESS-BETS] Starting settlement for table: ${tableId}, mid: ${mid || 'not available'}`);
 
       // PRIMARY: Try Detailed Result API first (most reliable)
       if (mid) {
         try {
           const detailUrl = `${HOSTINGER_PROXY_BASE}/detail_result?mid=${mid}&type=${tableId}`;
-          console.log(`📡 [PRIMARY] Fetching detailed result: ${detailUrl}`);
           
           const detailResponse = await fetch(detailUrl, {
             headers: { 'Content-Type': 'application/json' }
@@ -730,64 +722,83 @@ serve(async (req) => {
 
           if (detailResponse.ok) {
             const detailJson = await detailResponse.json();
-            resultData = detailJson?.data || detailJson;
             
-            // Extract from detailed result API structure
-            winnat = resultData?.winnat?.toString().trim() || null;
-            win = resultData?.win?.toString().trim() || null;
-            resultMid = resultData?.mid?.toString() || mid;
-            resultSource = 'detailed_result_api';
+            // Check if API returned an error
+            if (detailJson?.error) {
+              console.warn(`⚠️ [PRIMARY] API error: ${detailJson.error}`);
+              throw new Error(`API error: ${detailJson.error}`);
+            }
+            
+            // Extract result from t1 (most common structure)
+            const t1Data = detailJson?.data?.t1 || detailJson?.t1;
+            if (t1Data) {
+              resultData = t1Data;
+              winnat = t1Data?.winnat?.toString().trim() || null;
+              win = t1Data?.win?.toString().trim() || null;
+              resultMid = t1Data?.rid?.toString() || t1Data?.mid?.toString() || mid || null;
+              resultSource = 'detailed_result_api';
+              
+              // Verify table name matches (safety check)
+              const resultTableName = t1Data?.ename?.toLowerCase() || '';
+              if (resultTableName && !resultTableName.includes(tableId.toLowerCase())) {
+                console.warn(`⚠️ [PRIMARY] Table mismatch: requested ${tableId}, got result for ${resultTableName}`);
+              }
+            } else {
+              // Fallback to old structure
+              resultData = detailJson?.data || detailJson;
+              winnat = resultData?.winnat?.toString().trim() || null;
+              win = resultData?.win?.toString().trim() || null;
+              resultMid = resultData?.mid?.toString() || mid;
+              resultSource = 'detailed_result_api';
+            }
             
             // Extract rdesc for industry-standard bet matching
             const rdesc = extractRdesc(resultData);
-            if (rdesc) {
-              console.log('✅ [PRIMARY] rdesc extracted for bet matching:', rdesc);
+            if (!rdesc) {
+              // Try extracting from detailJson directly (not just data)
+              const rdescFromRoot = extractRdesc(detailJson);
+              if (rdescFromRoot) {
+                if (!resultData.rdesc) {
+                  resultData = { ...resultData, rdesc: rdescFromRoot };
+                }
+              }
             }
-            
-            console.log('✅ [PRIMARY] Detailed result fetched:', {
-              winnat: winnat || '(not found)',
-              win: win || '(not found)',
-              rdesc: rdesc || '(not found)',
-              mid: resultMid
-            });
           }
         } catch (error) {
-          console.log('⚠️ Detailed result API failed, trying fallback');
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.warn(`⚠️ [PRIMARY] Detailed result API failed: ${errorMessage}, trying fallback`);
         }
       }
 
       // FALLBACK: Use Regular Result API if detailed result not available
       if (!winnat && !win) {
         try {
-          console.log('📡 [FALLBACK] Fetching regular result API');
           const resultResponse = await fetch(`${HOSTINGER_PROXY_BASE}/result?type=${tableId}`, {
             headers: { 'Content-Type': 'application/json' }
           });
 
           if (resultResponse.ok) {
             const resultJson = await resultResponse.json();
+            
+            // Check if API returned an error
+            if (resultJson?.error) {
+              console.warn(`⚠️ [FALLBACK] API error: ${resultJson.error}`);
+              throw new Error(`API error: ${resultJson.error}`);
+            }
+            
             resultData = resultJson?.data || resultJson;
             
             // Extract from regular result API structure
-            // res1.cname = winner name (winnat equivalent)
             winnat = resultData?.res1?.cname?.toString().trim() || null;
-            
-            // res[0].win = latest result code
             const resArray = resultData?.res || [];
             const latestRes = Array.isArray(resArray) && resArray.length > 0 ? resArray[0] : null;
             win = latestRes?.win?.toString().trim() || null;
             resultMid = latestRes?.mid?.toString() || mid;
             resultSource = 'result_api';
-            
-            console.log('✅ [FALLBACK] Regular result fetched:', {
-              winnat: winnat || '(not found)',
-              win: win || '(not found)',
-              mid: resultMid
-            });
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error('❌ Error fetching result:', errorMessage);
+          console.error(`❌ [FALLBACK] Error fetching result: ${errorMessage}`);
         }
       }
 
@@ -805,13 +816,6 @@ serve(async (req) => {
           debug: { resultData, winnat, win, resultSource, mid: resultMid }
         };
       } else {
-        console.log('🎯 Final result extraction:', {
-          winnat: winnat || '(not found)',
-          win: win || '(not found)',
-          winningValue,
-          resultSource,
-          resultMid
-        });
 
         // ============================================
         // STEP 3: FETCH PENDING BETS (with round matching)
@@ -827,7 +831,6 @@ serve(async (req) => {
         // CRITICAL: Match by round_id (mid) if available to prevent wrong round settlement
         if (resultMid) {
           betsQuery = betsQuery.or(`round_id.eq.${resultMid},round_id.is.null`);
-          console.log(`🔒 Round-based matching: Only processing bets with round_id=${resultMid} or null`);
         }
 
         const { data: pendingBets, error: betsError } = await betsQuery;
@@ -845,7 +848,6 @@ serve(async (req) => {
             resultSource
           };
         } else {
-          console.log(`🔄 Processing ${pendingBets.length} pending bets for table ${tableId}`);
 
           // ============================================
           // STEP 4: FILTER BETS (time-based safety check)
@@ -891,77 +893,69 @@ serve(async (req) => {
             const winningValueLower = winningValue.toLowerCase().trim();
 
             // Extract rdesc for bet matching
-            const rdesc = extractRdesc(resultData);
+            let rdesc = extractRdesc(resultData);
             const parsedRdesc = rdesc ? parseRdesc(rdesc) : null;
 
             // Check if this is a roulette table
             const isRoulette = isRouletteTable(tableId);
             
             // Check if this is a lucky5 table
-            // VERIFY: Test function call
             let isLucky5 = false;
             try {
               isLucky5 = isLucky5Table(tableId);
-              console.log(`✅ [Lucky5] Detection function called successfully, result: ${isLucky5}`);
             } catch (error) {
-              console.error(`❌ [Lucky5] Detection function ERROR:`, error);
               isLucky5 = false;
             }
             
             // Check if this is a DT6 table
-            // VERIFY: Test function call
             let isDT6 = false;
             try {
               isDT6 = isDT6Table(tableId);
-              console.log(`✅ [DT6] Detection function called successfully, result: ${isDT6}`);
             } catch (error) {
-              console.error(`❌ [DT6] Detection function ERROR:`, error);
               isDT6 = false;
             }
             
-            // DEBUG: Log table detection
-            console.log(`🔍 [Table Detection]`, {
-              tableId,
-              isRoulette,
-              isLucky5,
-              isDT6,
-              tableIdLower: tableId?.toLowerCase(),
-              // Verify detection functions exist
-              detectionFunctionsExist: {
-                isLucky5Table: typeof isLucky5Table === 'function',
-                isDT6Table: typeof isDT6Table === 'function'
-              }
-            });
+            // Check if this is a Teen3 table
+            let isTeen3 = false;
+            try {
+              isTeen3 = isTeen3Table(tableId);
+            } catch (error) {
+              isTeen3 = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
             let rouletteParseError: string | null = null;
             
             if (isRoulette) {
+              // FALLBACK: If rdesc not found, try to construct from winningValue
+              if (!rdesc && winningValue) {
+                // Roulette winning value is usually just the number (e.g., "20", "32")
+                const numberMatch = winningValue.match(/^\d+$/);
+                if (numberMatch) {
+                  rdesc = winningValue; // Use winningValue as rdesc (roulette rdesc is just the number)
+                  console.log(`🔄 [Roulette] Constructed rdesc from winningValue: "${rdesc}"`);
+                }
+              }
+              
               if (!rdesc) {
                 rouletteParseError = 'No rdesc available for roulette table';
-                console.warn(`⚠️ Roulette table ${tableId} but no rdesc found`);
+                console.warn(`⚠️ [Roulette] No rdesc found for table ${tableId}`);
               } else {
                 try {
                   const winningNumber = parseRouletteResult(rdesc);
                   if (winningNumber !== null) {
                     rouletteResult = deriveRouletteAttributes(winningNumber);
-                    console.log(`🎰 Roulette result derived:`, {
-                      number: rouletteResult.number,
-                      color: rouletteResult.color,
-                      parity: rouletteResult.parity,
-                      range: rouletteResult.range,
-                      dozen: rouletteResult.dozen,
-                      column: rouletteResult.column,
-                      rdesc: rdesc
-                    });
+                    console.log(`✅ [Roulette] Parsed: number=${rouletteResult.number}, rdesc="${rdesc}"`);
                   } else {
                     rouletteParseError = `Could not parse winning number from rdesc: "${rdesc}"`;
-                    console.warn(`⚠️ Roulette table but could not parse number from rdesc:`, rdesc);
+                    console.warn(`⚠️ [Roulette] Parsing failed: "${rdesc}"`);
                   }
                 } catch (error) {
                   rouletteParseError = error instanceof Error ? error.message : String(error);
-                  console.error(`❌ Error deriving roulette attributes:`, rouletteParseError);
+                  console.error(`❌ [Roulette] Parse error:`, rouletteParseError);
                 }
               }
             }
@@ -971,10 +965,27 @@ serve(async (req) => {
             let lucky5ParseError: string | null = null;
             
             if (isLucky5) {
+              // FALLBACK: If rdesc not found, try to construct from winnat/win
+              if (!rdesc && winningValue) {
+                console.log(`⚠️ [Lucky5] No rdesc found, attempting to construct from winningValue: "${winningValue}"`);
+                
+                // Try to extract card number from winningValue
+                // Example: "Lucky 6" -> "6", or "9" -> "9"
+                const cardMatch = winningValue.match(/\d+/);
+                if (cardMatch) {
+                  const cardNum = cardMatch[0];
+                  // Construct a basic rdesc format that parseLucky5Result can handle
+                  // We'll use just the number, parser will handle it
+                  rdesc = cardNum;
+                  console.log(`🔄 [Lucky5] Constructed rdesc from winningValue: "${rdesc}"`);
+                }
+              }
+              
               console.log(`🎴 [Lucky5] Table detected! Processing...`, {
                 tableId,
                 hasRdesc: !!rdesc,
                 rdesc: rdesc || '(missing)',
+                winningValue,
                 resultDataKeys: resultData ? Object.keys(resultData) : []
               });
               
@@ -1022,54 +1033,61 @@ serve(async (req) => {
             let dt6ParseError: string | null = null;
             
             if (isDT6) {
-              console.log(`🐉 [DT6] Table detected! Processing...`, {
-                tableId,
-                hasRdesc: !!rdesc,
-                rdesc: rdesc || '(missing)',
-                resultDataKeys: resultData ? Object.keys(resultData) : []
-              });
+              // FALLBACK: If rdesc not found, try to construct from winnat/win
+              if (!rdesc && winningValue) {
+                const normalizedWinner = winningValue.toLowerCase().trim();
+                if (normalizedWinner.includes('dragon') || normalizedWinner.includes('tiger') || normalizedWinner.includes('tie')) {
+                  rdesc = winningValue;
+                  console.log(`🔄 [DT6] Constructed rdesc from winningValue: "${rdesc}"`);
+                }
+              }
               
               if (!rdesc) {
                 dt6ParseError = 'No rdesc available for DT6 table';
-                console.warn(`⚠️ DT6 table ${tableId} but no rdesc found. ResultData:`, JSON.stringify(resultData, null, 2));
+                console.warn(`⚠️ [DT6] No rdesc found for table ${tableId}`);
               } else {
                 try {
-                  console.log(`🐉 [DT6] Attempting to parse rdesc: "${rdesc}"`);
-                  console.log(`🔍 [DT6] parseDT6Result function type: ${typeof parseDT6Result}`);
-                  
-                  // VERIFY: Test if function is callable
-                  if (typeof parseDT6Result !== 'function') {
-                    throw new Error('parseDT6Result is not a function! Import may have failed.');
-                  }
-                  
                   dt6Result = parseDT6Result(rdesc);
                   if (dt6Result) {
-                    console.log(`✅ [DT6] Result parsed successfully:`, {
-                      winner: dt6Result.winner,
-                      dragon: dt6Result.dragon,
-                      tiger: dt6Result.tiger,
-                      rawParts: dt6Result.rawParts,
-                      rdesc: rdesc
-                    });
+                    console.log(`✅ [DT6] Parsed: winner=${dt6Result.winner}, rdesc="${rdesc}"`);
                   } else {
                     dt6ParseError = `Could not parse DT6 result from rdesc: "${rdesc}"`;
-                    console.warn(`⚠️ [DT6] Parsing failed for rdesc:`, rdesc);
+                    console.warn(`⚠️ [DT6] Parsing failed: "${rdesc}"`);
                   }
                 } catch (error) {
                   dt6ParseError = error instanceof Error ? error.message : String(error);
-                  console.error(`❌ [DT6] Error parsing result:`, {
-                    error: dt6ParseError,
-                    stack: error instanceof Error ? error.stack : undefined,
-                    rdesc
-                  });
+                  console.error(`❌ [DT6] Parse error:`, dt6ParseError);
                 }
               }
-            } else {
-              console.log(`ℹ️ [DT6] Table ${tableId} is NOT detected as DT6`);
+            }
+            
+            // For Teen3: Parse result from detail result data
+            let teen3Result: Teen3Result | null = null;
+            let teen3ParseError: string | null = null;
+            
+            if (isTeen3) {
+              if (!resultData) {
+                teen3ParseError = 'No result data available for Teen3 table';
+                console.warn(`⚠️ [Teen3] No result data found for table ${tableId}`);
+              } else {
+                try {
+                  // Teen3 uses detail result structure directly (not rdesc)
+                  teen3Result = parseTeen3Result(resultData);
+                  if (teen3Result) {
+                    console.log(`✅ [Teen3] Parsed: winner=${teen3Result.winnerName} (${teen3Result.winnerId})`);
+                  } else {
+                    teen3ParseError = 'Could not parse Teen3 result from result data';
+                    console.warn(`⚠️ [Teen3] Parsing failed`);
+                  }
+                } catch (error) {
+                  teen3ParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ [Teen3] Parse error:`, teen3ParseError);
+                }
+              }
             }
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : 'Generic')),
+              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : 'Generic'))),
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
@@ -1083,20 +1101,11 @@ serve(async (req) => {
               try {
                 // Skip if already processed (safety check)
                 if (bet.status !== 'pending') {
-                  console.log(`⏭️ Skipping bet ${bet.id} - already ${bet.status}`);
                   continue;
                 }
 
                 const betSide = (bet.side || 'back') as 'back' | 'lay';
                 const betType = (bet.bet_type || '').toString().trim();
-
-                console.log(`\n🎲 Processing bet ${bet.id}:`, {
-                  betType,
-                  betSide,
-                  roundId: bet.round_id,
-                  resultMid,
-                  tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : 'Generic'))
-                });
 
                 // ============================================
                 // BET MATCHING FLOW
@@ -1111,6 +1120,7 @@ serve(async (req) => {
                 let matchReason = '';
                 let matchedResult: string | null = null;
                 let matchingError: string | null = null;
+                let specializedMatchingDone = false; // Track if specialized matching was completed
 
                 try {
                   // PRIMARY: Roulette-specific matching (if roulette table)
@@ -1119,23 +1129,12 @@ serve(async (req) => {
                       try {
                         betWon = isWinningBet(betType, rouletteResult, betSide);
                         matchReason = betWon
-                          ? `Roulette bet "${betType}" matched result: ${rouletteResult.number} (${rouletteResult.color}, ${rouletteResult.parity})`
-                          : `Roulette bet "${betType}" did not match result: ${rouletteResult.number} (${rouletteResult.color}, ${rouletteResult.parity})`;
+                          ? `Roulette bet "${betType}" matched number ${rouletteResult.number}`
+                          : `Roulette bet "${betType}" did not match number ${rouletteResult.number}`;
                         matchedResult = rouletteResult.number.toString();
+                        specializedMatchingDone = true;
 
-                        console.log(`  🎰 [roulette] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
-                          reason: matchReason,
-                          winningNumber: rouletteResult.number,
-                          betType,
-                          betSide,
-                          derivedAttributes: {
-                            color: rouletteResult.color,
-                            parity: rouletteResult.parity,
-                            range: rouletteResult.range,
-                            dozen: rouletteResult.dozen,
-                            column: rouletteResult.column
-                          }
-                        });
+                        console.log(`🎰 [Roulette] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
                       } catch (rouletteError) {
                         const errorMsg = rouletteError instanceof Error ? rouletteError.message : String(rouletteError);
                         matchingError = `roulette matching failed: ${errorMsg}`;
@@ -1170,18 +1169,12 @@ serve(async (req) => {
                         
                         betWon = isLucky5WinningBet(betType, lucky5Result, betSide);
                         matchReason = betWon
-                          ? `Lucky5 bet "${betType}" matched result: ${lucky5Result.cards.join(", ")} (winning card: ${lucky5Result.winningCard})`
-                          : `Lucky5 bet "${betType}" did not match result: ${lucky5Result.cards.join(", ")} (winning card: ${lucky5Result.winningCard})`;
+                          ? `Lucky5 bet "${betType}" matched card ${lucky5Result.winningCard}`
+                          : `Lucky5 bet "${betType}" did not match card ${lucky5Result.winningCard}`;
                         matchedResult = lucky5Result.winningCard;
+                        specializedMatchingDone = true; // Mark as done
 
-                        console.log(`  🎴 [Lucky5] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
-                          reason: matchReason,
-                          winningCard: lucky5Result.winningCard,
-                          allCards: lucky5Result.cards,
-                          betType,
-                          betSide,
-                          matchedResult
-                        });
+                        console.log(`🎴 [Lucky5] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
                       } catch (lucky5Error) {
                         const errorMsg = lucky5Error instanceof Error ? lucky5Error.message : String(lucky5Error);
                         matchingError = `lucky5 matching failed: ${errorMsg}`;
@@ -1207,57 +1200,43 @@ serve(async (req) => {
                   
                   // PRIMARY: DT6-specific matching (if DT6 table and not roulette/lucky5)
                   if (!isRoulette && !isLucky5 && isDT6) {
-                    console.log(`  🐉 [DT6] Attempting DT6-specific matching for bet ${bet.id}`, {
-                      hasDT6Result: !!dt6Result,
-                      betType,
-                      betSide,
-                      dt6ParseError
-                    });
-                    
                     if (dt6Result) {
                       try {
-                        console.log(`  🐉 [DT6] Calling isDT6WinningBet...`, {
-                          betType,
-                          winner: dt6Result.winner,
-                          dragon: dt6Result.dragon,
-                          tiger: dt6Result.tiger
-                        });
-                        
                         betWon = isDT6WinningBet(betType, dt6Result, betSide);
                         matchReason = betWon
-                          ? `DT6 bet "${betType}" matched result: Winner=${dt6Result.winner}`
-                          : `DT6 bet "${betType}" did not match result: Winner=${dt6Result.winner}`;
+                          ? `DT6 bet "${betType}" matched winner ${dt6Result.winner}`
+                          : `DT6 bet "${betType}" did not match winner ${dt6Result.winner}`;
                         matchedResult = dt6Result.winner;
-
-                        console.log(`  🐉 [DT6] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
-                          reason: matchReason,
-                          winner: dt6Result.winner,
-                          dragon: dt6Result.dragon,
-                          tiger: dt6Result.tiger,
-                          betType,
-                          betSide,
-                          matchedResult
-                        });
+                        specializedMatchingDone = true;
+                        console.log(`🐉 [DT6] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
                       } catch (dt6Error) {
-                        const errorMsg = dt6Error instanceof Error ? dt6Error.message : String(dt6Error);
-                        matchingError = `dt6 matching failed: ${errorMsg}`;
-                        console.error(`  ❌ [DT6] Error in matching:`, {
-                          error: errorMsg,
-                          stack: dt6Error instanceof Error ? dt6Error.stack : undefined,
-                          betType,
-                          dt6Result
-                        });
-                        // Fall through to generic matching
+                        matchingError = dt6Error instanceof Error ? dt6Error.message : String(dt6Error);
+                        console.error(`❌ [DT6] Matching error:`, matchingError);
                       }
                     } else {
-                      // DT6 table but result parsing failed
                       matchingError = dt6ParseError || 'DT6 result not available';
-                      console.warn(`  ⚠️ [DT6] Result parsing failed: ${matchingError}`, {
-                        tableId,
-                        rdesc: rdesc || '(not found)',
-                        resultData: resultData ? 'present' : 'missing'
-                      });
-                      // Fall through to generic matching as last resort
+                      console.warn(`⚠️ [DT6] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Teen3-specific matching (if Teen3 table and not roulette/lucky5/dt6)
+                  if (!isRoulette && !isLucky5 && !isDT6 && isTeen3) {
+                    if (teen3Result) {
+                      try {
+                        betWon = isTeen3WinningBet(betType, teen3Result, betSide);
+                        matchReason = betWon
+                          ? `Teen3 bet "${betType}" matched winner ${teen3Result.winnerName}`
+                          : `Teen3 bet "${betType}" did not match winner ${teen3Result.winnerName}`;
+                        matchedResult = teen3Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Teen3] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teen3Error) {
+                        matchingError = teen3Error instanceof Error ? teen3Error.message : String(teen3Error);
+                        console.error(`❌ [Teen3] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teen3ParseError || 'Teen3 result not available';
+                      console.warn(`⚠️ [Teen3] No result available: ${matchingError}`);
                     }
                   }
                   
@@ -1265,7 +1244,7 @@ serve(async (req) => {
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
@@ -1276,13 +1255,7 @@ serve(async (req) => {
                         matchReason = matchResult.reason;
                         matchedResult = matchResult.matchedResult;
 
-                        console.log(`  📊 [rdesc-based] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
-                          reason: matchReason,
-                          matchedResult: matchedResult || '(none)',
-                          matchType: matchResult.matchType,
-                          betType,
-                          betSide
-                        });
+                        console.log(`📊 [Generic] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
                       } catch (matchError) {
                         const errorMsg = matchError instanceof Error ? matchError.message : String(matchError);
                         matchingError = `rdesc matching failed: ${errorMsg}`;
@@ -1292,8 +1265,8 @@ serve(async (req) => {
                     }
                   }
                   
-                  // FALLBACK: Use traditional winnat/win matching (if rdesc matching failed or unavailable)
-                  if (!parsedRdesc || matchingError) {
+                  // FALLBACK: Use traditional winnat/win matching (only if specialized matching not done)
+                  if (!specializedMatchingDone && (!parsedRdesc || matchingError)) {
                     if (!winningValue) {
                       // No result available - bet loses
                       betWon = false;
@@ -1315,11 +1288,7 @@ serve(async (req) => {
                             : `LAY bet matched winning value (loses): ${winningValue}`;
                         }
 
-                        console.log(`  📊 [fallback] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
-                          reason: matchReason,
-                          winningValue,
-                          fallbackReason: matchingError || 'rdesc not available'
-                        });
+                        console.log(`📊 [Fallback] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
                       } catch (fallbackError) {
                         const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
                         console.error(`  ❌ Error in fallback matching:`, errorMsg);
@@ -1397,7 +1366,7 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
-            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : 'Generic'));
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : 'Generic')));
             const matchingMethod = isRoulette 
               ? 'roulette-specific' 
               : (isLucky5 
