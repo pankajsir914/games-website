@@ -670,7 +670,8 @@ export const useDiamondCasino = () => {
         // 1. We have a valid result with a winning value
         // 2. It's actually a new result (not the same one we just processed)
         // 3. The result has a timestamp/round info to validate against bets
-        if (isNewResult && latestResult && (latestResult.win || tableName)) {
+        // Only process bets if we have a valid new result
+        if (isNewResult && latestResult && (latestResult.win || tableName || latestResult.mid)) {
           // Extract mid from latest result for accurate round-based settlement
           const resultMid = latestResult.mid || latestResult.round || latestResult.round_id;
           
