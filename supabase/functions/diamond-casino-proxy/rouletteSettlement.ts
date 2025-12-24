@@ -49,7 +49,7 @@ const ROULETTE_LAYOUT = {
 
 /**
  * Parse rdesc to extract winning number
- * Handles formats: "17", "17#17", "Winner#17", etc.
+ * Handles formats: "17", "17#17", "Winner#17", "02", "2", etc.
  */
 export function parseRouletteResult(rdesc: string | null | undefined): number | null {
   if (!rdesc || typeof rdesc !== 'string') {
@@ -64,7 +64,8 @@ export function parseRouletteResult(rdesc: string | null | undefined): number | 
   const winnerPart = parts[0] || trimmed;
 
   // Extract number from winner part
-  // Handle formats: "17", "17 : Red", "Winner 17", etc.
+  // Handle formats: "17", "17 : Red", "Winner 17", "02", "2", etc.
+  // Try to find 1-2 digit number (0-36)
   const numberMatch = winnerPart.match(/\b(\d{1,2})\b/);
   if (numberMatch) {
     const num = parseInt(numberMatch[1], 10);
@@ -73,10 +74,30 @@ export function parseRouletteResult(rdesc: string | null | undefined): number | 
     }
   }
 
-  // If no number found, try parsing entire string as number
+  // If no number found in pattern, try parsing entire string as number
+  // This handles cases where rdesc is just "17" or "02"
   const directNum = parseInt(winnerPart, 10);
   if (!isNaN(directNum) && directNum >= 0 && directNum <= 36) {
     return directNum;
+  }
+
+  // Also check if there's a number in subsequent parts (after #)
+  // Example: "Winner#17" - check parts[1] if parts[0] has no number
+  if (parts.length > 1) {
+    for (let i = 1; i < parts.length; i++) {
+      const partNum = parseInt(parts[i], 10);
+      if (!isNaN(partNum) && partNum >= 0 && partNum <= 36) {
+        return partNum;
+      }
+      // Try pattern match in this part too
+      const partMatch = parts[i].match(/\b(\d{1,2})\b/);
+      if (partMatch) {
+        const num = parseInt(partMatch[1], 10);
+        if (num >= 0 && num <= 36) {
+          return num;
+        }
+      }
+    }
   }
 
   return null;
@@ -269,9 +290,14 @@ export function isWinningBet(
   const { number, color, parity, range, dozen, column } = derivedResult;
 
   // 1. Exact number match (handle leading zeros: "02" = "2")
-  const betNumber = parseInt(normalized, 10);
-  if (!isNaN(betNumber) && betNumber === number) {
-    return betSide === 'back';
+  // First check if betCoverage is a pure number (with or without leading zeros)
+  if (/^\d+$/.test(normalized)) {
+    const betNumber = parseInt(normalized, 10);
+    if (!isNaN(betNumber) && betNumber === number) {
+      return betSide === 'back';
+    }
+    // If it's a number but doesn't match, continue to other checks
+    // (might be a number in a different format)
   }
 
   // 2. Number list match (comma-separated: "16,17,18")
@@ -389,10 +415,23 @@ export function settleRouletteBets(
 
 /**
  * Integration helper: Check if table is roulette type
+ * Handles variations: roulette, roul, roulet, beach-roulette, etc.
  */
 export function isRouletteTable(tableId: string): boolean {
-  const rouletteKeywords = ['roulette', 'beach', 'roul'];
-  const lowerTableId = tableId.toLowerCase();
+  if (!tableId || typeof tableId !== 'string') {
+    return false;
+  }
+  
+  const rouletteKeywords = [
+    'roulette',    // Standard: roulette12, roulette13, etc.
+    'roul',        // Short: roul, roul12
+    'roulet',      // Variation: roulet12
+    'beach',       // Beach roulette
+    'ourroullete', // Typo variation found in tables
+    'roullete'     // Another typo variation
+  ];
+  
+  const lowerTableId = tableId.toLowerCase().trim();
   return rouletteKeywords.some(keyword => lowerTableId.includes(keyword));
 }
 
