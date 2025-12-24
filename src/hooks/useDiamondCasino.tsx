@@ -119,22 +119,11 @@ export const useDiamondCasino = () => {
           };
         });
         
-        // Debug: Log image URLs for troubleshooting
-        console.log('📊 Fetched tables:', tables.length);
-        tables.forEach(t => {
-          if (t.imageUrl) {
-            console.log(`✅ Table ${t.id} (${t.name}): ${t.imageUrl}`);
-          } else {
-            console.log(`⚠️ Table ${t.id} (${t.name}): No image URL found`);
-          }
-        });
-        
         setLiveTables(tables);
       } else {
         setLiveTables([]);
       }
     } catch (error: any) {
-      console.error("❌ Error fetching live tables:", error);
       toast({ title: "Casino Connection Error", description: error?.message || "Failed to load live casino tables.", variant: "destructive" });
       setLiveTables([]);
     } finally {
@@ -155,17 +144,13 @@ export const useDiamondCasino = () => {
         } : null);
       }
     } catch (error) {
-      console.error("Error fetching table details:", error);
+      // Error handled silently
     }
   };
 
   // ----------------- Fetch odds -----------------
   const fetchOdds = async (tableId: string, silent = false) => {
     try {
-      if (!silent) {
-        console.log(`📡 Fetching odds for table: ${tableId}`);
-      }
-      
       // Clear previous error state when retrying
       if (odds?.error || odds?.noOdds) {
         setOdds({ bets: [], rawData: {}, error: false, noOdds: false });
@@ -176,17 +161,11 @@ export const useDiamondCasino = () => {
       });
       
       if (error) {
-        if (!silent) {
-          console.error("fetchOdds invoke error:", error);
-        }
         setOdds({ bets: [], rawData: {}, error: true });
         return;
       }
 
       if (!oddsResponse) {
-        if (!silent) {
-          console.warn("No response from odds API");
-        }
         setOdds({ bets: [], rawData: {}, noOdds: true });
         return;
       }
@@ -196,9 +175,6 @@ export const useDiamondCasino = () => {
 
       // Check if we have bets directly
       if (payload?.bets && Array.isArray(payload.bets)) {
-        if (!silent) {
-          console.log(`📊 Found bets array with ${payload.bets.length} items`);
-        }
         extractedBets = payload.bets
           .filter((bet: any) => {
             if (!bet) return false;
@@ -241,23 +217,13 @@ export const useDiamondCasino = () => {
               mid: bet.mid,
             };
           });
-        
-        if (!silent && extractedBets.length === 0 && payload.bets.length > 0) {
-          console.log(`⚠️ Bets array has ${payload.bets.length} items but none passed filter. Sample:`, payload.bets[0]);
-        }
       }
       
       // If no bets extracted from bets array, try parsing from raw data
       if (extractedBets.length === 0 && payload?.raw) {
-        if (!silent) {
-          console.log(`📊 Trying to parse from raw data`);
-        }
         const rawData = payload.raw;
         ["t1", "t2", "t3", "sub", "grp", "bets", "options", "markets"].forEach((key) => {
           if (rawData[key] && Array.isArray(rawData[key])) {
-            if (!silent && rawData[key].length > 0) {
-              console.log(`📊 Found ${rawData[key].length} items in ${key} array. Sample:`, rawData[key][0]);
-            }
             rawData[key].forEach((item: any, index: number) => {
               if (!item || typeof item !== 'object') return;
               
@@ -336,14 +302,6 @@ export const useDiamondCasino = () => {
                   sid: item.sid,
                   mid: item.mid || rawData.mid,
                 });
-              } else if (!silent && index === 0) {
-                // Log first item structure for debugging
-                console.log(`⚠️ Item in ${key} excluded. Keys:`, Object.keys(item), 
-                  'betType:', betType, 
-                  'shouldShow:', shouldShow, 
-                  'hasValidBetType:', hasValidBetType,
-                  'visible:', item.visible,
-                  'nat:', item.nat);
               }
             });
           }
@@ -351,15 +309,9 @@ export const useDiamondCasino = () => {
       }
       // If still no bets, try direct payload parsing
       if (extractedBets.length === 0) {
-        if (!silent) {
-          console.log(`📊 Trying direct payload parsing`);
-        }
         const rawData = payload;
         ["t1", "t2", "t3", "sub", "grp", "bets", "options", "markets"].forEach((key) => {
           if (rawData[key] && Array.isArray(rawData[key])) {
-            if (!silent && rawData[key].length > 0) {
-              console.log(`📊 Found ${rawData[key].length} items in ${key} array. Sample:`, rawData[key][0]);
-            }
             rawData[key].forEach((item: any, index: number) => {
               if (!item || typeof item !== 'object') return;
               
@@ -437,9 +389,6 @@ export const useDiamondCasino = () => {
                   sid: item.sid,
                   mid: item.mid || rawData.mid,
                 });
-              } else if (!silent && index === 0) {
-                // Log first item structure for debugging
-                console.log(`⚠️ Item in ${key} has no valid odds. Item keys:`, Object.keys(item), 'Item:', item, 'shouldShow:', shouldShow, 'hasValidBetType:', hasValidBetType);
               }
             });
           }
@@ -447,36 +396,11 @@ export const useDiamondCasino = () => {
       }
 
       if (extractedBets.length > 0) {
-        if (!silent) {
-          console.log(`✅ Successfully extracted ${extractedBets.length} betting options`);
-        }
-        
-        // Log odds data for debugging
-        console.log("🎲 useDiamondCasino - Odds Data Extracted:", {
-          tableId,
-          totalBets: extractedBets.length,
-          bets: extractedBets,
-          rawPayload: payload,
-          sampleBet: extractedBets[0] || null
-        });
-        
         setOdds({ bets: extractedBets, rawData: payload || {}, error: false, noOdds: false });
       } else {
-        if (!silent) {
-          console.warn(`⚠️ No betting options extracted for table ${tableId}. Payload keys:`, Object.keys(payload || {}));
-          if (payload?.bets && Array.isArray(payload.bets)) {
-            console.warn(`📊 Bets array length: ${payload.bets.length}, Sample item:`, payload.bets[0]);
-          }
-          if (payload?.raw) {
-            console.warn(`📊 Raw data keys:`, Object.keys(payload.raw));
-          }
-        }
         setOdds({ bets: [], rawData: payload || {}, noOdds: true, error: false });
       }
     } catch (error) {
-      if (!silent) {
-        console.error("Error fetching odds:", error);
-      }
       setOdds({ bets: [], rawData: {}, error: true });
     }
   };
@@ -506,8 +430,6 @@ export const useDiamondCasino = () => {
         throw new Error("Please select a bet option");
       }
 
-      console.log("Placing bet:", { tableId: betData.tableId, amount: betData.amount, betType: betData.betType });
-
       // call edge function, pass token
       // Use fetch directly to get better error messages
       try {
@@ -527,13 +449,11 @@ export const useDiamondCasino = () => {
 
         if (!response.ok) {
           const errorMsg = responseData?.error || responseData?.message || `Server error: ${response.status}`;
-          console.error("Edge function error response:", responseData);
           throw new Error(errorMsg);
         }
 
         if (!responseData?.success) {
           const errorMsg = responseData?.error || responseData?.message || "Bet rejected by casino API";
-          console.error("Bet placement failed:", responseData);
           throw new Error(errorMsg);
         }
 
@@ -545,7 +465,6 @@ export const useDiamondCasino = () => {
         fetchUserBets();
         return responseData.bet ?? responseData;
       } catch (fetchError: any) {
-        console.error("Fetch error:", fetchError);
         // If it's already an Error with a message, re-throw it
         if (fetchError instanceof Error) {
           throw fetchError;
@@ -554,7 +473,6 @@ export const useDiamondCasino = () => {
         throw new Error(fetchError?.message || "Failed to place bet");
       }
     } catch (error: any) {
-      console.error("Error placing bet:", error);
       const errorMessage = error?.message || error?.toString() || "Failed to place bet";
       toast({ 
         title: "Bet Failed", 
@@ -576,7 +494,7 @@ export const useDiamondCasino = () => {
       if (error) throw error;
       setBets(data || []);
     } catch (error) {
-      console.error("Error fetching bets:", error);
+      // Error handled silently
     }
   };
 
@@ -602,7 +520,7 @@ export const useDiamondCasino = () => {
         try {
           supabase.removeChannel(channel);
         } catch (e) {
-          console.warn("Error removing channel", e);
+          // Error handled silently
         }
       };
     };
@@ -616,7 +534,6 @@ export const useDiamondCasino = () => {
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-stream-url", tableId } });
 
       if (error) {
-        console.error("fetchStreamUrl invoke error:", error);
         setStreamUrls((prev) => ({ ...prev, [tableId]: null }));
         return null;
       }
@@ -646,7 +563,6 @@ export const useDiamondCasino = () => {
       setStreamUrls((prev) => ({ ...prev, [tableId]: null }));
       return null;
     } catch (e) {
-      console.error("Error fetching stream URL:", e);
       setStreamUrls((prev) => ({ ...prev, [tableId]: null }));
       return null;
     }
@@ -674,7 +590,6 @@ export const useDiamondCasino = () => {
       // Pass mid if available for more accurate round-based settlement
       if (mid) {
         requestBody.mid = mid.toString();
-        console.log(`📊 Processing bets with mid: ${mid}`);
       }
       
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { 
@@ -682,7 +597,6 @@ export const useDiamondCasino = () => {
       });
       
       if (error) {
-        console.error("processBets invoke error:", error);
         toast({
           title: "Settlement Error",
           description: error.message || "Failed to process bets",
@@ -703,15 +617,6 @@ export const useDiamondCasino = () => {
             variant: "default"
           });
         }
-        
-        console.log(`✅ Processed bets for ${tableId}:`, {
-          processed: data.processed,
-          won: data.won,
-          lost: data.lost,
-          totalPayouts: data.totalPayouts,
-          winningValue: data.winningValue,
-          resultSource: data.resultSource
-        });
       } else {
         toast({
           title: "Settlement Failed",
@@ -720,7 +625,6 @@ export const useDiamondCasino = () => {
         });
       }
     } catch (error: any) {
-      console.error("Error processing bets:", error);
       toast({
         title: "Settlement Error",
         description: error.message || "Failed to process bets",
@@ -734,7 +638,6 @@ export const useDiamondCasino = () => {
     try {
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-result", tableId } });
       if (error) {
-        console.error("fetchCurrentResult invoke error:", error);
         return;
       }
       if (!data) return;
@@ -768,8 +671,6 @@ export const useDiamondCasino = () => {
         // 2. It's actually a new result (not the same one we just processed)
         // 3. The result has a timestamp/round info to validate against bets
         if (isNewResult && latestResult && (latestResult.win || tableName)) {
-          console.log('🔄 New result detected, processing bets for table:', tableId);
-          
           // Extract mid from latest result for accurate round-based settlement
           const resultMid = latestResult.mid || latestResult.round || latestResult.round_id;
           
@@ -777,12 +678,10 @@ export const useDiamondCasino = () => {
           setTimeout(() => {
             processBets(tableId, resultMid);
           }, 1000);
-        } else {
-          console.log('⏸️ Skipping bet processing - no new valid result');
         }
       }
     } catch (error) {
-      console.error("Error fetching result:", error);
+      // Error handled silently
     }
   };
 
@@ -791,7 +690,6 @@ export const useDiamondCasino = () => {
     try {
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-result-history", tableId, date } });
       if (error) {
-        console.error("fetchResultHistory invoke error:", error);
         return;
       }
       if (!data) return;
@@ -802,7 +700,7 @@ export const useDiamondCasino = () => {
       const historyData = Array.isArray(data?.data) ? data.data : data?.data?.data || [];
       if (historyData && historyData.length > 0) setResultHistory(historyData);
     } catch (error) {
-      console.error("Error fetching result history:", error);
+      // Error handled silently
     }
   };
 
@@ -815,7 +713,6 @@ export const useDiamondCasino = () => {
       if (data?.success) return data.data;
       return null;
     } catch (error: any) {
-      console.error("Error fetching table IDs:", error);
       toast({ title: "Error", description: error.message || "Failed to fetch table IDs", variant: "destructive" });
       return null;
     } finally {
@@ -837,12 +734,10 @@ export const useDiamondCasino = () => {
         );
 
         if (error) {
-          console.error("fetchCasinoRules invoke error:", error);
           return { rules: [], error: error.message };
         }
 
         if (!data || !data.success) {
-          console.error("fetchCasinoRules failed:", data);
           return { rules: [], error: data?.error || "Rules not available" };
         }
 
@@ -852,7 +747,6 @@ export const useDiamondCasino = () => {
 
         return { rules: rulesArray, error: null };
       } catch (err: any) {
-        console.error("fetchCasinoRules error:", err);
         return { rules: [], error: err.message };
       }
     };
