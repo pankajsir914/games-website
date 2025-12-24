@@ -1,5 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { 
+  parseRdesc, 
+  matchBetAgainstRdesc, 
+  extractRdesc, 
+  processBetMatching,
+  type ParsedRdesc,
+  type BetMatchResult 
+} from './betMatching.ts';
+import {
+  parseRouletteResult,
+  deriveRouletteAttributes,
+  isWinningBet,
+  settleRouletteBets,
+  isRouletteTable,
+  type RouletteResult
+} from './rouletteSettlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -538,6 +554,17 @@ serve(async (req) => {
 
       if (walletError) throw new Error(`Wallet update failed: ${walletError.message}`);
 
+      // Normalize bet type: Add leading zero for single digit numbers (0-9)
+      // This ensures "2" becomes "02" to match result format like "02"
+      let normalizedBetType = betData.betType.trim();
+      
+      // Check if betType is a single digit number (0-9)
+      if (/^\d$/.test(normalizedBetType)) {
+        // Add leading zero: "2" -> "02", "5" -> "05", "0" -> "00"
+        normalizedBetType = normalizedBetType.padStart(2, '0');
+        console.log(`🔢 Normalized single digit bet: "${betData.betType}" → "${normalizedBetType}"`);
+      }
+
       // Record bet in database
       // Build insert data - only include side if it's provided and valid
       let betInsertData: any = {
@@ -545,7 +572,7 @@ serve(async (req) => {
         table_id: betData.tableId,
         table_name: betData.tableName || null,
         bet_amount: betData.amount,
-        bet_type: betData.betType,
+        bet_type: normalizedBetType, // Use normalized bet type
         odds: betData.odds || null,
         round_id: betData.roundId || null,
         status: 'pending',
@@ -684,9 +711,16 @@ serve(async (req) => {
             resultMid = resultData?.mid?.toString() || mid;
             resultSource = 'detailed_result_api';
             
+            // Extract rdesc for industry-standard bet matching
+            const rdesc = extractRdesc(resultData);
+            if (rdesc) {
+              console.log('✅ [PRIMARY] rdesc extracted for bet matching:', rdesc);
+            }
+            
             console.log('✅ [PRIMARY] Detailed result fetched:', {
               winnat: winnat || '(not found)',
               win: win || '(not found)',
+              rdesc: rdesc || '(not found)',
               mid: resultMid
             });
           }
@@ -820,7 +854,7 @@ serve(async (req) => {
             };
           } else {
             // ============================================
-            // STEP 5: SETTLE BETS (name-based matching)
+            // STEP 5: SETTLE BETS (Industry-Standard rdesc-based matching)
             // ============================================
             
             let processed = 0;
@@ -828,6 +862,56 @@ serve(async (req) => {
             let lost = 0;
             let totalPayouts = 0;
             const winningValueLower = winningValue.toLowerCase().trim();
+
+            // Extract rdesc for bet matching
+            const rdesc = extractRdesc(resultData);
+            const parsedRdesc = rdesc ? parseRdesc(rdesc) : null;
+
+            // Check if this is a roulette table
+            const isRoulette = isRouletteTable(tableId);
+            
+            // For roulette: Parse winning number and derive attributes
+            let rouletteResult: RouletteResult | null = null;
+            let rouletteParseError: string | null = null;
+            
+            if (isRoulette) {
+              if (!rdesc) {
+                rouletteParseError = 'No rdesc available for roulette table';
+                console.warn(`⚠️ Roulette table ${tableId} but no rdesc found`);
+              } else {
+                try {
+                  const winningNumber = parseRouletteResult(rdesc);
+                  if (winningNumber !== null) {
+                    rouletteResult = deriveRouletteAttributes(winningNumber);
+                    console.log(`🎰 Roulette result derived:`, {
+                      number: rouletteResult.number,
+                      color: rouletteResult.color,
+                      parity: rouletteResult.parity,
+                      range: rouletteResult.range,
+                      dozen: rouletteResult.dozen,
+                      column: rouletteResult.column,
+                      rdesc: rdesc
+                    });
+                  } else {
+                    rouletteParseError = `Could not parse winning number from rdesc: "${rdesc}"`;
+                    console.warn(`⚠️ Roulette table but could not parse number from rdesc:`, rdesc);
+                  }
+                } catch (error) {
+                  rouletteParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ Error deriving roulette attributes:`, rouletteParseError);
+                }
+              }
+            }
+
+            console.log(`\n📋 Bet Matching Setup:`, {
+              tableType: isRoulette ? 'Roulette' : 'Generic',
+              hasRdesc: !!rdesc,
+              rdesc: rdesc || '(not found)',
+              parsedWinner: parsedRdesc?.winner || '(not found)',
+              parsedResultsCount: parsedRdesc?.results?.length || 0,
+              fallbackWinningValue: winningValue || '(not found)',
+              rouletteNumber: rouletteResult?.number ?? null
+            });
 
             for (const bet of betsToProcess) {
               try {
@@ -837,35 +921,135 @@ serve(async (req) => {
                   continue;
                 }
 
-                const betSide = bet.side || 'back';
+                const betSide = (bet.side || 'back') as 'back' | 'lay';
                 const betType = (bet.bet_type || '').toString().trim();
-                const betTypeLower = betType.toLowerCase().trim();
 
                 console.log(`\n🎲 Processing bet ${bet.id}:`, {
                   betType,
-                  betTypeLower,
-                  winnat: winnat || '(not found)',
-                  win: win || '(not found)',
-                  winningValue: winningValueLower,
                   betSide,
                   roundId: bet.round_id,
-                  resultMid
+                  resultMid,
+                  tableType: isRoulette ? 'Roulette' : 'Generic'
                 });
 
                 // ============================================
-                // SETTLEMENT RULES (Name-based matching)
+                // BET MATCHING FLOW
                 // ============================================
-                // BACK bet: bet_type == winnat → WIN
-                // LAY bet: bet_type ≠ winnat → WIN
+                // For Roulette: Use specialized roulette matching
+                // For Others: Use generic rdesc matching
                 // ============================================
                 
                 let betWon = false;
-                if (betSide === 'back') {
-                  betWon = betTypeLower === winningValueLower;
-                  console.log(`  ${betWon ? '✅' : '❌'} BACK: ${betWon ? 'MATCH (WINS)' : 'NO MATCH (LOSES)'}`);
-                } else {
-                  betWon = betTypeLower !== winningValueLower;
-                  console.log(`  ${betWon ? '✅' : '❌'} LAY: ${betWon ? 'NO MATCH (WINS)' : 'MATCH (LOSES)'}`);
+                let matchReason = '';
+                let matchedResult: string | null = null;
+                let matchingError: string | null = null;
+
+                try {
+                  // PRIMARY: Roulette-specific matching (if roulette table)
+                  if (isRoulette) {
+                    if (rouletteResult) {
+                      try {
+                        betWon = isWinningBet(betType, rouletteResult, betSide);
+                        matchReason = betWon
+                          ? `Roulette bet "${betType}" matched result: ${rouletteResult.number} (${rouletteResult.color}, ${rouletteResult.parity})`
+                          : `Roulette bet "${betType}" did not match result: ${rouletteResult.number} (${rouletteResult.color}, ${rouletteResult.parity})`;
+                        matchedResult = rouletteResult.number.toString();
+
+                        console.log(`  🎰 [roulette] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
+                          reason: matchReason,
+                          winningNumber: rouletteResult.number,
+                          betType,
+                          betSide,
+                          derivedAttributes: {
+                            color: rouletteResult.color,
+                            parity: rouletteResult.parity,
+                            range: rouletteResult.range,
+                            dozen: rouletteResult.dozen,
+                            column: rouletteResult.column
+                          }
+                        });
+                      } catch (rouletteError) {
+                        const errorMsg = rouletteError instanceof Error ? rouletteError.message : String(rouletteError);
+                        matchingError = `roulette matching failed: ${errorMsg}`;
+                        console.error(`  ❌ Error in roulette matching:`, errorMsg);
+                        // Fall through to generic matching
+                      }
+                    } else {
+                      // Roulette table but result parsing failed
+                      matchingError = rouletteParseError || 'Roulette result not available';
+                      console.warn(`  ⚠️ Roulette table but result parsing failed: ${matchingError}`);
+                      // Fall through to generic matching as last resort
+                    }
+                  }
+                  
+                  // FALLBACK: Generic rdesc-based matching (for non-roulette or if roulette matching failed)
+                  if (!isRoulette || !rouletteResult || matchingError) {
+                    if (parsedRdesc) {
+                      try {
+                        const matchResult = matchBetAgainstRdesc(betType, betSide, parsedRdesc);
+                        betWon = matchResult.isWin;
+                        matchReason = matchResult.reason;
+                        matchedResult = matchResult.matchedResult;
+
+                        console.log(`  📊 [rdesc-based] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
+                          reason: matchReason,
+                          matchedResult: matchedResult || '(none)',
+                          matchType: matchResult.matchType,
+                          betType,
+                          betSide
+                        });
+                      } catch (matchError) {
+                        const errorMsg = matchError instanceof Error ? matchError.message : String(matchError);
+                        matchingError = `rdesc matching failed: ${errorMsg}`;
+                        console.error(`  ❌ Error in rdesc matching:`, errorMsg);
+                        // Fall through to fallback matching
+                      }
+                    }
+                  }
+                  
+                  // FALLBACK: Use traditional winnat/win matching (if rdesc matching failed or unavailable)
+                  if (!parsedRdesc || matchingError) {
+                    if (!winningValue) {
+                      // No result available - bet loses
+                      betWon = false;
+                      matchReason = 'No result available for matching';
+                      console.warn(`  ⚠️ No result available for bet ${bet.id}`);
+                    } else {
+                      try {
+                        const betTypeLower = betType.toLowerCase().trim();
+                        
+                        if (betSide === 'back') {
+                          betWon = betTypeLower === winningValueLower;
+                          matchReason = betWon 
+                            ? `BACK bet matched winning value: ${winningValue}`
+                            : `BACK bet did not match winning value: ${winningValue}`;
+                        } else {
+                          betWon = betTypeLower !== winningValueLower;
+                          matchReason = betWon
+                            ? `LAY bet did not match winning value: ${winningValue}`
+                            : `LAY bet matched winning value (loses): ${winningValue}`;
+                        }
+
+                        console.log(`  📊 [fallback] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
+                          reason: matchReason,
+                          winningValue,
+                          fallbackReason: matchingError || 'rdesc not available'
+                        });
+                      } catch (fallbackError) {
+                        const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+                        console.error(`  ❌ Error in fallback matching:`, errorMsg);
+                        // Bet loses if matching completely fails
+                        betWon = false;
+                        matchReason = `Matching failed: ${errorMsg}`;
+                      }
+                    }
+                  }
+                } catch (error) {
+                  // Catch-all for any unexpected errors
+                  const errorMsg = error instanceof Error ? error.message : String(error);
+                  console.error(`  ❌ Unexpected error in bet matching for bet ${bet.id}:`, errorMsg);
+                  betWon = false;
+                  matchReason = `Unexpected error: ${errorMsg}`;
                 }
 
                 const newStatus = betWon ? 'won' : 'lost';
@@ -934,7 +1118,9 @@ serve(async (req) => {
               lost,
               totalPayouts,
               resultSource,
-              winningValue
+              winningValue,
+              rdescUsed: !!rdesc,
+              matchingMethod: rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'
             });
 
             result = {
@@ -948,7 +1134,9 @@ serve(async (req) => {
               win: win || null,
               winningValue,
               resultSource,
-              resultMid: resultMid || null
+              resultMid: resultMid || null,
+              rdesc: rdesc || null,
+              matchingMethod: rdesc ? 'rdesc-based' : 'fallback'
             };
           }
         }
