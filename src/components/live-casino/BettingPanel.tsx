@@ -1,5 +1,5 @@
 // src/components/live-casino/BettingPanel.tsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,37 +21,6 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
 
   const quickAmounts = [100, 500, 1000, 5000];
   const betTypes = odds?.bets || [];
-
-  // Log odds data for debugging
-  useEffect(() => {
-    if (odds) {
-      console.log("🎲 BettingPanel - Odds Data:", {
-        tableId: table?.id,
-        tableName: table?.name,
-        totalBets: betTypes.length,
-        oddsObject: odds,
-        betsArray: betTypes,
-        sampleBet: betTypes[0] || null
-      });
-      
-      // Log each bet with its odds
-      if (betTypes.length > 0) {
-        console.log("📊 BettingPanel - Individual Bet Odds:");
-        betTypes.forEach((bet: any, index: number) => {
-          console.log(`  Bet ${index + 1}:`, {
-            type: bet.type,
-            back: bet.back,
-            lay: bet.lay,
-            odds: bet.odds,
-            status: bet.status,
-            rawData: bet
-          });
-        });
-      }
-    } else {
-      console.log("⚠️ BettingPanel - No odds data available");
-    }
-  }, [odds, table, betTypes]);
 
   // Check if we have betting options (even with 0 odds, they should be shown)
   // Suspended items should also be displayed with their odds
@@ -103,7 +72,7 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
         amount: parseFloat(amount),
         betType: selectedBet,
         odds: selectedOdds,
-        roundId: table.data?.currentRound || bet?.mid || undefined,
+        roundId: bet?.mid || undefined,
         sid: bet?.sid,
         side: betType,
       });
@@ -111,7 +80,6 @@ export const BettingPanel = ({ table, odds, onPlaceBet, loading }: BettingPanelP
       setSelectedBet("");
     } catch (error) {
       // Error is already handled by onPlaceBet with toast
-      console.error("Bet placement error:", error);
     }
   };
 
