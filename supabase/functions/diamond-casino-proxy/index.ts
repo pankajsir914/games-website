@@ -667,11 +667,21 @@ serve(async (req) => {
     // Safety: Round-based matching, duplicate prevention, transaction safety
     // ============================================
     else if (action === 'process-bets' && tableId) {
+      // VERIFY: Check if settlement functions are properly imported
       console.log(`\n🚀 [PROCESS-BETS] Starting settlement for table: ${tableId}`, {
         tableId,
         tableIdType: typeof tableId,
         tableIdLower: tableId?.toLowerCase(),
-        mid: reqBody?.mid || 'not provided'
+        mid: reqBody?.mid || 'not provided',
+        // Verify functions are available
+        functionsAvailable: {
+          isLucky5Table: typeof isLucky5Table === 'function',
+          isDT6Table: typeof isDT6Table === 'function',
+          parseLucky5Result: typeof parseLucky5Result === 'function',
+          parseDT6Result: typeof parseDT6Result === 'function',
+          isLucky5WinningBet: typeof isLucky5WinningBet === 'function',
+          isDT6WinningBet: typeof isDT6WinningBet === 'function'
+        }
       });
       let resultData: any = null;
       let resultMid: string | null = null;
@@ -888,10 +898,26 @@ serve(async (req) => {
             const isRoulette = isRouletteTable(tableId);
             
             // Check if this is a lucky5 table
-            const isLucky5 = isLucky5Table(tableId);
+            // VERIFY: Test function call
+            let isLucky5 = false;
+            try {
+              isLucky5 = isLucky5Table(tableId);
+              console.log(`✅ [Lucky5] Detection function called successfully, result: ${isLucky5}`);
+            } catch (error) {
+              console.error(`❌ [Lucky5] Detection function ERROR:`, error);
+              isLucky5 = false;
+            }
             
             // Check if this is a DT6 table
-            const isDT6 = isDT6Table(tableId);
+            // VERIFY: Test function call
+            let isDT6 = false;
+            try {
+              isDT6 = isDT6Table(tableId);
+              console.log(`✅ [DT6] Detection function called successfully, result: ${isDT6}`);
+            } catch (error) {
+              console.error(`❌ [DT6] Detection function ERROR:`, error);
+              isDT6 = false;
+            }
             
             // DEBUG: Log table detection
             console.log(`🔍 [Table Detection]`, {
@@ -899,7 +925,12 @@ serve(async (req) => {
               isRoulette,
               isLucky5,
               isDT6,
-              tableIdLower: tableId?.toLowerCase()
+              tableIdLower: tableId?.toLowerCase(),
+              // Verify detection functions exist
+              detectionFunctionsExist: {
+                isLucky5Table: typeof isLucky5Table === 'function',
+                isDT6Table: typeof isDT6Table === 'function'
+              }
             });
             
             // For roulette: Parse winning number and derive attributes
@@ -953,6 +984,13 @@ serve(async (req) => {
               } else {
                 try {
                   console.log(`🎴 [Lucky5] Attempting to parse rdesc: "${rdesc}"`);
+                  console.log(`🔍 [Lucky5] parseLucky5Result function type: ${typeof parseLucky5Result}`);
+                  
+                  // VERIFY: Test if function is callable
+                  if (typeof parseLucky5Result !== 'function') {
+                    throw new Error('parseLucky5Result is not a function! Import may have failed.');
+                  }
+                  
                   lucky5Result = parseLucky5Result(rdesc);
                   if (lucky5Result) {
                     console.log(`✅ [Lucky5] Result parsed successfully:`, {
@@ -997,6 +1035,13 @@ serve(async (req) => {
               } else {
                 try {
                   console.log(`🐉 [DT6] Attempting to parse rdesc: "${rdesc}"`);
+                  console.log(`🔍 [DT6] parseDT6Result function type: ${typeof parseDT6Result}`);
+                  
+                  // VERIFY: Test if function is callable
+                  if (typeof parseDT6Result !== 'function') {
+                    throw new Error('parseDT6Result is not a function! Import may have failed.');
+                  }
+                  
                   dt6Result = parseDT6Result(rdesc);
                   if (dt6Result) {
                     console.log(`✅ [DT6] Result parsed successfully:`, {
