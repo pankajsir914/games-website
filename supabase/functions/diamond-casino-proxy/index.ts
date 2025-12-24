@@ -69,6 +69,12 @@ import {
   isAB20Table,
   type AB20Result
 } from './ab20Settlement.ts';
+import {
+  parseTeen62Result,
+  isTeen62WinningBet,
+  isTeen62Table,
+  type Teen62Result
+} from './teen62Settlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -1012,7 +1018,15 @@ serve(async (req) => {
               isAB20 = false;
             }
             
-            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : isDolidana ? 'Dolidana' : isAB20 ? 'AB20' : 'Generic'}`);
+            // Check if this is a Teen62 table
+            let isTeen62 = false;
+            try {
+              isTeen62 = isTeen62Table(tableId);
+            } catch (error) {
+              isTeen62 = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : isDolidana ? 'Dolidana' : isAB20 ? 'AB20' : isTeen62 ? 'Teen62' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
@@ -1288,9 +1302,28 @@ serve(async (req) => {
                 console.error(`❌ [AB20] Parse error:`, ab20ParseError);
               }
             }
+            
+            // For Teen62: Parse result from rdesc/winnat
+            let teen62Result: Teen62Result | null = null;
+            let teen62ParseError: string | null = null;
+            
+            if (isTeen62) {
+              try {
+                teen62Result = parseTeen62Result(rdesc, winnat, win);
+                if (teen62Result) {
+                  console.log(`✅ [Teen62] Parsed: winner=${teen62Result.winner} (${teen62Result.winCode})`);
+                } else {
+                  teen62ParseError = 'Could not parse Teen62 result from rdesc/winnat';
+                  console.warn(`⚠️ [Teen62] Parsing failed`);
+                }
+              } catch (error) {
+                teen62ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Teen62] Parse error:`, teen62ParseError);
+              }
+            }
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : 'Generic')))))))),
+              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : (isTeen62 ? 'Teen62' : 'Generic'))))))))),
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
@@ -1548,11 +1581,32 @@ serve(async (req) => {
                     }
                   }
                   
+                  // PRIMARY: Teen62-specific matching (if Teen62 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && isTeen62) {
+                    if (teen62Result) {
+                      try {
+                        betWon = isTeen62WinningBet(betType, teen62Result, betSide);
+                        matchReason = betWon
+                          ? `Teen62 bet "${betType}" matched winner ${teen62Result.winner}`
+                          : `Teen62 bet "${betType}" did not match winner ${teen62Result.winner}`;
+                        matchedResult = teen62Result.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Teen62] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teen62Error) {
+                        matchingError = teen62Error instanceof Error ? teen62Error.message : String(teen62Error);
+                        console.error(`❌ [Teen62] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teen62ParseError || 'Teen62 result not available';
+                      console.warn(`⚠️ [Teen62] No result available: ${matchingError}`);
+                    }
+                  }
+                  
                   // FALLBACK: Generic rdesc-based matching (for non-roulette/non-lucky5/non-dt6 or if specialized matching failed)
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult) || (isDolidana && dolidanaResult) || (isAB20 && ab20Result);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult) || (isDolidana && dolidanaResult) || (isAB20 && ab20Result) || (isTeen62 && teen62Result);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
@@ -1674,7 +1728,7 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
-            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : 'Generic')))))));
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : 'Generic'))))))));
             const matchingMethod = isRoulette 
               ? 'roulette-specific' 
               : (isLucky5 
@@ -1693,7 +1747,9 @@ serve(async (req) => {
                             ? 'dolidana-specific'
                             : (isAB20
                               ? 'ab20-specific'
-                              : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'))))))));
+                              : (isTeen62
+                                ? 'teen62-specific'
+                                : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'))))))))));
 
             console.log(`\n📈 Settlement Summary:`, {
               processed,
