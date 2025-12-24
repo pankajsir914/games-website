@@ -137,13 +137,168 @@ export const CurrentResult = ({ result, tableName, tableId }: CurrentResultProps
                             Check console for more details
                           </p>
                         </div>
-                      ) : (
-                        <div>
-                          <pre className="p-4 bg-muted rounded-md text-xs overflow-auto max-h-[60vh]">
-                            {JSON.stringify(detailData, null, 2)}
-                          </pre>
-                        </div>
-                      )}
+                      ) : (() => {
+                        // Extract t1 data from the response
+                        const t1Data = detailData?.data?.t1 || detailData?.t1 || null;
+                        
+                        if (!t1Data) {
+                          return (
+                            <div className="text-center py-8 text-muted-foreground">
+                              No detailed result data available
+                            </div>
+                          );
+                        }
+
+                        // Parse rdesc to extract winner and one or more bet results
+                        const parseRdesc = (rdesc: string) => {
+                          if (!rdesc) {
+                            return {
+                              winner: null,
+                              results: [] as { betOption: string | null; result: string | null }[],
+                              fullText: null
+                            };
+                          }
+
+                          // Expected pattern (can contain multiple results for same round):
+                          // "Winner#B : Over 21(32)#A : Under 21(10)"
+                          //  - Winner  = text before first '#'
+                          //  - Each part after that = "BetCode : Result"
+                          const parts = rdesc.split('#').map((p) => p.trim()).filter(Boolean);
+
+                          if (parts.length === 0) {
+                            return {
+                              winner: null,
+                              results: [],
+                              fullText: rdesc
+                            };
+                          }
+
+                          const winner = parts[0];
+
+                          const results = parts.slice(1).map((segment) => {
+                            // Segment like "B : Over 21(32)" or "B:Over 21(32)"
+                            const colonIndex = segment.indexOf(':');
+                            if (colonIndex === -1) {
+                              return {
+                                betOption: segment.trim(),
+                                result: null
+                              };
+                            }
+
+                            const betOption = segment.substring(0, colonIndex).trim();
+                            const result = segment.substring(colonIndex + 1).trim();
+
+                            return { betOption, result };
+                          });
+
+                          return {
+                            winner: winner || null,
+                            results,
+                            fullText: rdesc
+                          };
+                        };
+
+                        // Format cards for display
+                        const formatCards = (cardString: string) => {
+                          if (!cardString) return [];
+                          return cardString.split(',').map(card => card.trim());
+                        };
+
+                        const cards = formatCards(t1Data.card || '');
+                        const parsedRdesc = parseRdesc(t1Data.rdesc || '');
+
+                        return (
+                          <div className="space-y-6">
+                            {/* Winner Section - Highlighted */}
+                            <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 rounded-lg p-4">
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Winner</p>
+                                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                                    {parsedRdesc.winner || t1Data.winnat || 'N/A'}
+                                  </p>
+                                </div>
+                                
+                                {/* Multiple bet results for same round, parsed from rdesc */}
+                                {parsedRdesc.results && parsedRdesc.results.length > 0 && (
+                                  <div className="pt-2 border-t border-green-500/30 space-y-2">
+                                    <p className="text-xs font-semibold text-muted-foreground">
+                                      Round Results
+                                    </p>
+                                    <div className="space-y-1">
+                                      {parsedRdesc.results.map((res, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-md bg-green-500/10 px-2 py-1.5"
+                                        >
+                                          <span className="text-xs font-medium text-green-700 dark:text-green-200">
+                                            Bet:{" "}
+                                            <span className="font-semibold">
+                                              {res.betOption || "N/A"}
+                                            </span>
+                                          </span>
+                                          {res.result && (
+                                            <span className="text-xs text-green-800 dark:text-green-100">
+                                              Result:{" "}
+                                              <span className="font-medium">
+                                                {res.result}
+                                              </span>
+                                            </span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="pt-2 border-t border-green-500/30">
+                                  <p className="text-xs text-muted-foreground mb-1">Win Code</p>
+                                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                    {t1Data.win || 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Game Information */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <p className="text-xs font-semibold text-muted-foreground">Event Name</p>
+                                <p className="text-sm font-medium">{t1Data.ename || 'N/A'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs font-semibold text-muted-foreground">Round ID</p>
+                                <p className="text-sm font-medium font-mono">{t1Data.rid || 'N/A'}</p>
+                              </div>
+                              <div className="space-y-1 col-span-2">
+                                <p className="text-xs font-semibold text-muted-foreground">Round Description</p>
+                                <p className="text-sm font-medium break-words">{parsedRdesc.fullText || t1Data.rdesc || 'N/A'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs font-semibold text-muted-foreground">Time</p>
+                                <p className="text-sm font-medium">{t1Data.mtime || 'N/A'}</p>
+                              </div>
+                            </div>
+
+                            {/* Cards Display */}
+                            {cards.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-muted-foreground">Cards</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {cards.map((card, index) => (
+                                    <div
+                                      key={index}
+                                      className="px-3 py-2 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border border-red-300 dark:border-red-700 rounded-md font-mono font-bold text-sm text-red-700 dark:text-red-300"
+                                    >
+                                      {card}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
