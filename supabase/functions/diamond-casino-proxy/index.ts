@@ -57,6 +57,12 @@ import {
   isMogamboTable,
   type MogamboResult
 } from './mogamboSettlement.ts';
+import {
+  parseDolidanaResult,
+  isDolidanaWinningBet,
+  isDolidanaTable,
+  type DolidanaResult
+} from './dolidanaSettlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -984,7 +990,15 @@ serve(async (req) => {
               isMogambo = false;
             }
             
-            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : 'Generic'}`);
+            // Check if this is a Dolidana table
+            let isDolidana = false;
+            try {
+              isDolidana = isDolidanaTable(tableId);
+            } catch (error) {
+              isDolidana = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : isDolidana ? 'Dolidana' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
@@ -1215,9 +1229,32 @@ serve(async (req) => {
                 console.error(`❌ [Mogambo] Parse error:`, mogamboParseError);
               }
             }
+            
+            // For Dolidana: Parse result from card/win
+            let dolidanaResult: DolidanaResult | null = null;
+            let dolidanaParseError: string | null = null;
+            
+            if (isDolidana) {
+              try {
+                // Extract card and win from resultData
+                const cardValue = resultData?.card || resultData?.t1?.card || null;
+                const winValue = resultData?.win || resultData?.t1?.win || win || null;
+                
+                dolidanaResult = parseDolidanaResult(cardValue, winValue);
+                if (dolidanaResult) {
+                  console.log(`✅ [Dolidana] Parsed: dice=${dolidanaResult.dice.join(',')}, sum=${dolidanaResult.sum}`);
+                } else {
+                  dolidanaParseError = 'Could not parse Dolidana result from card/win';
+                  console.warn(`⚠️ [Dolidana] Parsing failed`);
+                }
+              } catch (error) {
+                dolidanaParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Dolidana] Parse error:`, dolidanaParseError);
+              }
+            }
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : 'Generic')))))),
+              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : 'Generic'))))))),
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
@@ -1433,11 +1470,32 @@ serve(async (req) => {
                     }
                   }
                   
+                  // PRIMARY: Dolidana-specific matching (if Dolidana table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && isDolidana) {
+                    if (dolidanaResult) {
+                      try {
+                        betWon = isDolidanaWinningBet(betType, dolidanaResult, betSide);
+                        matchReason = betWon
+                          ? `Dolidana bet "${betType}" matched dice ${dolidanaResult.dice.join(',')} (sum=${dolidanaResult.sum})`
+                          : `Dolidana bet "${betType}" did not match dice ${dolidanaResult.dice.join(',')} (sum=${dolidanaResult.sum})`;
+                        matchedResult = `${dolidanaResult.dice.join(',')} (sum=${dolidanaResult.sum})`;
+                        specializedMatchingDone = true;
+                        console.log(`🎲 [Dolidana] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (dolidanaError) {
+                        matchingError = dolidanaError instanceof Error ? dolidanaError.message : String(dolidanaError);
+                        console.error(`❌ [Dolidana] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = dolidanaParseError || 'Dolidana result not available';
+                      console.warn(`⚠️ [Dolidana] No result available: ${matchingError}`);
+                    }
+                  }
+                  
                   // FALLBACK: Generic rdesc-based matching (for non-roulette/non-lucky5/non-dt6 or if specialized matching failed)
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult) || (isDolidana && dolidanaResult);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
@@ -1574,7 +1632,9 @@ serve(async (req) => {
                         ? 'cmeter1-specific'
                         : (isMogambo
                           ? 'mogambo-specific'
-                          : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)')))))));
+                          : (isDolidana
+                            ? 'dolidana-specific'
+                            : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)')))))));
 
             console.log(`\n📈 Settlement Summary:`, {
               processed,
