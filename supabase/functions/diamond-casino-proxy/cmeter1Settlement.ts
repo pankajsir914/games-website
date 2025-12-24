@@ -1,51 +1,41 @@
 /* =====================================================
-   AAA2 (Amar Akbar Anthony 2) Settlement
+   CMeter1 (Color Meter 1) Settlement
    ===================================================== */
 
-export interface AAA2Result {
+export interface CMeter1Result {
   mid?: number;
-  winnerId: number;          // 1 | 2 | 3
-  winnerName: string;        // Amar | Akbar | Anthony
-  cards: string[];           // ["3HH"]
-  cardValue: number | null;  // 3
+  winnerId: number;          // 1 | 2 | 3 | 4
+  winnerName: string;        // Red | Green | Violet | Golden
+  cardValue: number | null;   // Card number
+  cards: string[];           // Card strings
   attributes: Set<string>;   // normalized attributes for matching
 }
 
 /**
- * Check if table is AAA2
- * Supports: aaa2, aaa-2, aaa 2, amar akbar anthony 2
+ * Check if table is CMeter1 / Color Meter 1
+ * Supports: cmeter1, cmeter-1, cmeter 1, color meter
  */
-export function isAAA2Table(tableId: string): boolean {
+export function isCMeter1Table(tableId: string): boolean {
   if (!tableId || typeof tableId !== "string") {
-    console.warn("⚠️ [AAA2] Invalid tableId:", tableId);
     return false;
   }
-
+  
   const t = tableId.toLowerCase().trim();
-
-  const isAAA2 =
-    t === "aaa2" ||
-    t.includes("aaa2") ||
-    t.includes("aaa-2") ||
-    t.includes("aaa 2") ||
-    t.includes("amar akbar anthony");
-
-  console.log("🔍 [AAA2 Detection]", {
-    tableId,
-    normalized: t,
-    isAAA2,
-  });
-
-  return isAAA2;
+  
+  return t === "cmeter1" ||
+         t.includes("cmeter1") ||
+         t.includes("cmeter-1") ||
+         t.includes("cmeter 1") ||
+         t.includes("color meter");
 }
 
 /**
- * Parse AAA2 result from detail_result.t1
+ * Parse CMeter1 result from detail_result.t1
  *
  * Example rdesc:
- * "Amar#Odd#Red#Under 7#3"
+ * "Red#Odd#Red#Under 7#3"
  */
-export function parseAAA2Result(
+export function parseCMeter1Result(
   detailResult: {
     mid?: number | string;
     win?: string | number;
@@ -53,26 +43,25 @@ export function parseAAA2Result(
     rdesc?: string;
     card?: string;
   } | null | undefined
-): AAA2Result | null {
+): CMeter1Result | null {
   if (!detailResult) return null;
-
+  
   const winnerId = Number(detailResult.win);
   const winnerName = detailResult.winnat || "";
-
+  
   if (!winnerId || !winnerName) {
-    console.warn("⚠️ [AAA2] Invalid result payload:", detailResult);
     return null;
   }
-
+  
   const parts = detailResult.rdesc
     ? detailResult.rdesc.split("#").map(p => p.trim()).filter(Boolean)
     : [];
-
+  
   const cards = detailResult.card
     ? detailResult.card.split(",").map(c => c.trim()).filter(Boolean)
     : [];
-
-  // extract numeric card value (last numeric part)
+  
+  // Extract numeric card value (last numeric part)
   let cardValue: number | null = null;
   for (const p of parts.reverse()) {
     if (/^\d+$/.test(p)) {
@@ -80,68 +69,64 @@ export function parseAAA2Result(
       break;
     }
   }
-
+  
   const attributes = new Set<string>();
-
-  // add all rdesc parts
+  
+  // Add all rdesc parts
   parts.forEach(p => attributes.add(p.toLowerCase()));
-
-  // winner aliases
+  
+  // Winner aliases
   const winnerLower = winnerName.toLowerCase();
   attributes.add(winnerLower);
-
+  
+  // Color-based winner IDs
   if (winnerId === 1) {
-    attributes.add("amar");
+    attributes.add("red");
     attributes.add("player 1");
     attributes.add("1");
   }
   if (winnerId === 2) {
-    attributes.add("akbar");
+    attributes.add("green");
     attributes.add("player 2");
     attributes.add("2");
   }
   if (winnerId === 3) {
-    attributes.add("anthony");
+    attributes.add("violet");
     attributes.add("player 3");
     attributes.add("3");
   }
-
-  // card based attributes
+  if (winnerId === 4) {
+    attributes.add("golden");
+    attributes.add("player 4");
+    attributes.add("4");
+  }
+  
+  // Card-based attributes
   if (cardValue !== null) {
     attributes.add(cardValue.toString());
     attributes.add(`card ${cardValue}`);
     attributes.add(`card${cardValue}`);
-
+    
     if (cardValue % 2 === 0) {
       attributes.add("even");
     } else {
       attributes.add("odd");
     }
-
+    
     if (cardValue <= 7) {
       attributes.add("under 7");
     } else {
       attributes.add("over 7");
     }
   }
-
-  // color detection from card suit
+  
+  // Color detection from card suit
   cards.forEach(c => {
     const suit = c.slice(-2).toUpperCase();
     if (["HH", "DD"].includes(suit)) attributes.add("red");
     if (["SS", "CC"].includes(suit)) attributes.add("black");
   });
-
-  console.log("🎯 [AAA2 Result Parsed]", {
-    mid: detailResult.mid,
-    winnerId,
-    winnerName,
-    parts,
-    cards,
-    cardValue,
-    attributes: Array.from(attributes),
-  });
-
+  
   return {
     mid: detailResult.mid ? Number(detailResult.mid) : undefined,
     winnerId,
@@ -153,53 +138,43 @@ export function parseAAA2Result(
 }
 
 /**
- * Match a single bet against AAA2 result
+ * Match a single bet against CMeter1 result
  */
-export function isAAA2WinningBet(
+export function isCMeter1WinningBet(
   betType: string,
-  result: AAA2Result,
+  result: CMeter1Result,
   side: "back" | "lay" = "back"
 ): boolean {
   if (!betType) return false;
-
+  
   const normalizedBet = betType
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ");
-
+  
   let isMatch = false;
-
-  // 1️⃣ direct attribute match
+  
+  // 1️⃣ Direct attribute match
   if (result.attributes.has(normalizedBet)) {
     isMatch = true;
   }
-
-  // 2️⃣ numeric card bet
+  
+  // 2️⃣ Numeric card bet
   if (!isMatch) {
     const num = parseInt(normalizedBet.replace(/^card\s*/, ""), 10);
     if (!isNaN(num) && result.cardValue === num) {
       isMatch = true;
     }
   }
-
-  console.log("🔍 [AAA2 Match]", {
-    betType,
-    normalizedBet,
-    winner: result.winnerName,
-    cardValue: result.cardValue,
-    attributes: Array.from(result.attributes),
-    isMatch,
-    side,
-  });
-
+  
   // BACK = match wins, LAY = opposite wins
   return side === "back" ? isMatch : !isMatch;
 }
 
 /**
- * Settle all AAA2 bets
+ * Settle all CMeter1 bets
  */
-export function settleAAA2Bets(
+export function settleCMeter1Bets(
   bets: any[],
   detailResult: {
     mid?: number | string;
@@ -209,21 +184,21 @@ export function settleAAA2Bets(
     card?: string;
   }
 ) {
-  const result = parseAAA2Result(detailResult);
-
+  const result = parseCMeter1Result(detailResult);
+  
   if (!result) {
     throw new Error(
-      `AAA2 result parsing failed: ${JSON.stringify(detailResult)}`
+      `CMeter1 result parsing failed: ${JSON.stringify(detailResult)}`
     );
   }
-
+  
   return bets.map(bet => {
-    const won = isAAA2WinningBet(
+    const won = isCMeter1WinningBet(
       bet.bet_type,
       result,
       bet.side || "back"
     );
-
+    
     return {
       ...bet,
       status: won ? "won" : "lost",
