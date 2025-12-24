@@ -44,6 +44,13 @@ import {
   isAAA2Table,
   type AAA2Result
 } from './aaa2Settlement.ts';
+import {
+  parseCMeter1Result,
+  isCMeter1WinningBet,
+  settleCMeter1Bets,
+  isCMeter1Table,
+  type CMeter1Result
+} from './cmeter1Settlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -327,10 +334,12 @@ serve(async (req) => {
         }
       } catch (fetchError) {
         const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-        console.error('Error fetching result:', {
-          tableId,
-          message: errorMessage
-        });
+        // Connection errors are common - log but don't fail completely
+        if (errorMessage.includes('Connection reset') || errorMessage.includes('connection error')) {
+          console.warn(`⚠️ [get-result] Connection error for ${tableId}, API may be temporarily unavailable`);
+        } else {
+          console.error(`❌ [get-result] Error for ${tableId}:`, errorMessage);
+        }
         result = { success: true, data: null };
       }
     }
@@ -351,11 +360,12 @@ serve(async (req) => {
         }
       } catch (fetchError) {
         const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-        console.error('Error fetching result history:', {
-          tableId,
-          date: targetDate,
-          message: errorMessage
-        });
+        // Connection errors are common - log but don't fail completely
+        if (errorMessage.includes('Connection reset') || errorMessage.includes('connection error')) {
+          console.warn(`⚠️ [get-result-history] Connection error for ${tableId}, API may be temporarily unavailable`);
+        } else {
+          console.error(`❌ [get-result-history] Error for ${tableId}:`, errorMessage);
+        }
         result = { success: true, data: [] };
       }
     }
@@ -409,7 +419,12 @@ serve(async (req) => {
             }
           } catch (endpointError) {
             const errorMessage = endpointError instanceof Error ? endpointError.message : String(endpointError);
-            console.log(`⚠️ Endpoint failed: ${endpoint}`, errorMessage);
+            // Timeout errors are common - log briefly and continue to next endpoint
+            if (errorMessage.includes('signal has been aborted') || errorMessage.includes('timeout')) {
+              // Silent - will try next endpoint
+            } else {
+              console.log(`⚠️ Endpoint failed: ${endpoint}`, errorMessage);
+            }
             continue;
           }
         }
@@ -712,7 +727,11 @@ serve(async (req) => {
             }
           }
         } catch (error) {
-          console.log('⚠️ Could not extract mid from latest result');
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          // Connection errors are common - silently continue
+          if (!errorMessage.includes('Connection reset') && !errorMessage.includes('connection error')) {
+            console.warn(`⚠️ Could not extract mid from latest result: ${errorMessage}`);
+          }
         }
       }
       
@@ -805,7 +824,12 @@ serve(async (req) => {
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error(`❌ [FALLBACK] Error fetching result: ${errorMessage}`);
+          // Connection errors are common - log briefly
+          if (errorMessage.includes('Connection reset') || errorMessage.includes('connection error')) {
+            console.warn(`⚠️ [FALLBACK] Connection error for ${tableId}, API unavailable`);
+          } else {
+            console.error(`❌ [FALLBACK] Error fetching result: ${errorMessage}`);
+          }
         }
       }
 
@@ -938,7 +962,15 @@ serve(async (req) => {
               isAAA2 = false;
             }
             
-            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : 'Generic'}`);
+            // Check if this is a CMeter1 table
+            let isCMeter1 = false;
+            try {
+              isCMeter1 = isCMeter1Table(tableId);
+            } catch (error) {
+              isCMeter1 = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
@@ -1125,9 +1157,34 @@ serve(async (req) => {
                 }
               }
             }
+            
+            // For CMeter1: Parse result from detail result data
+            let cmeter1Result: CMeter1Result | null = null;
+            let cmeter1ParseError: string | null = null;
+            
+            if (isCMeter1) {
+              if (!resultData) {
+                cmeter1ParseError = 'No result data available for CMeter1 table';
+                console.warn(`⚠️ [CMeter1] No result data found for table ${tableId}`);
+              } else {
+                try {
+                  // CMeter1 uses detail result structure directly (not rdesc)
+                  cmeter1Result = parseCMeter1Result(resultData);
+                  if (cmeter1Result) {
+                    console.log(`✅ [CMeter1] Parsed: winner=${cmeter1Result.winnerName} (${cmeter1Result.winnerId}), card=${cmeter1Result.cardValue}`);
+                  } else {
+                    cmeter1ParseError = 'Could not parse CMeter1 result from result data';
+                    console.warn(`⚠️ [CMeter1] Parsing failed`);
+                  }
+                } catch (error) {
+                  cmeter1ParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ [CMeter1] Parse error:`, cmeter1ParseError);
+                }
+              }
+            }
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : 'Generic'))),
+              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : 'Generic'))))),
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
@@ -1280,11 +1337,53 @@ serve(async (req) => {
                     }
                   }
                   
+                  // PRIMARY: AAA2-specific matching (if AAA2 table and not roulette/lucky5/dt6/teen3)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && isAAA2) {
+                    if (aaa2Result) {
+                      try {
+                        betWon = isAAA2WinningBet(betType, aaa2Result, betSide);
+                        matchReason = betWon
+                          ? `AAA2 bet "${betType}" matched winner ${aaa2Result.winnerName}`
+                          : `AAA2 bet "${betType}" did not match winner ${aaa2Result.winnerName}`;
+                        matchedResult = aaa2Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🎭 [AAA2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (aaa2Error) {
+                        matchingError = aaa2Error instanceof Error ? aaa2Error.message : String(aaa2Error);
+                        console.error(`❌ [AAA2] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = aaa2ParseError || 'AAA2 result not available';
+                      console.warn(`⚠️ [AAA2] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: CMeter1-specific matching (if CMeter1 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && isCMeter1) {
+                    if (cmeter1Result) {
+                      try {
+                        betWon = isCMeter1WinningBet(betType, cmeter1Result, betSide);
+                        matchReason = betWon
+                          ? `CMeter1 bet "${betType}" matched winner ${cmeter1Result.winnerName}`
+                          : `CMeter1 bet "${betType}" did not match winner ${cmeter1Result.winnerName}`;
+                        matchedResult = cmeter1Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🎨 [CMeter1] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (cmeter1Error) {
+                        matchingError = cmeter1Error instanceof Error ? cmeter1Error.message : String(cmeter1Error);
+                        console.error(`❌ [CMeter1] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = cmeter1ParseError || 'CMeter1 result not available';
+                      console.warn(`⚠️ [CMeter1] No result available: ${matchingError}`);
+                    }
+                  }
+                  
                   // FALLBACK: Generic rdesc-based matching (for non-roulette/non-lucky5/non-dt6 or if specialized matching failed)
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
@@ -1406,14 +1505,20 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
-            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : 'Generic')));
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : 'Generic')))));
             const matchingMethod = isRoulette 
               ? 'roulette-specific' 
               : (isLucky5 
                 ? 'lucky5-specific' 
                 : (isDT6
                   ? 'dt6-specific'
-                  : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)')));
+                  : (isTeen3
+                    ? 'teen3-specific'
+                    : (isAAA2
+                      ? 'aaa2-specific'
+                      : (isCMeter1
+                        ? 'cmeter1-specific'
+                        : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'))))));
 
             console.log(`\n📈 Settlement Summary:`, {
               processed,
