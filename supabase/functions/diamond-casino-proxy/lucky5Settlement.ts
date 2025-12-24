@@ -52,6 +52,27 @@ function normalize(value: string): string {
     .replace(/\s+/g, " ");
 }
 
+/* ======================= TABLE DETECTION ======================= */
+
+/**
+ * Check if a table is a Lucky5 table
+ */
+export function isLucky5Table(tableId: string): boolean {
+  if (!tableId || typeof tableId !== 'string') {
+    return false;
+  }
+  
+  const lucky5Keywords = [
+    'lucky5',      // Standard: lucky5
+    'lucky 5',     // With space: lucky 5
+    'lucky-5',     // With dash: lucky-5
+    'lucky_5'      // With underscore: lucky_5
+  ];
+  
+  const lowerTableId = tableId.toLowerCase().trim();
+  return lucky5Keywords.some(keyword => lowerTableId.includes(keyword));
+}
+
 /* ======================= MATCH ENGINE ======================= */
 
 /**
