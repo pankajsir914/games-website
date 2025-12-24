@@ -16,6 +16,13 @@ import {
   isRouletteTable,
   type RouletteResult
 } from './rouletteSettlement.ts';
+import {
+  parseLucky5Result,
+  isLucky5WinningBet,
+  settleLucky5Bets,
+  isLucky5Table,
+  type Lucky5Result
+} from './lucky5Settlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -870,6 +877,9 @@ serve(async (req) => {
             // Check if this is a roulette table
             const isRoulette = isRouletteTable(tableId);
             
+            // Check if this is a lucky5 table
+            const isLucky5 = isLucky5Table(tableId);
+            
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
             let rouletteParseError: string | null = null;
@@ -902,15 +912,44 @@ serve(async (req) => {
                 }
               }
             }
+            
+            // For lucky5: Parse result from rdesc
+            let lucky5Result: Lucky5Result | null = null;
+            let lucky5ParseError: string | null = null;
+            
+            if (isLucky5) {
+              if (!rdesc) {
+                lucky5ParseError = 'No rdesc available for lucky5 table';
+                console.warn(`⚠️ Lucky5 table ${tableId} but no rdesc found`);
+              } else {
+                try {
+                  lucky5Result = parseLucky5Result(rdesc);
+                  if (lucky5Result) {
+                    console.log(`🎴 Lucky5 result derived:`, {
+                      cards: lucky5Result.cards,
+                      winningCard: lucky5Result.winningCard,
+                      rdesc: rdesc
+                    });
+                  } else {
+                    lucky5ParseError = `Could not parse lucky5 result from rdesc: "${rdesc}"`;
+                    console.warn(`⚠️ Lucky5 table but could not parse result from rdesc:`, rdesc);
+                  }
+                } catch (error) {
+                  lucky5ParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ Error parsing lucky5 result:`, lucky5ParseError);
+                }
+              }
+            }
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : 'Generic',
+              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : 'Generic'),
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
               parsedResultsCount: parsedRdesc?.results?.length || 0,
               fallbackWinningValue: winningValue || '(not found)',
-              rouletteNumber: rouletteResult?.number ?? null
+              rouletteNumber: rouletteResult?.number ?? null,
+              lucky5Cards: lucky5Result?.cards ?? null
             });
 
             for (const bet of betsToProcess) {
@@ -929,13 +968,14 @@ serve(async (req) => {
                   betSide,
                   roundId: bet.round_id,
                   resultMid,
-                  tableType: isRoulette ? 'Roulette' : 'Generic'
+                  tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : 'Generic')
                 });
 
                 // ============================================
                 // BET MATCHING FLOW
                 // ============================================
                 // For Roulette: Use specialized roulette matching
+                // For Lucky5: Use specialized lucky5 matching
                 // For Others: Use generic rdesc matching
                 // ============================================
                 
@@ -982,8 +1022,45 @@ serve(async (req) => {
                     }
                   }
                   
-                  // FALLBACK: Generic rdesc-based matching (for non-roulette or if roulette matching failed)
-                  if (!isRoulette || !rouletteResult || matchingError) {
+                  // PRIMARY: Lucky5-specific matching (if lucky5 table and not roulette)
+                  if (!isRoulette && isLucky5) {
+                    if (lucky5Result) {
+                      try {
+                        betWon = isLucky5WinningBet(betType, lucky5Result, betSide);
+                        matchReason = betWon
+                          ? `Lucky5 bet "${betType}" matched result: ${lucky5Result.cards.join(", ")} (winning card: ${lucky5Result.winningCard})`
+                          : `Lucky5 bet "${betType}" did not match result: ${lucky5Result.cards.join(", ")} (winning card: ${lucky5Result.winningCard})`;
+                        matchedResult = lucky5Result.winningCard;
+
+                        console.log(`  🎴 [lucky5] ${betWon ? '✅ WIN' : '❌ LOSE'}:`, {
+                          reason: matchReason,
+                          winningCard: lucky5Result.winningCard,
+                          allCards: lucky5Result.cards,
+                          betType,
+                          betSide
+                        });
+                      } catch (lucky5Error) {
+                        const errorMsg = lucky5Error instanceof Error ? lucky5Error.message : String(lucky5Error);
+                        matchingError = `lucky5 matching failed: ${errorMsg}`;
+                        console.error(`  ❌ Error in lucky5 matching:`, errorMsg);
+                        // Fall through to generic matching
+                      }
+                    } else {
+                      // Lucky5 table but result parsing failed
+                      matchingError = lucky5ParseError || 'Lucky5 result not available';
+                      console.warn(`  ⚠️ Lucky5 table but result parsing failed: ${matchingError}`);
+                      // Fall through to generic matching as last resort
+                    }
+                  }
+                  
+                  // FALLBACK: Generic rdesc-based matching (for non-roulette/non-lucky5 or if specialized matching failed)
+                  // Only use fallback if:
+                  // 1. Not a specialized table (roulette/lucky5), OR
+                  // 2. Specialized table but matching failed (matchingError is set)
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result);
+                  const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
+                  
+                  if (!specializedMatchingSucceeded) {
                     if (parsedRdesc) {
                       try {
                         const matchResult = matchBetAgainstRdesc(betType, betSide, parsedRdesc);
@@ -1112,6 +1189,13 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : 'Generic');
+            const matchingMethod = isRoulette 
+              ? 'roulette-specific' 
+              : (isLucky5 
+                ? 'lucky5-specific' 
+                : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'));
+
             console.log(`\n📈 Settlement Summary:`, {
               processed,
               won,
@@ -1119,8 +1203,9 @@ serve(async (req) => {
               totalPayouts,
               resultSource,
               winningValue,
+              tableType,
               rdescUsed: !!rdesc,
-              matchingMethod: rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'
+              matchingMethod
             });
 
             result = {
@@ -1136,7 +1221,8 @@ serve(async (req) => {
               resultSource,
               resultMid: resultMid || null,
               rdesc: rdesc || null,
-              matchingMethod: rdesc ? 'rdesc-based' : 'fallback'
+              tableType,
+              matchingMethod
             };
           }
         }
