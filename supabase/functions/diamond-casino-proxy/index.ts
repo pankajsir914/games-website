@@ -489,11 +489,11 @@ serve(async (req) => {
             //console.log(`✅ Found ${bettingOptions.length} betting options`);
             result = { success: true, data: { bets: bettingOptions, raw: oddsData } };
           } else {
-            console.log(`⚠️ No betting options found in odds data`);
+            //console.log(`⚠️ No betting options found in odds data`);
             result = { success: true, data: { bets: [], raw: oddsData, noOdds: true } };
           }
         } else {
-          console.log(`⚠️ No odds data received from any endpoint`);
+          //console.log(`⚠️ No odds data received from any endpoint`);
           result = { success: true, data: { bets: [], raw: null, noOdds: true } };
         }
       } catch (fetchError) {
