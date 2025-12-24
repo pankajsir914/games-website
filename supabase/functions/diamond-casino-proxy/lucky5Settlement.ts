@@ -1,168 +1,101 @@
-/**
- * Generic Lucky5 Betting Settlement Engine
- * Patterned after Roulette Engine
- * Fully data-driven, no hardcoding
- */
+// lucky5Settlement.ts
 
-/* ======================= TYPES ======================= */
-
-export interface Lucky5Result {
-  cards: string[];        // ["High Card", "Odd", "Red", "9"]
-  winningCard: string;   // "9"
-}
-
-export interface UserBet {
-  id: string;
-  bet_type: string;      // nat (Even, Odd, Red, Card 9, etc.)
-  bet_amount: number;
-  odds?: number;
-  side?: 'back' | 'lay';
-}
-
-/* ======================= PARSER ======================= */
+export type Lucky5Result = {
+  winningCard: string;          // "1"
+  cardNumber: number;           // 1
+  attributes: Set<string>;      // all winning attributes
+};
 
 /**
- * Parse Lucky5 rdesc
- * Example: "High Card#Odd#Red#9"
+ * Check if table is Lucky5
  */
-export function parseLucky5Result(
-  rdesc: string | null | undefined
-): Lucky5Result | null {
-  if (!rdesc || typeof rdesc !== "string") return null;
+export function isLucky5Table(tableId: string): boolean {
+  return tableId.toLowerCase().includes('lucky5');
+}
+
+/**
+ * Parse Lucky5 result strictly from rdesc
+ * Example rdesc:
+ * "Low Card#Odd#Red#1"
+ */
+export function parseLucky5Result(rdesc: string): Lucky5Result | null {
+  if (!rdesc) return null;
 
   const parts = rdesc
-    .split("#")
+    .split('#')
     .map(p => p.trim())
     .filter(Boolean);
 
   if (parts.length === 0) return null;
 
+  // Extract numeric card (last truth)
+  const cardPart = parts.find(p => /^\d+$/.test(p));
+  if (!cardPart) return null;
+
+  const cardNumber = parseInt(cardPart, 10);
+
+  // Normalize attributes
+  const attributes = new Set(
+    parts.map(p => p.toLowerCase())
+  );
+
+  // Add normalized card labels
+  attributes.add(`card ${cardNumber}`);
+  attributes.add(cardNumber.toString());
+
   return {
-    cards: parts,
-    winningCard: parts[parts.length - 1]
+    winningCard: cardPart,
+    cardNumber,
+    attributes
   };
 }
 
-/* ======================= NORMALIZER ======================= */
-
-function normalize(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-/* ======================= TABLE DETECTION ======================= */
-
 /**
- * Check if a table is a Lucky5 table
- */
-export function isLucky5Table(tableId: string): boolean {
-  if (!tableId || typeof tableId !== 'string') {
-    return false;
-  }
-  
-  const lucky5Keywords = [
-    'lucky5',      // Standard: lucky5
-    'lucky 5',     // With space: lucky 5
-    'lucky-5',     // With dash: lucky-5
-    'lucky_5'      // With underscore: lucky_5
-  ];
-  
-  const lowerTableId = tableId.toLowerCase().trim();
-  return lucky5Keywords.some(keyword => lowerTableId.includes(keyword));
-}
-
-/* ======================= MATCH ENGINE ======================= */
-
-/**
- * Decide if bet is winning
+ * Match a single bet against Lucky5 result
  */
 export function isLucky5WinningBet(
-  betCoverage: string,
+  betType: string,
   result: Lucky5Result,
-  betSide: 'back' | 'lay' = 'back'
+  side: 'back' | 'lay' = 'back'
 ): boolean {
-  if (!betCoverage) return false;
+  const bet = betType.toLowerCase().trim();
 
-  const normalizedBet = normalize(betCoverage);
-  const normalizedCards = result.cards.map(normalize);
+  const isMatch = result.attributes.has(bet);
 
-  console.log("🔍 [Lucky5 Match]", {
-    betCoverage,
-    normalizedBet,
-    resultCards: normalizedCards
-  });
+  // BACK = match wins
+  if (side === 'back') return isMatch;
 
-  let isMatch = false;
-
-  /* ---------- Rule 1: Direct match (Even, Odd, Red, Black, High Card, Low Card) ---------- */
-  if (normalizedCards.includes(normalizedBet)) {
-    isMatch = true;
-  }
-
-  /* ---------- Rule 2: Card X match ---------- */
-  // bet: "Card 9" | "Card J"
-  if (normalizedBet.startsWith("card")) {
-    const betCard = normalizedBet.replace("card", "").trim();
-    const winningCard = normalize(result.winningCard);
-
-    if (betCard === winningCard) {
-      isMatch = true;
-    }
-  }
-
-  /* ---------- BACK vs LAY ---------- */
-  return betSide === "back" ? isMatch : !isMatch;
+  // LAY = non-match wins
+  return !isMatch;
 }
 
-/* ======================= SETTLEMENT ======================= */
-
 /**
- * Settle Lucky5 bets
+ * Settle all Lucky5 bets (optional helper)
  */
 export function settleLucky5Bets(
-  rdesc: string | null | undefined,
-  bets: UserBet[]
-): Array<{
-  bet: UserBet;
-  isWin: boolean;
-  payout?: number;
-  reason: string;
-}> {
-  const parsed = parseLucky5Result(rdesc);
+  bets: any[],
+  rdesc: string
+) {
+  const result = parseLucky5Result(rdesc);
 
-  if (!parsed) {
-    return bets.map(bet => ({
-      bet,
-      isWin: false,
-      reason: "Invalid or empty rdesc"
-    }));
+  if (!result) {
+    throw new Error(`Lucky5 result parsing failed for rdesc: ${rdesc}`);
   }
 
-  console.log("🎯 [Lucky5 Result Parsed]", parsed);
-
   return bets.map(bet => {
-    const side = bet.side || "back";
-
-    const isWin = isLucky5WinningBet(
+    const won = isLucky5WinningBet(
       bet.bet_type,
-      parsed,
-      side
+      result,
+      bet.side || 'back'
     );
 
-    const payout =
-      isWin && bet.odds
-        ? Number((bet.bet_amount * bet.odds).toFixed(2))
-        : undefined;
-
     return {
-      bet,
-      isWin,
-      payout,
-      reason: isWin
-        ? `Matched "${bet.bet_type}" with result "${parsed.cards.join(", ")}"`
-        : `No match for "${bet.bet_type}"`
+      ...bet,
+      status: won ? 'won' : 'lost',
+      payout:
+        won && bet.odds
+          ? Number((bet.bet_amount * bet.odds).toFixed(2))
+          : 0
     };
   });
 }
