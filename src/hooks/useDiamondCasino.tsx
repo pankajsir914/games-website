@@ -77,10 +77,11 @@ export const useDiamondCasino = () => {
       setLoading(true);
       
       // Fetch only required fields: table_id, table_name, status, image_url column, and image URL from table_data
+      // Include both 'active' and 'maintenance' status tables
       const { data: tablesData, error } = await supabase
         .from("diamond_casino_tables")
         .select("table_id, table_name, status, image_url, table_data")
-        .eq("status", "active")
+        .in("status", ["active", "maintenance"])
         .order("last_updated", { ascending: false });
 
       if (error) throw error;
