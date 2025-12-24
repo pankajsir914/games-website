@@ -51,6 +51,12 @@ import {
   isCMeter1Table,
   type CMeter1Result
 } from './cmeter1Settlement.ts';
+import {
+  parseMogamboResult,
+  isMogamboWinningBet,
+  isMogamboTable,
+  type MogamboResult
+} from './mogamboSettlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -970,7 +976,15 @@ serve(async (req) => {
               isCMeter1 = false;
             }
             
-            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : 'Generic'}`);
+            // Check if this is a Mogambo table
+            let isMogambo = false;
+            try {
+              isMogambo = isMogamboTable(tableId);
+            } catch (error) {
+              isMogambo = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
@@ -1182,9 +1196,28 @@ serve(async (req) => {
                 }
               }
             }
+            
+            // For Mogambo: Parse result from rdesc/winnat
+            let mogamboResult: MogamboResult | null = null;
+            let mogamboParseError: string | null = null;
+            
+            if (isMogambo) {
+              try {
+                mogamboResult = parseMogamboResult(rdesc, winnat, win);
+                if (mogamboResult) {
+                  console.log(`✅ [Mogambo] Parsed: winner=${mogamboResult.winner} (${mogamboResult.winCode})`);
+                } else {
+                  mogamboParseError = 'Could not parse Mogambo result from rdesc/winnat';
+                  console.warn(`⚠️ [Mogambo] Parsing failed`);
+                }
+              } catch (error) {
+                mogamboParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Mogambo] Parse error:`, mogamboParseError);
+              }
+            }
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : 'Generic'))))),
+              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : 'Generic')))))),
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
@@ -1379,11 +1412,32 @@ serve(async (req) => {
                     }
                   }
                   
+                  // PRIMARY: Mogambo-specific matching (if Mogambo table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && isMogambo) {
+                    if (mogamboResult) {
+                      try {
+                        betWon = isMogamboWinningBet(betType, mogamboResult, betSide);
+                        matchReason = betWon
+                          ? `Mogambo bet "${betType}" matched winner ${mogamboResult.winner}`
+                          : `Mogambo bet "${betType}" did not match winner ${mogamboResult.winner}`;
+                        matchedResult = mogamboResult.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🎭 [Mogambo] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (mogamboError) {
+                        matchingError = mogamboError instanceof Error ? mogamboError.message : String(mogamboError);
+                        console.error(`❌ [Mogambo] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = mogamboParseError || 'Mogambo result not available';
+                      console.warn(`⚠️ [Mogambo] No result available: ${matchingError}`);
+                    }
+                  }
+                  
                   // FALLBACK: Generic rdesc-based matching (for non-roulette/non-lucky5/non-dt6 or if specialized matching failed)
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
@@ -1505,7 +1559,7 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
-            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : 'Generic')))));
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : 'Generic'))))));
             const matchingMethod = isRoulette 
               ? 'roulette-specific' 
               : (isLucky5 
@@ -1518,7 +1572,9 @@ serve(async (req) => {
                       ? 'aaa2-specific'
                       : (isCMeter1
                         ? 'cmeter1-specific'
-                        : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'))))));
+                        : (isMogambo
+                          ? 'mogambo-specific'
+                          : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)')))))));
 
             console.log(`\n📈 Settlement Summary:`, {
               processed,
