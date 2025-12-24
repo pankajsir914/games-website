@@ -7,8 +7,6 @@ interface TableCardProps {
     id: string;
     name: string;
     status: string;
-    players: number;
-    data?: any;
     imageUrl?: string;
   };
   onClick: () => void;
@@ -83,7 +81,6 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
     prevProps.table.id === nextProps.table.id &&
     prevProps.table.name === nextProps.table.name &&
     prevProps.table.status === nextProps.table.status &&
-    prevProps.table.imageUrl === nextProps.table.imageUrl &&
-    prevProps.table.players === nextProps.table.players
+    prevProps.table.imageUrl === nextProps.table.imageUrl
   );
 });
