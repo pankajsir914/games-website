@@ -14,6 +14,8 @@ interface TableCardProps {
    
 export const TableCard = memo(({ table, onClick }: TableCardProps) => {
   const isRestricted = table.status === "restricted";
+  const isMaintenance = table.status === "maintenance";
+  const isDisabled = isRestricted || isMaintenance;
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -34,14 +36,18 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
 
   return (
     <Card
-      className={`cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 border-primary/20 overflow-hidden ${
-        isRestricted ? "opacity-60 pointer-events-none" : ""
+      className={`transition-all duration-300 border-primary/20 overflow-hidden ${
+        isDisabled 
+          ? "opacity-60 cursor-not-allowed" 
+          : "cursor-pointer hover:shadow-lg hover:scale-105"
       }`}
-      onClick={() => !isRestricted && onClick()}
+      onClick={() => !isDisabled && onClick()}
     >
       {/* IMAGE SECTION */}
       <div
-        className={`relative w-full aspect-square bg-gradient-to-br ${getGradientClass()} flex items-center justify-center`}
+        className={`relative w-full aspect-square bg-gradient-to-br ${getGradientClass()} flex items-center justify-center ${
+          isMaintenance ? "opacity-50" : ""
+        }`}
       >
         {table.imageUrl && !imageError && (
           <img
@@ -65,6 +71,16 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
             <div className="text-4xl sm:text-6xl">🎰</div>
           </div>
         )}
+
+        {/* Maintenance Overlay */}
+        {isMaintenance && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+            <div className="text-center px-2">
+              <p className="text-white font-bold text-sm sm:text-base mb-1">🔧</p>
+              <p className="text-white font-semibold text-xs sm:text-sm">Under Maintenance</p>
+            </div>
+          </div>
+        )}
       </div>
 
       
@@ -73,6 +89,9 @@ export const TableCard = memo(({ table, onClick }: TableCardProps) => {
         <p className="text-xs text-muted-foreground truncate">
           ID: {table.id}
         </p>
+        {isMaintenance && (
+          <p className="text-xs text-orange-500 font-medium mt-1">Under Maintenance</p>
+        )}
       </div>
     </Card>
   );
