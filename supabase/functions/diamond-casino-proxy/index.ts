@@ -1617,7 +1617,7 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
-            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : 'Generic'))))));
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : 'Generic')))))));
             const matchingMethod = isRoulette 
               ? 'roulette-specific' 
               : (isLucky5 
@@ -1634,7 +1634,7 @@ serve(async (req) => {
                           ? 'mogambo-specific'
                           : (isDolidana
                             ? 'dolidana-specific'
-                            : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)')))))));
+                            : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'))))))));
 
             console.log(`\n📈 Settlement Summary:`, {
               processed,
