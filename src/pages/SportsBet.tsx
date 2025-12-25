@@ -702,6 +702,9 @@ const SportsBet: React.FC = () => {
 
     setIsPlacingBet(true);
     try {
+      // Calculate potential win (same as shown in bet slip)
+      const potentialWin = calculatePotentialWin();
+      
       // Call Supabase RPC to place and store the bet
       const payload = {
         p_sport: sport || match?.sport || 'unknown',
@@ -711,21 +714,25 @@ const SportsBet: React.FC = () => {
         p_bet_type: selectedBet.type,
         p_odds: selectedBet.rate,
         p_stake: amount,
+        p_potential_win: potentialWin, // Use the same value shown in bet slip
         p_provider: match?.provider || 'diamond',
         p_meta: {
           matchName: selectedBet.matchName,
           marketType: selectedBet.marketType,
           selection: selectedBet.selection,
+          mname: selectedBet.mname || '',
           raw: selectedBet
         }
       };
 
       const { data, error: rpcError } = await (supabase as any).rpc('place_sports_bet', payload);
       if (rpcError) {
-        throw new Error(rpcError.message || 'Bet placement failed');
+        console.error('RPC Error:', rpcError);
+        throw new Error(rpcError.message || rpcError.details || 'Bet placement failed');
       }
       const rpcData = data as any;
       if (!rpcData?.success) {
+        console.error('RPC Data Error:', rpcData);
         throw new Error(rpcData?.error || 'Bet placement failed');
       }
       
