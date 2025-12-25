@@ -754,61 +754,70 @@ const SportsBet: React.FC = () => {
   // Keep a numeric version handy for calculations
   const numericAmount = Number.isFinite(parseFloat(betAmount)) ? parseFloat(betAmount) : 0;
 
-  // Determine if market is SESSION (rate/double) or ODDS (decimal odds) based on mname
+  // Determine market type based on mname
   // Cricket-specific logic:
-  // ODDS markets: MATCH_ODDS, TIED_MATCHES, BOOKMAKER → decimal odds calculation
+  // ODDS markets: MATCH_ODDS, TIED_MATCHES → decimal odds calculation
+  // BOOKMAKER markets: BOOKMAKER → (odds / 100) × stake calculation
   // SESSION markets: Normal, fancy1, oddeven, meter, khado → double concept (rate = total return)
-  const isSessionMarket = () => {
-    if (!selectedBet) return false;
+  const getMarketCalculationType = (): 'odds' | 'bookmaker' | 'session' => {
+    if (!selectedBet) return 'odds';
     
     // Get mname (most reliable indicator)
     const mname = (selectedBet.mname || '').toUpperCase().trim();
     const marketType = selectedBet.marketType?.toLowerCase() || '';
     const selection = (selectedBet.selection || '').toLowerCase();
     
+    // BOOKMAKER market (special calculation: odds / 100 × stake)
+    if (mname.includes('BOOKMAKER') || marketType.includes('bookmaker')) {
+      return 'bookmaker';
+    }
+    
     // ODDS markets (decimal odds calculation) - mname based
-    const oddsMarketNames = ['MATCH_ODDS', 'TIED_MATCHES', 'BOOKMAKER'];
+    const oddsMarketNames = ['MATCH_ODDS', 'TIED_MATCHES'];
     if (oddsMarketNames.some(name => mname.includes(name))) {
-      return false; // This is ODDS market
+      return 'odds';
     }
     
     // SESSION markets (double/rate concept) - mname based
     const sessionMarketNames = ['NORMAL', 'FANCY1', 'FANCY', 'ODDEVEN', 'METER', 'KHADO', 'ADV'];
     if (sessionMarketNames.some(name => mname.includes(name))) {
-      return true; // This is SESSION market
+      return 'session';
     }
     
     // Fallback: Check marketType for "fancy"
-    if (marketType.includes('fancy')) return true;
+    if (marketType.includes('fancy')) return 'session';
     
     // Fallback: Check selection for session indicators
     if (selection.includes('adv') || selection.includes('run') || selection.includes('over') || 
         selection.includes('ball') || selection.includes('session') || selection.includes('partnership') ||
         selection.includes('khado') || selection.includes('inn') || selection.includes('meter') ||
         selection.includes('oddeven') || selection.includes('normal')) {
-      return true;
+      return 'session';
     }
     
     // Fallback: If rate > 100, likely SESSION market (rate format)
     const rate = parseFloat(selectedBet.rate?.toString() || '0');
     if (rate > 100) {
-      return true;
+      return 'session';
     }
     
-    return false;
+    return 'odds'; // Default to odds
+  };
+
+  const isSessionMarket = () => {
+    return getMarketCalculationType() === 'session';
   };
 
   const calculatePotentialWin = () => {
     if (!betAmount || !selectedBet || !numericAmount || !selectedBet.rate) return 0;
     
-    const isSession = isSessionMarket();
+    const marketType = getMarketCalculationType();
     const rate = parseFloat(selectedBet.rate.toString());
     
-    if (isSession) {
+    if (marketType === 'session') {
       // SESSION market (fancy): back = YES, lay = NO
       // Rate format: rate is the TOTAL RETURN amount (not multiplier)
       // If rate = 340, and stake = 100, then total return = 340, profit = 340 - 100 = 240
-      // OR rate = 340 means if you win, you get ₹340 (fixed amount, double concept)
       if (selectedBet.type === 'back') {
         // YES: Rate is total return, profit = rate - stake
         // Example: Rate 340, Stake 100 → Profit = 340 - 100 = 240
@@ -817,8 +826,18 @@ const SportsBet: React.FC = () => {
         // NO: Profit = stake (if NO wins, you get your stake back as profit)
         return numericAmount;
       }
+    } else if (marketType === 'bookmaker') {
+      // BOOKMAKER market: profit = (odds / 100) × stake
+      if (selectedBet.type === 'back') {
+        // BACK: Profit = (odds / 100) × stake
+        // Example: Odds 250, Stake 100 → Profit = (250 / 100) × 100 = 250
+        return (rate / 100) * numericAmount;
+      } else if (selectedBet.type === 'lay') {
+        // LAY: Profit = stake (when selection loses)
+        return numericAmount;
+      }
     } else {
-      // ODDS market (match/bookmaker): BACK/LAY with decimal odds
+      // ODDS market (match): BACK/LAY with decimal odds
       // Decimal odds format: profit = stake × (odds - 1)
       if (selectedBet.type === 'back') {
         // BACK: Profit = stake × (odds - 1)
@@ -835,10 +854,10 @@ const SportsBet: React.FC = () => {
   const calculateLiability = () => {
     if (!betAmount || !selectedBet || !numericAmount || !selectedBet.rate) return 0;
     
-    const isSession = isSessionMarket();
+    const marketType = getMarketCalculationType();
     const rate = parseFloat(selectedBet.rate.toString());
     
-    if (isSession) {
+    if (marketType === 'session') {
       // SESSION market (fancy): back = YES, lay = NO
       // Rate format: rate is total return amount
       if (selectedBet.type === 'back') {
@@ -849,8 +868,18 @@ const SportsBet: React.FC = () => {
         // Example: Rate 340, Stake 100 → If YES wins, you pay 340 - 100 = 240
         return Math.max(rate - numericAmount, 0);
       }
+    } else if (marketType === 'bookmaker') {
+      // BOOKMAKER market: exposure = (odds / 100) × stake (for LAY)
+      if (selectedBet.type === 'back') {
+        // BACK: Exposure = stake
+        return numericAmount;
+      } else if (selectedBet.type === 'lay') {
+        // LAY: Exposure = (odds / 100) × stake
+        // Example: Odds 250, Stake 100 → Exposure = (250 / 100) × 100 = 250
+        return (rate / 100) * numericAmount;
+      }
     } else {
-      // ODDS market (match/bookmaker): BACK/LAY with decimal odds
+      // ODDS market (match): BACK/LAY with decimal odds
       // Decimal odds format: exposure = stake × (odds - 1) (for LAY)
       if (selectedBet.type === 'back') {
         // BACK: Exposure = stake
