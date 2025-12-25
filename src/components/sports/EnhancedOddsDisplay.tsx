@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EnhancedOddsDisplayProps {
   odds: any;
-  onSelectBet: (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string) => void;
+  onSelectBet: (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string, mname?: string) => void;
   selectedBet: any;
   isLoading?: boolean;
 }
@@ -52,7 +52,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
     rate: string | number | null,
     size: string | number | null,
     marketType: string,
-    isSuspended: boolean = false
+    isSuspended: boolean = false,
+    mname?: string
   ) => {
     if (!rate || isSuspended) {
       return (
@@ -78,7 +79,7 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
           type === 'back' ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-pink-500 hover:bg-pink-600 text-white",
           isSelected && "ring-2 ring-yellow-400 ring-inset"
         )}
-        onClick={() => !isSuspended && onSelectBet(selection, type, parseFloat(rate.toString()), marketType)}
+        onClick={() => !isSuspended && onSelectBet(selection, type, parseFloat(rate.toString()), marketType, mname)}
       >
         <div className="flex flex-col items-center">
           <span className={cn("font-bold", isMobile ? "text-sm" : "text-base")}>
@@ -159,18 +160,18 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                               <TableCell className="bg-slate-50"></TableCell>
                             </>
                           )}
-                          {renderOddsCell(team.nat || team.name, 'back', team.b1, team.bs1, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'back', team.b1, team.bs1, `match-${marketIdx}`, team.gstatus === 'SUSPENDED', market.mname)}
                           {!isMobile && (
                             <>
-                              {renderOddsCell(team.nat || team.name, 'back', team.b2, team.bs2, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
-                              {renderOddsCell(team.nat || team.name, 'back', team.b3, team.bs3, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                              {renderOddsCell(team.nat || team.name, 'back', team.b2, team.bs2, `match-${marketIdx}`, team.gstatus === 'SUSPENDED', market.mname)}
+                              {renderOddsCell(team.nat || team.name, 'back', team.b3, team.bs3, `match-${marketIdx}`, team.gstatus === 'SUSPENDED', market.mname)}
                             </>
                           )}
-                          {renderOddsCell(team.nat || team.name, 'lay', team.l1, team.ls1, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(team.nat || team.name, 'lay', team.l1, team.ls1, `match-${marketIdx}`, team.gstatus === 'SUSPENDED', market.mname)}
                           {!isMobile && (
                             <>
-                              {renderOddsCell(team.nat || team.name, 'lay', team.l2, team.ls2, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
-                              {renderOddsCell(team.nat || team.name, 'lay', team.l3, team.ls3, `match-${marketIdx}`, team.gstatus === 'SUSPENDED')}
+                              {renderOddsCell(team.nat || team.name, 'lay', team.l2, team.ls2, `match-${marketIdx}`, team.gstatus === 'SUSPENDED', market.mname)}
+                              {renderOddsCell(team.nat || team.name, 'lay', team.l3, team.ls3, `match-${marketIdx}`, team.gstatus === 'SUSPENDED', market.mname)}
                             </>
                           )}
                         </TableRow>
@@ -220,8 +221,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                             )}
                             {bookmaker.sid && !isMobile && <span className="text-xs text-muted-foreground ml-2">(ID: {bookmaker.sid})</span>}
                           </TableCell>
-                          {renderOddsCell(bookmaker.nat || bookmaker.name, 'back', bookmaker.b1, bookmaker.bs1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED')}
-                          {renderOddsCell(bookmaker.nat || bookmaker.name, 'lay', bookmaker.l1, bookmaker.ls1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED')}
+                          {renderOddsCell(bookmaker.nat || bookmaker.name, 'back', bookmaker.b1, bookmaker.bs1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED', bookmakerGroup.mname)}
+                          {renderOddsCell(bookmaker.nat || bookmaker.name, 'lay', bookmaker.l1, bookmaker.ls1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED', bookmakerGroup.mname)}
                           {!isMobile && (
                             <TableCell className="text-center text-xs text-muted-foreground">
                               {bookmaker.min && bookmaker.max ? `${bookmaker.min}-${bookmaker.max}` : '-'}
@@ -297,8 +298,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                                     {fancy.line || '-'}
                                   </TableCell>
                                 )}
-                                {renderOddsCell(fancy.nat || fancy.name, 'lay', fancy.l1, fancy.ls1, `fancy-${groupIdx}-${idx}`, fancy.gstatus === 'SUSPENDED')}
-                                {renderOddsCell(fancy.nat || fancy.name, 'back', fancy.b1, fancy.bs1, `fancy-${groupIdx}-${idx}`, fancy.gstatus === 'SUSPENDED')}
+                                {renderOddsCell(fancy.nat || fancy.name, 'lay', fancy.l1, fancy.ls1, `fancy-${groupIdx}-${idx}`, fancy.gstatus === 'SUSPENDED', fancyGroup.mname)}
+                                {renderOddsCell(fancy.nat || fancy.name, 'back', fancy.b1, fancy.bs1, `fancy-${groupIdx}-${idx}`, fancy.gstatus === 'SUSPENDED', fancyGroup.mname)}
                                 {!isMobile && (
                                   <TableCell className="text-center text-xs text-muted-foreground">
                                     {fancy.min && fancy.max ? `${fancy.min}-${fancy.max}` : '-'}
