@@ -702,19 +702,32 @@ const SportsBet: React.FC = () => {
 
     setIsPlacingBet(true);
     try {
-      // Calculate potential win (same as shown in bet slip)
+      // Calculate potential win and liability (same as shown in bet slip)
       const potentialWin = calculatePotentialWin();
+      const liability = calculateLiability();
+      
+      // Generate market_id from market type and selection
+      const marketId = `${selectedBet.mname || 'market'}-${selectedBet.marketType || 'unknown'}`.toLowerCase().replace(/\s+/g, '-');
+      
+      // Extract line_value from selection or meta (for session markets)
+      const lineValue = selectedBet.line || selectedBet.lineValue || null;
       
       // Call Supabase RPC to place and store the bet
+      // Note: Parameter order must match function signature (required params first, then optional)
       const payload = {
         p_sport: sport || match?.sport || 'unknown',
         p_event_id: matchId || match?.id || match?.eventId,
         p_market_type: selectedBet.marketType || 'unknown',
         p_selection: selectedBet.selection || selectedBet.matchName || 'selection',
         p_bet_type: selectedBet.type,
-        p_odds: selectedBet.rate,
+        p_rate: selectedBet.rate,
         p_stake: amount,
-        p_potential_win: potentialWin, // Use the same value shown in bet slip
+        // Optional parameters (with defaults)
+        p_market_id: marketId,
+        p_mname: selectedBet.mname || '',
+        p_line_value: lineValue,
+        p_profit: potentialWin, // Use the same value shown in bet slip
+        p_liability: liability,
         p_provider: match?.provider || 'diamond',
         p_meta: {
           matchName: selectedBet.matchName,
