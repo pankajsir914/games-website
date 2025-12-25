@@ -169,6 +169,10 @@ export function DashboardContent() {
                 <p className="text-sm font-medium">{user?.user_metadata?.full_name || 'User'}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/wallet')}>
                 <Wallet className="mr-2 h-4 w-4" />
                 <span>Wallet</span>
