@@ -43,7 +43,6 @@ export function isDT6Table(tableId: string): boolean {
   if (!tableId || typeof tableId !== 'string') {
     return false;
   }
-  
   const lowerTableId = tableId.toLowerCase().trim();
   return lowerTableId === 'dt6' || lowerTableId.includes('dt6');
 }
