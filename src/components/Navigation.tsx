@@ -7,7 +7,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { User, LogOut, Wallet, Menu, X } from "lucide-react";
+import { User, LogOut, Wallet, Menu, X, UserCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
@@ -93,14 +93,24 @@ const Navigation = () => {
                         </Link>
                       ))}
                       {user && (
-                        <Link
-                          to="/wallet"
-                          className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent flex items-center gap-2"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <Wallet className="h-4 w-4" />
-                          Wallet
-                        </Link>
+                        <>
+                          <Link
+                            to="/profile"
+                            className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent flex items-center gap-2"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <UserCircle className="h-4 w-4" />
+                            Profile
+                          </Link>
+                          <Link
+                            to="/wallet"
+                            className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent flex items-center gap-2"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <Wallet className="h-4 w-4" />
+                            Wallet
+                          </Link>
+                        </>
                       )}
                     </div>
                     {user && (
@@ -157,6 +167,12 @@ const Navigation = () => {
                       <DropdownMenuItem className="flex flex-col items-start">
                         <p className="text-sm font-medium">{user.user_metadata?.full_name || 'User'}</p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/profile" className="w-full">
+                          <UserCircle className="mr-2 h-4 w-4" />
+                          <span>Profile</span>
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link to="/wallet" className="w-full">
