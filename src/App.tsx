@@ -22,6 +22,8 @@ import LiveCasino from "./pages/LiveCasino";
 import LiveCasinoTable from "./pages/LiveCasinoTable";
 import Wallet from "./pages/Wallet";
 import Support from "./pages/Support";
+import Profile from "./pages/Profile";
+import BettingHistory from "./pages/BettingHistory";
 import Sports from "./pages/Sports";
 import SportsMatches from "./pages/SportsMatches";
 import SportsBet from "./pages/SportsBet";
@@ -73,6 +75,8 @@ const App = () => (
               <Route path="/live-casino" element={<LiveCasino />} />
               <Route path="/live-casino/:tableId" element={<LiveCasinoTable />} />
               <Route path="/wallet" element={<Wallet />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/betting-history" element={<BettingHistory />} />
               <Route path="/support" element={<Support />} />
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
