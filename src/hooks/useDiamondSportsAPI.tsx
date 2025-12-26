@@ -46,7 +46,8 @@ export function useDiamondSportsAPI() {
       'sports/livetv': 'livetv',
       'sports/diamondIframeTV': 'diamond-iframe-tv',
       'sports/hlstv': 'hls-tv',
-      'sports/matchOdds': 'match-odds'
+      'sports/matchOdds': 'match-odds',
+      'sports/diamondOriginalTv': 'diamond-original-tv'
     };
 
     try {
@@ -67,8 +68,18 @@ export function useDiamondSportsAPI() {
           || options.params?.diamondeventid;
         const eventid = options.params?.eventid || options.params?.eventId;
 
+        // Debug logging for diamond-original-tv
+        if (action === 'diamond-original-tv') {
+          console.log('🔍 [useDiamondSportsAPI] diamond-original-tv call:', {
+            action,
+            options,
+            extractedSid: sid,
+            extractedGmid: gmid
+          });
+        }
+
         if (action === 'esid' && sid) body.sid = sid;
-        if (['details', 'private', 'score-tv', 'virtual-tv', 'sports-score', 'all-game-details', 'odds', 'livetv', 'diamond-iframe-tv', 'hls-tv', 'match-odds'].includes(action)) {
+        if (['details', 'private', 'score-tv', 'virtual-tv', 'sports-score', 'all-game-details', 'odds', 'livetv', 'diamond-iframe-tv', 'hls-tv', 'match-odds', 'diamond-original-tv'].includes(action)) {
           if (sid) body.sid = sid;
           if (gmid) body.gmid = gmid;
         }
@@ -191,6 +202,11 @@ export function useDiamondSportsAPI() {
   const getDetailsData = useCallback((sid: string, gmid: string) => 
     callAPI('sports/getDetailsData', { sid, gmid }), [callAPI]);
 
+  const getDiamondOriginalTv = useCallback((gmid: string, sid: string) => {
+    console.log('🔍 [useDiamondSportsAPI] getDiamondOriginalTv called with:', { gmid, sid });
+    return callAPI('sports/diamondOriginalTv', { gmid, sid });
+  }, [callAPI]);
+
   return {
     loading,
     error,
@@ -211,6 +227,7 @@ export function useDiamondSportsAPI() {
     getHlsTv,
     getMatchOdds,
     getBetfairScoreTv,
-    getDetailsData
+    getDetailsData,
+    getDiamondOriginalTv
   };
 }
