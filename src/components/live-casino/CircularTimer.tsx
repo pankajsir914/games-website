@@ -1,5 +1,3 @@
-// src/components/live-casino/CircularTimer.tsx
-
 import React from "react";
 
 interface CircularTimerProps {
@@ -15,13 +13,10 @@ export const CircularTimer: React.FC<CircularTimerProps> = ({
 
   /* 
     Sizes:
-    mobile   → 70px  (smaller outer circle)
+    mobile   → 70px
     tablet   → 90px
     desktop  → 110px
   */
-  const sizeMobile = 70;
-  const sizeTablet = 90;
-  const sizeDesktop = 110;
 
   const radius = 42;
   const stroke = 8;
@@ -39,15 +34,16 @@ export const CircularTimer: React.FC<CircularTimerProps> = ({
         w-[70px] h-[70px]
         sm:w-[90px] sm:h-[90px]
         lg:w-[110px] lg:h-[110px]
+        pointer-events-none
       "
     >
       <svg
         viewBox="0 0 110 110"
         className="rotate-[-90deg] w-full h-full"
       >
-        {/* background ring */}
+        {/* background ring (slightly transparent) */}
         <circle
-          stroke="#e5e7eb"
+          stroke="rgba(255,255,255,0.25)"
           fill="transparent"
           strokeWidth={stroke}
           r={normalizedRadius}
@@ -70,11 +66,14 @@ export const CircularTimer: React.FC<CircularTimerProps> = ({
         />
       </svg>
 
-      {/* center */}
+      {/* center (fully transparent background) */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
           className="
-            rounded-full bg-zinc-900 flex items-center justify-center shadow-md
+            rounded-full
+            bg-black/30
+            backdrop-blur-[2px]
+            flex items-center justify-center
             w-[38px] h-[38px]
             sm:w-[44px] sm:h-[44px]
             lg:w-[54px] lg:h-[54px]
@@ -86,6 +85,7 @@ export const CircularTimer: React.FC<CircularTimerProps> = ({
               text-lg
               sm:text-xl
               lg:text-2xl
+              drop-shadow
             "
           >
             {safeValue}
