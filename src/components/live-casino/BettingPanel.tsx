@@ -4,7 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+} from "lucide-react";
 
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
@@ -125,23 +130,26 @@ export const BettingPanel = ({
   ===================================================== */
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex gap-2">
+        <CardTitle className="text-sm flex items-center gap-2">
           Place Your Bet
           {hasRealOdds && (
-            <Badge variant="outline" className="text-green-500 border-green-500">
+            <Badge
+              variant="outline"
+              className="text-green-500 border-green-500"
+            >
               LIVE
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {/* RESTRICTED */}
         {isRestricted && (
           <div className="flex gap-2 p-2 bg-red-500/10 rounded text-xs text-red-500">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             Betting disabled
           </div>
         )}
@@ -166,45 +174,70 @@ export const BettingPanel = ({
                 formatOdds={formatOdds}
               />
             ) : (
-              /* ========= DEFAULT UI (ALL OTHER GAMES) ========= */
-              <div className="grid grid-cols-4 gap-1">
+              /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {betTypes.map((bet: any, idx: number) => {
                   const back = formatOdds(
                     bet?.back ?? bet?.b1 ?? bet?.b ?? bet?.odds
                   );
                   const lay = formatOdds(bet?.lay ?? bet?.l1 ?? bet?.l);
 
+                  const isSelected = bet.type === selectedBet;
+
                   return (
                     <div
                       key={`${bet?.type}-${idx}`}
-                      className={`border rounded p-1 ${
-                        bet.status === "suspended"
-                          ? "opacity-60"
-                          : "cursor-pointer"
-                      }`}
+                      className={`
+                        border rounded-md p-1.5 space-y-1 transition-all
+                        ${
+                          isSelected
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "hover:border-primary/40"
+                        }
+                        ${bet.status === "suspended" ? "opacity-50" : ""}
+                      `}
                     >
-                      <div className="text-[10px] text-center truncate">
+                      <div className="text-[11px] font-medium truncate text-center">
                         {bet.type}
                       </div>
 
-                      <div className="flex gap-1">
+                      <div className="grid grid-cols-2 gap-1">
                         <Button
                           size="sm"
-                          className="h-5 w-full text-[10px]"
+                          className={`
+                            h-7 text-[11px] px-1
+                            ${
+                              isSelected && betType === "back"
+                                ? "ring-2 ring-green-500 scale-[1.02]"
+                                : ""
+                            }
+                          `}
                           onClick={() => handleSelectBet(bet, "back")}
-                          disabled={bet.status === "suspended" || back === "0.00"}
+                          disabled={
+                            bet.status === "suspended" || back === "0.00"
+                          }
                         >
-                          <TrendingUp className="w-3 h-3 mr-1" />
+                          <TrendingUp className="w-3 h-3 mr-0.5" />
                           {back}
                         </Button>
 
                         <Button
                           size="sm"
-                          className="h-5 w-full text-[10px]"
+                          variant="secondary"
+                          className={`
+                            h-7 text-[11px] px-1
+                            ${
+                              isSelected && betType === "lay"
+                                ? "ring-2 ring-red-500 scale-[1.02]"
+                                : ""
+                            }
+                          `}
                           onClick={() => handleSelectBet(bet, "lay")}
-                          disabled={bet.status === "suspended" || lay === "0.00"}
+                          disabled={
+                            bet.status === "suspended" || lay === "0.00"
+                          }
                         >
-                          <TrendingDown className="w-3 h-3 mr-1" />
+                          <TrendingDown className="w-3 h-3 mr-0.5" />
                           {lay}
                         </Button>
                       </div>
@@ -217,9 +250,10 @@ export const BettingPanel = ({
         )}
 
         {/* ================= AMOUNT ================= */}
-        <div>
+        <div className="space-y-2">
           <Label className="text-xs">Quick Amount</Label>
-          <div className="grid grid-cols-4 gap-1 mt-1">
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {quickAmounts.map((amt) => (
               <Button
                 key={amt}
@@ -231,21 +265,32 @@ export const BettingPanel = ({
               </Button>
             ))}
           </div>
+
+          <Input
+            type="number"
+            value={amount}
+            className="h-9"
+            onChange={(e) => setAmount(e.target.value)}
+          />
         </div>
 
-        <Input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-
+        {/* ================= PLACE BET ================= */}
         <Button
+          className="w-full h-9"
           disabled={!selectedBet || loading || isRestricted}
           onClick={handlePlaceBet}
         >
-          {loading ? "Placing..." : `${betType.toUpperCase()} ₹${amount}`}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Placing...
+            </>
+          ) : (
+            `${betType.toUpperCase()} ₹${amount}`
+          )}
         </Button>
 
+        {/* ================= CALC ================= */}
         {selectedBet && (
           <div className="text-xs text-center text-muted-foreground">
             {betType === "back" ? "Potential win" : "Liability"}: ₹
