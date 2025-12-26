@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  Tv, Radio, AlertCircle 
+  Tv, Radio, AlertCircle, ExternalLink, Play
 } from 'lucide-react';
 
 interface EnhancedLiveTVSectionProps {
@@ -20,13 +20,49 @@ interface EnhancedLiveTVSectionProps {
   };
 }
 
+// CSP-restricted domains that do not allow iframe embedding
+const CSP_RESTRICTED_DOMAINS = [
+  'turnkeyxgaming.com',
+  'cloud.turnkeyxgaming.com'
+];
+
 const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
   matchId,
   match,
   isLive,
   betfairData
 }) => {
-  const [selectedStream, setSelectedStream] = useState(betfairData.tv);
+  const [selectedStream, setSelectedStream] = useState(betfairData.tv || betfairData.alternateStreams[0] || null);
+
+  // Update selected stream when betfairData changes
+  useEffect(() => {
+    if (betfairData.tv) {
+      setSelectedStream(betfairData.tv);
+    } else if (betfairData.alternateStreams && betfairData.alternateStreams.length > 0) {
+      setSelectedStream(betfairData.alternateStreams[0]);
+    }
+  }, [betfairData]);
+
+  // Check if URL belongs to a CSP-restricted domain
+  const isCSPRestricted = (url: string | null): boolean => {
+    if (!url) return false;
+    try {
+      const urlObj = new URL(url);
+      return CSP_RESTRICTED_DOMAINS.some(domain => 
+        urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
+      );
+    } catch {
+      // Fallback to string matching if URL parsing fails
+      return CSP_RESTRICTED_DOMAINS.some(domain => url.includes(domain));
+    }
+  };
+
+  // Open stream in new window
+  const openStreamInNewWindow = (url: string) => {
+    if (url) {
+      window.open(url, '_blank', 'width=1280,height=720,resizable=yes,scrollbars=yes');
+    }
+  };
 
   return (
     <Card className="mb-6">
@@ -45,43 +81,43 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Stream Selection */}
-          {betfairData.alternateStreams.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              <Button
-                size="sm"
-                variant={selectedStream === betfairData.tv ? 'default' : 'outline'}
-                onClick={() => setSelectedStream(betfairData.tv)}
-              >
-                <Tv className="h-3 w-3 mr-1" />
-                Primary
-              </Button>
-              {betfairData.alternateStreams.map((streamUrl, idx) => (
-                <Button
-                  key={idx}
-                  size="sm"
-                  variant={selectedStream === streamUrl ? 'default' : 'outline'}
-                  onClick={() => setSelectedStream(streamUrl)}
-                >
-                  Stream {idx + 2}
-                </Button>
-              ))}
-            </div>
-          )}
-          
           {/* Video Player */}
           {selectedStream ? (
-            <div className="relative w-full bg-black rounded-lg overflow-hidden" 
-                 style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                src={selectedStream}
-                className="absolute top-0 left-0 w-full h-full"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                title="Live Match Stream"
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
-            </div>
+            isCSPRestricted(selectedStream) ? (
+              // CSP-restricted: Show fallback UI with button (no iframe attempted)
+              <div className="relative w-full bg-black rounded-lg overflow-hidden" 
+                   style={{ paddingBottom: '56.25%', minHeight: '400px' }}>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-neutral-900 to-black">
+                  <Tv className="h-16 w-16 text-primary animate-pulse" />
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Live Stream Available
+                  </h3>
+                  
+                  <Button
+                    onClick={() => openStreamInNewWindow(selectedStream)}
+                    size="lg"
+                    className="mt-4"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Watch Live Stream
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // Non-CSP-restricted: Render iframe normally
+              <div className="relative w-full bg-black rounded-lg overflow-hidden" 
+                   style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  key={selectedStream}
+                  src={selectedStream}
+                  className="absolute top-0 left-0 w-full h-full"
+                  allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  title="Live Match Stream"
+                />
+              </div>
+            )
           ) : (
             <div className="bg-muted rounded-lg p-12 text-center">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
