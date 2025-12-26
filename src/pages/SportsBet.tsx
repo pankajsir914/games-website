@@ -30,7 +30,7 @@ const SportsBet: React.FC = () => {
   const { state } = location;
   const { user } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const { getPriveteData, callAPI, getBetfairScoreTv, getDetailsData } = useDiamondSportsAPI();
+  const { getPriveteData, callAPI, getBetfairScoreTv, getDetailsData, getDiamondOriginalTv } = useDiamondSportsAPI();
   const { connectOddsWebSocket } = useDiamondSportsData();
   const { wallet } = useWallet();
   const { toast } = useToast();
@@ -145,6 +145,57 @@ const SportsBet: React.FC = () => {
       setIsLoadingTv(true);
       try {
         const sportSid = getSportSID(sport || 'Cricket');
+        
+        // First, try to get Diamond Original TV URL with token from backend
+        try {
+          const diamondTvResponse = await getDiamondOriginalTv(matchId, sportSid);
+          
+          // TEMPORARY: Log full response to debug
+          console.log('🔍 [Frontend] Diamond Original TV Full Response:', JSON.stringify(diamondTvResponse, null, 2));
+          console.log('🔍 [Frontend] Response success:', diamondTvResponse?.success);
+          console.log('🔍 [Frontend] Response data:', diamondTvResponse?.data);
+          console.log('🔍 [Frontend] Response data.streamUrl:', diamondTvResponse?.data?.streamUrl);
+          console.log('🔍 [Frontend] Response data.token:', diamondTvResponse?.data?.token);
+          
+          if (diamondTvResponse?.success && diamondTvResponse.data) {
+            // Backend returns: { success: true, data: { streamUrl: "...", token: "...", gmid: "...", sid: "..." } }
+            const streamUrl = diamondTvResponse.data.streamUrl || 
+                            diamondTvResponse.data.data?.streamUrl ||
+                            diamondTvResponse.data.url ||
+                            null;
+            
+            console.log('🔍 [Frontend] Extracted streamUrl:', streamUrl);
+            
+            if (streamUrl) {
+              const extractedData = {
+                tv: streamUrl,
+                scorecard: null,
+                commentary: null,
+                statistics: null,
+                highlights: null,
+                alternateStreams: [streamUrl]
+              };
+              
+              console.log('✅ [Frontend] Setting betfairData with streamUrl:', streamUrl);
+              setBetfairData(extractedData);
+              setLiveTvUrl(streamUrl);
+              setIsLoadingTv(false);
+              return; // Exit early if we got the URL
+            } else {
+              console.warn('⚠️ [Frontend] No streamUrl found in response');
+            }
+          } else {
+            console.warn('⚠️ [Frontend] Response not successful or no data:', {
+              success: diamondTvResponse?.success,
+              hasData: !!diamondTvResponse?.data
+            });
+          }
+        } catch (diamondTvError) {
+          console.error('❌ [Frontend] Error fetching Diamond Original TV:', diamondTvError);
+          // Continue to fallback if Diamond Original TV fails
+        }
+        
+        // Fallback: Try Betfair API
         const response = await getBetfairScoreTv(matchId, sportSid);
         
         if (response?.success && response.data) {
@@ -179,7 +230,7 @@ const SportsBet: React.FC = () => {
     };
 
     fetchLiveTv();
-  }, [matchId, sport, getBetfairScoreTv, user]); // Removed match?.status to prevent refresh loop
+  }, [matchId, sport, getBetfairScoreTv, getDiamondOriginalTv, user]); // Removed match?.status to prevent refresh loop
 
 
   // Fetch match info if not passed via navigation state
