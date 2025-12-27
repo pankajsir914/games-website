@@ -11,6 +11,7 @@ interface PlatformAnalytics {
   liveUsers: number;
   totalGamesPlayed: number;
   totalPlatformBalance: number;
+  totalDistributedPoints: number;
   gameStatistics: {
     game_type: string;
     games_played: number;
@@ -167,6 +168,23 @@ export const useMasterAdminAnalytics = () => {
       // Calculate platform profit (deposits - withdrawals + house edge from games)
       const platformProfit = todayDeposits - todayWithdrawals;
 
+      // Get total distributed points to admins from admin_credit_transactions
+      let totalDistributedPoints = 0;
+      try {
+        const { data: creditTransactions, error: creditError } = await supabase
+          .from('admin_credit_transactions')
+          .select('amount')
+          .eq('tx_type', 'distribution');
+        
+        if (creditError) {
+          console.error('Error fetching admin credit transactions:', creditError);
+        } else {
+          totalDistributedPoints = creditTransactions?.reduce((sum, tx) => sum + Number(tx.amount || 0), 0) || 0;
+        }
+      } catch (err) {
+        console.error('Error calculating distributed points:', err);
+      }
+
       console.log('Analytics fetched:', {
         totalUsers,
         newUsersToday,
@@ -175,7 +193,8 @@ export const useMasterAdminAnalytics = () => {
         totalWithdrawals,
         activeGames,
         liveUsers,
-        platformProfit
+        platformProfit,
+        totalDistributedPoints
       });
 
       return {
@@ -184,6 +203,7 @@ export const useMasterAdminAnalytics = () => {
         totalDeposits,
         totalWithdrawals,
         totalPlatformBalance,
+        totalDistributedPoints,
         platformProfit,
         activeGames,
         liveUsers,
