@@ -150,17 +150,17 @@ export function DashboardContent() {
               {walletLoading ? (
                 'Loading...'
               ) : (
-                `₹${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`
+                `${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`
               )}
             </span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="sm:hidden h-8 px-2">
-            <Wallet className="h-4 w-4 mr-1" />
-            <span className="text-xs font-medium">
+          <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="sm:hidden h-8 px-2.5 items-center gap-1.5">
+            <Wallet className="h-3.5 w-3.5" />
+            <span className="text-xs font-semibold">
               {walletLoading ? (
                 '...'
               ) : (
-                `₹${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`
+                `${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`
               )}
             </span>
           </Button>
