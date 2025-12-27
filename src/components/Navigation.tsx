@@ -59,7 +59,28 @@ const Navigation = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Mobile balance display */}
+              {user && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="md:hidden items-center gap-1.5 px-2.5 h-8"
+                >
+                  <Link to="/wallet">
+                    <Wallet className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold">
+                      {walletLoading ? (
+                        '...'
+                      ) : (
+                        `${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`
+                      )}
+                    </span>
+                  </Link>
+                </Button>
+              )}
+              
               {/* Mobile menu button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -114,7 +135,7 @@ const Navigation = () => {
                               Wallet
                               {!walletLoading && wallet && (
                                 <span className="ml-2 font-semibold text-primary">
-                                  ₹{wallet.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                  {wallet.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                 </span>
                               )}
                             </span>
@@ -162,7 +183,7 @@ const Navigation = () => {
                         {walletLoading ? (
                           'Loading...'
                         ) : (
-                          `₹${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`
+                          `${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`
                         )}
                       </span>
                     </Link>
