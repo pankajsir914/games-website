@@ -139,20 +139,16 @@ const AdminMaster = () => {
 
           <Card className="bg-gradient-card border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+              <CardTitle className="text-sm font-medium">Distributed Points</CardTitle>
               <Wallet className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               {analytics ? (
                 <>
                   <div className="text-2xl font-bold text-primary">
-                    ₹{analytics.totalPlatformBalance >= 1000000 
-                      ? (analytics.totalPlatformBalance / 1000000).toFixed(1) + 'M'
-                      : analytics.totalPlatformBalance >= 1000
-                        ? (analytics.totalPlatformBalance / 1000).toFixed(1) + 'K'
-                        : analytics.totalPlatformBalance.toLocaleString()}
+                    {analytics.totalDistributedPoints.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                   </div>
-                  <p className="text-xs text-muted-foreground">Platform total</p>
+                  <p className="text-xs text-muted-foreground">To admins</p>
                 </>
               ) : (
                 <Skeleton className="h-8 w-16" />
@@ -186,7 +182,7 @@ const AdminMaster = () => {
               {analytics ? (
                 <>
                   <div className={`text-2xl font-bold ${analytics.platformProfit >= 0 ? 'text-purple-500' : 'text-red-500'}`}>
-                    {analytics.platformProfit >= 0 ? '₹' : '-₹'}
+                    {analytics.platformProfit >= 0 ? '' : '-'}
                     {Math.abs(analytics.platformProfit) >= 1000
                       ? (Math.abs(analytics.platformProfit) / 1000).toFixed(1) + 'K'
                       : Math.abs(analytics.platformProfit).toLocaleString()}
