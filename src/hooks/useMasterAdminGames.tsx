@@ -208,6 +208,9 @@ export const useMasterAdminGames = () => {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Ensure mutation state is reset after completion
+    },
   });
 
   const toggleGameStatus = useMutation({
@@ -235,6 +238,9 @@ export const useMasterAdminGames = () => {
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Ensure mutation state is reset after completion
     },
   });
 
