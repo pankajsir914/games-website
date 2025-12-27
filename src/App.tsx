@@ -41,6 +41,7 @@ import MasterAdminLogin from "./pages/MasterAdminLogin";
 import { MasterAdminAuthProvider } from "@/hooks/useMasterAdminAuth";
 import { MasterAdminProtectedRoute } from "@/components/auth/MasterAdminProtectedRoute";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import { UserOnlyRoute } from "@/components/auth/UserOnlyRoute";
 import { AdminRedirect } from "@/components/admin/AdminRedirect";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -58,26 +59,27 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/games" element={<Games />} />
-              <Route path="/sports" element={<Sports />} />
-              <Route path="/sports/:sport/:type" element={<SportsMatches />} />
-              <Route path="/sports/bet/:sport/:matchId" element={<SportsBet />} />
-              <Route path="/match-details/:sport/:matchId" element={<MatchDetails />} />
-              <Route path="/ludo" element={<Ludo />} />
-              <Route path="/ludo-game" element={<LudoGame />} />
-              <Route path="/aviator" element={<Aviator />} />
-              <Route path="/color-prediction" element={<ColorPrediction />} />
-              <Route path="/poker/table/:tableId" element={<PokerTable />} />
-              <Route path="/teen-patti" element={<TeenPatti />} />
-              <Route path="/chicken-run" element={<ChickenRun />} />
-              <Route path="/live-casino" element={<LiveCasino />} />
-              <Route path="/live-casino/:tableId" element={<LiveCasinoTable />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/betting-history" element={<BettingHistory />} />
-              <Route path="/support" element={<Support />} />
+              {/* User-only routes - blocked for admin/master_admin */}
+              <Route path="/" element={<UserOnlyRoute><Index /></UserOnlyRoute>} />
+              <Route path="/dashboard" element={<UserOnlyRoute><Dashboard /></UserOnlyRoute>} />
+              <Route path="/games" element={<UserOnlyRoute><Games /></UserOnlyRoute>} />
+              <Route path="/sports" element={<UserOnlyRoute><Sports /></UserOnlyRoute>} />
+              <Route path="/sports/:sport/:type" element={<UserOnlyRoute><SportsMatches /></UserOnlyRoute>} />
+              <Route path="/sports/bet/:sport/:matchId" element={<UserOnlyRoute><SportsBet /></UserOnlyRoute>} />
+              <Route path="/match-details/:sport/:matchId" element={<UserOnlyRoute><MatchDetails /></UserOnlyRoute>} />
+              <Route path="/ludo" element={<UserOnlyRoute><Ludo /></UserOnlyRoute>} />
+              <Route path="/ludo-game" element={<UserOnlyRoute><LudoGame /></UserOnlyRoute>} />
+              <Route path="/aviator" element={<UserOnlyRoute><Aviator /></UserOnlyRoute>} />
+              <Route path="/color-prediction" element={<UserOnlyRoute><ColorPrediction /></UserOnlyRoute>} />
+              <Route path="/poker/table/:tableId" element={<UserOnlyRoute><PokerTable /></UserOnlyRoute>} />
+              <Route path="/teen-patti" element={<UserOnlyRoute><TeenPatti /></UserOnlyRoute>} />
+              <Route path="/chicken-run" element={<UserOnlyRoute><ChickenRun /></UserOnlyRoute>} />
+              <Route path="/live-casino" element={<UserOnlyRoute><LiveCasino /></UserOnlyRoute>} />
+              <Route path="/live-casino/:tableId" element={<UserOnlyRoute><LiveCasinoTable /></UserOnlyRoute>} />
+              <Route path="/wallet" element={<UserOnlyRoute><Wallet /></UserOnlyRoute>} />
+              <Route path="/profile" element={<UserOnlyRoute><Profile /></UserOnlyRoute>} />
+              <Route path="/betting-history" element={<UserOnlyRoute><BettingHistory /></UserOnlyRoute>} />
+              <Route path="/support" element={<UserOnlyRoute><Support /></UserOnlyRoute>} />
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route 
