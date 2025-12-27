@@ -85,12 +85,17 @@ export const UserManagement = () => {
     userId: string,
     currentlyBlocked: boolean
   ) => {
-    const action = currentlyBlocked ? 'activate' : 'block';
-    await updateUserStatus({
-      userId,
-      action,
-      reason: `User ${action}d by master admin`,
-    });
+    try {
+      const action = currentlyBlocked ? 'activate' : 'block';
+      await updateUserStatus({
+        userId,
+        action,
+        reason: `User ${action}d by master admin`,
+      });
+    } catch (error) {
+      // Error is already handled by the mutation's onError
+      console.error('Error toggling user block status:', error);
+    }
   };
 
   const stats = {
