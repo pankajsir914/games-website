@@ -29,7 +29,7 @@ import {
   settleDT6Bets,
   isDT6Table,
   type DT6Result
-} from './dt6Sattlement.ts';
+} from './dt6Settlement.ts';
 import {
   parseTeen3Result,
   isTeen3WinningBet,
@@ -75,6 +75,398 @@ import {
   isTeen62Table,
   type Teen62Result
 } from './teen62Settlement.ts';
+import {
+  parseAb3Result,
+  isAb3WinningBet,
+  isAb3Table,
+  type Ab3Result
+} from './ab3Settlement.ts';
+import {
+  parseDT202Result,
+  isDT202WinningBet,
+  settleDT202Bets,
+  type DT202Result
+} from './dt202Settlement.ts';
+import {
+  parseDum10Result,
+  isDum10WinningBet,
+  isDum10Table,
+  formatDum10LastResults,
+  type Dum10Result
+} from './dum10Settlement.ts';
+import {
+  parseLottcardResult,
+  isLottcardWinningBet,
+  isLottcardTable,
+  formatLottcardLastResults,
+  type LottcardResult
+} from './lottcardSettlement.ts';
+import {
+  parseLucky7Result,
+  isLucky7WinningBet,
+  isLucky7Table,
+  formatLucky7LastResults,
+  type Lucky7Result
+} from './lucky7Settlement.ts';
+import {
+  parsePatti2Result,
+  isPatti2WinningBet,
+  isPatti2Table,
+  formatPatti2LastResults,
+  type Patti2Result
+} from './patti2Settlement.ts';
+import {
+  parseRace2Result,
+  isRace2WinningBet,
+  isRace2Table,
+  formatRace2LastResults,
+  type Race2Result
+} from './race2Settlement.ts';
+import {
+  parseJoker120Result,
+  isWinningJoker120Bet,
+  isJoker120Table,
+  formatJoker120Last10,
+  type Joker120Result
+} from './joker120Settlement.ts';
+import {
+  parseJoker1Result,
+  isWinningJoker1Bet,
+  isJoker1Table,
+  formatJoker1Last10,
+  type Joker1Result
+} from './joker1Settlement.ts';
+import {
+  parseJoker20Result,
+  isWinningJoker20Bet,
+  isJoker20Table,
+  formatJoker20Last10,
+  type Joker20Result
+} from './joker20Settlement.ts';
+import {
+  parseTeen120Result,
+  isTeen120WinningBet,
+  isTeen120Table,
+  formatTeen120LastResults,
+  type Teen120Result
+} from './teen120Settlement.ts';
+import {
+  parseTeenUniqueResult,
+  isWinningTeenUniqueBet,
+  isTeenUniqueTable,
+  formatTeenUniqueLast10,
+  type TeenUniqueResult
+} from './teenUniqueSettlement.ts';
+import {
+  parseTeen20V1Result,
+  isTeen20V1WinningBet,
+  isTeen20V1Table,
+  formatTeen20V1Results,
+  type Teen20V1Result
+} from './teen20v1Settlement.ts';
+import {
+  parseTeen1Result,
+  isTeen1WinningBet,
+  isTeen1Table,
+  formatTeen1LastResults,
+  type Teen1Result
+} from './teen1Settlement.ts';
+import {
+  parseRoulette11Result,
+  isWinningRoulette11Bet,
+  isRoulette11Table,
+  formatRoulette11Last10,
+  type Roulette11Result
+} from './roulette11Settlement.ts';
+import {
+  parseRoulette12Result,
+  isWinningRoulette12Bet,
+  isRoulette12Table,
+  formatRoulette12Last10,
+  type Roulette12Result
+} from './roulette12Settlement.ts';
+import {
+  parseRoulette13Result,
+  isWinningRoulette13Bet,
+  isRoulette13Table,
+  formatRoulette13Last10,
+  type Roulette13Result
+} from './roulette13Settlement.ts';
+import {
+  parseKBCResult,
+  isKBCWinningBet,
+  isKBCTable,
+  formatKBCLastResults,
+  type KBCResult
+} from './kbcSettlement.ts';
+import {
+  parsePoison20Result,
+  isWinningPoison20Bet,
+  isPoison20Table,
+  formatPoison20Last10,
+  type Poison20Result
+} from './poison20Settlement.ts';
+import {
+  parseAAAResult,
+  isWinningAAABet,
+  isAAATable,
+  type AAAResult
+} from './aaaSettlement.ts';
+import {
+  parsePokerResult,
+  isWinningPokerMainBet,
+  isPokerTable,
+  type PokerResult
+} from './pokerSettlement.ts';
+import {
+  parseBaccaratResult,
+  isWinningBaccaratMainBet,
+  isWinningBaccaratPairBet,
+  isWinningBaccaratBigSmallBet,
+  isBaccaratTable,
+  type BaccaratResult
+} from './baccaratSettlement.ts';
+import {
+  parseTeenResult,
+  isWinningTeenMainBet,
+  isWinningTeenSuitBet,
+  isTeenTable,
+  type TeenResult
+} from './teenSettlement.ts';
+import {
+  parseAB4Result,
+  isWinningAB4Bet,
+  isAB4Table,
+  type AB4Result
+} from './ab4Settlement.ts';
+import {
+  parseABJResult,
+  isWinningABJMain,
+  isWinningABJJokerNumber,
+  isWinningABJJokerSuit,
+  isWinningABJJokerOddEven,
+  isABJTable,
+  type ABJResult
+} from './abjSettlement.ts';
+import {
+  parseBaccarat2Result,
+  isWinningBaccarat2MainBet,
+  isWinningBaccarat2ScoreBet,
+  isBaccarat2Table,
+  type Baccarat2Result
+} from './baccarat2Settlement.ts';
+import {
+  parseBTableResult,
+  isWinningBTableBet,
+  isBTable,
+  type BTableResult
+} from './btableSettlement.ts';
+import {
+  parseBTable2Result,
+  isWinningBTable2Bet,
+  isBTable2Table,
+  type BTable2Result
+} from './btable2Settlement.ts';
+import {
+  parseCard32Result,
+  isWinningCard32Bet,
+  isCard32Table,
+  type Card32Result
+} from './card32Settlement.ts';
+import {
+  parseCard32EUResult,
+  isWinningCard32EUMatch,
+  isCard32EUTable,
+  type Card32EUResult
+} from './card32euSettlement.ts';
+import {
+  parseCMatch20Result,
+  isWinningCMatch20Bet,
+  isCMatch20Table,
+  type CMatch20Result
+} from './cmatch20Settlement.ts';
+import {
+  parseCMeterResult,
+  isWinningCMeterBet,
+  isCMeterTable,
+  type CMeterResult
+} from './cmeterSettlement.ts';
+import {
+  parseCricketV3Result,
+  isWinningCricketV3Bet,
+  isCricketV3,
+  type CricketV3Result
+} from './cricketv3Settlement.ts';
+import {
+  parseDT20Result,
+  isWinningDT20MainBet,
+  isDT20Table,
+  type DT20Result
+} from './dt20Settlement.ts';
+import {
+  parseDTL20Result,
+  isWinningDTL20WinnerBet,
+  isDTL20Table,
+  type DTL20Result
+} from './dtl20Settlement.ts';
+import {
+  parseGoalResult,
+  isWinningGoalBet,
+  isGoalTable,
+  type GoalResult
+} from './goalSettlement.ts';
+import {
+  parseLucky15Result,
+  isWinningLucky15Bet,
+  isLucky15Table,
+  type Lucky15Result
+} from './lucky15Settlement.ts';
+import {
+  parseLucky7EUResult,
+  isWinningLucky7EUMain,
+  isLucky7EUTable,
+  type Lucky7EUResult
+} from './lucky7euSettlement.ts';
+import {
+  parseOurRouletteResult,
+  isWinningOurRouletteBet,
+  isOurRouletteTable,
+  type OurRouletteResult
+} from './ourRouletteSettlement.ts';
+import {
+  parsePoker20Result,
+  isWinningPoker20WinnerBet,
+  isPoker20Table,
+  type Poker20Result
+} from './poker20Settlement.ts';
+import {
+  parsePoker6Result,
+  isWinningPoker6PlayerBet,
+  isWinningPoker6HandBet,
+  isPoker6Table,
+  type Poker6Result
+} from './poker6Settlement.ts';
+import {
+  parsePoisonResult,
+  isWinningPoisonBet,
+  isPoisonTable,
+  type PoisonResult
+} from './poisonSettlement.ts';
+import {
+  parseQueenResult,
+  isWinningQueenBet,
+  isQueenTable,
+  type QueenResult
+} from './queenSettlement.ts';
+import {
+  parseRace20Result,
+  isWinningRace20Bet,
+  isRace20Table,
+  type Race20Result
+} from './race20Settlement.ts';
+import {
+  parseSicBoResult,
+  isWinningSicBoBet,
+  isSicBoTable,
+  type SicBoResult
+} from './sicboSettlement.ts';
+import {
+  parseSicbo2Result,
+  isWinningSicbo2Bet,
+  isSicbo2Table,
+  type Sicbo2Result
+} from './sicbo2Settlement.ts';
+import {
+  parseSuperOver2Result,
+  isWinningSuperOver2Bet,
+  isSuperOver2Table,
+  type SuperOver2Result
+} from './superover2Settlement.ts';
+import {
+  parseSuperOver3Result,
+  isWinningSuperOver3Bet,
+  isSuperOver3Table,
+  type SuperOver3Result
+} from './superover3Settlement.ts';
+import {
+  parseTeen20CResult,
+  isWinningTeen20CBet,
+  isTeen20CTable,
+  type Teen20CResult
+} from './teen20cSettlement.ts';
+import {
+  parseTeen30Result,
+  isWinningTeen30MainBet,
+  isTeen30Table,
+  type Teen30Result
+} from './teen30Settlement.ts';
+import {
+  parseTeen32Result,
+  isTeen32WinningBet,
+  isTeen32Table,
+  type Teen32Result
+} from './teen32Settlement.ts';
+import {
+  parseTeen33Result,
+  isWinningTeen33Bet,
+  isTeen33Table,
+  type Teen33Result
+} from './teen33Settlement.ts';
+import {
+  parseTeen41Result,
+  isWinningTeen41Bet,
+  isTeen41Table,
+  type Teen41Result
+} from './teen41Settlement.ts';
+import {
+  parseTeen42Result,
+  isWinningTeen42Bet,
+  isTeen42Table,
+  type Teen42Result
+} from './teen42Settlement.ts';
+import {
+  parseTeen6Result,
+  isWinningTeen6Match,
+  isTeen6Table,
+  type Teen6Result
+} from './teen6Settlement.ts';
+import {
+  parseTeen9Result,
+  isWinningTeen9WinnerBet,
+  isWinningTeen9HandBet,
+  isTeen9Table,
+  type Teen9Result
+} from './teen9Settlement.ts';
+import {
+  parseWarResult,
+  isWinningWarBet,
+  isWarTable,
+  type WarResult
+} from './warSettlement.ts';
+import {
+  parseWorliResult,
+  isWinningWorliBet,
+  isWorliTable,
+  type WorliResult
+} from './worliSettlement.ts';
+import {
+  parseWorli2Result,
+  isWinningWorli2Bet,
+  isWorli2Table,
+  type Worli2Result
+} from './worli2Settlement.ts';
+import {
+  parseBallByBallResult,
+  isWinningBallByBallBet,
+  isBallByBallTable,
+  type BallByBallResult
+} from './ballByBallSettlement.ts';
+import {
+  parse3CardJResult,
+  isWinning3CardJBet,
+  is3CardJTable,
+  type ThreeCardJResult
+} from './3cardjSettlement.ts';
 
 // Constants
 const TIMEOUTS = {
@@ -1026,7 +1418,496 @@ serve(async (req) => {
               isTeen62 = false;
             }
             
-            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : isDolidana ? 'Dolidana' : isAB20 ? 'AB20' : isTeen62 ? 'Teen62' : 'Generic'}`);
+            // Check if this is an Ab3 table
+            let isAb3 = false;
+            try {
+              isAb3 = isAb3Table(tableId);
+            } catch (error) {
+              isAb3 = false;
+            }
+            
+            // Check if this is a DT202 table
+            let isDT202 = false;
+            try {
+              // DT202 table check - using tableId pattern
+              isDT202 = tableId?.toLowerCase() === 'dt202' || tableId?.toLowerCase().includes('dt202');
+            } catch (error) {
+              isDT202 = false;
+            }
+            
+            // Check if this is a Dum10 table
+            let isDum10 = false;
+            try {
+              isDum10 = isDum10Table(tableId);
+            } catch (error) {
+              isDum10 = false;
+            }
+            
+            // Check if this is a Lottcard table
+            let isLottcard = false;
+            try {
+              isLottcard = isLottcardTable(tableId);
+            } catch (error) {
+              isLottcard = false;
+            }
+            
+            // Check if this is a Lucky7 table
+            let isLucky7 = false;
+            try {
+              isLucky7 = isLucky7Table(tableId);
+            } catch (error) {
+              isLucky7 = false;
+            }
+            
+            // Check if this is a Patti2 table
+            let isPatti2 = false;
+            try {
+              isPatti2 = isPatti2Table(tableId);
+            } catch (error) {
+              isPatti2 = false;
+            }
+            
+            // Check if this is a Race2 table
+            let isRace2 = false;
+            try {
+              isRace2 = isRace2Table(tableId);
+            } catch (error) {
+              isRace2 = false;
+            }
+            
+            // Check if this is a Joker120 table
+            let isJoker120 = false;
+            try {
+              isJoker120 = isJoker120Table(tableId);
+            } catch (error) {
+              isJoker120 = false;
+            }
+            
+            // Check if this is a Joker1 table
+            let isJoker1 = false;
+            try {
+              isJoker1 = isJoker1Table(tableId);
+            } catch (error) {
+              isJoker1 = false;
+            }
+            
+            // Check if this is a Joker20 table
+            let isJoker20 = false;
+            try {
+              isJoker20 = isJoker20Table(tableId);
+            } catch (error) {
+              isJoker20 = false;
+            }
+            
+            // Check if this is a Teen120 table
+            let isTeen120 = false;
+            try {
+              isTeen120 = isTeen120Table(tableId);
+            } catch (error) {
+              isTeen120 = false;
+            }
+            
+            // Check if this is a TeenUnique table
+            let isTeenUnique = false;
+            try {
+              isTeenUnique = isTeenUniqueTable(tableId);
+            } catch (error) {
+              isTeenUnique = false;
+            }
+            
+            // Check if this is a Teen20V1 table
+            let isTeen20V1 = false;
+            try {
+              isTeen20V1 = isTeen20V1Table(tableId);
+            } catch (error) {
+              isTeen20V1 = false;
+            }
+            
+            // Check if this is a Teen1 table
+            let isTeen1 = false;
+            try {
+              isTeen1 = isTeen1Table(tableId);
+            } catch (error) {
+              isTeen1 = false;
+            }
+            
+            // Check if this is a Roulette11 table
+            let isRoulette11 = false;
+            try {
+              isRoulette11 = isRoulette11Table(tableId);
+            } catch (error) {
+              isRoulette11 = false;
+            }
+            
+            // Check if this is a Roulette12 table
+            let isRoulette12 = false;
+            try {
+              isRoulette12 = isRoulette12Table(tableId);
+            } catch (error) {
+              isRoulette12 = false;
+            }
+            
+            // Check if this is a Roulette13 table
+            let isRoulette13 = false;
+            try {
+              isRoulette13 = isRoulette13Table(tableId);
+            } catch (error) {
+              isRoulette13 = false;
+            }
+            
+            // Check if this is a KBC table
+            let isKBC = false;
+            try {
+              isKBC = isKBCTable(tableId);
+            } catch (error) {
+              isKBC = false;
+            }
+            
+            // Check if this is a Poison20 table
+            let isPoison20 = false;
+            try {
+              isPoison20 = isPoison20Table(tableId);
+            } catch (error) {
+              isPoison20 = false;
+            }
+            
+            // Check if this is an AAA table
+            let isAAA = false;
+            try {
+              isAAA = isAAATable(tableId);
+            } catch (error) {
+              isAAA = false;
+            }
+            
+            // Check if this is a Poker table
+            let isPoker = false;
+            try {
+              isPoker = isPokerTable(tableId);
+            } catch (error) {
+              isPoker = false;
+            }
+            
+            // Check if this is a Baccarat table
+            let isBaccarat = false;
+            try {
+              isBaccarat = isBaccaratTable(tableId);
+            } catch (error) {
+              isBaccarat = false;
+            }
+            
+            // Check if this is a Teen table
+            let isTeen = false;
+            try {
+              isTeen = isTeenTable(tableId);
+            } catch (error) {
+              isTeen = false;
+            }
+            
+            // Check if this is an AB4 table
+            let isAB4 = false;
+            try {
+              isAB4 = isAB4Table(tableId);
+            } catch (error) {
+              isAB4 = false;
+            }
+            
+            // Check if this is an ABJ table
+            let isABJ = false;
+            try {
+              isABJ = isABJTable(tableId);
+            } catch (error) {
+              isABJ = false;
+            }
+            
+            // Check if this is a Baccarat2 table
+            let isBaccarat2 = false;
+            try {
+              isBaccarat2 = isBaccarat2Table(tableId);
+            } catch (error) {
+              isBaccarat2 = false;
+            }
+            
+            // Check if this is a BTable table
+            let isBTable = false;
+            try {
+              isBTable = isBTable(tableId);
+            } catch (error) {
+              isBTable = false;
+            }
+            
+            // Check if this is a BTable2 table
+            let isBTable2 = false;
+            try {
+              isBTable2 = isBTable2Table(tableId);
+            } catch (error) {
+              isBTable2 = false;
+            }
+            
+            // Check if this is a Card32 table
+            let isCard32 = false;
+            try {
+              isCard32 = isCard32Table(tableId);
+            } catch (error) {
+              isCard32 = false;
+            }
+            
+            // Check if this is a Card32EU table
+            let isCard32EU = false;
+            try {
+              isCard32EU = isCard32EUTable(tableId);
+            } catch (error) {
+              isCard32EU = false;
+            }
+            
+            // Check if this is a CMatch20 table
+            let isCMatch20 = false;
+            try {
+              isCMatch20 = isCMatch20Table(tableId);
+            } catch (error) {
+              isCMatch20 = false;
+            }
+            
+            // Check if this is a CMeter table
+            let isCMeter = false;
+            try {
+              isCMeter = isCMeterTable(tableId);
+            } catch (error) {
+              isCMeter = false;
+            }
+            
+            // Check if this is a CricketV3 table
+            let isCricketV3 = false;
+            try {
+              isCricketV3 = isCricketV3(tableId);
+            } catch (error) {
+              isCricketV3 = false;
+            }
+            
+            // Check if this is a DT20 table
+            let isDT20 = false;
+            try {
+              isDT20 = isDT20Table(tableId);
+            } catch (error) {
+              isDT20 = false;
+            }
+            
+            // Check if this is a DTL20 table
+            let isDTL20 = false;
+            try {
+              isDTL20 = isDTL20Table(tableId);
+            } catch (error) {
+              isDTL20 = false;
+            }
+            
+            // Check if this is a Goal table
+            let isGoal = false;
+            try {
+              isGoal = isGoalTable(tableId);
+            } catch (error) {
+              isGoal = false;
+            }
+            
+            // Check if this is a Lucky15 table
+            let isLucky15 = false;
+            try {
+              isLucky15 = isLucky15Table(tableId);
+            } catch (error) {
+              isLucky15 = false;
+            }
+            
+            // Check if this is a Lucky7EU table
+            let isLucky7EU = false;
+            try {
+              isLucky7EU = isLucky7EUTable(tableId);
+            } catch (error) {
+              isLucky7EU = false;
+            }
+            
+            // Check if this is an OurRoulette table
+            let isOurRoulette = false;
+            try {
+              isOurRoulette = isOurRouletteTable(tableId);
+            } catch (error) {
+              isOurRoulette = false;
+            }
+            
+            // Check if this is a Poker20 table
+            let isPoker20 = false;
+            try {
+              isPoker20 = isPoker20Table(tableId);
+            } catch (error) {
+              isPoker20 = false;
+            }
+            
+            // Check if this is a Poker6 table
+            let isPoker6 = false;
+            try {
+              isPoker6 = isPoker6Table(tableId);
+            } catch (error) {
+              isPoker6 = false;
+            }
+            
+            // Check if this is a Poison table
+            let isPoison = false;
+            try {
+              isPoison = isPoisonTable(tableId);
+            } catch (error) {
+              isPoison = false;
+            }
+            
+            // Check if this is a Queen table
+            let isQueen = false;
+            try {
+              isQueen = isQueenTable(tableId);
+            } catch (error) {
+              isQueen = false;
+            }
+            
+            // Check if this is a Race20 table
+            let isRace20 = false;
+            try {
+              isRace20 = isRace20Table(tableId);
+            } catch (error) {
+              isRace20 = false;
+            }
+            
+            // Check if this is a SicBo table
+            let isSicBo = false;
+            try {
+              isSicBo = isSicBoTable(tableId);
+            } catch (error) {
+              isSicBo = false;
+            }
+            
+            // Check if this is a SicBo2 table
+            let isSicBo2 = false;
+            try {
+              isSicBo2 = isSicBo2Table(tableId);
+            } catch (error) {
+              isSicBo2 = false;
+            }
+            
+            // Check if this is a SuperOver2 table
+            let isSuperOver2 = false;
+            try {
+              isSuperOver2 = isSuperOver2Table(tableId);
+            } catch (error) {
+              isSuperOver2 = false;
+            }
+            
+            // Check if this is a SuperOver3 table
+            let isSuperOver3 = false;
+            try {
+              isSuperOver3 = isSuperOver3Table(tableId);
+            } catch (error) {
+              isSuperOver3 = false;
+            }
+            
+            // Check if this is a Teen20C table
+            let isTeen20C = false;
+            try {
+              isTeen20C = isTeen20CTable(tableId);
+            } catch (error) {
+              isTeen20C = false;
+            }
+            
+            // Check if this is a Teen30 table
+            let isTeen30 = false;
+            try {
+              isTeen30 = isTeen30Table(tableId);
+            } catch (error) {
+              isTeen30 = false;
+            }
+            
+            // Check if this is a Teen32 table
+            let isTeen32 = false;
+            try {
+              isTeen32 = isTeen32Table(tableId);
+            } catch (error) {
+              isTeen32 = false;
+            }
+            
+            // Check if this is a Teen33 table
+            let isTeen33 = false;
+            try {
+              isTeen33 = isTeen33Table(tableId);
+            } catch (error) {
+              isTeen33 = false;
+            }
+            
+            // Check if this is a Teen41 table
+            let isTeen41 = false;
+            try {
+              isTeen41 = isTeen41Table(tableId);
+            } catch (error) {
+              isTeen41 = false;
+            }
+            
+            // Check if this is a Teen42 table
+            let isTeen42 = false;
+            try {
+              isTeen42 = isTeen42Table(tableId);
+            } catch (error) {
+              isTeen42 = false;
+            }
+            
+            // Check if this is a Teen6 table
+            let isTeen6 = false;
+            try {
+              isTeen6 = isTeen6Table(tableId);
+            } catch (error) {
+              isTeen6 = false;
+            }
+            
+            // Check if this is a Teen9 table
+            let isTeen9 = false;
+            try {
+              isTeen9 = isTeen9Table(tableId);
+            } catch (error) {
+              isTeen9 = false;
+            }
+            
+            // Check if this is a War table
+            let isWar = false;
+            try {
+              isWar = isWarTable(tableId);
+            } catch (error) {
+              isWar = false;
+            }
+            
+            // Check if this is a Worli table
+            let isWorli = false;
+            try {
+              isWorli = isWorliTable(tableId);
+            } catch (error) {
+              isWorli = false;
+            }
+            
+            // Check if this is a Worli2 table
+            let isWorli2 = false;
+            try {
+              isWorli2 = isWorli2Table(tableId);
+            } catch (error) {
+              isWorli2 = false;
+            }
+            
+            // Check if this is a BallByBall table
+            let isBallByBall = false;
+            try {
+              isBallByBall = isBallByBallTable(tableId);
+            } catch (error) {
+              isBallByBall = false;
+            }
+            
+            // Check if this is a 3CardJ table
+            let is3CardJ = false;
+            try {
+              is3CardJ = is3CardJTable(tableId);
+            } catch (error) {
+              is3CardJ = false;
+            }
+            
+            console.log(`🔍 [Table Detection] ${tableId}: ${isRoulette ? 'Roulette' : isLucky5 ? 'Lucky5' : isDT6 ? 'DT6' : isTeen3 ? 'Teen3' : isAAA2 ? 'AAA2' : isCMeter1 ? 'CMeter1' : isMogambo ? 'Mogambo' : isDolidana ? 'Dolidana' : isAB20 ? 'AB20' : isTeen62 ? 'Teen62' : isAb3 ? 'Ab3' : isDT202 ? 'DT202' : isDum10 ? 'Dum10' : isLottcard ? 'Lottcard' : isLucky7 ? 'Lucky7' : isPatti2 ? 'Patti2' : isRace2 ? 'Race2' : isJoker120 ? 'Joker120' : isJoker1 ? 'Joker1' : isJoker20 ? 'Joker20' : isTeen120 ? 'Teen120' : isTeenUnique ? 'TeenUnique' : isTeen20V1 ? 'Teen20V1' : isTeen1 ? 'Teen1' : isRoulette11 ? 'Roulette11' : isRoulette12 ? 'Roulette12' : isRoulette13 ? 'Roulette13' : isKBC ? 'KBC' : isPoison20 ? 'Poison20' : isAAA ? 'AAA' : isPoker ? 'Poker' : isBaccarat ? 'Baccarat' : isTeen ? 'Teen' : isAB4 ? 'AB4' : isABJ ? 'ABJ' : isBaccarat2 ? 'Baccarat2' : isBTable ? 'BTable' : isBTable2 ? 'BTable2' : isCard32 ? 'Card32' : isCard32EU ? 'Card32EU' : isCMatch20 ? 'CMatch20' : isCMeter ? 'CMeter' : isCricketV3 ? 'CricketV3' : isDT20 ? 'DT20' : isDTL20 ? 'DTL20' : isGoal ? 'Goal' : isLucky15 ? 'Lucky15' : isLucky7EU ? 'Lucky7EU' : isOurRoulette ? 'OurRoulette' : isPoker20 ? 'Poker20' : isPoker6 ? 'Poker6' : isPoison ? 'Poison' : isQueen ? 'Queen' : isRace20 ? 'Race20' : isSicBo ? 'SicBo' : isSicBo2 ? 'SicBo2' : isSuperOver2 ? 'SuperOver2' : isSuperOver3 ? 'SuperOver3' : isTeen20C ? 'Teen20C' : isTeen30 ? 'Teen30' : isTeen32 ? 'Teen32' : isTeen33 ? 'Teen33' : isTeen41 ? 'Teen41' : isTeen42 ? 'Teen42' : isTeen6 ? 'Teen6' : isTeen9 ? 'Teen9' : isWar ? 'War' : isWorli ? 'Worli' : isWorli2 ? 'Worli2' : isBallByBall ? 'BallByBall' : is3CardJ ? '3CardJ' : 'Generic'}`);
             
             // For roulette: Parse winning number and derive attributes
             let rouletteResult: RouletteResult | null = null;
@@ -1321,9 +2202,1245 @@ serve(async (req) => {
                 console.error(`❌ [Teen62] Parse error:`, teen62ParseError);
               }
             }
+            
+            // For Ab3: Parse result from win/winnat
+            let ab3Result: Ab3Result | null = null;
+            let ab3ParseError: string | null = null;
+            
+            if (isAb3) {
+              try {
+                ab3Result = parseAb3Result(win, winnat);
+                if (ab3Result) {
+                  console.log(`✅ [Ab3] Parsed: isWin=${ab3Result.isWin}`);
+                } else {
+                  ab3ParseError = 'Could not parse Ab3 result from win/winnat';
+                  console.warn(`⚠️ [Ab3] Parsing failed`);
+                }
+              } catch (error) {
+                ab3ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Ab3] Parse error:`, ab3ParseError);
+              }
+            }
+            
+            // For DT202: Parse result from rdesc
+            let dt202Result: DT202Result | null = null;
+            let dt202ParseError: string | null = null;
+            
+            if (isDT202) {
+              if (!rdesc) {
+                dt202ParseError = 'No rdesc available for DT202 table';
+                console.warn(`⚠️ [DT202] No rdesc found for table ${tableId}`);
+              } else {
+                try {
+                  dt202Result = parseDT202Result(rdesc);
+                  if (dt202Result) {
+                    console.log(`✅ [DT202] Parsed: winner=${dt202Result.winner}`);
+                  } else {
+                    dt202ParseError = `Could not parse DT202 result from rdesc: "${rdesc}"`;
+                    console.warn(`⚠️ [DT202] Parsing failed: "${rdesc}"`);
+                  }
+                } catch (error) {
+                  dt202ParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ [DT202] Parse error:`, dt202ParseError);
+                }
+              }
+            }
+            
+            // For Dum10: Parse result from win/rdesc/winnat
+            let dum10Result: Dum10Result | null = null;
+            let dum10ParseError: string | null = null;
+            
+            if (isDum10) {
+              try {
+                dum10Result = parseDum10Result(win, rdesc, winnat);
+                if (dum10Result) {
+                  console.log(`✅ [Dum10] Parsed: main=${dum10Result.main}, attributes=${Array.from(dum10Result.attributes).join(',')}`);
+                } else {
+                  dum10ParseError = 'Could not parse Dum10 result from win/rdesc/winnat';
+                  console.warn(`⚠️ [Dum10] Parsing failed`);
+                }
+              } catch (error) {
+                dum10ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Dum10] Parse error:`, dum10ParseError);
+              }
+            }
+            
+            // For Lottcard: Parse result from rdesc
+            let lottcardResult: LottcardResult | null = null;
+            let lottcardParseError: string | null = null;
+            
+            if (isLottcard) {
+              if (!rdesc) {
+                lottcardParseError = 'No rdesc available for Lottcard table';
+                console.warn(`⚠️ [Lottcard] No rdesc found for table ${tableId}`);
+              } else {
+                try {
+                  lottcardResult = parseLottcardResult(rdesc);
+                  if (lottcardResult) {
+                    console.log(`✅ [Lottcard] Parsed: digits=${lottcardResult.digits.join(',')}, type=${lottcardResult.type}`);
+                  } else {
+                    lottcardParseError = `Could not parse Lottcard result from rdesc: "${rdesc}"`;
+                    console.warn(`⚠️ [Lottcard] Parsing failed: "${rdesc}"`);
+                  }
+                } catch (error) {
+                  lottcardParseError = error instanceof Error ? error.message : String(error);
+                  console.error(`❌ [Lottcard] Parse error:`, lottcardParseError);
+                }
+              }
+            }
+            
+            // For Lucky7: Parse result from card string
+            let lucky7Result: Lucky7Result | null = null;
+            let lucky7ParseError: string | null = null;
+            
+            if (isLucky7) {
+              try {
+                // Extract card string from resultData
+                const cardString = resultData?.card || resultData?.t1?.card || rdesc || null;
+                
+                lucky7Result = parseLucky7Result(cardString);
+                if (lucky7Result) {
+                  console.log(`✅ [Lucky7] Parsed: rank=${lucky7Result.rank}, value=${lucky7Result.value}, color=${lucky7Result.color}, line=${lucky7Result.line}`);
+                } else {
+                  lucky7ParseError = 'Could not parse Lucky7 result from card string';
+                  console.warn(`⚠️ [Lucky7] Parsing failed`);
+                }
+              } catch (error) {
+                lucky7ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Lucky7] Parse error:`, lucky7ParseError);
+              }
+            }
+            
+            // For Patti2: Parse result from win/winnat
+            let patti2Result: Patti2Result | null = null;
+            let patti2ParseError: string | null = null;
+            
+            if (isPatti2) {
+              try {
+                patti2Result = parsePatti2Result(win, winnat);
+                if (patti2Result) {
+                  console.log(`✅ [Patti2] Parsed: winner=${patti2Result.winner}`);
+                } else {
+                  patti2ParseError = 'Could not parse Patti2 result from win/winnat';
+                  console.warn(`⚠️ [Patti2] Parsing failed`);
+                }
+              } catch (error) {
+                patti2ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Patti2] Parse error:`, patti2ParseError);
+              }
+            }
+            
+            // For Race2: Parse result from win/winnat
+            let race2Result: Race2Result | null = null;
+            let race2ParseError: string | null = null;
+            
+            if (isRace2) {
+              try {
+                race2Result = parseRace2Result(win, winnat);
+                if (race2Result) {
+                  console.log(`✅ [Race2] Parsed: winnerSid=${race2Result.winnerSid}, winnerName=${race2Result.winnerName}`);
+                } else {
+                  race2ParseError = 'Could not parse Race2 result from win/winnat';
+                  console.warn(`⚠️ [Race2] Parsing failed`);
+                }
+              } catch (error) {
+                race2ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Race2] Parse error:`, race2ParseError);
+              }
+            }
+            
+            // For Joker120: Parse result from win
+            let joker120Result: Joker120Result | null = null;
+            let joker120ParseError: string | null = null;
+            
+            if (isJoker120) {
+              try {
+                joker120Result = parseJoker120Result(win);
+                if (joker120Result) {
+                  console.log(`✅ [Joker120] Parsed: winner=${joker120Result.winnerName} (${joker120Result.winnerId})`);
+                } else {
+                  joker120ParseError = 'Could not parse Joker120 result from win';
+                  console.warn(`⚠️ [Joker120] Parsing failed`);
+                }
+              } catch (error) {
+                joker120ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Joker120] Parse error:`, joker120ParseError);
+              }
+            }
+            
+            // For Joker1: Parse result from win
+            let joker1Result: Joker1Result | null = null;
+            let joker1ParseError: string | null = null;
+            
+            if (isJoker1) {
+              try {
+                joker1Result = parseJoker1Result(win);
+                if (joker1Result) {
+                  console.log(`✅ [Joker1] Parsed: winner=${joker1Result.winnerName} (${joker1Result.winnerId})`);
+                } else {
+                  joker1ParseError = 'Could not parse Joker1 result from win';
+                  console.warn(`⚠️ [Joker1] Parsing failed`);
+                }
+              } catch (error) {
+                joker1ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Joker1] Parse error:`, joker1ParseError);
+              }
+            }
+            
+            // For Joker20: Parse result from win/rdesc
+            let joker20Result: Joker20Result | null = null;
+            let joker20ParseError: string | null = null;
+            
+            if (isJoker20) {
+              try {
+                joker20Result = parseJoker20Result(win, rdesc);
+                if (joker20Result) {
+                  console.log(`✅ [Joker20] Parsed: winner=${joker20Result.winnerName} (${joker20Result.winnerId})`);
+                } else {
+                  joker20ParseError = 'Could not parse Joker20 result from win/rdesc';
+                  console.warn(`⚠️ [Joker20] Parsing failed`);
+                }
+              } catch (error) {
+                joker20ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Joker20] Parse error:`, joker20ParseError);
+              }
+            }
+            
+            // For Teen120: Parse result from win/winnat/rdesc
+            let teen120Result: Teen120Result | null = null;
+            let teen120ParseError: string | null = null;
+            
+            if (isTeen120) {
+              try {
+                teen120Result = parseTeen120Result(win, winnat, rdesc);
+                if (teen120Result) {
+                  console.log(`✅ [Teen120] Parsed: winner=${teen120Result.winner}, isPair=${teen120Result.isPair}`);
+                } else {
+                  teen120ParseError = 'Could not parse Teen120 result from win/winnat/rdesc';
+                  console.warn(`⚠️ [Teen120] Parsing failed`);
+                }
+              } catch (error) {
+                teen120ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Teen120] Parse error:`, teen120ParseError);
+              }
+            }
+            
+            // For TeenUnique: Parse result from win/rdesc
+            let teenUniqueResult: TeenUniqueResult | null = null;
+            let teenUniqueParseError: string | null = null;
+            
+            if (isTeenUnique) {
+              try {
+                teenUniqueResult = parseTeenUniqueResult(win, rdesc);
+                if (teenUniqueResult) {
+                  console.log(`✅ [TeenUnique] Parsed: isWin=${teenUniqueResult.isWin}`);
+                } else {
+                  teenUniqueParseError = 'Could not parse TeenUnique result from win/rdesc';
+                  console.warn(`⚠️ [TeenUnique] Parsing failed`);
+                }
+              } catch (error) {
+                teenUniqueParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [TeenUnique] Parse error:`, teenUniqueParseError);
+              }
+            }
+            
+            // For Teen20V1: Parse result from rdesc/cards
+            let teen20V1Result: Teen20V1Result | null = null;
+            let teen20V1ParseError: string | null = null;
+            
+            if (isTeen20V1) {
+              try {
+                const cardString = resultData?.card || resultData?.t1?.card || null;
+                teen20V1Result = parseTeen20V1Result(rdesc, cardString);
+                if (teen20V1Result) {
+                  console.log(`✅ [Teen20V1] Parsed: winner=${teen20V1Result.winner}`);
+                } else {
+                  teen20V1ParseError = 'Could not parse Teen20V1 result from rdesc/cards';
+                  console.warn(`⚠️ [Teen20V1] Parsing failed`);
+                }
+              } catch (error) {
+                teen20V1ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Teen20V1] Parse error:`, teen20V1ParseError);
+              }
+            }
+            
+            // For Teen1: Parse result from win/winnat/rdesc
+            let teen1Result: Teen1Result | null = null;
+            let teen1ParseError: string | null = null;
+            
+            if (isTeen1) {
+              try {
+                teen1Result = parseTeen1Result(win, winnat, rdesc);
+                if (teen1Result) {
+                  console.log(`✅ [Teen1] Parsed: winner=${teen1Result.winner}`);
+                } else {
+                  teen1ParseError = 'Could not parse Teen1 result from win/winnat/rdesc';
+                  console.warn(`⚠️ [Teen1] Parsing failed`);
+                }
+              } catch (error) {
+                teen1ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Teen1] Parse error:`, teen1ParseError);
+              }
+            }
+            
+            // For Roulette11: Parse result from win
+            let roulette11Result: Roulette11Result | null = null;
+            let roulette11ParseError: string | null = null;
+            
+            if (isRoulette11) {
+              try {
+                roulette11Result = parseRoulette11Result(win);
+                if (roulette11Result) {
+                  console.log(`✅ [Roulette11] Parsed: number=${roulette11Result.number}, color=${roulette11Result.color}`);
+                } else {
+                  roulette11ParseError = 'Could not parse Roulette11 result from win';
+                  console.warn(`⚠️ [Roulette11] Parsing failed`);
+                }
+              } catch (error) {
+                roulette11ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Roulette11] Parse error:`, roulette11ParseError);
+              }
+            }
+            
+            // For Roulette12: Parse result from win
+            let roulette12Result: Roulette12Result | null = null;
+            let roulette12ParseError: string | null = null;
+            
+            if (isRoulette12) {
+              try {
+                roulette12Result = parseRoulette12Result(win);
+                if (roulette12Result) {
+                  console.log(`✅ [Roulette12] Parsed: number=${roulette12Result.number}, color=${roulette12Result.color}`);
+                } else {
+                  roulette12ParseError = 'Could not parse Roulette12 result from win';
+                  console.warn(`⚠️ [Roulette12] Parsing failed`);
+                }
+              } catch (error) {
+                roulette12ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Roulette12] Parse error:`, roulette12ParseError);
+              }
+            }
+            
+            // For Roulette13: Parse result from win
+            let roulette13Result: Roulette13Result | null = null;
+            let roulette13ParseError: string | null = null;
+            
+            if (isRoulette13) {
+              try {
+                roulette13Result = parseRoulette13Result(win);
+                if (roulette13Result) {
+                  console.log(`✅ [Roulette13] Parsed: number=${roulette13Result.number}, color=${roulette13Result.color}`);
+                } else {
+                  roulette13ParseError = 'Could not parse Roulette13 result from win';
+                  console.warn(`⚠️ [Roulette13] Parsing failed`);
+                }
+              } catch (error) {
+                roulette13ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Roulette13] Parse error:`, roulette13ParseError);
+              }
+            }
+            
+            // For KBC: Parse result from rdesc
+            let kbcResult: KBCResult | null = null;
+            let kbcParseError: string | null = null;
+            
+            if (isKBC) {
+              try {
+                kbcResult = parseKBCResult(rdesc);
+                if (kbcResult) {
+                  console.log(`✅ [KBC] Parsed: color=${kbcResult.color}, oddEven=${kbcResult.oddEven}`);
+                } else {
+                  kbcParseError = 'Could not parse KBC result from rdesc';
+                  console.warn(`⚠️ [KBC] Parsing failed`);
+                }
+              } catch (error) {
+                kbcParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [KBC] Parse error:`, kbcParseError);
+              }
+            }
+            
+            // For Poison20: Parse result from win/rdesc
+            let poison20Result: Poison20Result | null = null;
+            let poison20ParseError: string | null = null;
+            
+            if (isPoison20) {
+              try {
+                poison20Result = parsePoison20Result(win, rdesc);
+                if (poison20Result) {
+                  console.log(`✅ [Poison20] Parsed: winner=${poison20Result.winnerName} (${poison20Result.winnerId})`);
+                } else {
+                  poison20ParseError = 'Could not parse Poison20 result from win/rdesc';
+                  console.warn(`⚠️ [Poison20] Parsing failed`);
+                }
+              } catch (error) {
+                poison20ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Poison20] Parse error:`, poison20ParseError);
+              }
+            }
+            
+            // For AAA: Parse result from win/card
+            let aaaResult: AAAResult | null = null;
+            let aaaParseError: string | null = null;
+            
+            if (isAAA) {
+              try {
+                const cardValue = resultData?.card || resultData?.t1?.card || null;
+                aaaResult = parseAAAResult(win, cardValue, resultMid);
+                if (aaaResult) {
+                  console.log(`✅ [AAA] Parsed: winner=${aaaResult.winnerName} (${aaaResult.winnerId}), card=${aaaResult.card}`);
+                } else {
+                  aaaParseError = 'Could not parse AAA result from win/card';
+                  console.warn(`⚠️ [AAA] Parsing failed`);
+                }
+              } catch (error) {
+                aaaParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [AAA] Parse error:`, aaaParseError);
+              }
+            }
+            
+            // For Poker: Parse result from win/card/rdesc
+            let pokerResult: PokerResult | null = null;
+            let pokerParseError: string | null = null;
+            
+            if (isPoker) {
+              try {
+                const cardValue = resultData?.card || resultData?.t1?.card || null;
+                pokerResult = parsePokerResult(win, cardValue, rdesc);
+                if (pokerResult) {
+                  console.log(`✅ [Poker] Parsed: winner=${pokerResult.winnerName} (${pokerResult.winnerId})`);
+                } else {
+                  pokerParseError = 'Could not parse Poker result from win/card/rdesc';
+                  console.warn(`⚠️ [Poker] Parsing failed`);
+                }
+              } catch (error) {
+                pokerParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Poker] Parse error:`, pokerParseError);
+              }
+            }
+            
+            // For Baccarat: Parse result from win/card/rdesc
+            let baccaratResult: BaccaratResult | null = null;
+            let baccaratParseError: string | null = null;
+            
+            if (isBaccarat) {
+              try {
+                const cardValue = resultData?.card || resultData?.t1?.card || null;
+                baccaratResult = parseBaccaratResult(win, cardValue, rdesc);
+                if (baccaratResult) {
+                  console.log(`✅ [Baccarat] Parsed: winner=${baccaratResult.winner}`);
+                } else {
+                  baccaratParseError = 'Could not parse Baccarat result from win/card/rdesc';
+                  console.warn(`⚠️ [Baccarat] Parsing failed`);
+                }
+              } catch (error) {
+                baccaratParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Baccarat] Parse error:`, baccaratParseError);
+              }
+            }
+            
+            // For Teen: Parse result from win/card/rdesc
+            let teenResult: TeenResult | null = null;
+            let teenParseError: string | null = null;
+            
+            if (isTeen) {
+              try {
+                const cardValue = resultData?.card || resultData?.t1?.card || null;
+                teenResult = parseTeenResult(win, cardValue, rdesc);
+                if (teenResult) {
+                  console.log(`✅ [Teen] Parsed: winner=${teenResult.winnerName} (${teenResult.winnerId})`);
+                } else {
+                  teenParseError = 'Could not parse Teen result from win/card/rdesc';
+                  console.warn(`⚠️ [Teen] Parsing failed`);
+                }
+              } catch (error) {
+                teenParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Teen] Parse error:`, teenParseError);
+              }
+            }
+            
+            // For AB4: Parse result from win/cards
+            let ab4Result: AB4Result | null = null;
+            let ab4ParseError: string | null = null;
+            
+            if (isAB4) {
+              try {
+                const cardsValue = resultData?.card || resultData?.t1?.card || null;
+                ab4Result = parseAB4Result(win, cardsValue);
+                if (ab4Result) {
+                  console.log(`✅ [AB4] Parsed: winnerSide=${ab4Result.winnerSide}`);
+                } else {
+                  ab4ParseError = 'Could not parse AB4 result from win/cards';
+                  console.warn(`⚠️ [AB4] Parsing failed`);
+                }
+              } catch (error) {
+                ab4ParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [AB4] Parse error:`, ab4ParseError);
+              }
+            }
+            
+            // For ABJ: Parse result from win/card/rdesc
+            let abjResult: ABJResult | null = null;
+            let abjParseError: string | null = null;
+            
+            if (isABJ) {
+              try {
+                const cardValue = resultData?.card || resultData?.t1?.card || null;
+                abjResult = parseABJResult(win, cardValue, rdesc, resultMid);
+                if (abjResult) {
+                  console.log(`✅ [ABJ] Parsed: winner=${abjResult.winner}`);
+                } else {
+                  abjParseError = 'Could not parse ABJ result from win/card/rdesc';
+                  console.warn(`⚠️ [ABJ] Parsing failed`);
+                }
+              } catch (error) {
+                abjParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [ABJ] Parse error:`, abjParseError);
+              }
+            }
+            
+                       // For Baccarat2: Parse result from win/card/rdesc
+                       let baccarat2Result: Baccarat2Result | null = null;
+                       let baccarat2ParseError: string | null = null;
+                       
+                       if (isBaccarat2) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           baccarat2Result = parseBaccarat2Result(win, cardValue, rdesc);
+                           if (baccarat2Result) {
+                             console.log(`✅ [Baccarat2] Parsed: winner=${baccarat2Result.winner}`);
+                           } else {
+                             baccarat2ParseError = 'Could not parse Baccarat2 result from win/card/rdesc';
+                             console.warn(`⚠️ [Baccarat2] Parsing failed`);
+                           }
+                         } catch (error) {
+                           baccarat2ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Baccarat2] Parse error:`, baccarat2ParseError);
+                         }
+                       }
+                       
+                       // For BTable: Parse result from win/card/rdesc
+                       let bTableResult: BTableResult | null = null;
+                       let bTableParseError: string | null = null;
+                       
+                       if (isBTable) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           bTableResult = parseBTableResult(win, cardValue, rdesc);
+                           if (bTableResult) {
+                             console.log(`✅ [BTable] Parsed: winner=${bTableResult.winnerName}`);
+                           } else {
+                             bTableParseError = 'Could not parse BTable result from win/card/rdesc';
+                             console.warn(`⚠️ [BTable] Parsing failed`);
+                           }
+                         } catch (error) {
+                           bTableParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [BTable] Parse error:`, bTableParseError);
+                         }
+                       }
+                       
+                       // For BTable2: Parse result from win
+                       let bTable2Result: BTable2Result | null = null;
+                       let bTable2ParseError: string | null = null;
+                       
+                       if (isBTable2) {
+                         try {
+                           bTable2Result = parseBTable2Result(win);
+                           if (bTable2Result) {
+                             console.log(`✅ [BTable2] Parsed: winner=${bTable2Result.winnerName}`);
+                           } else {
+                             bTable2ParseError = 'Could not parse BTable2 result from win';
+                             console.warn(`⚠️ [BTable2] Parsing failed`);
+                           }
+                         } catch (error) {
+                           bTable2ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [BTable2] Parse error:`, bTable2ParseError);
+                         }
+                       }
+                       
+                       // For Card32: Parse result from win/card/rdesc
+                       let card32Result: Card32Result | null = null;
+                       let card32ParseError: string | null = null;
+                       
+                       if (isCard32) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           card32Result = parseCard32Result(win, cardValue, rdesc);
+                           if (card32Result) {
+                             console.log(`✅ [Card32] Parsed: winner=${card32Result.winner}`);
+                           } else {
+                             card32ParseError = 'Could not parse Card32 result from win/card/rdesc';
+                             console.warn(`⚠️ [Card32] Parsing failed`);
+                           }
+                         } catch (error) {
+                           card32ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Card32] Parse error:`, card32ParseError);
+                         }
+                       }
+                       
+                       // For Card32EU: Parse result from win/card/rdesc
+                       let card32EUResult: Card32EUResult | null = null;
+                       let card32EUParseError: string | null = null;
+                       
+                       if (isCard32EU) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           card32EUResult = parseCard32EUResult(win, cardValue, rdesc);
+                           if (card32EUResult) {
+                             console.log(`✅ [Card32EU] Parsed: winner=${card32EUResult.winner}`);
+                           } else {
+                             card32EUParseError = 'Could not parse Card32EU result from win/card/rdesc';
+                             console.warn(`⚠️ [Card32EU] Parsing failed`);
+                           }
+                         } catch (error) {
+                           card32EUParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Card32EU] Parse error:`, card32EUParseError);
+                         }
+                       }
+                       
+                       // For CMatch20: Parse result from win/rdesc
+                       let cmatch20Result: CMatch20Result | null = null;
+                       let cmatch20ParseError: string | null = null;
+                       
+                       if (isCMatch20) {
+                         try {
+                           cmatch20Result = parseCMatch20Result(win, rdesc);
+                           if (cmatch20Result) {
+                             console.log(`✅ [CMatch20] Parsed: winner=${cmatch20Result.winnerName}`);
+                           } else {
+                             cmatch20ParseError = 'Could not parse CMatch20 result from win/rdesc';
+                             console.warn(`⚠️ [CMatch20] Parsing failed`);
+                           }
+                         } catch (error) {
+                           cmatch20ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [CMatch20] Parse error:`, cmatch20ParseError);
+                         }
+                       }
+                       
+                       // For CMeter: Parse result from win/card/rdesc
+                       let cmeterResult: CMeterResult | null = null;
+                       let cmeterParseError: string | null = null;
+                       
+                       if (isCMeter) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           cmeterResult = parseCMeterResult(win, cardValue, rdesc);
+                           if (cmeterResult) {
+                             console.log(`✅ [CMeter] Parsed: winner=${cmeterResult.winnerName}`);
+                           } else {
+                             cmeterParseError = 'Could not parse CMeter result from win/card/rdesc';
+                             console.warn(`⚠️ [CMeter] Parsing failed`);
+                           }
+                         } catch (error) {
+                           cmeterParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [CMeter] Parse error:`, cmeterParseError);
+                         }
+                       }
+                       
+                       // For CricketV3: Parse result from win/rdesc
+                       let cricketV3Result: CricketV3Result | null = null;
+                       let cricketV3ParseError: string | null = null;
+                       
+                       if (isCricketV3) {
+                         try {
+                           cricketV3Result = parseCricketV3Result(win, rdesc);
+                           if (cricketV3Result) {
+                             console.log(`✅ [CricketV3] Parsed: winner=${cricketV3Result.winner}`);
+                           } else {
+                             cricketV3ParseError = 'Could not parse CricketV3 result from win/rdesc';
+                             console.warn(`⚠️ [CricketV3] Parsing failed`);
+                           }
+                         } catch (error) {
+                           cricketV3ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [CricketV3] Parse error:`, cricketV3ParseError);
+                         }
+                       }
+                       
+                       // For DT20: Parse result from win/card/rdesc
+                       let dt20Result: DT20Result | null = null;
+                       let dt20ParseError: string | null = null;
+                       
+                       if (isDT20) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           dt20Result = parseDT20Result(win, cardValue, rdesc);
+                           if (dt20Result) {
+                             console.log(`✅ [DT20] Parsed: winner=${dt20Result.winner}`);
+                           } else {
+                             dt20ParseError = 'Could not parse DT20 result from win/card/rdesc';
+                             console.warn(`⚠️ [DT20] Parsing failed`);
+                           }
+                         } catch (error) {
+                           dt20ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [DT20] Parse error:`, dt20ParseError);
+                         }
+                       }
+                       
+                       // For DTL20: Parse result from win/card/rdesc
+                       let dtl20Result: DTL20Result | null = null;
+                       let dtl20ParseError: string | null = null;
+                       
+                       if (isDTL20) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           dtl20Result = parseDTL20Result(win, cardValue, rdesc);
+                           if (dtl20Result) {
+                             console.log(`✅ [DTL20] Parsed: winner=${dtl20Result.winner}`);
+                           } else {
+                             dtl20ParseError = 'Could not parse DTL20 result from win/card/rdesc';
+                             console.warn(`⚠️ [DTL20] Parsing failed`);
+                           }
+                         } catch (error) {
+                           dtl20ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [DTL20] Parse error:`, dtl20ParseError);
+                         }
+                       }
+                       
+                       // For Goal: Parse result from win/rdesc
+                       let goalResult: GoalResult | null = null;
+                       let goalParseError: string | null = null;
+                       
+                       if (isGoal) {
+                         try {
+                           goalResult = parseGoalResult(win, rdesc);
+                           if (goalResult) {
+                             console.log(`✅ [Goal] Parsed: winner=${goalResult.winner}`);
+                           } else {
+                             goalParseError = 'Could not parse Goal result from win/rdesc';
+                             console.warn(`⚠️ [Goal] Parsing failed`);
+                           }
+                         } catch (error) {
+                           goalParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Goal] Parse error:`, goalParseError);
+                         }
+                       }
+                       
+                       // For Lucky15: Parse result from win
+                       let lucky15Result: Lucky15Result | null = null;
+                       let lucky15ParseError: string | null = null;
+                       
+                       if (isLucky15) {
+                         try {
+                           lucky15Result = parseLucky15Result(win);
+                           if (lucky15Result) {
+                             console.log(`✅ [Lucky15] Parsed: card=${lucky15Result.card}`);
+                           } else {
+                             lucky15ParseError = 'Could not parse Lucky15 result from win';
+                             console.warn(`⚠️ [Lucky15] Parsing failed`);
+                           }
+                         } catch (error) {
+                           lucky15ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Lucky15] Parse error:`, lucky15ParseError);
+                         }
+                       }
+                       
+                       // For Lucky7EU: Parse result from card
+                       let lucky7EUResult: Lucky7EUResult | null = null;
+                       let lucky7EUParseError: string | null = null;
+                       
+                       if (isLucky7EU) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           lucky7EUResult = parseLucky7EUResult(cardValue);
+                           if (lucky7EUResult) {
+                             console.log(`✅ [Lucky7EU] Parsed: card=${lucky7EUResult.card}`);
+                           } else {
+                             lucky7EUParseError = 'Could not parse Lucky7EU result from card';
+                             console.warn(`⚠️ [Lucky7EU] Parsing failed`);
+                           }
+                         } catch (error) {
+                           lucky7EUParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Lucky7EU] Parse error:`, lucky7EUParseError);
+                         }
+                       }
+                       
+                       // For OurRoulette: Parse result from win
+                       let ourRouletteResult: OurRouletteResult | null = null;
+                       let ourRouletteParseError: string | null = null;
+                       
+                       if (isOurRoulette) {
+                         try {
+                           ourRouletteResult = parseOurRouletteResult(win);
+                           if (ourRouletteResult) {
+                             console.log(`✅ [OurRoulette] Parsed: number=${ourRouletteResult.number}`);
+                           } else {
+                             ourRouletteParseError = 'Could not parse OurRoulette result from win';
+                             console.warn(`⚠️ [OurRoulette] Parsing failed`);
+                           }
+                         } catch (error) {
+                           ourRouletteParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [OurRoulette] Parse error:`, ourRouletteParseError);
+                         }
+                       }
+                       
+                       // For Poker20: Parse result from win/card/rdesc
+                       let poker20Result: Poker20Result | null = null;
+                       let poker20ParseError: string | null = null;
+                       
+                       if (isPoker20) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           poker20Result = parsePoker20Result(win, cardValue, rdesc);
+                           if (poker20Result) {
+                             console.log(`✅ [Poker20] Parsed: winner=${poker20Result.winnerName}`);
+                           } else {
+                             poker20ParseError = 'Could not parse Poker20 result from win/card/rdesc';
+                             console.warn(`⚠️ [Poker20] Parsing failed`);
+                           }
+                         } catch (error) {
+                           poker20ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Poker20] Parse error:`, poker20ParseError);
+                         }
+                       }
+                       
+                       // For Poker6: Parse result from win/card/rdesc
+                       let poker6Result: Poker6Result | null = null;
+                       let poker6ParseError: string | null = null;
+                       
+                       if (isPoker6) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           poker6Result = parsePoker6Result(win, cardValue, rdesc);
+                           if (poker6Result) {
+                             console.log(`✅ [Poker6] Parsed: winner=${poker6Result.winnerName}`);
+                           } else {
+                             poker6ParseError = 'Could not parse Poker6 result from win/card/rdesc';
+                             console.warn(`⚠️ [Poker6] Parsing failed`);
+                           }
+                         } catch (error) {
+                           poker6ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Poker6] Parse error:`, poker6ParseError);
+                         }
+                       }
+                       
+                       // For Poison: Parse result from rdesc
+                       let poisonResult: PoisonResult | null = null;
+                       let poisonParseError: string | null = null;
+                       
+                       if (isPoison) {
+                         try {
+                           poisonResult = parsePoisonResult(rdesc);
+                           if (poisonResult) {
+                             console.log(`✅ [Poison] Parsed: winner=${poisonResult.winnerName}`);
+                           } else {
+                             poisonParseError = 'Could not parse Poison result from rdesc';
+                             console.warn(`⚠️ [Poison] Parsing failed`);
+                           }
+                         } catch (error) {
+                           poisonParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Poison] Parse error:`, poisonParseError);
+                         }
+                       }
+                       
+                       // For Queen: Parse result from win/card/rdesc
+                       let queenResult: QueenResult | null = null;
+                       let queenParseError: string | null = null;
+                       
+                       if (isQueen) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           queenResult = parseQueenResult(win, cardValue, rdesc);
+                           if (queenResult) {
+                             console.log(`✅ [Queen] Parsed: winner=${queenResult.winner}`);
+                           } else {
+                             queenParseError = 'Could not parse Queen result from win/card/rdesc';
+                             console.warn(`⚠️ [Queen] Parsing failed`);
+                           }
+                         } catch (error) {
+                           queenParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Queen] Parse error:`, queenParseError);
+                         }
+                       }
+                       
+                       // For Race20: Parse result from win/winnat
+                       let race20Result: Race20Result | null = null;
+                       let race20ParseError: string | null = null;
+                       
+                       if (isRace20) {
+                         try {
+                           race20Result = parseRace20Result(win, winnat);
+                           if (race20Result) {
+                             console.log(`✅ [Race20] Parsed: winner=${race20Result.winner}`);
+                           } else {
+                             race20ParseError = 'Could not parse Race20 result from win/winnat';
+                             console.warn(`⚠️ [Race20] Parsing failed`);
+                           }
+                         } catch (error) {
+                           race20ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Race20] Parse error:`, race20ParseError);
+                         }
+                       }
+                       
+                       // For Roulette: Already handled above with rouletteResult
+                       
+                       // For SicBo: Parse result from card
+                       let sicBoResult: SicBoResult | null = null;
+                       let sicBoParseError: string | null = null;
+                       
+                       if (isSicBo) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           sicBoResult = parseSicBoResult(cardValue);
+                           if (sicBoResult) {
+                             console.log(`✅ [SicBo] Parsed: dice=${sicBoResult.dice.join(',')}`);
+                           } else {
+                             sicBoParseError = 'Could not parse SicBo result from card';
+                             console.warn(`⚠️ [SicBo] Parsing failed`);
+                           }
+                         } catch (error) {
+                           sicBoParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [SicBo] Parse error:`, sicBoParseError);
+                         }
+                       }
+                       
+                       // For SicBo2: Parse result from card
+                       let sicBo2Result: Sicbo2Result | null = null;
+                       let sicBo2ParseError: string | null = null;
+                       
+                       if (isSicBo2) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           sicBo2Result = parseSicbo2Result(cardValue);
+                           if (sicBo2Result) {
+                             console.log(`✅ [SicBo2] Parsed: dice=${sicBo2Result.dice.join(',')}`);
+                           } else {
+                             sicBo2ParseError = 'Could not parse SicBo2 result from card';
+                             console.warn(`⚠️ [SicBo2] Parsing failed`);
+                           }
+                         } catch (error) {
+                           sicBo2ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [SicBo2] Parse error:`, sicBo2ParseError);
+                         }
+                       }
+                       
+                       // For SuperOver2: Parse result from win/rdesc
+                       let superOver2Result: SuperOver2Result | null = null;
+                       let superOver2ParseError: string | null = null;
+                       
+                       if (isSuperOver2) {
+                         try {
+                           superOver2Result = parseSuperOver2Result(win, rdesc);
+                           if (superOver2Result) {
+                             console.log(`✅ [SuperOver2] Parsed: winner=${superOver2Result.winner}`);
+                           } else {
+                             superOver2ParseError = 'Could not parse SuperOver2 result from win/rdesc';
+                             console.warn(`⚠️ [SuperOver2] Parsing failed`);
+                           }
+                         } catch (error) {
+                           superOver2ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [SuperOver2] Parse error:`, superOver2ParseError);
+                         }
+                       }
+                       
+                       // For SuperOver3: Parse result from win/card/rdesc
+                       let superOver3Result: SuperOver3Result | null = null;
+                       let superOver3ParseError: string | null = null;
+                       
+                       if (isSuperOver3) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           superOver3Result = parseSuperOver3Result(win, cardValue, rdesc);
+                           if (superOver3Result) {
+                             console.log(`✅ [SuperOver3] Parsed: winner=${superOver3Result.winner}`);
+                           } else {
+                             superOver3ParseError = 'Could not parse SuperOver3 result from win/card/rdesc';
+                             console.warn(`⚠️ [SuperOver3] Parsing failed`);
+                           }
+                         } catch (error) {
+                           superOver3ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [SuperOver3] Parse error:`, superOver3ParseError);
+                         }
+                       }
+                       
+                       // For 3CardJ: Parse result from win/card
+                       let threeCardJResult: ThreeCardJResult | null = null;
+                       let threeCardJParseError: string | null = null;
+                       
+                       if (is3CardJ) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           threeCardJResult = parse3CardJResult(win, cardValue);
+                           if (threeCardJResult) {
+                             console.log(`✅ [3CardJ] Parsed: cards=${threeCardJResult.cards.join(',')}`);
+                           } else {
+                             threeCardJParseError = 'Could not parse 3CardJ result from win/card';
+                             console.warn(`⚠️ [3CardJ] Parsing failed`);
+                           }
+                         } catch (error) {
+                           threeCardJParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [3CardJ] Parse error:`, threeCardJParseError);
+                         }
+                       }
+                       
+                       // For BallByBall: Parse result from win
+                       let ballByBallResult: BallByBallResult | null = null;
+                       let ballByBallParseError: string | null = null;
+                       
+                       if (isBallByBall) {
+                         try {
+                           ballByBallResult = parseBallByBallResult(win);
+                           if (ballByBallResult) {
+                             console.log(`✅ [BallByBall] Parsed: result=${ballByBallResult.result}`);
+                           } else {
+                             ballByBallParseError = 'Could not parse BallByBall result from win';
+                             console.warn(`⚠️ [BallByBall] Parsing failed`);
+                           }
+                         } catch (error) {
+                           ballByBallParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [BallByBall] Parse error:`, ballByBallParseError);
+                         }
+                       }
+                       
+                       // For Teen20C: Parse result from win
+                       let teen20CResult: Teen20CResult | null = null;
+                       let teen20CParseError: string | null = null;
+                       
+                       if (isTeen20C) {
+                         try {
+                           teen20CResult = parseTeen20CResult(win);
+                           if (teen20CResult) {
+                             console.log(`✅ [Teen20C] Parsed: winner=${teen20CResult.winnerName} (${teen20CResult.winnerId})`);
+                           } else {
+                             teen20CParseError = 'Could not parse Teen20C result from win';
+                             console.warn(`⚠️ [Teen20C] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen20CParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen20C] Parse error:`, teen20CParseError);
+                         }
+                       }
+                       
+                       // For Teen30: Parse result from win/card/rdesc
+                       let teen30Result: Teen30Result | null = null;
+                       let teen30ParseError: string | null = null;
+                       
+                       if (isTeen30) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           teen30Result = parseTeen30Result(win, cardValue, rdesc);
+                           if (teen30Result) {
+                             console.log(`✅ [Teen30] Parsed: winner=${teen30Result.winnerName}`);
+                           } else {
+                             teen30ParseError = 'Could not parse Teen30 result from win/card/rdesc';
+                             console.warn(`⚠️ [Teen30] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen30ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen30] Parse error:`, teen30ParseError);
+                         }
+                       }
+                       
+                       // For Teen32: Parse result from win
+                       let teen32Result: Teen32Result | null = null;
+                       let teen32ParseError: string | null = null;
+                       
+                       if (isTeen32) {
+                         try {
+                           teen32Result = parseTeen32Result(win);
+                           if (teen32Result) {
+                             console.log(`✅ [Teen32] Parsed: winner=${teen32Result.winnerName} (${teen32Result.winnerId})`);
+                           } else {
+                             teen32ParseError = 'Could not parse Teen32 result from win';
+                             console.warn(`⚠️ [Teen32] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen32ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen32] Parse error:`, teen32ParseError);
+                         }
+                       }
+                       
+                       // For Teen33: Parse result from win
+                       let teen33Result: Teen33Result | null = null;
+                       let teen33ParseError: string | null = null;
+                       
+                       if (isTeen33) {
+                         try {
+                           teen33Result = parseTeen33Result(win);
+                           if (teen33Result) {
+                             console.log(`✅ [Teen33] Parsed: winner=${teen33Result.winnerName} (${teen33Result.winnerId})`);
+                           } else {
+                             teen33ParseError = 'Could not parse Teen33 result from win';
+                             console.warn(`⚠️ [Teen33] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen33ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen33] Parse error:`, teen33ParseError);
+                         }
+                       }
+                       
+                       // For Teen41: Parse result from win/card/rdesc
+                       let teen41Result: Teen41Result | null = null;
+                       let teen41ParseError: string | null = null;
+                       
+                       if (isTeen41) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           teen41Result = parseTeen41Result(win, cardValue, rdesc);
+                           if (teen41Result) {
+                             console.log(`✅ [Teen41] Parsed: winner=${teen41Result.winnerName}`);
+                           } else {
+                             teen41ParseError = 'Could not parse Teen41 result from win/card/rdesc';
+                             console.warn(`⚠️ [Teen41] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen41ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen41] Parse error:`, teen41ParseError);
+                         }
+                       }
+                       
+                       // For Teen42: Parse result from win/card/rdesc
+                       let teen42Result: Teen42Result | null = null;
+                       let teen42ParseError: string | null = null;
+                       
+                       if (isTeen42) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           teen42Result = parseTeen42Result(win, cardValue, rdesc);
+                           if (teen42Result) {
+                             console.log(`✅ [Teen42] Parsed: winner=${teen42Result.winnerName}`);
+                           } else {
+                             teen42ParseError = 'Could not parse Teen42 result from win/card/rdesc';
+                             console.warn(`⚠️ [Teen42] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen42ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen42] Parse error:`, teen42ParseError);
+                         }
+                       }
+                       
+                       // For Teen6: Parse result from win/card/rdesc
+                       let teen6Result: Teen6Result | null = null;
+                       let teen6ParseError: string | null = null;
+                       
+                       if (isTeen6) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           teen6Result = parseTeen6Result(win, cardValue, rdesc);
+                           if (teen6Result) {
+                             console.log(`✅ [Teen6] Parsed: winner=${teen6Result.winnerName}`);
+                           } else {
+                             teen6ParseError = 'Could not parse Teen6 result from win/card/rdesc';
+                             console.warn(`⚠️ [Teen6] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen6ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen6] Parse error:`, teen6ParseError);
+                         }
+                       }
+                       
+                       // For Teen9: Parse result from win/card/rdesc
+                       let teen9Result: Teen9Result | null = null;
+                       let teen9ParseError: string | null = null;
+                       
+                       if (isTeen9) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           teen9Result = parseTeen9Result(win, cardValue, rdesc);
+                           if (teen9Result) {
+                             console.log(`✅ [Teen9] Parsed: winner=${teen9Result.winnerName}`);
+                           } else {
+                             teen9ParseError = 'Could not parse Teen9 result from win/card/rdesc';
+                             console.warn(`⚠️ [Teen9] Parsing failed`);
+                           }
+                         } catch (error) {
+                           teen9ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Teen9] Parse error:`, teen9ParseError);
+                         }
+                       }
+                       
+                       // For War: Parse result from win/card/rdesc
+                       let warResult: WarResult | null = null;
+                       let warParseError: string | null = null;
+                       
+                       if (isWar) {
+                         try {
+                           const cardValue = resultData?.card || resultData?.t1?.card || null;
+                           warResult = parseWarResult(win, cardValue, rdesc);
+                           if (warResult) {
+                             console.log(`✅ [War] Parsed: winner=${warResult.winner}`);
+                           } else {
+                             warParseError = 'Could not parse War result from win/card/rdesc';
+                             console.warn(`⚠️ [War] Parsing failed`);
+                           }
+                         } catch (error) {
+                           warParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [War] Parse error:`, warParseError);
+                         }
+                       }
+                       
+                       // For Worli: Parse result from win/rdesc
+                       let worliResult: WorliResult | null = null;
+                       let worliParseError: string | null = null;
+                       
+                       if (isWorli) {
+                         try {
+                           worliResult = parseWorliResult(win, rdesc);
+                           if (worliResult) {
+                             console.log(`✅ [Worli] Parsed: result=${worliResult.result}`);
+                           } else {
+                             worliParseError = 'Could not parse Worli result from win/rdesc';
+                             console.warn(`⚠️ [Worli] Parsing failed`);
+                           }
+                         } catch (error) {
+                           worliParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Worli] Parse error:`, worliParseError);
+                         }
+                       }
+                       
+                       // For Worli2: Parse result from win/rdesc
+                       let worli2Result: Worli2Result | null = null;
+                       let worli2ParseError: string | null = null;
+                       
+                       if (isWorli2) {
+                         try {
+                           worli2Result = parseWorli2Result(win, rdesc);
+                           if (worli2Result) {
+                             console.log(`✅ [Worli2] Parsed: result=${worli2Result.result}`);
+                           } else {
+                             worli2ParseError = 'Could not parse Worli2 result from win/rdesc';
+                             console.warn(`⚠️ [Worli2] Parsing failed`);
+                           }
+                         } catch (error) {
+                           worli2ParseError = error instanceof Error ? error.message : String(error);
+                           console.error(`❌ [Worli2] Parse error:`, worli2ParseError);
+                         }
+                       }
+                       
+                      
+
+            // Determine table type for logging
+            let tableTypeForLog = 'Generic';
+            if (isRoulette) tableTypeForLog = 'Roulette';
+            else if (isLucky5) tableTypeForLog = 'Lucky5';
+            else if (isDT6) tableTypeForLog = 'DT6';
+            else if (isTeen3) tableTypeForLog = 'Teen3';
+            else if (isAAA2) tableTypeForLog = 'AAA2';
+            else if (isCMeter1) tableTypeForLog = 'CMeter1';
+            else if (isMogambo) tableTypeForLog = 'Mogambo';
+            else if (isDolidana) tableTypeForLog = 'Dolidana';
+            else if (isAB20) tableTypeForLog = 'AB20';
+            else if (isTeen62) tableTypeForLog = 'Teen62';
+            else if (isAb3) tableTypeForLog = 'Ab3';
+            else if (isDT202) tableTypeForLog = 'DT202';
+            else if (isDum10) tableTypeForLog = 'Dum10';
+            else if (isLottcard) tableTypeForLog = 'Lottcard';
+            else if (isLucky7) tableTypeForLog = 'Lucky7';
+            else if (isPatti2) tableTypeForLog = 'Patti2';
+            else if (isRace2) tableTypeForLog = 'Race2';
+            else if (isJoker120) tableTypeForLog = 'Joker120';
+            else if (isJoker1) tableTypeForLog = 'Joker1';
+            else if (isJoker20) tableTypeForLog = 'Joker20';
+            else if (isTeen120) tableTypeForLog = 'Teen120';
+            else if (isTeenUnique) tableTypeForLog = 'TeenUnique';
+            else if (isTeen20V1) tableTypeForLog = 'Teen20V1';
+            else if (isTeen1) tableTypeForLog = 'Teen1';
+            else if (isRoulette11) tableTypeForLog = 'Roulette11';
+            else if (isRoulette12) tableTypeForLog = 'Roulette12';
+            else if (isRoulette13) tableTypeForLog = 'Roulette13';
+            else if (isKBC) tableTypeForLog = 'KBC';
+            else if (isPoison20) tableTypeForLog = 'Poison20';
 
             console.log(`\n📋 Bet Matching Setup:`, {
-              tableType: isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : (isTeen62 ? 'Teen62' : 'Generic'))))))))),
+              tableType: tableTypeForLog,
               hasRdesc: !!rdesc,
               rdesc: rdesc || '(not found)',
               parsedWinner: parsedRdesc?.winner || '(not found)',
@@ -1602,11 +3719,1299 @@ serve(async (req) => {
                     }
                   }
                   
+                  // PRIMARY: Ab3-specific matching (if Ab3 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && isAb3) {
+                    if (ab3Result) {
+                      try {
+                        betWon = isAb3WinningBet(betType, ab3Result, betSide);
+                        matchReason = betWon
+                          ? `Ab3 bet "${betType}" matched result (isWin=${ab3Result.isWin})`
+                          : `Ab3 bet "${betType}" did not match result (isWin=${ab3Result.isWin})`;
+                        matchedResult = ab3Result.isWin ? 'Win' : 'No Result';
+                        specializedMatchingDone = true;
+                        console.log(`🎯 [Ab3] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (ab3Error) {
+                        matchingError = ab3Error instanceof Error ? ab3Error.message : String(ab3Error);
+                        console.error(`❌ [Ab3] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = ab3ParseError || 'Ab3 result not available';
+                      console.warn(`⚠️ [Ab3] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: DT202-specific matching (if DT202 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && isDT202) {
+                    if (dt202Result) {
+                      try {
+                        betWon = isDT202WinningBet(betType, dt202Result, betSide);
+                        matchReason = betWon
+                          ? `DT202 bet "${betType}" matched winner ${dt202Result.winner}`
+                          : `DT202 bet "${betType}" did not match winner ${dt202Result.winner}`;
+                        matchedResult = dt202Result.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🐉 [DT202] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (dt202Error) {
+                        matchingError = dt202Error instanceof Error ? dt202Error.message : String(dt202Error);
+                        console.error(`❌ [DT202] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = dt202ParseError || 'DT202 result not available';
+                      console.warn(`⚠️ [DT202] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Dum10-specific matching (if Dum10 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && isDum10) {
+                    if (dum10Result) {
+                      try {
+                        betWon = isDum10WinningBet(betType, dum10Result, betSide);
+                        matchReason = betWon
+                          ? `Dum10 bet "${betType}" matched result (main=${dum10Result.main})`
+                          : `Dum10 bet "${betType}" did not match result (main=${dum10Result.main})`;
+                        matchedResult = dum10Result.main;
+                        specializedMatchingDone = true;
+                        console.log(`🎲 [Dum10] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (dum10Error) {
+                        matchingError = dum10Error instanceof Error ? dum10Error.message : String(dum10Error);
+                        console.error(`❌ [Dum10] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = dum10ParseError || 'Dum10 result not available';
+                      console.warn(`⚠️ [Dum10] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Lottcard-specific matching (if Lottcard table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && isLottcard) {
+                    if (lottcardResult) {
+                      try {
+                        betWon = isLottcardWinningBet(betType, lottcardResult, betSide);
+                        matchReason = betWon
+                          ? `Lottcard bet "${betType}" matched type ${lottcardResult.type}`
+                          : `Lottcard bet "${betType}" did not match type ${lottcardResult.type}`;
+                        matchedResult = lottcardResult.type;
+                        specializedMatchingDone = true;
+                        console.log(`🎴 [Lottcard] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (lottcardError) {
+                        matchingError = lottcardError instanceof Error ? lottcardError.message : String(lottcardError);
+                        console.error(`❌ [Lottcard] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = lottcardParseError || 'Lottcard result not available';
+                      console.warn(`⚠️ [Lottcard] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Lucky7-specific matching (if Lucky7 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && isLucky7) {
+                    if (lucky7Result) {
+                      try {
+                        betWon = isLucky7WinningBet(betType, lucky7Result, betSide);
+                        matchReason = betWon
+                          ? `Lucky7 bet "${betType}" matched card ${lucky7Result.rank} (value=${lucky7Result.value})`
+                          : `Lucky7 bet "${betType}" did not match card ${lucky7Result.rank} (value=${lucky7Result.value})`;
+                        matchedResult = lucky7Result.rank;
+                        specializedMatchingDone = true;
+                        console.log(`🎰 [Lucky7] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (lucky7Error) {
+                        matchingError = lucky7Error instanceof Error ? lucky7Error.message : String(lucky7Error);
+                        console.error(`❌ [Lucky7] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = lucky7ParseError || 'Lucky7 result not available';
+                      console.warn(`⚠️ [Lucky7] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Patti2-specific matching (if Patti2 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && isPatti2) {
+                    if (patti2Result) {
+                      try {
+                        betWon = isPatti2WinningBet(betType, patti2Result, betSide);
+                        matchReason = betWon
+                          ? `Patti2 bet "${betType}" matched winner ${patti2Result.winner}`
+                          : `Patti2 bet "${betType}" did not match winner ${patti2Result.winner}`;
+                        matchedResult = patti2Result.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Patti2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (patti2Error) {
+                        matchingError = patti2Error instanceof Error ? patti2Error.message : String(patti2Error);
+                        console.error(`❌ [Patti2] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = patti2ParseError || 'Patti2 result not available';
+                      console.warn(`⚠️ [Patti2] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Race2-specific matching (if Race2 table and not other specialized tables)
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && isRace2) {
+                    if (race2Result) {
+                      try {
+                        // Race2 needs betSid (bet.sid) for matching
+                        const betSid = (bet as any).sid || bet.id;
+                        betWon = isRace2WinningBet(betType, betSid, race2Result, betSide);
+                        matchReason = betWon
+                          ? `Race2 bet "${betType}" matched winner ${race2Result.winnerName} (${race2Result.winnerSid})`
+                          : `Race2 bet "${betType}" did not match winner ${race2Result.winnerName} (${race2Result.winnerSid})`;
+                        matchedResult = race2Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🏁 [Race2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (race2Error) {
+                        matchingError = race2Error instanceof Error ? race2Error.message : String(race2Error);
+                        console.error(`❌ [Race2] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = race2ParseError || 'Race2 result not available';
+                      console.warn(`⚠️ [Race2] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Joker120-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && isJoker120) {
+                    if (joker120Result) {
+                      try {
+                        betWon = isWinningJoker120Bet({ nat: betType }, joker120Result);
+                        matchReason = betWon
+                          ? `Joker120 bet "${betType}" matched winner ${joker120Result.winnerName}`
+                          : `Joker120 bet "${betType}" did not match winner ${joker120Result.winnerName}`;
+                        matchedResult = joker120Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Joker120] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (joker120Error) {
+                        matchingError = joker120Error instanceof Error ? joker120Error.message : String(joker120Error);
+                        console.error(`❌ [Joker120] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = joker120ParseError || 'Joker120 result not available';
+                      console.warn(`⚠️ [Joker120] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Joker1-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && isJoker1) {
+                    if (joker1Result) {
+                      try {
+                        betWon = isWinningJoker1Bet({ nat: betType }, joker1Result);
+                        matchReason = betWon
+                          ? `Joker1 bet "${betType}" matched winner ${joker1Result.winnerName}`
+                          : `Joker1 bet "${betType}" did not match winner ${joker1Result.winnerName}`;
+                        matchedResult = joker1Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Joker1] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (joker1Error) {
+                        matchingError = joker1Error instanceof Error ? joker1Error.message : String(joker1Error);
+                        console.error(`❌ [Joker1] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = joker1ParseError || 'Joker1 result not available';
+                      console.warn(`⚠️ [Joker1] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Joker20-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && isJoker20) {
+                    if (joker20Result) {
+                      try {
+                        betWon = isWinningJoker20Bet({ nat: betType }, joker20Result);
+                        matchReason = betWon
+                          ? `Joker20 bet "${betType}" matched winner ${joker20Result.winnerName}`
+                          : `Joker20 bet "${betType}" did not match winner ${joker20Result.winnerName}`;
+                        matchedResult = joker20Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Joker20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (joker20Error) {
+                        matchingError = joker20Error instanceof Error ? joker20Error.message : String(joker20Error);
+                        console.error(`❌ [Joker20] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = joker20ParseError || 'Joker20 result not available';
+                      console.warn(`⚠️ [Joker20] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Teen120-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && isTeen120) {
+                    if (teen120Result) {
+                      try {
+                        betWon = isTeen120WinningBet(betType, teen120Result, betSide);
+                        matchReason = betWon
+                          ? `Teen120 bet "${betType}" matched result`
+                          : `Teen120 bet "${betType}" did not match result`;
+                        matchedResult = teen120Result.winner || 'N/A';
+                        specializedMatchingDone = true;
+                        console.log(`🎯 [Teen120] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teen120Error) {
+                        matchingError = teen120Error instanceof Error ? teen120Error.message : String(teen120Error);
+                        console.error(`❌ [Teen120] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teen120ParseError || 'Teen120 result not available';
+                      console.warn(`⚠️ [Teen120] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: TeenUnique-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && isTeenUnique) {
+                    if (teenUniqueResult) {
+                      try {
+                        betWon = isWinningTeenUniqueBet(teenUniqueResult);
+                        matchReason = betWon
+                          ? `TeenUnique bet "${betType}" matched (won)`
+                          : `TeenUnique bet "${betType}" did not match (lost)`;
+                        matchedResult = teenUniqueResult.isWin ? 'Won' : 'Lost';
+                        specializedMatchingDone = true;
+                        console.log(`🧩 [TeenUnique] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teenUniqueError) {
+                        matchingError = teenUniqueError instanceof Error ? teenUniqueError.message : String(teenUniqueError);
+                        console.error(`❌ [TeenUnique] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teenUniqueParseError || 'TeenUnique result not available';
+                      console.warn(`⚠️ [TeenUnique] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Teen20V1-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && isTeen20V1) {
+                    if (teen20V1Result) {
+                      try {
+                        betWon = isTeen20V1WinningBet(betType, teen20V1Result, betSide);
+                        matchReason = betWon
+                          ? `Teen20V1 bet "${betType}" matched result`
+                          : `Teen20V1 bet "${betType}" did not match result`;
+                        matchedResult = teen20V1Result.winner || 'N/A';
+                        specializedMatchingDone = true;
+                        console.log(`🎯 [Teen20V1] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teen20V1Error) {
+                        matchingError = teen20V1Error instanceof Error ? teen20V1Error.message : String(teen20V1Error);
+                        console.error(`❌ [Teen20V1] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teen20V1ParseError || 'Teen20V1 result not available';
+                      console.warn(`⚠️ [Teen20V1] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Teen1-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && isTeen1) {
+                    if (teen1Result) {
+                      try {
+                        betWon = isTeen1WinningBet(betType, teen1Result, betSide);
+                        matchReason = betWon
+                          ? `Teen1 bet "${betType}" matched result`
+                          : `Teen1 bet "${betType}" did not match result`;
+                        matchedResult = teen1Result.winner || 'N/A';
+                        specializedMatchingDone = true;
+                        console.log(`🎯 [Teen1] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teen1Error) {
+                        matchingError = teen1Error instanceof Error ? teen1Error.message : String(teen1Error);
+                        console.error(`❌ [Teen1] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teen1ParseError || 'Teen1 result not available';
+                      console.warn(`⚠️ [Teen1] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Roulette11-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && isRoulette11) {
+                    if (roulette11Result) {
+                      try {
+                        betWon = isWinningRoulette11Bet(betType, roulette11Result);
+                        matchReason = betWon
+                          ? `Roulette11 bet "${betType}" matched number ${roulette11Result.number}`
+                          : `Roulette11 bet "${betType}" did not match number ${roulette11Result.number}`;
+                        matchedResult = roulette11Result.number.toString();
+                        specializedMatchingDone = true;
+                        console.log(`🎰 [Roulette11] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (roulette11Error) {
+                        matchingError = roulette11Error instanceof Error ? roulette11Error.message : String(roulette11Error);
+                        console.error(`❌ [Roulette11] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = roulette11ParseError || 'Roulette11 result not available';
+                      console.warn(`⚠️ [Roulette11] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Roulette12-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && isRoulette12) {
+                    if (roulette12Result) {
+                      try {
+                        betWon = isWinningRoulette12Bet(betType, roulette12Result);
+                        matchReason = betWon
+                          ? `Roulette12 bet "${betType}" matched number ${roulette12Result.number}`
+                          : `Roulette12 bet "${betType}" did not match number ${roulette12Result.number}`;
+                        matchedResult = roulette12Result.number.toString();
+                        specializedMatchingDone = true;
+                        console.log(`🎰 [Roulette12] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (roulette12Error) {
+                        matchingError = roulette12Error instanceof Error ? roulette12Error.message : String(roulette12Error);
+                        console.error(`❌ [Roulette12] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = roulette12ParseError || 'Roulette12 result not available';
+                      console.warn(`⚠️ [Roulette12] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Roulette13-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && isRoulette13) {
+                    if (roulette13Result) {
+                      try {
+                        betWon = isWinningRoulette13Bet(betType, roulette13Result);
+                        matchReason = betWon
+                          ? `Roulette13 bet "${betType}" matched number ${roulette13Result.number}`
+                          : `Roulette13 bet "${betType}" did not match number ${roulette13Result.number}`;
+                        matchedResult = roulette13Result.number.toString();
+                        specializedMatchingDone = true;
+                        console.log(`🎰 [Roulette13] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (roulette13Error) {
+                        matchingError = roulette13Error instanceof Error ? roulette13Error.message : String(roulette13Error);
+                        console.error(`❌ [Roulette13] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = roulette13ParseError || 'Roulette13 result not available';
+                      console.warn(`⚠️ [Roulette13] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: KBC-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && isKBC) {
+                    if (kbcResult) {
+                      try {
+                        betWon = isKBCWinningBet(betType, kbcResult, betSide);
+                        matchReason = betWon
+                          ? `KBC bet "${betType}" matched result`
+                          : `KBC bet "${betType}" did not match result`;
+                        matchedResult = kbcResult.color || kbcResult.oddEven || 'N/A';
+                        specializedMatchingDone = true;
+                        console.log(`🎯 [KBC] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (kbcError) {
+                        matchingError = kbcError instanceof Error ? kbcError.message : String(kbcError);
+                        console.error(`❌ [KBC] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = kbcParseError || 'KBC result not available';
+                      console.warn(`⚠️ [KBC] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Poison20-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && isPoison20) {
+                    if (poison20Result) {
+                      try {
+                        betWon = isWinningPoison20Bet({ nat: betType }, poison20Result);
+                        matchReason = betWon
+                          ? `Poison20 bet "${betType}" matched winner ${poison20Result.winnerName}`
+                          : `Poison20 bet "${betType}" did not match winner ${poison20Result.winnerName}`;
+                        matchedResult = poison20Result.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🧪 [Poison20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (poison20Error) {
+                        matchingError = poison20Error instanceof Error ? poison20Error.message : String(poison20Error);
+                        console.error(`❌ [Poison20] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = poison20ParseError || 'Poison20 result not available';
+                      console.warn(`⚠️ [Poison20] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: AAA-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && isAAA) {
+                    if (aaaResult) {
+                      try {
+                        betWon = isWinningAAABet({ nat: betType, subtype: bet.bet_type }, aaaResult);
+                        matchReason = betWon
+                          ? `AAA bet "${betType}" matched winner ${aaaResult.winnerName}`
+                          : `AAA bet "${betType}" did not match winner ${aaaResult.winnerName}`;
+                        matchedResult = aaaResult.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🎯 [AAA] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (aaaError) {
+                        matchingError = aaaError instanceof Error ? aaaError.message : String(aaaError);
+                        console.error(`❌ [AAA] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = aaaParseError || 'AAA result not available';
+                      console.warn(`⚠️ [AAA] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Poker-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && isPoker) {
+                    if (pokerResult) {
+                      try {
+                        betWon = isWinningPokerMainBet({ nat: betType }, pokerResult);
+                        matchReason = betWon
+                          ? `Poker bet "${betType}" matched winner ${pokerResult.winnerName}`
+                          : `Poker bet "${betType}" did not match winner ${pokerResult.winnerName}`;
+                        matchedResult = pokerResult.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🂡 [Poker] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (pokerError) {
+                        matchingError = pokerError instanceof Error ? pokerError.message : String(pokerError);
+                        console.error(`❌ [Poker] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = pokerParseError || 'Poker result not available';
+                      console.warn(`⚠️ [Poker] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Baccarat-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && isBaccarat) {
+                    if (baccaratResult) {
+                      try {
+                        betWon = isWinningBaccaratMainBet({ nat: betType }, baccaratResult);
+                        matchReason = betWon
+                          ? `Baccarat bet "${betType}" matched winner ${baccaratResult.winner}`
+                          : `Baccarat bet "${betType}" did not match winner ${baccaratResult.winner}`;
+                        matchedResult = baccaratResult.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🎴 [Baccarat] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (baccaratError) {
+                        matchingError = baccaratError instanceof Error ? baccaratError.message : String(baccaratError);
+                        console.error(`❌ [Baccarat] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = baccaratParseError || 'Baccarat result not available';
+                      console.warn(`⚠️ [Baccarat] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Teen-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && isTeen) {
+                    if (teenResult) {
+                      try {
+                        betWon = isWinningTeenMainBet({ nat: betType }, teenResult);
+                        matchReason = betWon
+                          ? `Teen bet "${betType}" matched winner ${teenResult.winnerName}`
+                          : `Teen bet "${betType}" did not match winner ${teenResult.winnerName}`;
+                        matchedResult = teenResult.winnerName;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [Teen] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (teenError) {
+                        matchingError = teenError instanceof Error ? teenError.message : String(teenError);
+                        console.error(`❌ [Teen] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = teenParseError || 'Teen result not available';
+                      console.warn(`⚠️ [Teen] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: AB4-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && isAB4) {
+                    if (ab4Result) {
+                      try {
+                        betWon = isWinningAB4Bet({ nat: betType }, ab4Result);
+                        matchReason = betWon
+                          ? `AB4 bet "${betType}" matched winner ${ab4Result.winnerSide}`
+                          : `AB4 bet "${betType}" did not match winner ${ab4Result.winnerSide}`;
+                        matchedResult = ab4Result.winnerSide;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [AB4] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (ab4Error) {
+                        matchingError = ab4Error instanceof Error ? ab4Error.message : String(ab4Error);
+                        console.error(`❌ [AB4] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = ab4ParseError || 'AB4 result not available';
+                      console.warn(`⚠️ [AB4] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: ABJ-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && isABJ) {
+                    if (abjResult) {
+                      try {
+                        betWon = isWinningABJMain({ nat: betType }, abjResult);
+                        matchReason = betWon
+                          ? `ABJ bet "${betType}" matched winner ${abjResult.winner}`
+                          : `ABJ bet "${betType}" did not match winner ${abjResult.winner}`;
+                        matchedResult = abjResult.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🃏 [ABJ] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (abjError) {
+                        matchingError = abjError instanceof Error ? abjError.message : String(abjError);
+                        console.error(`❌ [ABJ] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = abjParseError || 'ABJ result not available';
+                      console.warn(`⚠️ [ABJ] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: Baccarat2-specific matching
+                  if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && isBaccarat2) {
+                    if (baccarat2Result) {
+                      try {
+                        betWon = isWinningBaccarat2MainBet({ nat: betType }, baccarat2Result);
+                        matchReason = betWon
+                          ? `Baccarat2 bet "${betType}" matched winner ${baccarat2Result.winner}`
+                          : `Baccarat2 bet "${betType}" did not match winner ${baccarat2Result.winner}`;
+                        matchedResult = baccarat2Result.winner;
+                        specializedMatchingDone = true;
+                        console.log(`🎴 [Baccarat2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                      } catch (baccarat2Error) {
+                        matchingError = baccarat2Error instanceof Error ? baccarat2Error.message : String(baccarat2Error);
+                        console.error(`❌ [Baccarat2] Matching error:`, matchingError);
+                      }
+                    } else {
+                      matchingError = baccarat2ParseError || 'Baccarat2 result not available';
+                      console.warn(`⚠️ [Baccarat2] No result available: ${matchingError}`);
+                    }
+                  }
+                  
+                  // PRIMARY: BTable-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && isBTable) {
+                                      if (bTableResult) {
+                                        try {
+                                          betWon = isWinningBTableBet({ nat: betType }, bTableResult);
+                                          matchReason = betWon
+                                            ? `BTable bet "${betType}" matched winner ${bTableResult.winnerName}`
+                                            : `BTable bet "${betType}" did not match winner ${bTableResult.winnerName}`;
+                                          matchedResult = bTableResult.winnerName;
+                                          specializedMatchingDone = true;
+                                          console.log(`🎴 [BTable] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (bTableError) {
+                                          matchingError = bTableError instanceof Error ? bTableError.message : String(bTableError);
+                                          console.error(`❌ [BTable] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = bTableParseError || 'BTable result not available';
+                                        console.warn(`⚠️ [BTable] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: BTable2-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && isBTable2) {
+                                      if (bTable2Result) {
+                                        try {
+                                          betWon = isWinningBTable2Bet({ nat: betType }, bTable2Result);
+                                          matchReason = betWon
+                                            ? `BTable2 bet "${betType}" matched winner ${bTable2Result.winnerName}`
+                                            : `BTable2 bet "${betType}" did not match winner ${bTable2Result.winnerName}`;
+                                          matchedResult = bTable2Result.winnerName;
+                                          specializedMatchingDone = true;
+                                          console.log(`🎴 [BTable2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (bTable2Error) {
+                                          matchingError = bTable2Error instanceof Error ? bTable2Error.message : String(bTable2Error);
+                                          console.error(`❌ [BTable2] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = bTable2ParseError || 'BTable2 result not available';
+                                        console.warn(`⚠️ [BTable2] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Card32-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && isCard32) {
+                                      if (card32Result) {
+                                        try {
+                                          betWon = isWinningCard32Bet({ nat: betType }, card32Result);
+                                          matchReason = betWon
+                                            ? `Card32 bet "${betType}" matched result`
+                                            : `Card32 bet "${betType}" did not match result`;
+                                          matchedResult = card32Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🃏 [Card32] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (card32Error) {
+                                          matchingError = card32Error instanceof Error ? card32Error.message : String(card32Error);
+                                          console.error(`❌ [Card32] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = card32ParseError || 'Card32 result not available';
+                                        console.warn(`⚠️ [Card32] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Card32EU-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && isCard32EU) {
+                                      if (card32EUResult) {
+                                        try {
+                                          betWon = isWinningCard32EUMatch({ nat: betType }, card32EUResult);
+                                          matchReason = betWon
+                                            ? `Card32EU bet "${betType}" matched result`
+                                            : `Card32EU bet "${betType}" did not match result`;
+                                          matchedResult = card32EUResult.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🃏 [Card32EU] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (card32EUError) {
+                                          matchingError = card32EUError instanceof Error ? card32EUError.message : String(card32EUError);
+                                          console.error(`❌ [Card32EU] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = card32EUParseError || 'Card32EU result not available';
+                                        console.warn(`⚠️ [Card32EU] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: CMatch20-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && isCMatch20) {
+                                      if (cmatch20Result) {
+                                        try {
+                                          betWon = isWinningCMatch20Bet({ nat: betType }, cmatch20Result);
+                                          matchReason = betWon
+                                            ? `CMatch20 bet "${betType}" matched result`
+                                            : `CMatch20 bet "${betType}" did not match result`;
+                                          matchedResult = cmatch20Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🎯 [CMatch20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (cmatch20Error) {
+                                          matchingError = cmatch20Error instanceof Error ? cmatch20Error.message : String(cmatch20Error);
+                                          console.error(`❌ [CMatch20] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = cmatch20ParseError || 'CMatch20 result not available';
+                                        console.warn(`⚠️ [CMatch20] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: CMeter-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && isCMeter) {
+                                      if (cmeterResult) {
+                                        try {
+                                          betWon = isWinningCMeterBet({ nat: betType }, cmeterResult);
+                                          matchReason = betWon
+                                            ? `CMeter bet "${betType}" matched result`
+                                            : `CMeter bet "${betType}" did not match result`;
+                                          matchedResult = cmeterResult.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🎨 [CMeter] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (cmeterError) {
+                                          matchingError = cmeterError instanceof Error ? cmeterError.message : String(cmeterError);
+                                          console.error(`❌ [CMeter] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = cmeterParseError || 'CMeter result not available';
+                                        console.warn(`⚠️ [CMeter] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: CricketV3-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && isCricketV3) {
+                                      if (cricketV3Result) {
+                                        try {
+                                          betWon = isWinningCricketV3Bet({ nat: betType }, cricketV3Result);
+                                          matchReason = betWon
+                                            ? `CricketV3 bet "${betType}" matched result`
+                                            : `CricketV3 bet "${betType}" did not match result`;
+                                          matchedResult = cricketV3Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🏏 [CricketV3] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (cricketV3Error) {
+                                          matchingError = cricketV3Error instanceof Error ? cricketV3Error.message : String(cricketV3Error);
+                                          console.error(`❌ [CricketV3] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = cricketV3ParseError || 'CricketV3 result not available';
+                                        console.warn(`⚠️ [CricketV3] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: DT20-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && isDT20) {
+                                      if (dt20Result) {
+                                        try {
+                                          betWon = isWinningDT20MainBet({ nat: betType }, dt20Result);
+                                          matchReason = betWon
+                                            ? `DT20 bet "${betType}" matched result`
+                                            : `DT20 bet "${betType}" did not match result`;
+                                          matchedResult = dt20Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🐉 [DT20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (dt20Error) {
+                                          matchingError = dt20Error instanceof Error ? dt20Error.message : String(dt20Error);
+                                          console.error(`❌ [DT20] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = dt20ParseError || 'DT20 result not available';
+                                        console.warn(`⚠️ [DT20] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: DTL20-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && isDTL20) {
+                                      if (dtl20Result) {
+                                        try {
+                                          betWon = isWinningDTL20WinnerBet({ nat: betType }, dtl20Result);
+                                          matchReason = betWon
+                                            ? `DTL20 bet "${betType}" matched result`
+                                            : `DTL20 bet "${betType}" did not match result`;
+                                          matchedResult = dtl20Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🐉 [DTL20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (dtl20Error) {
+                                          matchingError = dtl20Error instanceof Error ? dtl20Error.message : String(dtl20Error);
+                                          console.error(`❌ [DTL20] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = dtl20ParseError || 'DTL20 result not available';
+                                        console.warn(`⚠️ [DTL20] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                     // PRIMARY: Goal-specific matching
+                                     if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && isGoal) {
+                                      if (goalResult) {
+                                        try {
+                                          betWon = isWinningGoalBet({ nat: betType }, goalResult);
+                                          matchReason = betWon
+                                            ? `Goal bet "${betType}" matched result`
+                                            : `Goal bet "${betType}" did not match result`;
+                                          matchedResult = goalResult.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`⚽ [Goal] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (goalError) {
+                                          matchingError = goalError instanceof Error ? goalError.message : String(goalError);
+                                          console.error(`❌ [Goal] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = goalParseError || 'Goal result not available';
+                                        console.warn(`⚠️ [Goal] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Lucky15-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && isLucky15) {
+                                      if (lucky15Result) {
+                                        try {
+                                          betWon = isWinningLucky15Bet({ nat: betType }, lucky15Result);
+                                          matchReason = betWon
+                                            ? `Lucky15 bet "${betType}" matched result`
+                                            : `Lucky15 bet "${betType}" did not match result`;
+                                          matchedResult = lucky15Result.card || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🍀 [Lucky15] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (lucky15Error) {
+                                          matchingError = lucky15Error instanceof Error ? lucky15Error.message : String(lucky15Error);
+                                          console.error(`❌ [Lucky15] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = lucky15ParseError || 'Lucky15 result not available';
+                                        console.warn(`⚠️ [Lucky15] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Lucky7EU-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && isLucky7EU) {
+                                      if (lucky7EUResult) {
+                                        try {
+                                          betWon = isWinningLucky7EUMain({ nat: betType }, lucky7EUResult);
+                                          matchReason = betWon
+                                            ? `Lucky7EU bet "${betType}" matched result`
+                                            : `Lucky7EU bet "${betType}" did not match result`;
+                                          matchedResult = lucky7EUResult.card || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🎰 [Lucky7EU] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (lucky7EUError) {
+                                          matchingError = lucky7EUError instanceof Error ? lucky7EUError.message : String(lucky7EUError);
+                                          console.error(`❌ [Lucky7EU] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = lucky7EUParseError || 'Lucky7EU result not available';
+                                        console.warn(`⚠️ [Lucky7EU] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: OurRoulette-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && isOurRoulette) {
+                                      if (ourRouletteResult) {
+                                        try {
+                                          betWon = isWinningOurRouletteBet({ n: betType }, ourRouletteResult);
+                                          matchReason = betWon
+                                            ? `OurRoulette bet "${betType}" matched number ${ourRouletteResult.winNumber}`
+                                            : `OurRoulette bet "${betType}" did not match number ${ourRouletteResult.winNumber}`;
+                                          matchedResult = ourRouletteResult.winNumber.toString();
+                                          specializedMatchingDone = true;
+                                          console.log(`🎰 [OurRoulette] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (ourRouletteError) {
+                                          matchingError = ourRouletteError instanceof Error ? ourRouletteError.message : String(ourRouletteError);
+                                          console.error(`❌ [OurRoulette] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = ourRouletteParseError || 'OurRoulette result not available';
+                                        console.warn(`⚠️ [OurRoulette] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Poison-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && isPoison) {
+                                      if (poisonResult) {
+                                        try {
+                                          betWon = isWinningPoisonBet({ nat: betType }, poisonResult);
+                                          matchReason = betWon
+                                            ? `Poison bet "${betType}" matched winner ${poisonResult.winnerName}`
+                                            : `Poison bet "${betType}" did not match winner ${poisonResult.winnerName}`;
+                                          matchedResult = poisonResult.winnerName;
+                                          specializedMatchingDone = true;
+                                          console.log(`🧪 [Poison] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (poisonError) {
+                                          matchingError = poisonError instanceof Error ? poisonError.message : String(poisonError);
+                                          console.error(`❌ [Poison] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = poisonParseError || 'Poison result not available';
+                                        console.warn(`⚠️ [Poison] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Poker6-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && isPoker6) {
+                                      if (poker6Result) {
+                                        try {
+                                          betWon = isWinningPoker6PlayerBet({ nat: betType }, poker6Result) || isWinningPoker6HandBet({ nat: betType }, poker6Result);
+                                          matchReason = betWon
+                                            ? `Poker6 bet "${betType}" matched result`
+                                            : `Poker6 bet "${betType}" did not match result`;
+                                          matchedResult = poker6Result.winnerName || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🂡 [Poker6] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (poker6Error) {
+                                          matchingError = poker6Error instanceof Error ? poker6Error.message : String(poker6Error);
+                                          console.error(`❌ [Poker6] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = poker6ParseError || 'Poker6 result not available';
+                                        console.warn(`⚠️ [Poker6] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Poker20-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && isPoker20) {
+                                      if (poker20Result) {
+                                        try {
+                                          betWon = isWinningPoker20WinnerBet({ nat: betType }, poker20Result);
+                                          matchReason = betWon
+                                            ? `Poker20 bet "${betType}" matched winner ${poker20Result.winnerName}`
+                                            : `Poker20 bet "${betType}" did not match winner ${poker20Result.winnerName}`;
+                                          matchedResult = poker20Result.winnerName;
+                                          specializedMatchingDone = true;
+                                          console.log(`🂡 [Poker20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (poker20Error) {
+                                          matchingError = poker20Error instanceof Error ? poker20Error.message : String(poker20Error);
+                                          console.error(`❌ [Poker20] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = poker20ParseError || 'Poker20 result not available';
+                                        console.warn(`⚠️ [Poker20] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Queen-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && isQueen) {
+                                      if (queenResult) {
+                                        try {
+                                          betWon = isWinningQueenBet({ nat: betType }, queenResult);
+                                          matchReason = betWon
+                                            ? `Queen bet "${betType}" matched result`
+                                            : `Queen bet "${betType}" did not match result`;
+                                          matchedResult = queenResult.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`👑 [Queen] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (queenError) {
+                                          matchingError = queenError instanceof Error ? queenError.message : String(queenError);
+                                          console.error(`❌ [Queen] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = queenParseError || 'Queen result not available';
+                                        console.warn(`⚠️ [Queen] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Race20-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && isRace20) {
+                                      if (race20Result) {
+                                        try {
+                                          betWon = isWinningRace20Bet({ nat: betType }, race20Result);
+                                          matchReason = betWon
+                                            ? `Race20 bet "${betType}" matched result`
+                                            : `Race20 bet "${betType}" did not match result`;
+                                          matchedResult = race20Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🏁 [Race20] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (race20Error) {
+                                          matchingError = race20Error instanceof Error ? race20Error.message : String(race20Error);
+                                          console.error(`❌ [Race20] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = race20ParseError || 'Race20 result not available';
+                                        console.warn(`⚠️ [Race20] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: SicBo-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && isSicBo) {
+                                      if (sicBoResult) {
+                                        try {
+                                          betWon = isWinningSicBoBet({ nat: betType }, sicBoResult);
+                                          matchReason = betWon
+                                            ? `SicBo bet "${betType}" matched result`
+                                            : `SicBo bet "${betType}" did not match result`;
+                                          matchedResult = sicBoResult.dice.join(',') || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🎲 [SicBo] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (sicBoError) {
+                                          matchingError = sicBoError instanceof Error ? sicBoError.message : String(sicBoError);
+                                          console.error(`❌ [SicBo] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = sicBoParseError || 'SicBo result not available';
+                                        console.warn(`⚠️ [SicBo] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: Sicbo2-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && isSicBo2) {
+                                      if (sicBo2Result) {
+                                        try {
+                                          betWon = isWinningSicbo2Bet({ nat: betType }, sicBo2Result);
+                                          matchReason = betWon
+                                            ? `Sicbo2 bet "${betType}" matched result`
+                                            : `Sicbo2 bet "${betType}" did not match result`;
+                                          matchedResult = sicBo2Result.dice.join(',') || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🎲 [Sicbo2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (sicBo2Error) {
+                                          matchingError = sicBo2Error instanceof Error ? sicBo2Error.message : String(sicBo2Error);
+                                          console.error(`❌ [Sicbo2] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = sicBo2ParseError || 'Sicbo2 result not available';
+                                        console.warn(`⚠️ [Sicbo2] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: SuperOver2-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && isSuperOver2) {
+                                      if (superOver2Result) {
+                                        try {
+                                          betWon = isWinningSuperOver2Bet({ nat: betType }, superOver2Result);
+                                          matchReason = betWon
+                                            ? `SuperOver2 bet "${betType}" matched result`
+                                            : `SuperOver2 bet "${betType}" did not match result`;
+                                          matchedResult = superOver2Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🏏 [SuperOver2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (superOver2Error) {
+                                          matchingError = superOver2Error instanceof Error ? superOver2Error.message : String(superOver2Error);
+                                          console.error(`❌ [SuperOver2] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = superOver2ParseError || 'SuperOver2 result not available';
+                                        console.warn(`⚠️ [SuperOver2] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                    
+                                    // PRIMARY: SuperOver3-specific matching
+                                    if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && isSuperOver3) {
+                                      if (superOver3Result) {
+                                        try {
+                                          betWon = isWinningSuperOver3Bet({ nat: betType }, superOver3Result);
+                                          matchReason = betWon
+                                            ? `SuperOver3 bet "${betType}" matched result`
+                                            : `SuperOver3 bet "${betType}" did not match result`;
+                                          matchedResult = superOver3Result.winner || 'N/A';
+                                          specializedMatchingDone = true;
+                                          console.log(`🏏 [SuperOver3] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                        } catch (superOver3Error) {
+                                          matchingError = superOver3Error instanceof Error ? superOver3Error.message : String(superOver3Error);
+                                          console.error(`❌ [SuperOver3] Matching error:`, matchingError);
+                                        }
+                                      } else {
+                                        matchingError = superOver3ParseError || 'SuperOver3 result not available';
+                                        console.warn(`⚠️ [SuperOver3] No result available: ${matchingError}`);
+                                      }
+                                    }
+                                        // PRIMARY: 3CardJ-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && is3CardJ) {
+                                                                          if (threeCardJResult) {
+                                                                            try {
+                                                                              betWon = isWinning3CardJBet({ nat: betType }, threeCardJResult);
+                                                                              matchReason = betWon
+                                                                                ? `3CardJ bet "${betType}" matched result`
+                                                                                : `3CardJ bet "${betType}" did not match result`;
+                                                                              matchedResult = threeCardJResult.cards.join(',') || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`🃏 [3CardJ] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (threeCardJError) {
+                                                                              matchingError = threeCardJError instanceof Error ? threeCardJError.message : String(threeCardJError);
+                                                                              console.error(`❌ [3CardJ] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = threeCardJParseError || '3CardJ result not available';
+                                                                            console.warn(`⚠️ [3CardJ] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        // PRIMARY: BallByBall-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && isBallByBall) {
+                                                                          if (ballByBallResult) {
+                                                                            try {
+                                                                              betWon = isWinningBallByBallBet({ nat: betType }, ballByBallResult);
+                                                                              matchReason = betWon
+                                                                                ? `BallByBall bet "${betType}" matched result`
+                                                                                : `BallByBall bet "${betType}" did not match result`;
+                                                                              matchedResult = ballByBallResult.result || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`⚾ [BallByBall] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (ballByBallError) {
+                                                                              matchingError = ballByBallError instanceof Error ? ballByBallError.message : String(ballByBallError);
+                                                                              console.error(`❌ [BallByBall] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = ballByBallParseError || 'BallByBall result not available';
+                                                                            console.warn(`⚠️ [BallByBall] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        // PRIMARY: Teen20C-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && isTeen20C) {
+                                                                          if (teen20CResult) {
+                                                                            try {
+                                                                              betWon = isWinningTeen20CBet({ nat: betType }, teen20CResult);
+                                                                              matchReason = betWon
+                                                                                ? `Teen20C bet "${betType}" matched result`
+                                                                                : `Teen20C bet "${betType}" did not match result`;
+                                                                              matchedResult = teen20CResult.winnerName || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`🎴 [Teen20C] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (teen20CError) {
+                                                                              matchingError = teen20CError instanceof Error ? teen20CError.message : String(teen20CError);
+                                                                              console.error(`❌ [Teen20C] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = teen20CParseError || 'Teen20C result not available';
+                                                                            console.warn(`⚠️ [Teen20C] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        // PRIMARY: Teen30-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && isTeen30) {
+                                                                          if (teen30Result) {
+                                                                            try {
+                                                                              betWon = isWinningTeen30MainBet({ nat: betType }, teen30Result);
+                                                                              matchReason = betWon
+                                                                                ? `Teen30 bet "${betType}" matched result`
+                                                                                : `Teen30 bet "${betType}" did not match result`;
+                                                                              matchedResult = teen30Result.winnerName || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`🎴 [Teen30] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (teen30Error) {
+                                                                              matchingError = teen30Error instanceof Error ? teen30Error.message : String(teen30Error);
+                                                                              console.error(`❌ [Teen30] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = teen30ParseError || 'Teen30 result not available';
+                                                                            console.warn(`⚠️ [Teen30] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        // PRIMARY: Teen32-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && isTeen32) {
+                                                                          if (teen32Result) {
+                                                                            try {
+                                                                              betWon = isTeen32WinningBet({ nat: betType }, teen32Result);
+                                                                              matchReason = betWon
+                                                                                ? `Teen32 bet "${betType}" matched result`
+                                                                                : `Teen32 bet "${betType}" did not match result`;
+                                                                              matchedResult = teen32Result.winnerName || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`🎴 [Teen32] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (teen32Error) {
+                                                                              matchingError = teen32Error instanceof Error ? teen32Error.message : String(teen32Error);
+                                                                              console.error(`❌ [Teen32] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = teen32ParseError || 'Teen32 result not available';
+                                                                            console.warn(`⚠️ [Teen32] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        // PRIMARY: Teen33-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && isTeen33) {
+                                                                          if (teen33Result) {
+                                                                            try {
+                                                                              betWon = isWinningTeen33Bet({ nat: betType }, teen33Result);
+                                                                              matchReason = betWon
+                                                                                ? `Teen33 bet "${betType}" matched result`
+                                                                                : `Teen33 bet "${betType}" did not match result`;
+                                                                              matchedResult = teen33Result.winnerName || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`🎴 [Teen33] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (teen33Error) {
+                                                                              matchingError = teen33Error instanceof Error ? teen33Error.message : String(teen33Error);
+                                                                              console.error(`❌ [Teen33] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = teen33ParseError || 'Teen33 result not available';
+                                                                            console.warn(`⚠️ [Teen33] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+                                                                        
+                                                                        // PRIMARY: Teen41-specific matching
+                                                                        if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && isTeen41) {
+                                                                          if (teen41Result) {
+                                                                            try {
+                                                                              betWon = isWinningTeen41Bet({ nat: betType }, teen41Result);
+                                                                              matchReason = betWon
+                                                                                ? `Teen41 bet "${betType}" matched result`
+                                                                                : `Teen41 bet "${betType}" did not match result`;
+                                                                              matchedResult = teen41Result.winnerName || 'N/A';
+                                                                              specializedMatchingDone = true;
+                                                                              console.log(`🎴 [Teen41] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                            } catch (teen41Error) {
+                                                                              matchingError = teen41Error instanceof Error ? teen41Error.message : String(teen41Error);
+                                                                              console.error(`❌ [Teen41] Matching error:`, matchingError);
+                                                                            }
+                                                                          } else {
+                                                                            matchingError = teen41ParseError || 'Teen41 result not available';
+                                                                            console.warn(`⚠️ [Teen41] No result available: ${matchingError}`);
+                                                                          }
+                                                                        }
+
+                                                                                                                                               
+                                                                                                                                                
+                                                                                                                                                // PRIMARY: Teen42-specific matching
+                                                                                                                                                if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && !isTeen41 && isTeen42) {
+                                                                                                                                                  if (teen42Result) {
+                                                                                                                                                    try {
+                                                                                                                                                      betWon = isWinningTeen42Bet({ nat: betType }, teen42Result);
+                                                                                                                                                      matchReason = betWon
+                                                                                                                                                        ? `Teen42 bet "${betType}" matched result`
+                                                                                                                                                        : `Teen42 bet "${betType}" did not match result`;
+                                                                                                                                                      matchedResult = teen42Result.winnerName || 'N/A';
+                                                                                                                                                      specializedMatchingDone = true;
+                                                                                                                                                      console.log(`🎴 [Teen42] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                                                                                                    } catch (teen42Error) {
+                                                                                                                                                      matchingError = teen42Error instanceof Error ? teen42Error.message : String(teen42Error);
+                                                                                                                                                      console.error(`❌ [Teen42] Matching error:`, matchingError);
+                                                                                                                                                    }
+                                                                                                                                                  } else {
+                                                                                                                                                    matchingError = teen42ParseError || 'Teen42 result not available';
+                                                                                                                                                    console.warn(`⚠️ [Teen42] No result available: ${matchingError}`);
+                                                                                                                                                  }
+                                                                                                                                                }
+                                                                                                                                                
+                                                                                                                                                // PRIMARY: Teen6-specific matching
+                                                                                                                                                if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && !isTeen41 && !isTeen42 && isTeen6) {
+                                                                                                                                                  if (teen6Result) {
+                                                                                                                                                    try {
+                                                                                                                                                      betWon = isWinningTeen6Match({ nat: betType }, teen6Result);
+                                                                                                                                                      matchReason = betWon
+                                                                                                                                                        ? `Teen6 bet "${betType}" matched result`
+                                                                                                                                                        : `Teen6 bet "${betType}" did not match result`;
+                                                                                                                                                      matchedResult = teen6Result.winnerName || 'N/A';
+                                                                                                                                                      specializedMatchingDone = true;
+                                                                                                                                                      console.log(`🎴 [Teen6] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                                                                                                    } catch (teen6Error) {
+                                                                                                                                                      matchingError = teen6Error instanceof Error ? teen6Error.message : String(teen6Error);
+                                                                                                                                                      console.error(`❌ [Teen6] Matching error:`, matchingError);
+                                                                                                                                                    }
+                                                                                                                                                  } else {
+                                                                                                                                                    matchingError = teen6ParseError || 'Teen6 result not available';
+                                                                                                                                                    console.warn(`⚠️ [Teen6] No result available: ${matchingError}`);
+                                                                                                                                                  }
+                                                                                                                                                }
+                                                                                                                                                
+                                                                                                                                                // PRIMARY: Teen9-specific matching
+                                                                                                                                                if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && !isTeen41 && !isTeen42 && !isTeen6 && isTeen9) {
+                                                                                                                                                  if (teen9Result) {
+                                                                                                                                                    try {
+                                                                                                                                                      betWon = isWinningTeen9WinnerBet({ nat: betType }, teen9Result) || isWinningTeen9HandBet({ nat: betType }, teen9Result);
+                                                                                                                                                      matchReason = betWon
+                                                                                                                                                        ? `Teen9 bet "${betType}" matched result`
+                                                                                                                                                        : `Teen9 bet "${betType}" did not match result`;
+                                                                                                                                                      matchedResult = teen9Result.winnerName || 'N/A';
+                                                                                                                                                      specializedMatchingDone = true;
+                                                                                                                                                      console.log(`🎴 [Teen9] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                                                                                                    } catch (teen9Error) {
+                                                                                                                                                      matchingError = teen9Error instanceof Error ? teen9Error.message : String(teen9Error);
+                                                                                                                                                      console.error(`❌ [Teen9] Matching error:`, matchingError);
+                                                                                                                                                    }
+                                                                                                                                                  } else {
+                                                                                                                                                    matchingError = teen9ParseError || 'Teen9 result not available';
+                                                                                                                                                    console.warn(`⚠️ [Teen9] No result available: ${matchingError}`);
+                                                                                                                                                  }
+                                                                                                                                                }
+                                                                                                                                                
+                                                                                                                                                // PRIMARY: War-specific matching
+                                                                                                                                                if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && !isTeen41 && !isTeen42 && !isTeen6 && !isTeen9 && isWar) {
+                                                                                                                                                  if (warResult) {
+                                                                                                                                                    try {
+                                                                                                                                                      betWon = isWinningWarBet({ nat: betType }, warResult);
+                                                                                                                                                      matchReason = betWon
+                                                                                                                                                        ? `War bet "${betType}" matched result`
+                                                                                                                                                        : `War bet "${betType}" did not match result`;
+                                                                                                                                                      matchedResult = warResult.winner || 'N/A';
+                                                                                                                                                      specializedMatchingDone = true;
+                                                                                                                                                      console.log(`⚔️ [War] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                                                                                                    } catch (warError) {
+                                                                                                                                                      matchingError = warError instanceof Error ? warError.message : String(warError);
+                                                                                                                                                      console.error(`❌ [War] Matching error:`, matchingError);
+                                                                                                                                                    }
+                                                                                                                                                  } else {
+                                                                                                                                                    matchingError = warParseError || 'War result not available';
+                                                                                                                                                    console.warn(`⚠️ [War] No result available: ${matchingError}`);
+                                                                                                                                                  }
+                                                                                                                                                }
+                                                                                                                                                
+                                                                                                                                                // PRIMARY: Worli-specific matching
+                                                                                                                                                if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && !isTeen41 && !isTeen42 && !isTeen6 && !isTeen9 && !isWar && isWorli) {
+                                                                                                                                                  if (worliResult) {
+                                                                                                                                                    try {
+                                                                                                                                                      betWon = isWinningWorliBet({ nat: betType }, worliResult);
+                                                                                                                                                      matchReason = betWon
+                                                                                                                                                        ? `Worli bet "${betType}" matched result`
+                                                                                                                                                        : `Worli bet "${betType}" did not match result`;
+                                                                                                                                                      matchedResult = worliResult.result || 'N/A';
+                                                                                                                                                      specializedMatchingDone = true;
+                                                                                                                                                      console.log(`🎲 [Worli] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                                                                                                    } catch (worliError) {
+                                                                                                                                                      matchingError = worliError instanceof Error ? worliError.message : String(worliError);
+                                                                                                                                                      console.error(`❌ [Worli] Matching error:`, matchingError);
+                                                                                                                                                    }
+                                                                                                                                                  } else {
+                                                                                                                                                    matchingError = worliParseError || 'Worli result not available';
+                                                                                                                                                    console.warn(`⚠️ [Worli] No result available: ${matchingError}`);
+                                                                                                                                                  }
+                                                                                                                                                }
+                                                                                                                                                
+                                                                                                                                                // PRIMARY: Worli2-specific matching
+                                                                                                                                                if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && !isTeen62 && !isAb3 && !isDT202 && !isDum10 && !isLottcard && !isLucky7 && !isPatti2 && !isRace2 && !isJoker120 && !isJoker1 && !isJoker20 && !isTeen120 && !isTeenUnique && !isTeen20V1 && !isTeen1 && !isRoulette11 && !isRoulette12 && !isRoulette13 && !isKBC && !isPoison20 && !isAAA && !isPoker && !isBaccarat && !isTeen && !isAB4 && !isABJ && !isBaccarat2 && !isBTable && !isBTable2 && !isCard32 && !isCard32EU && !isCMatch20 && !isCMeter && !isCricketV3 && !isDT20 && !isDTL20 && !isGoal && !isLucky15 && !isLucky7EU && !isOurRoulette && !isPoison && !isPoker6 && !isPoker20 && !isQueen && !isRace20 && !isSicBo && !isSicBo2 && !isSuperOver2 && !isSuperOver3 && !is3CardJ && !isBallByBall && !isTeen20C && !isTeen30 && !isTeen32 && !isTeen33 && !isTeen41 && !isTeen42 && !isTeen6 && !isTeen9 && !isWar && !isWorli && isWorli2) {
+                                                                                                                                                  if (worli2Result) {
+                                                                                                                                                    try {
+                                                                                                                                                      betWon = isWinningWorli2Bet({ nat: betType }, worli2Result);
+                                                                                                                                                      matchReason = betWon
+                                                                                                                                                        ? `Worli2 bet "${betType}" matched result`
+                                                                                                                                                        : `Worli2 bet "${betType}" did not match result`;
+                                                                                                                                                      matchedResult = worli2Result.result || 'N/A';
+                                                                                                                                                      specializedMatchingDone = true;
+                                                                                                                                                      console.log(`🎲 [Worli2] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                                                                                                                                                    } catch (worli2Error) {
+                                                                                                                                                      matchingError = worli2Error instanceof Error ? worli2Error.message : String(worli2Error);
+                                                                                                                                                      console.error(`❌ [Worli2] Matching error:`, matchingError);
+                                                                                                                                                    }
+                                                                                                                                                  } else {
+                                                                                                                                                    matchingError = worli2ParseError || 'Worli2 result not available';
+                                                                                                                                                    console.warn(`⚠️ [Worli2] No result available: ${matchingError}`);
+                                                                                                                                                  }
+                                                                                                                                                }
+                                                                                                                                                
+                                                                                                                                              
+                                                                                                     
+                                                                        
+                                     
                   // FALLBACK: Generic rdesc-based matching (for non-roulette/non-lucky5/non-dt6 or if specialized matching failed)
                   // Only use fallback if:
                   // 1. Not a specialized table (roulette/lucky5/dt6), OR
                   // 2. Specialized table but matching failed (matchingError is set)
-                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult) || (isDolidana && dolidanaResult) || (isAB20 && ab20Result) || (isTeen62 && teen62Result);
+                  const specializedMatchingAttempted = (isRoulette && rouletteResult) || (isLucky5 && lucky5Result) || (isDT6 && dt6Result) || (isTeen3 && teen3Result) || (isAAA2 && aaa2Result) || (isCMeter1 && cmeter1Result) || (isMogambo && mogamboResult) || (isDolidana && dolidanaResult) || (isAB20 && ab20Result) || (isTeen62 && teen62Result) || (isAb3 && ab3Result) || (isDT202 && dt202Result) || (isDum10 && dum10Result) || (isLottcard && lottcardResult) || (isLucky7 && lucky7Result) || (isPatti2 && patti2Result) || (isRace2 && race2Result) || (isJoker120 && joker120Result) || (isJoker1 && joker1Result) || (isJoker20 && joker20Result) || (isTeen120 && teen120Result) || (isTeenUnique && teenUniqueResult) || (isTeen20V1 && teen20V1Result) || (isTeen1 && teen1Result) || (isRoulette11 && roulette11Result) || (isRoulette12 && roulette12Result) || (isRoulette13 && roulette13Result) || (isKBC && kbcResult) || (isPoison20 && poison20Result) || (isAAA && aaaResult) || (isPoker && pokerResult) || (isBaccarat && baccaratResult) || (isTeen && teenResult) || (isAB4 && ab4Result) || (isABJ && abjResult) || (isBaccarat2 && baccarat2Result) || (isBTable && bTableResult) || (isBTable2 && bTable2Result) || (isCard32 && card32Result) || (isCard32EU && card32EUResult) || (isCMatch20 && cmatch20Result) || (isCMeter && cmeterResult) || (isCricketV3 && cricketV3Result) || (isDT20 && dt20Result) || (isDTL20 && dtl20Result) || (isGoal && goalResult) || (isLucky15 && lucky15Result) || (isLucky7EU && lucky7EUResult) || (isOurRoulette && ourRouletteResult) || (isPoison && poisonResult) || (isPoker6 && poker6Result) || (isPoker20 && poker20Result) || (isQueen && queenResult) || (isRace20 && race20Result) || (isSicBo && sicBoResult) || (isSicBo2 && sicBo2Result) || (isSuperOver2 && superOver2Result) || (isSuperOver3 && superOver3Result) || (is3CardJ && threeCardJResult) || (isBallByBall && ballByBallResult) || (isTeen20C && teen20CResult) || (isTeen30 && teen30Result) || (isTeen32 && teen32Result) || (isTeen33 && teen33Result) || (isTeen41 && teen41Result) || (isTeen42 && teen42Result) || (isTeen6 && teen6Result) || (isTeen9 && teen9Result) || (isWar && warResult) || (isWorli && worliResult) || (isWorli2 && worli2Result);
                   const specializedMatchingSucceeded = specializedMatchingAttempted && !matchingError;
                   
                   if (!specializedMatchingSucceeded) {
@@ -1728,7 +5133,7 @@ serve(async (req) => {
             // STEP 8: RETURN SETTLEMENT SUMMARY
             // ============================================
             
-            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : 'Generic'))))))));
+            const tableType = isRoulette ? 'Roulette' : (isLucky5 ? 'Lucky5' : (isDT6 ? 'DT6' : (isTeen3 ? 'Teen3' : (isAAA2 ? 'AAA2' : (isCMeter1 ? 'CMeter1' : (isMogambo ? 'Mogambo' : (isDolidana ? 'Dolidana' : (isAB20 ? 'AB20' : (isTeen62 ? 'Teen62' : (isAb3 ? 'Ab3' : (isDT202 ? 'DT202' : (isDum10 ? 'Dum10' : (isLottcard ? 'Lottcard' : (isLucky7 ? 'Lucky7' : (isPatti2 ? 'Patti2' : (isRace2 ? 'Race2' : 'Generic'))))))))))))))));
             const matchingMethod = isRoulette 
               ? 'roulette-specific' 
               : (isLucky5 
@@ -1749,7 +5154,21 @@ serve(async (req) => {
                               ? 'ab20-specific'
                               : (isTeen62
                                 ? 'teen62-specific'
-                                : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)'))))))))));
+                                : (isAb3
+                                  ? 'ab3-specific'
+                                  : (isDT202
+                                    ? 'dt202-specific'
+                                    : (isDum10
+                                      ? 'dum10-specific'
+                                      : (isLottcard
+                                        ? 'lottcard-specific'
+                                        : (isLucky7
+                                          ? 'lucky7-specific'
+                                          : (isPatti2
+                                            ? 'patti2-specific'
+                                            : (isRace2
+                                              ? 'race2-specific'
+                                              : (rdesc ? 'rdesc-based (industry standard)' : 'fallback (winnat/win)')))))))))))))))));
 
             console.log(`\n📈 Settlement Summary:`, {
               processed,
