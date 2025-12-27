@@ -78,17 +78,22 @@ export const WithdrawalTable = ({ filters }: WithdrawalTableProps) => {
 
   const handleTPINVerified = () => {
     if (pendingAction) {
-      if (pendingAction.action === 'approve') {
-        processWithdrawalRequest({ requestId: pendingAction.id, action: 'approve' });
-      } else {
-        processWithdrawalRequest({ 
-          requestId: pendingAction.id, 
-          action: 'reject',
-          notes: pendingAction.notes 
-        });
-      }
+      const actionToProcess = { ...pendingAction };
+      // Reset states first to prevent UI blocking
       setPendingAction(null);
       setSelectedRequest(null);
+      setTpinModalOpen(false);
+      
+      // Process the action
+      if (actionToProcess.action === 'approve') {
+        processWithdrawalRequest({ requestId: actionToProcess.id, action: 'approve' });
+      } else {
+        processWithdrawalRequest({ 
+          requestId: actionToProcess.id, 
+          action: 'reject',
+          notes: actionToProcess.notes 
+        });
+      }
     }
   };
 
