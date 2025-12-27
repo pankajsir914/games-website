@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useWallet } from "@/hooks/useWallet";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -14,6 +15,7 @@ const Navigation = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut, loading } = useAuth();
+  const { wallet, walletLoading } = useWallet();
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -108,7 +110,14 @@ const Navigation = () => {
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             <Wallet className="h-4 w-4" />
-                            Wallet
+                            <span>
+                              Wallet
+                              {!walletLoading && wallet && (
+                                <span className="ml-2 font-semibold text-primary">
+                                  ₹{wallet.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                </span>
+                              )}
+                            </span>
                           </Link>
                         </>
                       )}
@@ -149,7 +158,13 @@ const Navigation = () => {
                   >
                     <Link to="/wallet">
                       <Wallet className="h-4 w-4" />
-                      Wallet
+                      <span className="font-medium">
+                        {walletLoading ? (
+                          'Loading...'
+                        ) : (
+                          `₹${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`
+                        )}
+                      </span>
                     </Link>
                   </Button>
                   
