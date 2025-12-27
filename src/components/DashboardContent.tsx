@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallet } from '@/hooks/useWallet';
 import { BannerCarousel } from '@/components/dashboard/BannerCarousel';
 import { 
   Carousel,
@@ -28,6 +29,7 @@ import {
 export function DashboardContent() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { wallet, walletLoading } = useWallet();
 
   const promotionalImages = [
     {
@@ -142,12 +144,25 @@ export function DashboardContent() {
           >
             <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="hidden sm:flex">
-            <Wallet className="h-4 w-4 mr-2" />
-            Wallet
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => navigate('/wallet')} className="sm:hidden h-8 w-8">
+          <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="hidden sm:flex items-center gap-2">
             <Wallet className="h-4 w-4" />
+            <span className="font-medium">
+              {walletLoading ? (
+                'Loading...'
+              ) : (
+                `₹${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`
+              )}
+            </span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/wallet')} className="sm:hidden h-8 px-2">
+            <Wallet className="h-4 w-4 mr-1" />
+            <span className="text-xs font-medium">
+              {walletLoading ? (
+                '...'
+              ) : (
+                `₹${wallet?.current_balance?.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`
+              )}
+            </span>
           </Button>
           
           <DropdownMenu>
