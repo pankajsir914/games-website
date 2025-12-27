@@ -244,7 +244,7 @@ export const useMasterAdminUsers = () => {
       reason?: string;
     }) => {
       // Update user status in profiles table
-      const isBlocking = action === "block";
+      const isBlocking = action === "block" || action === "suspend";
       const { error } = await supabase
         .from("profiles")
         .update({ is_blocked: isBlocking })
@@ -278,6 +278,10 @@ export const useMasterAdminUsers = () => {
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Ensure mutation state is reset after completion (success or error)
+      // This prevents buttons from getting stuck
     },
   });
 
