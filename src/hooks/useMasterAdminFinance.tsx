@@ -341,6 +341,9 @@ export const useMasterAdminFinance = () => {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Ensure mutation state is reset after completion
+    },
   });
 
   const processWithdrawalRequest = useMutation({
@@ -381,6 +384,9 @@ export const useMasterAdminFinance = () => {
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Ensure mutation state is reset after completion
     },
   });
 
