@@ -9,11 +9,14 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  Lock,
 } from "lucide-react";
 
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/pages/tables/Ab3Betting";
+import { BettingLayout } from "./config";
+import { RouletteOddsGrid } from "./roulette/RouletteOddsGrid";
 
 
 /* =====================================================
@@ -41,6 +44,8 @@ interface BettingPanelProps {
   odds: any;
   onPlaceBet: (betData: any) => Promise<void>;
   loading: boolean;
+  layout?: BettingLayout;
+  betStatus?: "OPEN" | "CLOSED";
 }
 
 /* =====================================================
@@ -52,6 +57,8 @@ export const BettingPanel = ({
   odds,
   onPlaceBet,
   loading,
+  layout,
+  betStatus = "OPEN",
 }: BettingPanelProps) => {
   /* ---------------- STATE ---------------- */
   const [amount, setAmount] = useState<string>("100");
@@ -63,13 +70,21 @@ export const BettingPanel = ({
 
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
-  const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
-  const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
-  const isAb3 = AB3_TABLE_IDS.includes(tableId);
+  const fallbackLayout: BettingLayout =
+    (DOLIDANA_TABLE_IDS.includes(tableId) && "dolidana") ||
+    (TEEN_PATTI_TABLE_IDS.includes(tableId) && "teen-patti") ||
+    (AB3_TABLE_IDS.includes(tableId) && "ab3") ||
+    "default";
+
+  const layoutKey: BettingLayout = layout || fallbackLayout;
+  const isDolidana = layoutKey === "dolidana";
+  const isTeenPatti = layoutKey === "teen-patti";
+  const isAb3 = layoutKey === "ab3" || layoutKey === "andar-bahar";
 
 
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
+  const isBettingClosed = betStatus !== "OPEN" || isRestricted;
 
   const hasRealOdds =
     betTypes.length > 0 &&
@@ -154,10 +169,10 @@ export const BettingPanel = ({
 
       <CardContent className="space-y-4">
         {/* RESTRICTED */}
-        {isRestricted && (
-          <div className="flex gap-2 p-2 bg-red-500/10 rounded text-xs text-red-500">
+        {(isRestricted || isBettingClosed) && (
+          <div className="flex gap-2 p-2 bg-red-500/10 rounded text-xs text-red-500 items-center">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            Betting disabled
+            Betting closed
           </div>
         )}
 
@@ -188,9 +203,32 @@ export const BettingPanel = ({
                 onSelect={handleSelectBet}
                 formatOdds={formatOdds}
               />
+            ) : layoutKey === "roulette" ? (
+              <div className="relative">
+                {isBettingClosed && (
+                  <div className="absolute inset-0 z-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white gap-2 rounded-md">
+                    <Lock className="w-4 h-4" />
+                    <span className="text-xs font-semibold">Betting closed</span>
+                  </div>
+                )}
+                <RouletteOddsGrid
+                  bets={betTypes}
+                  selectedBet={selectedBet}
+                  betType={betType}
+                  onSelect={handleSelectBet}
+                  formatOdds={formatOdds}
+                />
+              </div>
             ) : (
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              <div className="relative">
+                {isBettingClosed && (
+                  <div className="absolute inset-0 z-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white gap-2 rounded-md">
+                    <Lock className="w-4 h-4" />
+                    <span className="text-xs font-semibold">Betting closed</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {betTypes.map((bet: any, idx: number) => {
                   const back = formatOdds(
                     bet?.back ?? bet?.b1 ?? bet?.b ?? bet?.odds
@@ -229,7 +267,9 @@ export const BettingPanel = ({
                           `}
                           onClick={() => handleSelectBet(bet, "back")}
                           disabled={
-                            bet.status === "suspended" || back === "0.00"
+                            isBettingClosed ||
+                            bet.status === "suspended" ||
+                            back === "0.00"
                           }
                         >
                           <TrendingUp className="w-3 h-3 mr-0.5" />
@@ -249,7 +289,9 @@ export const BettingPanel = ({
                           `}
                           onClick={() => handleSelectBet(bet, "lay")}
                           disabled={
-                            bet.status === "suspended" || lay === "0.00"
+                            isBettingClosed ||
+                            bet.status === "suspended" ||
+                            lay === "0.00"
                           }
                         >
                           <TrendingDown className="w-3 h-3 mr-0.5" />
@@ -259,6 +301,7 @@ export const BettingPanel = ({
                     </div>
                   );
                 })}
+                </div>
               </div>
             )}
           </>
@@ -292,7 +335,7 @@ export const BettingPanel = ({
         {/* ================= PLACE BET ================= */}
         <Button
           className="w-full h-9"
-          disabled={!selectedBet || loading || isRestricted}
+          disabled={!selectedBet || loading || isRestricted || isBettingClosed}
           onClick={handlePlaceBet}
         >
           {loading ? (
