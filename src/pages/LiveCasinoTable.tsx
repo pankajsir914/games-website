@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { BettingPanel } from "@/components/live-casino/BettingPanel";
@@ -7,8 +7,9 @@ import { BetHistory } from "@/components/live-casino/BetHistory";
 import { LiveStream } from "@/components/live-casino/LiveStream";
 import { ResultHistory } from "@/components/live-casino/ResultHistory";
 import { CurrentResult } from "@/components/live-casino/CurrentResult";
+import { resolveLayout, resolveTheme } from "@/components/live-casino/config";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
-import { useCasinoResultSocket } from "@/hooks/useCasinoSocket";
+import { useCasinoResultSocket, useCasinoBetStatusSocket } from "@/hooks/useCasinoSocket";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,7 @@ const LiveCasinoTable = () => {
 
   const {
     odds: initialOdds,
+    liveTables,
     bets,
     loading,
     resultHistory: initialResultHistory,
@@ -39,11 +41,20 @@ const LiveCasinoTable = () => {
   const [odds, setOdds] = useState<any>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [resultHistory, setResultHistory] = useState<any[]>([]);
+  const [betStatus, setBetStatus] = useState<"OPEN" | "CLOSED">("CLOSED");
+
+  const tableMeta = useMemo(
+    () => liveTables.find((t: any) => t.id === tableId),
+    [liveTables, tableId]
+  );
+
+  const tableLayout = resolveLayout(tableId, tableMeta?.category);
+  const tableTheme = resolveTheme(tableId, tableData?.name || tableMeta?.name, tableMeta?.category);
 
   // Real-time result updates via WebSocket + API polling
   useCasinoResultSocket(tableId, (result) => {
     if (result) {
-      console.log('🔄 Real-time result update received:', result);
+      //console.log('🔄 Real-time result update received:', result);
       // Force state update by creating new object reference
       setCurrentResult({ ...result, _updated: Date.now() });
       if (result.results && Array.isArray(result.results)) {
@@ -113,8 +124,9 @@ const LiveCasinoTable = () => {
       try {
         setTableData({
           id: tableId,
-          name: tableId.replace(/-/g, " ").toUpperCase(),
-          status: "active"
+          name: tableMeta?.name || tableId.replace(/-/g, " ").toUpperCase(),
+          status: tableMeta?.status || "active",
+          category: tableMeta?.category || null,
         });
 
         await Promise.allSettled([
@@ -142,7 +154,21 @@ const LiveCasinoTable = () => {
     return () => {
       clearInterval(oddsInterval);
     };
-  }, [tableId, fetchOdds]);
+  }, [tableId, fetchOdds, tableMeta]);
+
+  // Live bet status via socket
+  useCasinoBetStatusSocket(tableId, setBetStatus);
+
+  // Update tableData when live table metadata arrives (name/status/category)
+  useEffect(() => {
+    if (!tableMeta || !tableData) return;
+    setTableData((prev: any) => ({
+      ...prev,
+      name: tableMeta.name || prev?.name,
+      status: tableMeta.status || prev?.status,
+      category: tableMeta.category || prev?.category,
+    }));
+  }, [tableMeta, tableData]);
 
   if (!tableId || !tableData) {
     return (
@@ -204,10 +230,11 @@ const LiveCasinoTable = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-5">
               {/* LEFT */}
               <div className="lg:col-span-2 space-y-3 md:space-y-5">
-                <LiveStream 
-                  tableId={tableId} 
+                <LiveStream
+                  tableId={tableId}
                   tableName={tableData.name}
                   currentRoundId={currentResult?.latestResult?.mid || currentResult?.latestResult?.round || null}
+                  theme={tableTheme}
                 />
 
                 {odds && <OddsDisplay odds={odds} />}
@@ -217,6 +244,7 @@ const LiveCasinoTable = () => {
                   odds={odds}
                   onPlaceBet={placeBet}
                   loading={loading}
+                  layout={tableLayout}
                 />
 
                 {currentResult && (
