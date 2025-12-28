@@ -3,16 +3,18 @@ import { AlertCircle } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CircularTimer } from "./CircularTimer";
+import { TableTheme } from "./config";
 
 interface LiveStreamProps {
   tableId: string;
   tableName?: string;
   currentRoundId?: string | number;
+  theme?: TableTheme;
 }
 
 type BetStatus = "OPEN" | "CLOSED";
 
-export const LiveStream = ({ tableId, currentRoundId }: LiveStreamProps) => {
+export const LiveStream = ({ tableId, currentRoundId, theme }: LiveStreamProps) => {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -164,9 +166,11 @@ export const LiveStream = ({ tableId, currentRoundId }: LiveStreamProps) => {
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             <span
               className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow ${
-                betStatus === "OPEN"
-                  ? "bg-green-600 text-white animate-pulse"
-                  : "bg-red-600 text-white"
+                theme?.badgeColor
+                  ? theme.badgeColor
+                  : betStatus === "OPEN"
+                    ? "bg-green-600 text-white animate-pulse"
+                    : "bg-red-600 text-white"
               }`}
             >
               BETTING {betStatus}
