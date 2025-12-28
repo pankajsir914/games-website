@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import TableCard, { TableSearchBox } from "@/components/live-casino/TableCard";
 import TableCardSkeleton from "@/components/live-casino/TableCardSkeleton";
+import { resolveTheme } from "@/components/live-casino/config";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -94,7 +95,7 @@ const LiveCasino = () => {
         />
 
         {/* ===== TABLE GRID ===== */}
-        <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 md:gap-6">
           {loading
             ? Array.from({ length: SKELETON_COUNT }).map((_, i) => (
                 <TableCardSkeleton key={i} />
@@ -103,6 +104,7 @@ const LiveCasino = () => {
                 <TableCard
                   key={table.id}
                   table={table}
+                  theme={resolveTheme(table.id, table.name, table.category)}
                   onClick={() => handleSelectTable(table)}
                 />
               ))}
