@@ -184,6 +184,11 @@ const LiveCasinoTable = () => {
     );
   }
 
+  const normalizedStatus = String(tableMeta?.status ?? betStatus ?? "open")
+    .toLowerCase()
+    .trim();
+  const isBettingClosed = normalizedStatus !== "open" && normalizedStatus !== "active";
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -245,6 +250,8 @@ const LiveCasinoTable = () => {
                   onPlaceBet={placeBet}
                   loading={loading}
                   layout={tableLayout}
+                  betStatus={betStatus}
+                  isBettingClosed={isBettingClosed}
                 />
 
                 {currentResult && (
