@@ -1,5 +1,5 @@
 // src/hooks/useDiamondCasino.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -8,6 +8,7 @@ interface DiamondTable {
   name: string;
   status: string;
   imageUrl?: string;
+  category?: string | null;
 } 
 
 interface DiamondBet {
@@ -35,6 +36,8 @@ export const useDiamondCasino = () => {
   const [resultHistory, setResultHistory] = useState<any[]>([]);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const { toast } = useToast();
+  const lastTablesRef = useRef<DiamondTable[] | null>(null);
+  const lastErrorToastRef = useRef<number>(0);
 
   // ----------------- Helper: normalize possible stream objects -> string or null -----------------
   const extractStreamString = (maybe: any): string | null => {
@@ -73,6 +76,7 @@ export const useDiamondCasino = () => {
 
   // ----------------- Fetch live tables directly from diamond_casino_tables -----------------
   const fetchLiveTables = useCallback(async () => {
+    const hasExisting = liveTables.length > 0;
     try {
       setLoading(true);
       
@@ -90,6 +94,11 @@ export const useDiamondCasino = () => {
         // Format tables - only fetch table_id, table_name, status, and imageUrl
         const tables = tablesData.map((ct: any) => {
           const tableData = ct.table_data || {};
+          const category =
+            tableData?.category ||
+            tableData?.type ||
+            tableData?.gameType ||
+            null;
           
           // Extract image URL with priority:
           // 1. image_url column (direct column)
@@ -115,21 +124,38 @@ export const useDiamondCasino = () => {
             id: ct.table_id,
             name: ct.table_name || ct.table_id,
             status: ct.status || 'active',
-            imageUrl: imageUrl || undefined
+            imageUrl: imageUrl || undefined,
+            category,
           };
         });
         
         setLiveTables(tables);
+        lastTablesRef.current = tables;
+      } else {
+        setLiveTables([]);
+        lastTablesRef.current = [];
+      }
+    } catch (error: any) {
+      const now = Date.now();
+      const canToast = now - lastErrorToastRef.current > 60000; // throttle to once/minute
+
+      // Prefer showing last known tables instead of empty
+      if (lastTablesRef.current && lastTablesRef.current.length > 0) {
+        setLiveTables(lastTablesRef.current);
+      } else if (hasExisting) {
+        setLiveTables((prev) => prev || []);
       } else {
         setLiveTables([]);
       }
-    } catch (error: any) {
-      toast({ title: "Casino Connection Error", description: error?.message || "Failed to load live casino tables.", variant: "destructive" });
-      setLiveTables([]);
+
+      if (canToast) {
+        toast({ title: "Casino Connection Error", description: error?.message || "Failed to load live casino tables.", variant: "destructive" });
+        lastErrorToastRef.current = now;
+      }
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, liveTables.length]);
 
   // ----------------- Fetch table details -----------------
   const fetchTableDetails = async (tableId: string) => {
