@@ -26,6 +26,7 @@ const menuItems = [
   { icon: CheckCircle, label: 'Withdrawals', href: '/admin/withdrawals', showForMaster: false },
   { icon: CreditCard, label: 'Transactions', href: '/admin/transactions', showForMaster: false },
   { icon: Users, label: 'Bet Logs', href: '/admin/bets', showForMaster: false },
+  { icon: CheckCircle, label: 'Settlement', href: '/admin/settlement', showForMaster: false },
 ];
 
 export const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
