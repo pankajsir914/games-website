@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MoreHorizontal, Edit, Trash2, Ban, Coins, Sliders } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Ban, Coins, Sliders, Wallet } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,12 @@ import { TPINVerificationModal } from '@/components/admin/TPINVerificationModal'
 import { useMasterAdminUsers } from '@/hooks/useMasterAdminUsers';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserFilters {
   search: string;
@@ -44,6 +50,11 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
   const [creditModalUser, setCreditModalUser] = useState<string | null>(null);
   const [limitsModalUser, setLimitsModalUser] = useState<{ id: string; name?: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [walletModalUser, setWalletModalUser] = useState<{ id: string; name?: string } | null>(null);
+  const [settlementAmount, setSettlementAmount] = useState("");
+  const [settlementType, setSettlementType] = useState<"credit" | "debit">("credit");
+  const [settlementReason, setSettlementReason] = useState("");
+  const [isSettlingWallet, setIsSettlingWallet] = useState(false);
   
   // TPIN verification state
   const [tpinModalOpen, setTpinModalOpen] = useState(false);
@@ -92,6 +103,69 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
         });
       }
       setPendingUserAction(null);
+    }
+  };
+
+  const handleWalletSettlement = async () => {
+    if (!walletModalUser) return;
+
+    const amountNum = parseFloat(settlementAmount);
+    if (!settlementAmount || isNaN(amountNum) || amountNum <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Enter an amount greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!settlementReason.trim()) {
+      toast({
+        title: "Reason required",
+        description: "Add a short note for this settlement",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSettlingWallet(true);
+      const { error } = await supabase.rpc("update_wallet_balance", {
+        p_user_id: walletModalUser.id,
+        p_amount: amountNum,
+        p_type: settlementType,
+        p_reason: `Wallet settlement: ${settlementReason}`,
+        p_game_type: null,
+      });
+      if (error) throw error;
+
+      await supabase.rpc("log_admin_activity", {
+        p_action_type: "wallet_settlement",
+        p_target_type: "user",
+        p_target_id: walletModalUser.id,
+        p_details: {
+          amount: amountNum,
+          type: settlementType,
+          reason: settlementReason,
+        },
+      });
+
+      toast({
+        title: "Wallet settled",
+        description: `${settlementType === "credit" ? "Credited" : "Debited"} ₹${amountNum} for ${walletModalUser.name || "user"}`,
+      });
+
+      setSettlementAmount("");
+      setSettlementReason("");
+      setWalletModalUser(null);
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Settlement failed",
+        description: error?.message || "Unable to update wallet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSettlingWallet(false);
     }
   };
 
@@ -243,6 +317,10 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
                           <Coins className="mr-2 h-4 w-4" />
                           Credit Points
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setWalletModalUser({ id: user.id, name: user.full_name }); }}>
+                          <Wallet className="mr-2 h-4 w-4" />
+                          Wallet Settlement
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setLimitsModalUser({ id: user.id, name: user.full_name }); }}>
                           <Sliders className="mr-2 h-4 w-4" />
                           Set Bet Limits
@@ -306,6 +384,78 @@ export const UserManagementTable = ({ filters }: UserManagementTableProps) => {
         userId={selectedUserId}
         onOpenChange={(open) => { if (!open) setSelectedUserId(null); }}
       />
+
+      {/* Wallet Settlement Dialog */}
+      <Dialog
+        open={!!walletModalUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWalletModalUser(null);
+            setSettlementAmount("");
+            setSettlementReason("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Wallet Settlement</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Amount</Label>
+              <Input
+                type="number"
+                min="0"
+                value={settlementAmount}
+                onChange={(e) => setSettlementAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
+            </div>
+
+            <div>
+              <Label>Type</Label>
+              <Select
+                value={settlementType}
+                onValueChange={(v: "credit" | "debit") => setSettlementType(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">Credit (Add)</SelectItem>
+                  <SelectItem value="debit">Debit (Remove)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Reason / Note</Label>
+              <Textarea
+                placeholder="Reason for settlement"
+                value={settlementReason}
+                onChange={(e) => setSettlementReason(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setWalletModalUser(null);
+                setSettlementAmount("");
+                setSettlementReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleWalletSettlement} disabled={isSettlingWallet}>
+              {isSettlingWallet ? "Processing..." : "Settle Wallet"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <TPINVerificationModal
         open={tpinModalOpen}
