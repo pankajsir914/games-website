@@ -25,6 +25,16 @@ export const useAdminSettlement = () => {
   const pendingBetsQuery = useQuery({
     queryKey: ['admin-pending-bets'],
     queryFn: async () => {
+      // Identify current admin and role for scoping
+      const { data: authData } = await supabase.auth.getUser();
+      const adminUser = authData?.user;
+      if (!adminUser) return [];
+
+      const { data: highestRole } = await supabase.rpc('get_user_highest_role', {
+        _user_id: adminUser.id,
+      });
+      const isMasterAdmin = (highestRole as string) === 'master_admin';
+
       const { data, error } = await supabase
         .from('diamond_casino_bets')
         .select(`
@@ -50,9 +60,14 @@ export const useAdminSettlement = () => {
         (data || []).map(async (bet) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('email, full_name')
+            .select('email, full_name, created_by')
             .eq('id', bet.user_id)
             .single();
+
+          // If admin is not master, only include users created by this admin
+          if (!isMasterAdmin && profile?.created_by !== adminUser.id) {
+            return null;
+          }
 
           return {
             ...bet,
@@ -62,7 +77,7 @@ export const useAdminSettlement = () => {
         })
       );
 
-      return betsWithUsers;
+      return betsWithUsers.filter(Boolean) as PendingBet[];
     },
     refetchInterval: 10000, // Refetch every 10 seconds
   });
