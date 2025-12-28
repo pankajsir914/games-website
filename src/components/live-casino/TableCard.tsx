@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { TableTheme } from "./config";
 
 /* ======================================================
    🔍 TABLE SEARCH BOX (Reusable)
@@ -56,9 +57,10 @@ interface TableCardProps {
     imageUrl?: string;
   };
   onClick: () => void;
+  theme?: TableTheme;
 }
 
-const TableCard = memo(({ table, onClick }: TableCardProps) => {
+const TableCard = memo(({ table, onClick, theme }: TableCardProps) => {
   const isRestricted = table.status === "restricted";
   const isMaintenance = table.status === "maintenance";
   const isDisabled = isRestricted || isMaintenance;
@@ -67,6 +69,7 @@ const TableCard = memo(({ table, onClick }: TableCardProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const getGradientClass = () => {
+    if (theme?.gradientClass) return theme.gradientClass;
     const gradients = [
       "from-amber-500/30 to-orange-600/30",
       "from-emerald-500/30 to-teal-600/30",
@@ -79,7 +82,11 @@ const TableCard = memo(({ table, onClick }: TableCardProps) => {
     return gradients[index];
   };
 
-  const showFallback = !table.imageUrl || imageError;
+  const coverSrc = !imageError
+    ? table.imageUrl || theme?.cover
+    : undefined;
+
+  const showFallback = !coverSrc;
 
   return (
     <Card
@@ -96,13 +103,13 @@ const TableCard = memo(({ table, onClick }: TableCardProps) => {
           isMaintenance ? "opacity-50" : ""
         }`}
       >
-        {!imageLoaded && table.imageUrl && !imageError && (
+        {!imageLoaded && coverSrc && (
           <Skeleton className="absolute inset-0 rounded-none" />
         )}
 
-        {table.imageUrl && !imageError && (
+        {coverSrc && (
           <img
-            src={table.imageUrl}
+            src={coverSrc}
             alt={table.name}
             loading="lazy"
             className={`w-full h-full object-cover transition-opacity duration-300 ${
@@ -130,6 +137,12 @@ const TableCard = memo(({ table, onClick }: TableCardProps) => {
                 Under Maintenance
               </p>
             </div>
+          </div>
+        )}
+
+        {theme?.overlayLabel && (
+          <div className="absolute top-2 left-2 px-2 py-1 rounded-full text-[11px] font-semibold bg-black/60 text-white backdrop-blur-sm">
+            {theme.overlayLabel}
           </div>
         )}
       </div>
