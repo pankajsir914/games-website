@@ -13,6 +13,8 @@ import {
 
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
+import { Ab3Betting } from "@/pages/tables/Ab3Betting";
+
 
 /* =====================================================
    GAME IDS
@@ -20,6 +22,8 @@ import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 
 const DOLIDANA_TABLE_IDS = ["dolidana"];
 const TEEN_PATTI_TABLE_IDS = ["teen62"];
+const AB3_TABLE_IDS = ["ab3"];
+
 
 const getTableId = (table: any, odds: any) =>
   odds?.tableId ||
@@ -61,6 +65,8 @@ export const BettingPanel = ({
   const tableId = String(getTableId(table, odds)).toLowerCase();
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
   const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
+  const isAb3 = AB3_TABLE_IDS.includes(tableId);
+
 
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
@@ -130,6 +136,7 @@ export const BettingPanel = ({
   ===================================================== */
 
   return (
+    
     <Card className="w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
@@ -167,6 +174,14 @@ export const BettingPanel = ({
               />
             ) : isTeenPatti ? (
               <TeenPattiBetting
+                betTypes={betTypes}
+                selectedBet={selectedBet}
+                betType={betType}
+                onSelect={handleSelectBet}
+                formatOdds={formatOdds}
+              />
+            ) : isAb3 ? (
+              <Ab3Betting
                 betTypes={betTypes}
                 selectedBet={selectedBet}
                 betType={betType}
