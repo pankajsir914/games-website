@@ -35,6 +35,7 @@ import AdminTransactions from "./pages/AdminTransactions";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
 import AdminPayments from "./pages/AdminPayments";
 import AdminBets from "./pages/AdminBets";
+import AdminSettlement from "./pages/AdminSettlement";
 import AdminGameDashboard from "./pages/AdminGameDashboard";
 import AdminMaster from "./pages/AdminMaster";
 import MasterAdminLogin from "./pages/MasterAdminLogin";
@@ -135,6 +136,14 @@ const App = () => (
                 element={
                   <AdminProtectedRoute>
                     <AdminBets />
+                  </AdminProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/settlement" 
+                element={
+                  <AdminProtectedRoute>
+                    <AdminSettlement />
                   </AdminProtectedRoute>
                 } 
               />
