@@ -259,7 +259,10 @@ export const useCasinoBetStatusSocket = (
 
     const onBetStatus = (payload: any) => {
       if (payload?.tableId !== tableId) return;
-      setBetStatus(payload?.status === "OPEN" ? "OPEN" : "CLOSED");
+      const statusVal = String(payload?.status ?? "")
+        .toLowerCase()
+        .trim();
+      setBetStatus(statusVal === "active" ? "OPEN" : "CLOSED");
     };
 
     socket.on("bet:status", onBetStatus);
