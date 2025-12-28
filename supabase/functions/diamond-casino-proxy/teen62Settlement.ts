@@ -1,22 +1,26 @@
-// teen62Settlement.ts
-
 /* =====================================================
    TYPES
 ===================================================== */
 
+export type Teen62Winner = "Player A" | "Player B" | "Tie";
+
 export type Teen62Result = {
-  winner: string;      // "Player A" | "Player B"
-  winCode: string;     // "1" | "2"
+  mid?: string | number;
+  winner: Teen62Winner;
+  winCode: "1" | "2" | "0"; // 1=A, 2=B, 0=Tie
+  isTie: boolean;
+  rdesc?: string;
+  cards?: string[];
 };
 
 /* =====================================================
    TABLE CHECK
 ===================================================== */
 
-export function isTeen62Table(tableId: string): boolean {
+export function isTeen62Table(tableId?: string): boolean {
   if (!tableId) return false;
   const t = tableId.toLowerCase();
-  return t === "teen62" || t.includes("teen");
+  return t === "teen62";
 }
 
 /* =====================================================
@@ -26,53 +30,95 @@ export function isTeen62Table(tableId: string): boolean {
 export function parseTeen62Result(
   rdesc: string | null,
   winnat: string | null,
-  win: string | null
+  win: string | null,
+  mid?: string | number,
+  card?: string
 ): Teen62Result | null {
-  if (winnat) {
+  // ---- TIE (rules mention push on tie)
+  if (win === "0") {
     return {
-      winner: winnat.trim(),
-      winCode: win || ""
+      mid,
+      winner: "Tie",
+      winCode: "0",
+      isTie: true,
+      rdesc: rdesc || undefined,
+      cards: card ? card.split(",") : undefined,
     };
   }
 
+  // ---- Prefer winnat
+  if (winnat) {
+    const clean = winnat.trim();
+    return {
+      mid,
+      winner: clean === "Player A" ? "Player A" : "Player B",
+      winCode: win === "1" ? "1" : "2",
+      isTie: false,
+      rdesc: rdesc || undefined,
+      cards: card ? card.split(",") : undefined,
+    };
+  }
+
+  // ---- Fallback: parse rdesc
   if (!rdesc) return null;
 
-  // rdesc example:
-  // "Player B#Heart Diamond ...#A : Yes | B : No"
-  const firstPart = rdesc.split("#")[0]?.trim();
-  if (!firstPart) return null;
+  const first = rdesc.split("#")[0]?.trim();
+  if (!first) return null;
 
   return {
-    winner: firstPart,
-    winCode: win || ""
+    mid,
+    winner: first === "Player A" ? "Player A" : "Player B",
+    winCode: win === "1" ? "1" : "2",
+    isTie: false,
+    rdesc,
+    cards: card ? card.split(",") : undefined,
   };
 }
 
 /* =====================================================
-   BET MATCHING
+   BET MATCHING (MAIN BET)
 ===================================================== */
 
 export function isTeen62WinningBet(
   betType: string,
   result: Teen62Result,
   side: "back" | "lay" = "back"
-): boolean {
-  if (!betType) return false;
+): "WIN" | "LOSS" | "PUSH" {
+  if (!betType || !result) return "LOSS";
+
+  // ---- Tie = PUSH (rules)
+  if (result.isTie) return "PUSH";
 
   const bet = betType.toLowerCase().trim();
-  const winner = result.winner.toLowerCase().trim();
+  const winner = result.winner.toLowerCase();
 
   const isMatch = bet === winner;
 
-  // BACK = match wins
-  if (side === "back") return isMatch;
-
-  // LAY = non-match wins
-  return !isMatch;
+  if (side === "back") return isMatch ? "WIN" : "LOSS";
+  return isMatch ? "LOSS" : "WIN";
 }
 
 /* =====================================================
-   LAST 10 RESULTS FORMAT
+   SIDE BET HANDLING (SAFE DEFAULT)
+   - Odd/Even
+   - Suit
+   - Consecutive
+   NOTE: On Tie → PUSH
+===================================================== */
+
+export function isTeen62SideBetResult(
+  isConditionMet: boolean,
+  result: Teen62Result,
+  side: "back" | "lay" = "back"
+): "WIN" | "LOSS" | "PUSH" {
+  if (result.isTie) return "PUSH";
+
+  if (side === "back") return isConditionMet ? "WIN" : "LOSS";
+  return isConditionMet ? "LOSS" : "WIN";
+}
+
+/* =====================================================
+   LAST 10 RESULTS FORMAT (FRONTEND)
 ===================================================== */
 
 export function formatTeen62LastResults(
@@ -80,9 +126,20 @@ export function formatTeen62LastResults(
 ) {
   return results.map(r => ({
     mid: r.mid,
+    code: r.win,
     result:
       r.win === "1" ? "A" :
       r.win === "2" ? "B" :
+      r.win === "0" ? "T" :
       "?"
   }));
+}
+
+/* =====================================================
+   UI FRIENDLY LABEL
+===================================================== */
+
+export function getTeen62ResultLabel(result: Teen62Result): string {
+  if (result.isTie) return "Tie";
+  return result.winner === "Player A" ? "Player A Wins" : "Player B Wins";
 }
