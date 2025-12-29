@@ -12,16 +12,46 @@ import { useCasinoResultSocket } from "@/hooks/useCasinoSocket";
 import { resolveGameFamilyComponent } from "@/features/live-casino/config/gameFamilyRegistry";
 import { LiveCasinoTableConfig } from "@/features/live-casino/types";
 
+const inferFamily = (tableId: string, details?: LiveCasinoTableConfig | null) => {
+  if (details?.gameFamily) return details.gameFamily.toLowerCase();
+
+  const haystack = [
+    tableId,
+    details?.tableName,
+    details?.gameCode,
+    details?.variant,
+    details?.provider,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes("roul")) return "roulette";
+  if (haystack.includes("lucky")) return "lucky";
+  if (haystack.includes("andar")) return "andar-bahar";
+  if (haystack.includes("teen")) return "teen-patti";
+  if (haystack.includes("dragon") || haystack.includes("tiger"))
+    return "dragon-tiger";
+  if (haystack.includes("poker")) return "poker";
+  if (haystack.includes("baccarat")) return "baccarat";
+  if (haystack.includes("blackjack")) return "blackjack";
+  if (haystack.includes("sic")) return "sic-bo";
+
+  return "default";
+};
+
 const buildTableConfig = (
   details: LiveCasinoTableConfig | null,
   tableId: string,
   streamUrl?: string | null
 ): LiveCasinoTableConfig => {
   const fallbackName = tableId.replace(/-/g, " ").toUpperCase();
+  const detectedFamily = inferFamily(tableId, details);
+
   return {
     tableId,
     tableName: details?.tableName || fallbackName,
-    gameFamily: (details?.gameFamily || "default").toLowerCase(),
+    gameFamily: detectedFamily,
     gameCode: details?.gameCode,
     provider: details?.provider,
     variant: details?.variant,
