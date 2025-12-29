@@ -1,20 +1,43 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-import { BettingPanel } from "@/components/live-casino/BettingPanel";
-import { OddsDisplay } from "@/components/live-casino/OddsDisplay";
 import { BetHistory } from "@/components/live-casino/BetHistory";
-import { LiveStream } from "@/components/live-casino/LiveStream";
-import { ResultHistory } from "@/components/live-casino/ResultHistory";
-import { CurrentResult } from "@/components/live-casino/CurrentResult";
-import { resolveLayout, resolveTheme } from "@/components/live-casino/config";
-import { useDiamondCasino } from "@/hooks/useDiamondCasino";
-import { useCasinoResultSocket, useCasinoBetStatusSocket } from "@/hooks/useCasinoSocket";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameRules from "@/components/live-casino/GameRules";
+import { useDiamondCasino } from "@/hooks/useDiamondCasino";
+import { useCasinoResultSocket } from "@/hooks/useCasinoSocket";
+import { resolveGameFamilyComponent } from "@/features/live-casino/config/gameFamilyRegistry";
+import { LiveCasinoTableConfig } from "@/features/live-casino/types";
+
+const buildTableConfig = (
+  details: LiveCasinoTableConfig | null,
+  tableId: string,
+  streamUrl?: string | null
+): LiveCasinoTableConfig => {
+  const fallbackName = tableId.replace(/-/g, " ").toUpperCase();
+  return {
+    tableId,
+    tableName: details?.tableName || fallbackName,
+    gameFamily: (details?.gameFamily || "default").toLowerCase(),
+    gameCode: details?.gameCode,
+    provider: details?.provider,
+    variant: details?.variant,
+    min:
+      details?.min !== undefined && details?.min !== null
+        ? Number(details.min)
+        : undefined,
+    max:
+      details?.max !== undefined && details?.max !== null
+        ? Number(details.max)
+        : undefined,
+    status: details?.status || "active",
+    streamUrl: streamUrl ?? details?.streamUrl ?? null,
+    uiConfig: details?.uiConfig,
+  };
+};
 
 const LiveCasinoTable = () => {
   const { tableId } = useParams<{ tableId: string }>();
@@ -22,7 +45,6 @@ const LiveCasinoTable = () => {
 
   const {
     odds: initialOdds,
-    liveTables,
     bets,
     loading,
     resultHistory: initialResultHistory,
@@ -32,30 +54,20 @@ const LiveCasinoTable = () => {
     placeBet,
     fetchStreamUrl,
     fetchCurrentResult,
-    fetchResultHistory
+    fetchResultHistory,
+    streamUrls,
   } = useDiamondCasino();
 
-  const [tableData, setTableData] = useState<any>(null);
+  const [tableData, setTableData] = useState<LiveCasinoTableConfig | null>(null);
   const fetchingRef = useRef(false);
 
   const [odds, setOdds] = useState<any>(null);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [resultHistory, setResultHistory] = useState<any[]>([]);
-  const [betStatus, setBetStatus] = useState<"OPEN" | "CLOSED">("CLOSED");
-
-  const tableMeta = useMemo(
-    () => liveTables.find((t: any) => t.id === tableId),
-    [liveTables, tableId]
-  );
-
-  const tableLayout = resolveLayout(tableId, tableMeta?.category);
-  const tableTheme = resolveTheme(tableId, tableData?.name || tableMeta?.name, tableMeta?.category);
 
   // Real-time result updates via WebSocket + API polling
   useCasinoResultSocket(tableId, (result) => {
     if (result) {
-      //console.log('🔄 Real-time result update received:', result);
-      // Force state update by creating new object reference
       setCurrentResult({ ...result, _updated: Date.now() });
       if (result.results && Array.isArray(result.results)) {
         setResultHistory([...result.results]);
@@ -91,14 +103,12 @@ const LiveCasinoTable = () => {
             min: bet.min || 100,
             max: bet.max || 100000,
             sid: bet.sid,
-            mid: bet.mid
+            mid: bet.mid,
           };
         });
     }
 
-    return extractedBets.length
-      ? { bets: extractedBets, rawData: payload }
-      : null;
+    return extractedBets.length ? { bets: extractedBets, rawData: payload } : null;
   }, []);
 
   useEffect(() => {
@@ -122,20 +132,15 @@ const LiveCasinoTable = () => {
     const fetchData = async () => {
       fetchingRef.current = true;
       try {
-        setTableData({
-          id: tableId,
-          name: tableMeta?.name || tableId.replace(/-/g, " ").toUpperCase(),
-          status: tableMeta?.status || "active",
-          category: tableMeta?.category || null,
-        });
-
-        await Promise.allSettled([
+        const [details, , stream] = await Promise.all([
           fetchTableDetails(tableId),
           fetchOdds(tableId),
           fetchStreamUrl(tableId),
           fetchCurrentResult(tableId),
-          fetchResultHistory(tableId)
+          fetchResultHistory(tableId),
         ]);
+
+        setTableData(buildTableConfig(details, tableId, stream));
       } finally {
         fetchingRef.current = false;
       }
@@ -144,31 +149,35 @@ const LiveCasinoTable = () => {
     fetchData();
 
     const oddsInterval = setInterval(() => {
-      console.log('🔄 Polling odds...');
       fetchOdds(tableId, true);
     }, 5000);
-    
-    // Result fetching is now handled by useCasinoResultSocket (WebSocket + polling every 8s)
-    // No need for duplicate manual polling
 
     return () => {
       clearInterval(oddsInterval);
     };
-  }, [tableId, fetchOdds, tableMeta]);
+  }, [tableId, fetchOdds, fetchTableDetails, fetchStreamUrl, fetchCurrentResult, fetchResultHistory]);
 
-  // Live bet status via socket
-  useCasinoBetStatusSocket(tableId, setBetStatus);
-
-  // Update tableData when live table metadata arrives (name/status/category)
+  const streamUrlFromState = tableId ? streamUrls[tableId] : null;
   useEffect(() => {
-    if (!tableMeta || !tableData) return;
-    setTableData((prev: any) => ({
-      ...prev,
-      name: tableMeta.name || prev?.name,
-      status: tableMeta.status || prev?.status,
-      category: tableMeta.category || prev?.category,
-    }));
-  }, [tableMeta, tableData]);
+    if (!tableId || !streamUrlFromState) return;
+    setTableData((prev) =>
+      prev ? { ...prev, streamUrl: streamUrlFromState } : prev
+    );
+  }, [tableId, streamUrlFromState]);
+
+  const TemplateComponent = resolveGameFamilyComponent(tableData?.gameFamily);
+
+  const handlePlaceBet = useCallback(
+    async (betData: any) => {
+      if (!tableData) return;
+      await placeBet({
+        ...betData,
+        tableId: tableData.tableId,
+        tableName: tableData.tableName,
+      });
+    },
+    [placeBet, tableData]
+  );
 
   if (!tableId || !tableData) {
     return (
@@ -184,17 +193,11 @@ const LiveCasinoTable = () => {
     );
   }
 
-  const normalizedStatus = String(tableMeta?.status ?? betStatus ?? "open")
-    .toLowerCase()
-    .trim();
-  const isBettingClosed = normalizedStatus !== "open" && normalizedStatus !== "active";
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <div className="max-w-[1400px] mx-auto px-2 sm:px-4 md:px-6 py-4">
-        {/* BACK BUTTON */}
         <Button
           variant="ghost"
           onClick={() => navigate("/live-casino")}
@@ -225,52 +228,22 @@ const LiveCasinoTable = () => {
                 <TabsTrigger value="gamerules" className="text-xs sm:text-sm">
                   Game Rules
                 </TabsTrigger>
-
               </TabsList>
             </Card>
           </div>
 
-          {/* LIVE TAB */}
           <TabsContent value="live">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-5">
-              {/* LEFT */}
-              <div className="lg:col-span-2 space-y-3 md:space-y-5">
-                <LiveStream
-                  tableId={tableId}
-                  tableName={tableData.name}
-                  currentRoundId={currentResult?.latestResult?.mid || currentResult?.latestResult?.round || null}
-                  theme={tableTheme}
-                />
-
-                {odds && <OddsDisplay odds={odds} />}
-
-                <BettingPanel
-                  table={tableData}
-                  odds={odds}
-                  onPlaceBet={placeBet}
-                  loading={loading}
-                  layout={tableLayout}
-                  betStatus={betStatus}
-                  isBettingClosed={isBettingClosed}
-                />
-
-                {currentResult && (
-                  <CurrentResult
-                    result={currentResult}
-                    tableName={tableData.name}
-                    tableId={tableId}
-                  />
-                )}
-              </div>
-
-              {/* RIGHT */}
-              <div className="lg:col-span-1">
-                <BetHistory bets={bets} />
-              </div>
-            </div>
+            <TemplateComponent
+              table={tableData}
+              odds={odds}
+              bets={bets}
+              loading={loading}
+              currentResult={currentResult}
+              resultHistory={resultHistory}
+              onPlaceBet={handlePlaceBet}
+            />
           </TabsContent>
 
-          {/* MY BETS */}
           <TabsContent value="history">
             <BetHistory bets={bets} />
           </TabsContent>
@@ -278,7 +251,6 @@ const LiveCasinoTable = () => {
           <TabsContent value="gamerules">
             <GameRules tableId={tableId} />
           </TabsContent>
-
         </Tabs>
       </div>
     </div>
