@@ -14,6 +14,7 @@ export const AndarBaharTemplate = ({
   bets,
   loading,
   currentResult,
+  resultHistory = [],
   onPlaceBet,
 }: LiveCasinoTemplateProps) => {
   const variant =
@@ -41,7 +42,6 @@ export const AndarBaharTemplate = ({
   });
 
   return (
-  
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-5">
       <div className="lg:col-span-2 space-y-3 md:space-y-5">
         <VideoPlayer
@@ -72,6 +72,7 @@ export const AndarBaharTemplate = ({
               odds={odds}
               loading={loading}
               onPlaceBet={onPlaceBet}
+              resultHistory={resultHistory}
             />
           </CardContent>
         </Card>
