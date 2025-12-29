@@ -112,6 +112,7 @@ const LiveCasinoTable = () => {
     const payload = rawOdds?.data || rawOdds;
     let extractedBets: any[] = [];
 
+    // Check bets array first
     if (payload?.bets && Array.isArray(payload.bets)) {
       extractedBets = payload.bets
         .filter((bet: any) => {
@@ -125,17 +126,54 @@ const LiveCasinoTable = () => {
           const lay = convert(Number(bet.lay || bet.l1 || bet.l || 0));
 
           return {
-            type: bet.type || bet.nation || "Unknown",
+            type: bet.type || bet.nat || bet.nation || "Unknown",
+            nat: bet.nat || bet.type || bet.nation, // Preserve nat for Ab3Betting matching
             odds: back || lay,
             back,
             lay,
-            status: "active",
+            status: bet.status || (bet.gstatus === "OPEN" ? "active" : "suspended"),
+            gstatus: bet.gstatus, // Preserve gstatus for Ab3Betting
             min: bet.min || 100,
             max: bet.max || 100000,
             sid: bet.sid,
             mid: bet.mid,
+            l: bet.l || bet.back || bet.b1 || bet.b, // Preserve l for Ab3Betting
           };
         });
+    }
+
+    // Also check child, sub, t1, t2, t3 arrays (for ab3 and other games)
+    if (extractedBets.length === 0) {
+      ["child", "sub", "t1", "t2", "t3"].forEach((key) => {
+        if (payload?.[key] && Array.isArray(payload[key])) {
+          payload[key].forEach((item: any) => {
+            if (!item) return;
+            const backVal = item.b || item.b1 || item.back || item.odds || 0;
+            const layVal = item.l || item.l1 || item.lay || 0;
+            
+            if (backVal > 0 || layVal > 0) {
+              const convert = (v: number) => (v > 1000 ? v / 100000 : v || 0);
+              const back = convert(Number(backVal));
+              const lay = convert(Number(layVal));
+
+              extractedBets.push({
+                type: item.type || item.nat || item.nation || "Unknown",
+                nat: item.nat || item.type || item.nation,
+                odds: back || lay,
+                back,
+                lay,
+                status: item.status || (item.gstatus === "OPEN" ? "active" : "suspended"),
+                gstatus: item.gstatus,
+                min: item.min || 100,
+                max: item.max || 100000,
+                sid: item.sid,
+                mid: item.mid || payload.mid,
+                l: item.l || item.b || item.b1 || item.back,
+              });
+            }
+          });
+        }
+      });
     }
 
     return extractedBets.length ? { bets: extractedBets, rawData: payload } : null;
