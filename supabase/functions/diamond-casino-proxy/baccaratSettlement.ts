@@ -1,5 +1,5 @@
 /* =====================================================
-   BACCARAT Settlement
+   BACCARAT Settlement (FINAL – FULLY SAFE)
 ===================================================== */
 
 /* ================= TYPES ================= */
@@ -42,11 +42,13 @@ export function parseBaccaratResult(
 
   const parts = rdesc.split("#").map(p => p.trim());
 
-  // Expected:
-  // [0]=Player/Banker/Tie
-  // [2]=Player Pair (Yes/No)
-  // [3]=Banker Pair (Yes/No)
-  // [4]=Big/Small
+  /**
+   * Expected rdesc format:
+   * [0] Player/Banker/Tie
+   * [2] Player Pair (Yes/No)
+   * [3] Banker Pair (Yes/No)
+   * [4] Big/Small
+   */
 
   const playerPair = parts[2]?.toLowerCase() === "yes";
   const bankerPair = parts[3]?.toLowerCase() === "yes";
@@ -64,57 +66,66 @@ export function parseBaccaratResult(
     rdesc,
   };
 
-  console.log("🎴 [BACCARAT Parsed]", result);
+  console.log("🎴 [BACCARAT Parsed Result]", result);
   return result;
 }
 
-/* ================= MAIN BET ================= */
+/* =====================================================
+   MASTER WIN / LOSS ENGINE (ALL CONDITIONS)
+===================================================== */
 
-export function isWinningBaccaratMainBet(
+export function isWinningBaccaratBet(
   bet: { nat: string },
   result: BaccaratResult
 ): boolean {
-  return bet.nat.toLowerCase() === result.winner.toLowerCase();
-}
 
-/* ================= PAIR BETS ================= */
+  if (!bet?.nat || !result) return false;
 
-export function isWinningBaccaratPairBet(
-  bet: { nat: string },
-  result: BaccaratResult
-): boolean {
-  const nat = bet.nat.toLowerCase();
+  const nat = bet.nat.toLowerCase().trim();
+
+  /* ================= MAIN BETS ================= */
+
+  if (nat === "player") return result.winner === "Player";
+  if (nat === "banker") return result.winner === "Banker";
+  if (nat === "tie") return result.winner === "Tie";
+
+  /**
+   * IMPORTANT:
+   * If result is Tie:
+   * - Player bet → LOSS
+   * - Banker bet → LOSS
+   * (handled automatically above)
+   */
+
+  /* ================= PAIR BETS ================= */
 
   if (nat === "player pair") return result.playerPair;
   if (nat === "banker pair") return result.bankerPair;
-  if (nat === "either pair") return result.playerPair || result.bankerPair;
+  if (nat === "either pair")
+    return result.playerPair || result.bankerPair;
 
-  return false;
-}
+  /* ================= PERFECT PAIR ================= */
 
-/* ================= PERFECT PAIR ================= */
-/**
- * NOTE:
- * API does NOT expose perfect pair info.
- * Safe behaviour → always LOSS.
- */
-export function isWinningBaccaratPerfectPairBet(): boolean {
-  return false;
-}
+  /**
+   * API does NOT provide perfect pair data.
+   * Safe casino behaviour → ALWAYS LOSS
+   */
+  if (nat === "perfect pair") return false;
 
-/* ================= BIG / SMALL ================= */
+  /* ================= BIG / SMALL ================= */
 
-export function isWinningBaccaratBigSmallBet(
-  bet: { nat: string },
-  result: BaccaratResult
-): boolean {
-  const nat = bet.nat.toLowerCase();
   if (nat === "big") return result.big;
   if (nat === "small") return result.small;
+
+  /* ================= UNKNOWN BET ================= */
+
+  console.warn("⚠️ Unknown Baccarat bet type:", bet.nat);
   return false;
 }
 
-/* ================= LAST 10 FORMAT ================= */
+/* =====================================================
+   LAST 10 RESULT FORMAT
+===================================================== */
 
 export function formatBaccaratLast10(res: any[]) {
   return res.map(r => ({
