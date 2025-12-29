@@ -2,113 +2,172 @@
 
 import { Lock } from "lucide-react";
 
+/* ===============================
+   CONSTANTS
+================================ */
+
+const CARD_ORDER = [
+  "A","2","3","4","5","6","7","8","9","10","J","Q","K"
+];
+
+const FIRST_ROW = CARD_ORDER.slice(0, 6);
+const SECOND_ROW = CARD_ORDER.slice(6);
+
+const SUITS = ["♠", "♥", "♦", "♣"];
+
+const suitColor = (s: string) =>
+  s === "♥" || s === "♦" ? "text-red-600" : "text-black";
+
+/* ===============================
+   COMPONENT
+================================ */
+
 export const Ab3Betting = ({
-  betTypes,
+  betTypes = [],
   selectedBet,
-  betType,
   onSelect,
   formatOdds,
 }: any) => {
-  /**
-   * Find bet by keywords
-   */
-  const find = (keys: string[]) =>
+
+  const getBet = (side: "andar" | "bahar", card: string) =>
     betTypes.find((b: any) =>
-      keys.some((k) =>
-        (b.type || "").toLowerCase().includes(k.toLowerCase())
-      )
+      (b.type || "").toLowerCase().includes(side) &&
+      (b.type || "").includes(card)
     );
 
-  /**
-   * Extract Andar / Bahar bets
-   * Card wise bets are expected like:
-   *  - "Andar 1", "Bahar 1"
-   *  - ...
-   *  - "Andar 46", "Bahar 46"
-   */
-  const andarBets = betTypes.filter((b: any) =>
-    (b.type || "").toLowerCase().includes("andar")
-  );
-
-  const baharBets = betTypes.filter((b: any) =>
-    (b.type || "").toLowerCase().includes("bahar")
-  );
-
-  /**
-   * Single Bet Cell
-   */
-  const BetCell = ({ bet, side }: any) => {
+  const BetCard = ({ bet, side, card }: any) => {
     const suspended = bet?.status === "suspended";
     const selected = selectedBet === bet?.type;
 
-
     return (
       <div
-        onClick={() => !suspended && onSelect(bet, side)}
-        className={`relative p-2 rounded text-center text-xs font-semibold
-        ${side === "andar" ? "bg-green-600" : "bg-orange-500"}
-        ${selected ? "ring-2 ring-primary" : ""}
-        ${suspended ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
-        text-white`}
+        onClick={() => !suspended && bet && onSelect(bet, side)}
+        className={`
+          relative w-[44px] h-[66px]
+          rounded-md
+          flex flex-col items-center justify-between
+          text-[11px] font-bold select-none
+          ${side === "andar"
+            ? "bg-[#4b3a3a] text-white"
+            : "bg-[#ffe98a] text-black"}
+          ${selected ? "ring-2 ring-green-400" : ""}
+          ${suspended
+            ? "opacity-60 cursor-not-allowed"
+            : "cursor-pointer hover:bg-white/10"}
+        `}
       >
-        <div className="text-[10px] opacity-80">{side.toUpperCase()}</div>
-        <div className="font-bold">
-          {formatOdds(bet?.back)}
+        <div className="mt-1 text-[12px] font-extrabold">{card}</div>
+
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[12px] leading-none">
+          {SUITS.map((s) => (
+            <span key={s} className={suitColor(s)}>{s}</span>
+          ))}
+        </div>
+
+        <div className="mb-1 text-[11px] font-extrabold">
+          {bet ? formatOdds(bet.back) : "--"}
         </div>
 
         {suspended && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <Lock className="w-4 h-4" />
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-md">
+            <Lock className="w-4 h-4 text-white" />
           </div>
         )}
       </div>
     );
   };
 
-  /**
-   * Render card rows (1–46)
-   */
-  const renderCards = () => {
-    const rows = [];
+  /* ---------- MOBILE ---------- */
 
-    for (let i = 1; i <= 46; i++) {
-      const andar = andarBets.find((b: any) =>
-        (b.type || "").includes(String(i))
-      );
-      const bahar = baharBets.find((b: any) =>
-        (b.type || "").includes(String(i))
-      );
+const renderMobileRows = (side: "andar" | "bahar") => (
+  <div className="space-y-1 flex flex-col items-center">
+    {/* MOBILE LABEL */}
+    <div
+      className={`
+        mb-1 px-4 py-[2px] text-xs font-bold rounded
+        ${side === "andar"
+          ? "bg-[#3b2a2a] text-white"
+          : "bg-yellow-300 text-black"}
+      `}
+    >
+      {side.toUpperCase()}
+    </div>
 
-      rows.push(
-        <div
-          key={i}
-          className="grid grid-cols-3 gap-1 items-center border rounded p-1"
-        >
-          <div className="text-center text-[10px] font-semibold text-gray-300">
-            Card {i}
-          </div>
+    {/* FIRST ROW – 6 CARDS */}
+    <div className="flex gap-1 justify-center">
+      {FIRST_ROW.map((card) => (
+        <BetCard
+          key={`${side}-${card}`}
+          card={card}
+          side={side}
+          bet={getBet(side, card)}
+        />
+      ))}
+    </div>
 
-          <BetCell bet={andar} side="andar" />
-          <BetCell bet={bahar} side="bahar" />
-        </div>
-      );
-    }
+    {/* SECOND ROW – 7 CARDS */}
+    <div className="flex gap-1 justify-center">
+      {SECOND_ROW.map((card) => (
+        <BetCard
+          key={`${side}-${card}`}
+          card={card}
+          side={side}
+          bet={getBet(side, card)}
+        />
+      ))}
+    </div>
+  </div>
+);
 
-    return rows;
-  };
 
-  return (
-    <div className="space-y-2">
-      {/* Header */}
-      <div className="grid grid-cols-3 text-center text-xs font-semibold text-gray-300">
-        <div>Card</div>
-        <div>Andar</div>
-        <div>Bahar</div>
+  /* ---------- DESKTOP ---------- */
+
+  const renderDesktopRow = (side: "andar" | "bahar") => (
+    <div className="flex items-center justify-center gap-2">
+      {/* Label */}
+      <div
+        className={`w-[70px] text-center text-xs font-bold
+        ${side === "andar"
+          ? "bg-[#3b2a2a] text-white"
+          : "bg-yellow-300 text-black"}`}
+      >
+        {side.toUpperCase()}
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 gap-1 max-h-[420px] overflow-y-auto">
-        {renderCards()}
+      {/* Cards */}
+      <div className="flex gap-1">
+        {CARD_ORDER.map((card) => (
+          <BetCard
+            key={`${side}-${card}`}
+            card={card}
+            side={side}
+            bet={getBet(side, card)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* ANDAR */}
+      <div className="flex justify-center">
+        <div className="block sm:hidden">
+          {renderMobileRows("andar")}
+        </div>
+        <div className="hidden sm:block">
+          {renderDesktopRow("andar")}
+        </div>
+      </div>
+
+      {/* BAHAR */}
+      <div className="flex justify-center">
+        <div className="block sm:hidden">
+          {renderMobileRows("bahar")}
+        </div>
+        <div className="hidden sm:block">
+          {renderDesktopRow("bahar")}
+        </div>
       </div>
     </div>
   );
