@@ -77,7 +77,7 @@ const Ab3BettingComponent = ({
   // Debug: Log betTypes once when they change
   useMemo(() => {
     if (betTypes.length > 0) {
-      console.log("Ab3Betting betTypes sample:", betTypes.slice(0, 2));
+      //console.log("Ab3Betting betTypes sample:", betTypes.slice(0, 2));
     }
   }, [betTypes.length]); // Only log when length changes, not on every render
 
@@ -146,7 +146,14 @@ const Ab3BettingComponent = ({
      BET CARD
   ========================= */
 
-  const BetCard = memo(({ bet, side, card }: any) => {
+  // Calculate hasActiveBets once
+  const hasActiveBets = betTypes.length > 0 && betTypes.some((b: any) => 
+    b?.status !== "suspended" && 
+    b?.gstatus !== "SUSPENDED" &&
+    b?.gstatus !== "0"
+  );
+
+  const BetCard = ({ bet, side, card, hasActiveBets: hasActive, betTypes: bets, selectedBet: selBet, onCardClick }: any) => {
     // Check suspended status - support both status and gstatus properties
     const isSuspended = bet?.status === "suspended" || 
                        bet?.gstatus === "SUSPENDED" || 
@@ -156,74 +163,153 @@ const Ab3BettingComponent = ({
     const odds = bet?.l ?? bet?.back ?? bet?.b1 ?? bet?.b ?? bet?.odds ?? 0;
     const hasOdds = odds > 0;
     
-    // If no bet found, check if we have any active bets at all
-    // Card is suspended if: bet is explicitly suspended, OR no betTypes, OR all bets are suspended
-    const hasAnyBets = betTypes.length > 0;
-    const hasActiveBets = hasAnyBets && betTypes.some((b: any) => 
-      b?.status !== "suspended" && 
-      b?.gstatus !== "SUSPENDED" &&
-      b?.gstatus !== "0"
-    );
-    const suspended = isSuspended || (!hasActiveBets);
+    // Card is suspended ONLY if:
+    // 1. The specific bet is suspended, OR
+    // 2. There are NO active bets at all
+    // If bet is null but there are active bets, card should still be clickable
+    const suspended = (bet && isSuspended) || (!hasActive);
 
     // Use type first (for BettingPanel compatibility), then sid, then fallback
     const betKey = bet?.type ?? bet?.nat ?? bet?.sid ?? `${side}-${card}`;
-    const selected = selectedBet === betKey || 
-                    selectedBet === bet?.type || 
-                    selectedBet === bet?.nat ||
-                    selectedBet === String(bet?.sid);
+    const selected = selBet === betKey || 
+                    selBet === bet?.type || 
+                    selBet === bet?.nat ||
+                    selBet === String(bet?.sid);
 
-    const handleClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      //console.log("🖱️ CLICK DETECTED!", { side, card, suspended, hasActive, onCardClick: !!onCardClick });
+      
+      // Don't allow click if suspended
       if (suspended) {
-        console.log("Card clicked but suspended:", { side, card, bet, suspended, isSuspended });
+        //console.log("❌ Card suspended");
+        e.stopPropagation();
         return;
       }
       
-      // Use the bet if found, otherwise use first available active bet
-      // The backend will map the card selection (side + card) to the correct position
+      e.stopPropagation();
+      // Don't preventDefault - it can interfere with click handling
+      
+      // Always try to open modal, even if no bet found
       let betToSelect = bet;
       
-      if (!betToSelect && hasActiveBets) {
-        // Use first active bet
-        betToSelect = betTypes.find((b: any) => 
+      if (!betToSelect && bets && bets.length > 0) {
+        betToSelect = bets.find((b: any) => 
           b?.status !== "suspended" && 
           b?.gstatus !== "SUSPENDED" &&
           b?.gstatus !== "0"
-        );
+        ) || bets[0];
       }
       
       if (!betToSelect) {
-        console.log("Card clicked but no bet available:", { side, card });
-        return;
+        betToSelect = {
+          type: `${side} ${card}`,
+          nat: `${side} ${card}`,
+          sid: `${side}-${card}`,
+          back: 0,
+          l: 0,
+          odds: 0,
+          status: 'active',
+        };
       }
       
-      // Enhance bet object with card information for backend mapping
       betToSelect = {
         ...betToSelect,
-        // Preserve original type/nat for backend
-        type: betToSelect.type || betToSelect.nat || betToSelect.nation || `${side} ${card}`,
+        type: betToSelect.type || betToSelect.nat || `${side} ${card}`,
         nat: betToSelect.nat || betToSelect.type || `${side} ${card}`,
-        // Add card selection info for backend to map to correct position
         cardSelection: `${side} ${card}`,
         cardSide: side,
         cardValue: card,
       };
       
-      // Open modal with selected bet
-      setSelectedCardBet(betToSelect);
-      setSelectedCardInfo({ side, card });
-      setModalOpen(true);
+      //console.log("🎯 Calling onCardClick with:", betToSelect);
       
-      // Also call onSelect for compatibility
-      if (onSelect) {
-        onSelect(betToSelect, "back");
+      // Always call onCardClick if it exists
+      if (onCardClick) {
+        try {
+          onCardClick(betToSelect, side, card);
+          //console.log("✅ onCardClick executed successfully");
+        } catch (error) {
+          //console.error("❌ Error in onCardClick:", error);
+        }
+      } else {
+       // console.error("❌ onCardClick is undefined!");
       }
+    };
+
+    const triggerClick = () => {
+      if (suspended) {
+       // console.log("❌ Card suspended, not triggering");
+        return;
+      }
+      
+      //console.log("✅ Triggering click for card", { side, card });
+      
+      // Use the bet if found, otherwise use first available active bet
+      let betToSelect = bet;
+      
+      if (!betToSelect && bets && bets.length > 0) {
+        betToSelect = bets.find((b: any) => 
+          b?.status !== "suspended" && 
+          b?.gstatus !== "SUSPENDED" &&
+          b?.gstatus !== "0"
+        ) || bets[0];
+      }
+      
+      if (!betToSelect) {
+        betToSelect = {
+          type: `${side} ${card}`,
+          nat: `${side} ${card}`,
+          sid: `${side}-${card}`,
+          back: 0,
+          l: 0,
+          odds: 0,
+          status: 'active',
+        };
+      }
+      
+      betToSelect = {
+        ...betToSelect,
+        type: betToSelect.type || betToSelect.nat || `${side} ${card}`,
+        nat: betToSelect.nat || betToSelect.type || `${side} ${card}`,
+        cardSelection: `${side} ${card}`,
+        cardSide: side,
+        cardValue: card,
+      };
+      
+      //console.log("🎯 Calling onCardClick with:", betToSelect);
+      
+      if (onCardClick) {
+        try {
+          onCardClick(betToSelect, side, card);
+          //console.log("✅ onCardClick executed successfully");
+        } catch (error) {
+          //console.error("❌ Error in onCardClick:", error);
+        }
+      } else {
+      //  console.error("❌ onCardClick is undefined!");
+      }
+    };
+
+    const handleMouseUp = (e: React.MouseEvent) => {
+      if (suspended) return;
+      //console.log("🖱️ MouseUp - triggering click", { side, card });
+      e.stopPropagation();
+      triggerClick();
     };
 
     return (
       <div
-        onClick={handleClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          triggerClick();
+        }}
+        onMouseUp={handleMouseUp}
+        onTouchStart={(e) => {
+          if (!suspended) {
+            e.stopPropagation();
+            triggerClick();
+          }
+        }}
         className={`
           relative w-[44px] h-[66px]
           rounded-md flex flex-col items-center justify-between
@@ -236,6 +322,23 @@ const Ab3BettingComponent = ({
             ? "opacity-50 cursor-not-allowed"
             : "cursor-pointer hover:bg-white/10 active:scale-95 transition-transform"}
         `}
+        style={{ 
+          pointerEvents: suspended ? 'none' : 'auto',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          position: 'relative',
+          zIndex: suspended ? 0 : 10,
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent'
+        }}
+        role="button"
+        tabIndex={suspended ? -1 : 0}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && !suspended) {
+            e.preventDefault();
+            handleClick(e as any);
+          }
+        }}
       >
         <div className="mt-1 text-[12px] font-extrabold">{card}</div>
 
@@ -251,15 +354,14 @@ const Ab3BettingComponent = ({
 
         {suspended && (
           <div 
-            className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-md pointer-events-none"
-            onClick={(e) => e.stopPropagation()}
+            className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-md pointer-events-none z-20"
           >
             <Lock className="w-4 h-4 text-white" />
           </div>
         )}
       </div>
     );
-  });
+  };
 
   BetCard.displayName = "BetCard";
 
@@ -285,6 +387,17 @@ const Ab3BettingComponent = ({
             card={card}
             side={side}
             bet={getBet(side, card)}
+            hasActiveBets={hasActiveBets}
+            betTypes={betTypes}
+            selectedBet={selectedBet}
+            onCardClick={(bet: any, side: string, card: string) => {
+              setSelectedCardBet(bet);
+              setSelectedCardInfo({ side, card });
+              setModalOpen(true);
+              if (onSelect) {
+                onSelect(bet, "back");
+              }
+            }}
           />
         ))}
       </div>
@@ -296,6 +409,17 @@ const Ab3BettingComponent = ({
             card={card}
             side={side}
             bet={getBet(side, card)}
+            hasActiveBets={hasActiveBets}
+            betTypes={betTypes}
+            selectedBet={selectedBet}
+            onCardClick={(bet: any, side: string, card: string) => {
+              setSelectedCardBet(bet);
+              setSelectedCardInfo({ side, card });
+              setModalOpen(true);
+              if (onSelect) {
+                onSelect(bet, "back");
+              }
+            }}
           />
         ))}
       </div>
@@ -324,6 +448,17 @@ const Ab3BettingComponent = ({
             card={card}
             side={side}
             bet={getBet(side, card)}
+            hasActiveBets={hasActiveBets}
+            betTypes={betTypes}
+            selectedBet={selectedBet}
+            onCardClick={(bet: any, side: string, card: string) => {
+              setSelectedCardBet(bet);
+              setSelectedCardInfo({ side, card });
+              setModalOpen(true);
+              if (onSelect) {
+                onSelect(bet, "back");
+              }
+            }}
           />
         ))}
       </div>
@@ -359,20 +494,18 @@ const Ab3BettingComponent = ({
                 </span>
               )}
             </DialogTitle>
-            <DialogDescription>
-              {selectedCardBet && (
-                <div className="mt-2">
-                  <p className="text-sm">
-                    Odds: <span className="font-bold">{formatOdds(selectedCardBet?.back || selectedCardBet?.l || selectedCardBet?.odds || 0)}</span>
+            {selectedCardBet && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Odds: <span className="font-bold text-foreground">{formatOdds(selectedCardBet?.back || selectedCardBet?.l || selectedCardBet?.odds || 0)}</span>
+                </p>
+                {selectedCardBet?.cardSelection && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCardBet.cardSelection}
                   </p>
-                  {selectedCardBet?.cardSelection && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selectedCardBet.cardSelection}
-                    </p>
-                  )}
-                </div>
-              )}
-            </DialogDescription>
+                )}
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4 py-4">
