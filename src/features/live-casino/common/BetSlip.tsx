@@ -6,9 +6,10 @@ interface BetSlipProps {
   odds: any;
   loading: boolean;
   onPlaceBet: (betData: any) => Promise<void>;
+  resultHistory?: any[];
 }
 
-export const BetSlip = ({ table, odds, loading, onPlaceBet }: BetSlipProps) => {
+export const BetSlip = ({ table, odds, loading, onPlaceBet, resultHistory }: BetSlipProps) => {
   // Normalize table props for the existing BettingPanel to avoid UI duplication
   const bettingTable = {
     id: table.tableId,
@@ -24,6 +25,7 @@ export const BetSlip = ({ table, odds, loading, onPlaceBet }: BetSlipProps) => {
       odds={odds}
       onPlaceBet={onPlaceBet}
       loading={loading}
+      resultHistory={resultHistory}
     />
   );
 };
