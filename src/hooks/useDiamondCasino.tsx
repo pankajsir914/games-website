@@ -1,14 +1,14 @@
 // src/hooks/useDiamondCasino.ts
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { LiveCasinoTableConfig } from "@/features/live-casino/types";
 
 interface DiamondTable {
   id: string;
   name: string;
   status: string;
   imageUrl?: string;
-  category?: string | null;
 } 
 
 interface DiamondBet {
@@ -36,8 +36,6 @@ export const useDiamondCasino = () => {
   const [resultHistory, setResultHistory] = useState<any[]>([]);
   const [currentResult, setCurrentResult] = useState<any>(null);
   const { toast } = useToast();
-  const lastTablesRef = useRef<DiamondTable[] | null>(null);
-  const lastErrorToastRef = useRef<number>(0);
 
   // ----------------- Helper: normalize possible stream objects -> string or null -----------------
   const extractStreamString = (maybe: any): string | null => {
@@ -74,9 +72,62 @@ export const useDiamondCasino = () => {
     return null;
   };
 
+  const normalizeTableDetails = (
+    raw: any,
+    fallbackId: string
+  ): LiveCasinoTableConfig | null => {
+    const base =
+      raw?.data?.data ||
+      raw?.data ||
+      raw?.table ||
+      raw?.tableData ||
+      raw?.table_data ||
+      raw ||
+      {};
+
+    const tableId =
+      base.table_id ||
+      base.tableId ||
+      base.id ||
+      base.gmid ||
+      base.slug ||
+      fallbackId;
+
+    if (!tableId) return null;
+
+    const gameFamily =
+      (base.game_family || base.family || base.gameFamily || "default")
+        .toString()
+        .toLowerCase();
+
+    return {
+      tableId,
+      tableName: base.table_name || base.tableName || base.name || tableId,
+      gameFamily,
+      gameCode: base.game_code || base.gameCode || base.code,
+      provider: base.provider || base.vendor || base.partner,
+      variant: base.variant || base.ui_variant || base.theme,
+      min:
+        base.min ||
+        base.min_bet ||
+        base.minStake ||
+        base.minAmount ||
+        base.min_limit,
+      max:
+        base.max ||
+        base.max_bet ||
+        base.maxStake ||
+        base.maxAmount ||
+        base.max_limit,
+      status: base.status || "active",
+      streamUrl:
+        base.stream_url || base.streamUrl || base.stream || base.streamURL,
+      uiConfig: base.ui_config || base.uiConfig || base.config,
+    };
+  };
+
   // ----------------- Fetch live tables directly from diamond_casino_tables -----------------
   const fetchLiveTables = useCallback(async () => {
-    const hasExisting = liveTables.length > 0;
     try {
       setLoading(true);
       
@@ -94,11 +145,6 @@ export const useDiamondCasino = () => {
         // Format tables - only fetch table_id, table_name, status, and imageUrl
         const tables = tablesData.map((ct: any) => {
           const tableData = ct.table_data || {};
-          const category =
-            tableData?.category ||
-            tableData?.type ||
-            tableData?.gameType ||
-            null;
           
           // Extract image URL with priority:
           // 1. image_url column (direct column)
@@ -124,53 +170,47 @@ export const useDiamondCasino = () => {
             id: ct.table_id,
             name: ct.table_name || ct.table_id,
             status: ct.status || 'active',
-            imageUrl: imageUrl || undefined,
-            category,
+            imageUrl: imageUrl || undefined
           };
         });
         
         setLiveTables(tables);
-        lastTablesRef.current = tables;
       } else {
         setLiveTables([]);
-        lastTablesRef.current = [];
       }
     } catch (error: any) {
-      const now = Date.now();
-      const canToast = now - lastErrorToastRef.current > 60000; // throttle to once/minute
-
-      // Prefer showing last known tables instead of empty
-      if (lastTablesRef.current && lastTablesRef.current.length > 0) {
-        setLiveTables(lastTablesRef.current);
-      } else if (hasExisting) {
-        setLiveTables((prev) => prev || []);
-      } else {
-        setLiveTables([]);
-      }
-
-      if (canToast) {
-        toast({ title: "Casino Connection Error", description: error?.message || "Failed to load live casino tables.", variant: "destructive" });
-        lastErrorToastRef.current = now;
-      }
+      toast({ title: "Casino Connection Error", description: error?.message || "Failed to load live casino tables.", variant: "destructive" });
+      setLiveTables([]);
     } finally {
       setLoading(false);
     }
-  }, [toast, liveTables.length]);
+  }, [toast]);
 
   // ----------------- Fetch table details -----------------
-  const fetchTableDetails = async (tableId: string) => {
+  const fetchTableDetails = async (
+    tableId: string
+  ): Promise<LiveCasinoTableConfig | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", { body: { action: "get-table", tableId } });
+      const { data, error } = await supabase.functions.invoke(
+        "diamond-casino-proxy",
+        { body: { action: "get-table", tableId } }
+      );
       if (error) throw error;
-      if (data?.success && data?.data?.data) {
-        // Update selected table without data property
-        setSelectedTable((prev) => prev ? {
-          ...prev,
-          // Keep existing properties, don't add data
-        } : null);
+
+      const normalized = normalizeTableDetails(data, tableId);
+
+      if (normalized) {
+        setSelectedTable({
+          id: normalized.tableId,
+          name: normalized.tableName,
+          status: normalized.status || "active",
+          imageUrl: normalized.uiConfig?.imageUrl,
+        });
       }
+
+      return normalized;
     } catch (error) {
-      // Error handled silently
+      return null;
     }
   };
 
