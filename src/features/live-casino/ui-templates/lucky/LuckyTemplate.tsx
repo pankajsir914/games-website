@@ -2,11 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BetHistory } from "@/components/live-casino/BetHistory";
 import { OddsDisplay } from "@/components/live-casino/OddsDisplay";
 import { CurrentResult } from "@/components/live-casino/CurrentResult";
-import { BetSlip } from "../../common/BetSlip";
 import { RoundTimer } from "../../common/RoundTimer";
 import { VideoPlayer } from "../../common/VideoPlayer";
 import { LiveCasinoTemplateProps } from "../../types";
 import { deriveRoundMeta } from "../../common/roundUtils";
+import { LuckyBettingBoard } from "./LuckyBettingBoard";
 
 export const LuckyTemplate = ({
   table,
@@ -65,11 +65,12 @@ export const LuckyTemplate = ({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <OddsDisplay odds={odds} />
-            <BetSlip
-              table={table}
-              odds={odds}
-              loading={loading}
+            {odds && <OddsDisplay odds={odds} />}
+            <LuckyBettingBoard
+              bets={odds?.bets || []}
+              locked={Number(remainingSeconds) <= 0}
+              min={table.min}
+              max={table.max}
               onPlaceBet={onPlaceBet}
             />
           </CardContent>
