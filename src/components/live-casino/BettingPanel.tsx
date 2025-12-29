@@ -15,7 +15,7 @@ import {
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
-import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjBetting";
+
 
 /* =====================================================
    GAME IDS
@@ -24,10 +24,14 @@ import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjB
 const DOLIDANA_TABLE_IDS = ["dolidana"];
 const TEEN_PATTI_TABLE_IDS = ["teen62"];
 const AB3_TABLE_IDS = ["ab3"];
-const ABJ_TABLE_IDS = ["abj"];
+
 
 const getTableId = (table: any, odds: any) =>
-  odds?.tableId || table?.id || table?.gmid || table?.data?.gmid || "";
+  odds?.tableId ||
+  table?.id ||
+  table?.gmid ||
+  table?.data?.gmid ||
+  "";
 
 /* =====================================================
    TYPES
@@ -38,6 +42,7 @@ interface BettingPanelProps {
   odds: any;
   onPlaceBet: (betData: any) => Promise<void>;
   loading: boolean;
+  resultHistory?: any[]; // Last 10 results for display
 }
 
 /* =====================================================
@@ -49,6 +54,7 @@ export const BettingPanel = ({
   odds,
   onPlaceBet,
   loading,
+  resultHistory = [],
 }: BettingPanelProps) => {
   /* ---------------- STATE ---------------- */
   const [amount, setAmount] = useState<string>("100");
@@ -57,16 +63,16 @@ export const BettingPanel = ({
 
   const quickAmounts = [100, 500, 1000, 5000];
   const betTypes = odds?.bets || [];
-  const hasLayOdds = betTypes.some(
-    (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
-  );
+const hasLayOdds = betTypes.some(
+  (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
+);
 
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
   const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
-  const isAbj = ABJ_TABLE_IDS.includes(tableId);
+
 
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
@@ -136,6 +142,7 @@ export const BettingPanel = ({
   ===================================================== */
 
   return (
+    
     <Card className="w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
@@ -186,16 +193,11 @@ export const BettingPanel = ({
                 betType={betType}
                 onSelect={handleSelectBet}
                 formatOdds={formatOdds}
-              />
-            ) : isAbj ? (
-              <AbjBetting
-                betTypes={betTypes}
-                selectedBet={selectedBet}
-                onSelect={handleSelectBet}
-                formatOdds={formatOdds}
-                result={
-                  odds?.currentResult || odds?.result || table?.currentResult
-                }
+                resultHistory={resultHistory}
+                amount={amount}
+                onAmountChange={setAmount}
+                onPlaceBet={handlePlaceBet}
+                loading={loading}
               />
             ) : (
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
