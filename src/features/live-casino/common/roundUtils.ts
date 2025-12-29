@@ -8,16 +8,24 @@ export const deriveRoundMeta = ({
   defaultStatus?: string;
 }) => {
   const latest = currentResult?.latestResult;
+  const historyFirst =
+    Array.isArray(currentResult?.results) && currentResult.results.length > 0
+      ? currentResult.results[0]
+      : null;
   const raw = odds?.rawData || odds?.raw || odds || {};
 
   const roundId =
-    latest?.mid ||
-    latest?.round ||
-    latest?.round_id ||
     raw?.mid ||
     raw?.round_id ||
     raw?.round ||
     raw?.gmid ||
+    raw?.game_id ||
+    latest?.mid ||
+    latest?.round ||
+    latest?.round_id ||
+    historyFirst?.mid ||
+    historyFirst?.round ||
+    historyFirst?.round_id ||
     null;
 
   const remainingCandidate =
