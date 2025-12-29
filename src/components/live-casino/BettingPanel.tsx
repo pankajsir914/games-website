@@ -14,7 +14,7 @@ import {
 
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
-import { Ab3Betting } from "@/pages/tables/Ab3Betting";
+import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
 
 
 /* =====================================================
