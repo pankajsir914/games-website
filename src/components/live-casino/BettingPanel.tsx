@@ -15,6 +15,7 @@ import {
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
+import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjBetting";
 
 
 /* =====================================================
@@ -24,6 +25,7 @@ import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3B
 const DOLIDANA_TABLE_IDS = ["dolidana"];
 const TEEN_PATTI_TABLE_IDS = ["teen62"];
 const AB3_TABLE_IDS = ["ab3"];
+const ABJ_TABLE_IDS = ["abj"];
 
 
 const getTableId = (table: any, odds: any) =>
@@ -72,6 +74,7 @@ const hasLayOdds = betTypes.some(
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
   const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
+  const isAbj = ABJ_TABLE_IDS.includes(tableId);
 
 
   /* ---------------- FLAGS ---------------- */
@@ -198,6 +201,17 @@ const hasLayOdds = betTypes.some(
                 onAmountChange={setAmount}
                 onPlaceBet={handlePlaceBet}
                 loading={loading}
+              />
+            ) : isAbj ? (
+              <AbjBetting
+                betTypes={betTypes}
+                selectedBet={selectedBet}
+                onSelect={handleSelectBet}
+                formatOdds={formatOdds}
+                result={odds?.currentResult} // 👈 IMPORTANT
+                onResultClick={(res) => {
+                  console.log("ABJ result clicked:", res);
+                }}
               />
             ) : (
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
