@@ -1,37 +1,50 @@
-// src/features/live-casino/ui-templates/andar-bahar/AbjBetting.tsx
-
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-/* ===============================
-   TYPES
-================================ */
+/* ================= TYPES ================= */
+
+export interface ABJResultHistoryItem {
+  mid: string | number;
+  win: "Andar" | "Bahar";
+  card?: string;
+}
 
 interface AbjBettingProps {
   betTypes: any[];
   selectedBet: string;
   onSelect: (bet: any, side: "back") => void;
   formatOdds: (v: any) => string;
-  result?: any;
-  onResultClick: (res: any) => void;
+  resultHistory?: ABJResultHistoryItem[];
+  onResultClick: (res: ABJResultHistoryItem) => void;
+  amount?: string;
+  onAmountChange?: (amount: string) => void;
+  onPlaceBet?: (betData: any) => Promise<void>;
+  loading?: boolean;
 }
 
-/* ===============================
-   CONSTANTS
-================================ */
+/* ================= CONSTANTS ================= */
 
-const CARD_ORDER = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const CARD_ORDER = [
+  "A","2","3","4","5","6","7","8","9","10","J","Q","K"
+];
 
-/* ===============================
-   HELPERS
-================================ */
+/* ================= HELPERS ================= */
 
-const isSuspended = (b: any) => !b || b?.gstatus === "SUSPENDED";
+const isSuspended = (b: any) =>
+  !b || b?.gstatus === "SUSPENDED" || b?.status === "suspended";
 
 const byName = (betTypes: any[], k: string) =>
   betTypes.find((b: any) =>
-    (b.nat || "").toLowerCase().includes(k)
+    (b.nat || b.type || "").toLowerCase().includes(k)
   );
 
 const getJokerBet = (betTypes: any[], card: string) =>
@@ -40,24 +53,29 @@ const getJokerBet = (betTypes: any[], card: string) =>
       (b.nat || "").toLowerCase() === `joker ${card.toLowerCase()}`
   );
 
-/* ===============================
-   COMPONENT
-================================ */
+/* ================= COMPONENT ================= */
 
 export const AbjBetting = ({
   betTypes,
   selectedBet,
   onSelect,
   formatOdds,
-  result,
+  resultHistory = [],
   onResultClick,
+  amount,
+  onAmountChange,
+  onPlaceBet,
+  loading = false,
 }: AbjBettingProps) => {
+  const [localAmount, setLocalAmount] = useState("100");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedBetData, setSelectedBetData] = useState<any>(null);
 
-  /* ---------- MAP BETS ---------- */
+  const currentAmount = amount ?? localAmount;
+  const setAmount = onAmountChange ?? setLocalAmount;
 
   const SA = byName(betTypes, "sa");
   const SB = byName(betTypes, "sb");
-  const first = byName(betTypes, "1st");
   const odd = byName(betTypes, "odd");
   const even = byName(betTypes, "even");
 
@@ -71,98 +89,90 @@ export const AbjBetting = ({
     bet: byName(betTypes, s.key),
   }));
 
-  const last10Results = result?.results || result?.res || [];
+  const last10 = resultHistory.slice(0, 10);
+
+  const getOdds = (bet: any) =>
+    bet?.l ?? bet?.back ?? bet?.b ?? bet?.odds ?? 0;
+
+  const handleBetClick = (bet: any) => {
+    if (!bet || isSuspended(bet)) return;
+    setSelectedBetData(bet);
+    setModalOpen(true);
+    onSelect?.(bet, "back");
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
-      {/* ================= A / B ================= */}
-      <div className="flex flex-col lg:flex-row justify-between gap-4">
-        {/* A */}
-        <div className="flex flex-wrap items-center gap-2 justify-center lg:justify-start">
-          <span className="font-bold">A</span>
-
-          <div className="w-[80px] sm:w-[90px] h-[44px] border-2 border-yellow-400 rounded flex flex-col items-center justify-center">
-            <div className="font-bold">SA</div>
-            <div className="text-xs">{formatOdds(SA?.b)}</div>
-          </div>
-
-          <div
-            onClick={() => first && onSelect(first, "back")}
-            className="w-[80px] sm:w-[90px] h-[44px] bg-blue-600 text-white rounded flex flex-col items-center justify-center cursor-pointer"
-          >
-            <div className="font-bold text-xs sm:text-sm">First Bet</div>
-            <div className="text-xs">{formatOdds(first?.b)}</div>
-          </div>
-
-          <div className="w-[80px] sm:w-[90px] h-[44px] bg-[#3a3f45] text-white rounded flex items-center justify-center">
-            <Lock className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* B */}
-        <div className="flex flex-wrap items-center gap-2 justify-center lg:justify-start">
-          <span className="font-bold">B</span>
-
-          <div className="w-[80px] sm:w-[90px] h-[44px] border-2 border-yellow-400 rounded flex flex-col items-center justify-center">
-            <div className="font-bold">SB</div>
-            <div className="text-xs">{formatOdds(SB?.b)}</div>
-          </div>
-
-          <div
-            onClick={() => first && onSelect(first, "back")}
-            className="w-[80px] sm:w-[90px] h-[44px] bg-blue-600 text-white rounded flex flex-col items-center justify-center cursor-pointer"
-          >
-            <div className="font-bold text-xs sm:text-sm">First Bet</div>
-            <div className="text-xs">{formatOdds(first?.b)}</div>
-          </div>
-
-          <div className="w-[80px] sm:w-[90px] h-[44px] bg-[#3a3f45] text-white rounded flex items-center justify-center">
-            <Lock className="w-4 h-4" />
-          </div>
-        </div>
+      {/* SA / SB */}
+      <div className="flex justify-between gap-4">
+        {[{ label: "A", bet: SA }, { label: "B", bet: SB }].map(
+          ({ label, bet }) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className="font-bold">{label}</span>
+              <div
+                onClick={() => handleBetClick(bet)}
+                className={`w-[90px] h-[44px] border rounded flex flex-col items-center justify-center
+                  ${
+                    isSuspended(bet)
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer border-yellow-400"
+                  }`}
+              >
+                <div className="font-bold">{label === "A" ? "SA" : "SB"}</div>
+                <div className="text-xs">
+                  {formatOdds(getOdds(bet))}
+                </div>
+              </div>
+            </div>
+          )
+        )}
       </div>
 
-      {/* ================= ODD / EVEN ================= */}
-      <div className="grid grid-cols-2 gap-4 sm:gap-6">
-        {[
-          { label: "ODD", bet: odd },
-          { label: "EVEN", bet: even },
-        ].map(({ label, bet }) => (
-          <div key={label} className="text-center space-y-1">
-            <div className="font-bold">{label}</div>
+      {/* ODD EVEN */}
+      <div className="grid grid-cols-2 gap-4">
+        {[{ label: "ODD", bet: odd }, { label: "EVEN", bet: even }].map(
+          ({ label, bet }) => (
+            <div key={label} className="text-center">
+              <div className="font-bold">{label}</div>
+              <div
+                onClick={() => handleBetClick(bet)}
+                className={`h-[44px] rounded flex items-center justify-center font-bold
+                  ${
+                    isSuspended(bet)
+                      ? "opacity-50 cursor-not-allowed bg-sky-400"
+                      : "cursor-pointer bg-sky-400"
+                  }`}
+              >
+                {formatOdds(getOdds(bet))}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+
+      {/* SUITS */}
+      <div className="grid grid-cols-4 gap-3 text-center">
+        {suits.map((s) => (
+          <div key={s.key}>
+            <div className="text-xl">{s.icon}</div>
             <div
-              onClick={() => bet && onSelect(bet, "back")}
-              className="h-[40px] sm:h-[44px] bg-sky-400 rounded flex items-center justify-center font-bold cursor-pointer"
+              onClick={() => handleBetClick(s.bet)}
+              className={`h-[44px] rounded flex items-center justify-center font-bold
+                ${
+                  isSuspended(s.bet)
+                    ? "opacity-50 cursor-not-allowed bg-sky-400"
+                    : "cursor-pointer bg-sky-400"
+                }`}
             >
-              {formatOdds(bet?.b)}
+              {formatOdds(getOdds(s.bet))}
             </div>
           </div>
         ))}
       </div>
 
-      {/* ================= SUITS ================= */}
-      <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
-        {suits.map((s) => {
-          const locked = isSuspended(s.bet);
-          return (
-            <div key={s.key}>
-              <div className="text-xl sm:text-2xl">{s.icon}</div>
-              <div
-                onClick={() => !locked && s.bet && onSelect(s.bet, "back")}
-                className={`relative h-[40px] sm:h-[44px] bg-sky-400 rounded flex items-center justify-center font-bold
-                  ${locked ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-              >
-                {formatOdds(s.bet?.b)}
-                {locked && <Lock className="absolute w-4 h-4" />}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ================= CARDS ================= */}
-      <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+      {/* JOKER CARDS */}
+      <div className="flex flex-wrap justify-center gap-2">
         {CARD_ORDER.map((card) => {
           const bet = getJokerBet(betTypes, card);
           const locked = isSuspended(bet);
@@ -170,64 +180,69 @@ export const AbjBetting = ({
           return (
             <div
               key={card}
-              onClick={() => !locked && bet && onSelect(bet, "back")}
-              className={`
-                relative
-                w-[36px] h-[52px]
-                sm:w-[40px] sm:h-[56px]
-                md:w-[44px] md:h-[60px]
-                rounded border-2
-                flex flex-col items-center justify-center
+              onClick={() => !locked && handleBetClick(bet)}
+              className={`w-[42px] h-[60px] border rounded flex flex-col items-center justify-center
                 ${
                   locked
-                    ? "bg-gray-700 border-gray-500 cursor-not-allowed"
-                    : "bg-white border-yellow-400 cursor-pointer"
-                }
-              `}
+                    ? "bg-gray-600 text-white"
+                    : "bg-white cursor-pointer border-yellow-400"
+                }`}
             >
-              <div className={`font-bold text-xs ${locked ? "text-white" : "text-black"}`}>
-                {card}
-              </div>
-
-              <div className={`text-[10px] leading-none ${locked ? "text-white" : "text-black"}`}>
-                ♠ ♥
-              </div>
-              <div className={`text-[10px] leading-none ${locked ? "text-white" : "text-black"}`}>
-                ♦ ♣
-              </div>
-
-              {locked && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded">
-                  <Lock className="w-3 h-3 text-white" />
-                </div>
-              )}
+              <div className="font-bold text-xs">{card}</div>
+              {locked && <Lock className="w-3 h-3 mt-1" />}
             </div>
           );
         })}
       </div>
 
-      {/* ================= LAST 10 RESULTS ================= */}
-      {last10Results.length > 0 && (
-        <div className="pt-3 border-t">
-          <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">
-            Last 10 Results
-          </p>
-
-          <div className="flex gap-1.5 overflow-x-auto pb-2">
-            {last10Results.slice(0, 10).map((res: any, idx: number) => (
-              <Button
-                key={res.mid || idx}
-                size="sm"
-                variant="outline"
-                className="w-10 h-10 p-0 font-bold"
-                onClick={() => onResultClick(res)}
-              >
-                {res.win || res.result || res.winner || "N/A"}
-              </Button>
-            ))}
-          </div>
+      {/* LAST 10 */}
+      <div className="pt-2 border-t">
+        <p className="text-xs mb-1">Last 10 Results</p>
+        <div className="flex gap-1">
+          {last10.map((r, i) => (
+            <Button
+              key={i}
+              size="sm"
+              variant="outline"
+              className="w-9 h-9 p-0 font-bold"
+              onClick={() => onResultClick(r)}
+            >
+              {r.win === "Andar" ? "A" : "B"}
+            </Button>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* MODAL */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Place Bet</DialogTitle>
+          </DialogHeader>
+
+          <Label>Amount</Label>
+          <Input
+            value={currentAmount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+
+          <Button
+            className="w-full mt-3"
+            disabled={loading}
+            onClick={async () => {
+              await onPlaceBet?.({
+                amount: Number(currentAmount),
+                betType: selectedBetData?.nat || selectedBetData?.type,
+                odds: getOdds(selectedBetData),
+                sid: selectedBetData?.sid,
+              });
+              setModalOpen(false);
+            }}
+          >
+            Place Bet
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
