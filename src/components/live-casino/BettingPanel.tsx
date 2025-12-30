@@ -206,12 +206,14 @@ const hasLayOdds = betTypes.some(
               <AbjBetting
                 betTypes={betTypes}
                 selectedBet={selectedBet}
-                onSelect={handleSelectBet}
+                onSelect={(b) => setSelectedBet(b.type)}
                 formatOdds={formatOdds}
-                result={odds?.currentResult} // 👈 IMPORTANT
-                onResultClick={(res) => {
-                  console.log("ABJ result clicked:", res);
-                }}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("ABJ result", r)}
+                amount={amount}
+                onAmountChange={setAmount}
+                onPlaceBet={onPlaceBet}
+                loading={loading}
               />
             ) : (
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
