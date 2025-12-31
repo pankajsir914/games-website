@@ -66,6 +66,7 @@ const SportsBet: React.FC = () => {
   const [liveScore, setLiveScore] = useState<any>(null);
   const [liveDetails, setLiveDetails] = useState<any>(null);
   const [matchDetails, setMatchDetails] = useState<any>(null);
+  const [matchBanner, setMatchBanner] = useState<string | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingMatch, setIsLoadingMatch] = useState(false);
   const amountInputRef = useRef<HTMLInputElement | null>(null);
@@ -101,14 +102,31 @@ const SportsBet: React.FC = () => {
     try {
       setIsLoadingMatch(true);
       const resp = await callAPI<any>('sports/esid', { sid });
+      
+      // Log full response to check for banner
+      console.log('[Banner Debug] Full esid response:', resp);
+      console.log('[Banner Debug] Response keys:', resp ? Object.keys(resp) : 'No response');
+      console.log('[Banner Debug] Response.data keys:', resp?.data ? Object.keys(resp.data) : 'No data');
+      
       const list =
         resp?.data?.data?.t1 ||
         resp?.data?.t1 ||
         (Array.isArray(resp?.data) ? resp?.data : []) ||
         [];
+      
+      // Check if banner is at response level
+      const respAny = resp as any;
+      if (respAny?.data?.banner || respAny?.banner || respAny?.data?.image || respAny?.image) {
+        const topLevelBanner = respAny?.data?.banner || respAny?.banner || respAny?.data?.image || respAny?.image;
+        console.log('[Banner Debug] Found banner at response level:', topLevelBanner);
+        setMatchBanner(topLevelBanner);
+      }
+      
       if (Array.isArray(list)) {
         const found = list.find((m: any) => String(m.gmid) === String(matchId));
         if (found) {
+          console.log('[Banner Debug] Found match in list, keys:', Object.keys(found));
+          
           setMatch({
             id: found.gmid || found.id,
             eventId: found.gmid || found.id,
@@ -123,6 +141,112 @@ const SportsBet: React.FC = () => {
             cname: found.cname,
             raw: found,
           });
+          
+          // Extract banner from match data - check all possible fields and nested structures
+          console.log('[Banner Debug] Found match data:', found);
+          console.log('[Banner Debug] Port field value:', found.port, 'Type:', typeof found.port);
+          console.log('[Banner Debug] Mname field value:', found.mname, 'Type:', typeof found.mname);
+          console.log('[Banner Debug] Full match object:', JSON.stringify(found, null, 2));
+          console.log('[Banner Debug] All field values:', {
+            banner: found.banner,
+            image: found.image,
+            img: found.img,
+            port: found.port,
+            mname: found.mname,
+            gmid: found.gmid,
+            ename: found.ename,
+            mod: found.mod,
+            gtv: found.gtv
+          });
+          
+          // Check if port is a URL (starts with http or https)
+          const portAsUrl = found.port && typeof found.port === 'string' && (found.port.startsWith('http://') || found.port.startsWith('https://'))
+            ? found.port 
+            : null;
+          
+          // Check if mname contains image URL
+          const mnameAsUrl = found.mname && typeof found.mname === 'string' && (found.mname.startsWith('http://') || found.mname.startsWith('https://'))
+            ? found.mname
+            : null;
+          
+          const bannerUrl = found.banner || 
+                           found.image || 
+                           found.img || 
+                           found.banner_url || 
+                           found.bannerUrl ||
+                           found.poster ||
+                           found.cover ||
+                           found.banner_image ||
+                           found.match_banner ||
+                           found.event_banner ||
+                           portAsUrl || // Port might be image URL
+                           mnameAsUrl || // Mname might be image URL
+                           (found.data && (found.data.banner || found.data.image)) ||
+                           null;
+          
+          console.log('[Banner Debug] Banner URL from match list:', bannerUrl);
+          console.log('[Banner Debug] Port as URL:', portAsUrl);
+          console.log('[Banner Debug] Mname as URL:', mnameAsUrl);
+          
+          if (bannerUrl) {
+            setMatchBanner(bannerUrl);
+            console.log('[Banner Debug] ✅ Banner set from match list:', bannerUrl);
+          } else {
+            // Try multiple sources for banner
+            console.log('[Banner Debug] No banner in match data, trying alternative sources...');
+            
+            // Try 1: Banner API endpoint
+            try {
+              console.log('[Banner Debug] Trying welcomebanner API...');
+              const { data: bannerResp, error: bannerError } = await supabase.functions.invoke('sports-diamond-proxy', {
+                body: { action: 'banner' }
+              });
+              
+              console.log('[Banner Debug] Banner API response:', bannerResp);
+              console.log('[Banner Debug] Banner API error:', bannerError);
+              
+              if (!bannerError && bannerResp?.success && bannerResp.data) {
+                const bannerData = Array.isArray(bannerResp.data) ? bannerResp.data[0] : bannerResp.data;
+                const apiBanner = bannerData?.banner || bannerData?.image || bannerData?.url || bannerData?.img || (typeof bannerData === 'string' ? bannerData : null);
+                console.log('[Banner Debug] Extracted banner from API:', apiBanner);
+                if (apiBanner && typeof apiBanner === 'string' && (apiBanner.startsWith('http://') || apiBanner.startsWith('https://'))) {
+                  console.log('[Banner Debug] ✅ Found banner from welcomebanner API:', apiBanner);
+                  setMatchBanner(apiBanner);
+                  return; // Exit early if banner found
+                }
+              }
+            } catch (bannerError) {
+              console.error('[Banner Debug] Banner API exception:', bannerError);
+            }
+            
+            // Try 2: Competition/Series level banner (using cid)
+            if (found.cid) {
+              try {
+                console.log('[Banner Debug] Trying to fetch banner for competition:', found.cid);
+                // You might need to create an endpoint for competition banners
+                // For now, we'll skip this
+              } catch (err) {
+                console.log('[Banner Debug] Competition banner fetch error:', err);
+              }
+            }
+            
+            // Try 3: Construct banner URL from match/competition info
+            // Some APIs use pattern like: /banners/{sport}/{competition}/{match}.jpg
+            if (found.cname && found.gmid) {
+              const constructedBanner = `https://cloud.turnkeyxgaming.com:9086/sports/banner/${sport}/${found.cid || 'default'}/${found.gmid}.jpg`;
+              console.log('[Banner Debug] Trying constructed banner URL:', constructedBanner);
+              // We'll test this URL by trying to load it
+              const testImg = new Image();
+              testImg.onload = () => {
+                console.log('[Banner Debug] ✅ Constructed banner URL is valid:', constructedBanner);
+                setMatchBanner(constructedBanner);
+              };
+              testImg.onerror = () => {
+                console.log('[Banner Debug] Constructed banner URL failed to load');
+              };
+              testImg.src = constructedBanner;
+            }
+          }
         }
       }
     } catch (err) {
@@ -133,6 +257,7 @@ const SportsBet: React.FC = () => {
   }, [matchId, sport, match, callAPI, getSportSID]);
 
   // Fetch all Betfair Score TV data (TV, Scorecard, Commentary, Statistics, Highlights)
+  // This also fetches banner from betfairscorecardandtv endpoint
   useEffect(() => {
     if (!user) return;
 
@@ -140,66 +265,100 @@ const SportsBet: React.FC = () => {
       if (!matchId || matchId === 'undefined') return;
       
       // Delay this request significantly to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 6000));
+      await new Promise(resolve => setTimeout(resolve, 8000)); // Increased delay to 8 seconds
       
       setIsLoadingTv(true);
       try {
         const sportSid = getSportSID(sport || 'Cricket');
         
-        // First, try to get Diamond Original TV URL with token from backend
-        try {
-          const diamondTvResponse = await getDiamondOriginalTv(matchId, sportSid);
-          
-          // TEMPORARY: Log full response to debug
-          console.log('🔍 [Frontend] Diamond Original TV Full Response:', JSON.stringify(diamondTvResponse, null, 2));
-          console.log('🔍 [Frontend] Response success:', diamondTvResponse?.success);
-          console.log('🔍 [Frontend] Response data:', diamondTvResponse?.data);
-          console.log('🔍 [Frontend] Response data.streamUrl:', diamondTvResponse?.data?.streamUrl);
-          console.log('🔍 [Frontend] Response data.token:', diamondTvResponse?.data?.token);
-          
-          if (diamondTvResponse?.success && diamondTvResponse.data) {
-            // Backend returns: { success: true, data: { streamUrl: "...", token: "...", gmid: "...", sid: "..." } }
-            const streamUrl = diamondTvResponse.data.streamUrl || 
-                            diamondTvResponse.data.data?.streamUrl ||
-                            diamondTvResponse.data.url ||
-                            null;
+        console.log('[Banner Debug] Starting Betfair API call for banner and TV...');
+        console.log('[Banner Debug] MatchId:', matchId, 'SportSid:', sportSid);
+        
+        // Retry logic for Betfair API (in case of rate limit)
+        let response = null;
+        let retries = 3;
+        let retryDelay = 3000; // 3 seconds
+        
+        while (retries > 0) {
+          try {
+            response = await getBetfairScoreTv(matchId, sportSid);
             
-            console.log('🔍 [Frontend] Extracted streamUrl:', streamUrl);
-            
-            if (streamUrl) {
-              const extractedData = {
-                tv: streamUrl,
-                scorecard: null,
-                commentary: null,
-                statistics: null,
-                highlights: null,
-                alternateStreams: [streamUrl]
-              };
-              
-              console.log('✅ [Frontend] Setting betfairData with streamUrl:', streamUrl);
-              setBetfairData(extractedData);
-              setLiveTvUrl(streamUrl);
-              setIsLoadingTv(false);
-              return; // Exit early if we got the URL
+            // Check if we got rate limit error
+            const responseAny = response as any;
+            if (responseAny?.data?.error === 'Rate limit exceeded' || responseAny?.data?.error?.includes('Rate limit')) {
+              console.log(`[Banner Debug] Rate limit error, retrying... (${retries} attempts left)`);
+              retries--;
+              if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                retryDelay += 2000; // Increase delay with each retry
+                continue;
+              }
             } else {
-              console.warn('⚠️ [Frontend] No streamUrl found in response');
+              // Success or other error, break the loop
+              break;
             }
-          } else {
-            console.warn('⚠️ [Frontend] Response not successful or no data:', {
-              success: diamondTvResponse?.success,
-              hasData: !!diamondTvResponse?.data
-            });
+          } catch (err) {
+            console.error('[Banner Debug] Error in Betfair API call:', err);
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
           }
-        } catch (diamondTvError) {
-          console.error('❌ [Frontend] Error fetching Diamond Original TV:', diamondTvError);
-          // Continue to fallback if Diamond Original TV fails
         }
         
-        // Fallback: Try Betfair API
-        const response = await getBetfairScoreTv(matchId, sportSid);
+        console.log('[Banner Debug] ════════════════════════════════════════');
+        console.log('[Banner Debug] Betfair API full response:', JSON.stringify(response, null, 2));
+        console.log('[Banner Debug] ════════════════════════════════════════');
+        console.log('[Banner Debug] Betfair API response keys:', response ? Object.keys(response) : 'No response');
+        console.log('[Banner Debug] Betfair API response.data keys:', response?.data ? Object.keys(response.data) : 'No data');
         
         if (response?.success && response.data) {
+          const responseAny = response as any;
+          
+          // Check for rate limit error
+          if (responseAny.data?.error === 'Rate limit exceeded' || responseAny.data?.error?.includes('Rate limit')) {
+            console.log('[Banner Debug] ⚠️ Rate limit exceeded, cannot fetch banner at this time');
+            setIsLoadingTv(false);
+            return;
+          }
+          
           const tvData = response.data.data || response.data;
+          
+          console.log('[Banner Debug] TV Data keys:', tvData ? Object.keys(tvData) : 'No tvData');
+          console.log('[Banner Debug] TV Data full object:', tvData);
+          
+          // Extract banner from betfair response - check all possible locations
+          const bannerFromBetfair = tvData?.banner || 
+                                   tvData?.banner_url || 
+                                   tvData?.bannerUrl ||
+                                   tvData?.banner_image ||
+                                   tvData?.image || 
+                                   tvData?.img ||
+                                   tvData?.poster ||
+                                   tvData?.cover ||
+                                   tvData?.match_banner ||
+                                   tvData?.event_banner ||
+                                   tvData?.match_image ||
+                                   tvData?.event_image ||
+                                   responseAny.data?.banner ||
+                                   responseAny.data?.banner_url ||
+                                   responseAny.data?.bannerUrl ||
+                                   responseAny.data?.image ||
+                                   responseAny.banner ||
+                                   responseAny.banner_url ||
+                                   responseAny.image ||
+                                   null;
+          
+          console.log('[Banner Debug] Extracted banner from Betfair API:', bannerFromBetfair);
+          console.log('[Banner Debug] Banner type:', typeof bannerFromBetfair);
+          
+          if (bannerFromBetfair && typeof bannerFromBetfair === 'string' && bannerFromBetfair.trim() !== '') {
+            setMatchBanner(bannerFromBetfair);
+            console.log('[Banner Debug] ✅ Banner set from Betfair API:', bannerFromBetfair);
+          } else {
+            console.log('[Banner Debug] ❌ No valid banner found in Betfair API response');
+            console.log('[Banner Debug] Banner value:', bannerFromBetfair);
+          }
           
           // Extract ALL available URLs
           const extractedData = {
@@ -221,6 +380,36 @@ const SportsBet: React.FC = () => {
           
           setBetfairData(extractedData);
           setLiveTvUrl(extractedData.tv); // Keep for backward compatibility
+        } else {
+          console.log('[Banner Debug] ❌ Betfair API response not successful:', response);
+        }
+        
+        // Also try Diamond Original TV as fallback (but don't override banner if already set)
+        try {
+          const diamondTvResponse = await getDiamondOriginalTv(matchId, sportSid);
+          
+          if (diamondTvResponse?.success && diamondTvResponse.data) {
+            const streamUrl = diamondTvResponse.data.streamUrl || 
+                            diamondTvResponse.data.data?.streamUrl ||
+                            diamondTvResponse.data.url ||
+                            null;
+            
+            if (streamUrl && !betfairData.tv) {
+              const extractedData = {
+                tv: streamUrl,
+                scorecard: betfairData.scorecard,
+                commentary: betfairData.commentary,
+                statistics: betfairData.statistics,
+                highlights: betfairData.highlights,
+                alternateStreams: [streamUrl]
+              };
+              
+              setBetfairData(extractedData);
+              setLiveTvUrl(streamUrl);
+            }
+          }
+        } catch (diamondTvError) {
+          console.error('❌ [Frontend] Error fetching Diamond Original TV:', diamondTvError);
         }
       } catch (error) {
         console.error('Error fetching Betfair data:', error);
@@ -230,7 +419,7 @@ const SportsBet: React.FC = () => {
     };
 
     fetchLiveTv();
-  }, [matchId, sport, getBetfairScoreTv, getDiamondOriginalTv, user]); // Removed match?.status to prevent refresh loop
+  }, [matchId, sport, getBetfairScoreTv, getDiamondOriginalTv, user]); // Removed betfairData from dependencies to prevent loop
 
 
   // Fetch match info if not passed via navigation state
@@ -251,10 +440,35 @@ const SportsBet: React.FC = () => {
       const sid = getSportSID(sport || 'Cricket');
       const response = await getDetailsData(sid, matchId);
       
+      // Log full response to check for banner at any level
+      console.log('[Banner Debug] Full getDetailsData response:', JSON.stringify(response, null, 2));
+      
       if (response?.success && response.data?.data) {
+        // Log full response for debugging
+        console.log('[Banner Debug] Full API response structure:', {
+          success: response.success,
+          hasData: !!response.data,
+          hasDataData: !!response.data?.data,
+          dataType: Array.isArray(response.data.data) ? 'array' : typeof response.data.data,
+          dataKeys: response.data?.data && !Array.isArray(response.data.data) ? Object.keys(response.data.data) : 'array',
+          fullResponseKeys: Object.keys(response),
+          dataKeys_full: response.data ? Object.keys(response.data) : 'no data'
+        });
+        
+        // Check for banner at response level first
+        const responseAny = response as any;
+        if (responseAny.banner || responseAny.data?.banner || responseAny.image || responseAny.data?.image) {
+          const topLevelBanner = responseAny.banner || responseAny.data?.banner || responseAny.image || responseAny.data?.image;
+          console.log('[Banner Debug] ✅ Found banner at response level:', topLevelBanner);
+          setMatchBanner(topLevelBanner);
+        }
+        
         const rawMatch = Array.isArray(response.data.data) 
           ? response.data.data[0] 
           : response.data.data;
+        
+        console.log('[Banner Debug] Raw match object keys:', rawMatch ? Object.keys(rawMatch) : 'No rawMatch');
+        console.log('[Banner Debug] Raw match object:', rawMatch);
         
         if (rawMatch) {
           const mappedDetails = {
@@ -273,7 +487,39 @@ const SportsBet: React.FC = () => {
           };
           
           setMatchDetails(mappedDetails);
+          
+          // Extract banner from API response - check all possible fields
+          console.log('[Banner Debug] Raw match data:', rawMatch);
+          const bannerUrl = rawMatch.banner || 
+                           rawMatch.image || 
+                           rawMatch.img || 
+                           rawMatch.banner_url || 
+                           rawMatch.bannerUrl ||
+                           rawMatch.poster ||
+                           rawMatch.cover ||
+                           rawMatch.banner_image ||
+                           rawMatch.match_banner ||
+                           rawMatch.event_banner ||
+                           (rawMatch.data && (rawMatch.data.banner || rawMatch.data.image)) ||
+                           null;
+          
+          console.log('[Banner Debug] Extracted banner URL:', bannerUrl);
+          
+          if (bannerUrl) {
+            setMatchBanner(bannerUrl);
+            console.log('[Banner Debug] ✅ Banner set successfully from match data');
+          } else {
+            console.log('[Banner Debug] No banner found in match data');
+            // Also check in response.data.data structure
+            if (response?.data?.data?.banner || response?.data?.data?.image) {
+              const altBanner = response.data.data.banner || response.data.data.image;
+              console.log('[Banner Debug] Found banner in response.data.data:', altBanner);
+              setMatchBanner(altBanner);
+            }
+          }
         }
+      } else {
+        console.log('[Banner Debug] Response not successful or no data:', response);
       }
     } catch (error) {
       console.error('Error fetching match details:', error);
@@ -1423,6 +1669,30 @@ const SportsBet: React.FC = () => {
         <div className="mb-4 sm:mb-6">
           
           <Card>
+            {/* Banner Image */}
+            {matchBanner ? (
+              <div className="w-full h-32 sm:h-48 md:h-64 overflow-hidden rounded-t-lg bg-muted">
+                <img 
+                  src={matchBanner} 
+                  alt={`${match.team1} vs ${match.team2}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('[Banner Debug] Image load error:', matchBanner);
+                    // Hide banner if image fails to load
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    setMatchBanner(null);
+                  }}
+                  onLoad={() => {
+                    console.log('[Banner Debug] Banner image loaded successfully:', matchBanner);
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="w-full h-8 bg-muted/30 rounded-t-lg flex items-center justify-center">
+                <p className="text-xs text-muted-foreground">No banner available</p>
+              </div>
+            )}
+            
             <CardHeader className="p-3 sm:p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
                 <div className="flex-1 w-full">
