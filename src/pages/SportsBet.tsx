@@ -666,31 +666,177 @@ const SportsBet: React.FC = () => {
 
   // Fetch user's bets for this match
   const fetchMyBets = useCallback(async () => {
-    if (!user || !matchId) return;
+    if (!user || !matchId) {
+      console.log('[fetchMyBets] Missing user or matchId', { user: !!user, matchId });
+      return;
+    }
     setIsLoadingMyBets(true);
     setMyBetsError(null);
     try {
-      const { data, error } = await (supabase as any)
+      // Get all possible event_id formats that might be used
+      const possibleEventIds = [
+        matchId,
+        match?.id,
+        match?.eventId,
+        match?.EID,
+        match?.eid
+      ].filter(Boolean);
+
+      console.log('[fetchMyBets] Fetching bets for:', {
+        matchId,
+        possibleEventIds,
+        userId: user.id,
+        match: match ? { id: match.id, eventId: match.eventId } : null
+      });
+
+      // Fetch from sports_market_bets table (new betting system)
+      // First get all markets for this event_id, then get bets for those markets
+      const { data: markets, error: marketsError } = await supabase
+        .from('sports_markets')
+        .select('id, event_id')
+        .in('event_id', possibleEventIds);
+
+      if (marketsError) {
+        console.error('[fetchMyBets] Error fetching markets:', marketsError);
+      }
+
+      const marketIds = (markets || []).map(m => m.id);
+      console.log('[fetchMyBets] Found markets:', marketIds.length, 'for event_ids:', possibleEventIds);
+
+      let marketBets: any[] = [];
+      if (marketIds.length > 0) {
+        const { data: bets, error: marketBetsError } = await supabase
+          .from('sports_market_bets')
+          .select(`
+            *,
+            sports_markets (
+              id,
+              market_name,
+              market_type,
+              selection,
+              event_id,
+              sport
+            )
+          `)
+          .eq('user_id', user.id)
+          .in('market_id', marketIds)
+          .order('created_at', { ascending: false });
+
+        if (marketBetsError) {
+          console.error('[fetchMyBets] Error fetching market bets:', marketBetsError);
+          throw marketBetsError;
+        }
+
+        marketBets = (bets || []).map((bet: any) => ({
+          ...bet,
+          source: 'market_bets',
+          market_name: bet.sports_markets?.market_name,
+          selection: bet.sports_markets?.selection || bet.selection,
+          market_type: bet.sports_markets?.market_type || bet.market_type
+        }));
+
+        console.log('[fetchMyBets] Found market bets:', marketBets.length);
+      }
+
+      // Also fetch from old sports_bets table for backward compatibility
+      // Try all possible event_id formats
+      const { data: oldBets, error: oldBetsError } = await (supabase as any)
         .from('sports_bets')
         .select('*')
         .eq('user_id', user.id)
-        .eq('event_id', matchId)
+        .in('event_id', possibleEventIds)
         .order('created_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      setMyBets(data || []);
+        .limit(50); // Increased limit to catch more bets
+
+      if (oldBetsError) {
+        console.error('[fetchMyBets] Error fetching old bets:', oldBetsError);
+        // Don't throw, just log the error
+      }
+
+      console.log('[fetchMyBets] Found old bets:', (oldBets || []).length);
+      if (oldBets && oldBets.length > 0) {
+        console.log('[fetchMyBets] Sample old bet event_ids:', oldBets.slice(0, 3).map((b: any) => b.event_id));
+      }
+
+      // Also try fetching ALL user bets to see what's actually there
+      const { data: allUserBets, error: allBetsError } = await (supabase as any)
+        .from('sports_bets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (!allBetsError && allUserBets && allUserBets.length > 0) {
+        console.log('[fetchMyBets] All user bets (first 10):', allUserBets.map((b: any) => ({
+          id: b.id,
+          event_id: b.event_id,
+          selection: b.selection,
+          created_at: b.created_at
+        })));
+      }
+
+      // Combine both results
+      const allBets = [
+        ...marketBets,
+        ...(oldBets || []).map((bet: any) => ({
+          ...bet,
+          source: 'old_bets'
+        }))
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // If no bets found for this match, show all user bets as fallback
+      if (allBets.length === 0) {
+        console.log('[fetchMyBets] No bets found for this match, fetching all user bets...');
+        const { data: allBetsFallback, error: fallbackError } = await (supabase as any)
+          .from('sports_bets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (!fallbackError && allBetsFallback && allBetsFallback.length > 0) {
+          console.log('[fetchMyBets] Found', allBetsFallback.length, 'total user bets (fallback)');
+          setMyBets(allBetsFallback.map((bet: any) => ({
+            ...bet,
+            source: 'old_bets'
+          })));
+          return;
+        }
+      }
+
+      console.log('[fetchMyBets] Total bets:', allBets.length);
+      setMyBets(allBets);
     } catch (err: any) {
+      console.error('[fetchMyBets] Error:', err);
       setMyBetsError(err.message || 'Unable to load your bets');
     } finally {
       setIsLoadingMyBets(false);
     }
-  }, [user, matchId]);
+  }, [user, matchId, match]);
 
   // Real-time subscription for user's bets
   useEffect(() => {
     if (!user || !matchId) return;
 
-    const channel = supabase
+    // Subscribe to sports_market_bets changes
+    const marketBetsChannel = supabase
+      .channel(`sports-market-bets-${matchId}-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sports_market_bets',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          fetchMyBets();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to old sports_bets changes (backward compatibility)
+    const oldBetsChannel = supabase
       .channel(`sports-bets-${matchId}-${user.id}`)
       .on(
         'postgres_changes',
@@ -701,16 +847,23 @@ const SportsBet: React.FC = () => {
           filter: `user_id=eq.${user.id} AND event_id=eq.${matchId}`
         },
         () => {
-          // Refresh bets list when any change occurs
           fetchMyBets();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(marketBetsChannel);
+      supabase.removeChannel(oldBetsChannel);
     };
-  }, [user?.id, matchId]); // Removed fetchMyBets from dependencies, using user.id instead of user object
+  }, [user?.id, matchId, fetchMyBets]);
+
+  // Fetch bets when component mounts or matchId changes
+  useEffect(() => {
+    if (user && matchId) {
+      fetchMyBets();
+    }
+  }, [user, matchId, fetchMyBets]);
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string, mname?: string) => {
     setSelectedBet({
@@ -799,6 +952,12 @@ const SportsBet: React.FC = () => {
         console.error('RPC Data Error:', rpcData);
         throw new Error(rpcData?.error || 'Bet placement failed');
       }
+
+      // Refresh bets list after successful bet placement
+      console.log('[handlePlaceBet] Bet placed successfully, refreshing bets list...');
+      setTimeout(() => {
+        fetchMyBets();
+      }, 1000); // Wait 1 second for database to update
       
       toast({
         title: "Bet placed successfully!",
@@ -1299,10 +1458,15 @@ const SportsBet: React.FC = () => {
 
         <Tabs defaultValue="odds" className="w-full">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsList className="grid w-full grid-cols-4 h-auto">
               <TabsTrigger value="odds" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
                 <TrendingUp className="h-5 w-5 sm:h-4 sm:w-4" />
                 <span className="text-xs sm:text-sm">ODDS</span>
+              </TabsTrigger>
+              <TabsTrigger value="mybets" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
+                <Receipt className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm hidden sm:inline">My Bets</span>
+                <span className="text-xs sm:text-sm sm:hidden">Bets</span>
               </TabsTrigger>
               <TabsTrigger value="livetv" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-2.5">
                 <Tv className="h-5 w-5 sm:h-4 sm:w-4" />
@@ -1342,6 +1506,174 @@ const SportsBet: React.FC = () => {
                 isLoading={isLoadingOdds}
               />
             </div>
+          </TabsContent>
+
+          {/* My Bets Tab */}
+          <TabsContent value="mybets" className="space-y-4 sm:space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Receipt className="h-5 w-5" />
+                    My Bets
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchMyBets}
+                    disabled={isLoadingMyBets}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingMyBets ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingMyBets ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                  </div>
+                ) : myBetsError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{myBetsError}</AlertDescription>
+                  </Alert>
+                ) : myBets.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground text-lg mb-2">No bets found</p>
+                    <p className="text-sm text-muted-foreground">
+                      You haven't placed any bets for this match yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {myBets.map((bet: any) => {
+                      const isMarketBet = bet.source === 'market_bets';
+                      const status = bet.status || 'placed';
+                      const statusColors: Record<string, string> = {
+                        won: 'bg-green-500/10 text-green-600 border-green-500/20',
+                        lost: 'bg-red-500/10 text-red-600 border-red-500/20',
+                        placed: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                        void: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+                        refunded: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                      };
+
+                      return (
+                        <Card key={bet.id} className="border-l-4 border-l-primary">
+                          <CardContent className="pt-6">
+                            <div className="space-y-3">
+                              {/* Header */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-base">
+                                    {isMarketBet 
+                                      ? (bet.market_name || bet.selection || 'Market Bet')
+                                      : (bet.selection || (bet as any).market_type || 'Bet')}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {isMarketBet 
+                                      ? `${bet.market_type === 'odds' ? 'ODDS' : 'SESSION'} Market`
+                                      : `${(bet as any).market_type || 'Sports'} - ${(bet as any).bet_type?.toUpperCase() || 'BET'}`}
+                                  </p>
+                                </div>
+                                <Badge 
+                                  className={`${statusColors[status] || statusColors.placed} border`}
+                                >
+                                  {status.toUpperCase()}
+                                </Badge>
+                              </div>
+
+                              {/* Bet Details */}
+                              <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Stake</p>
+                                  <p className="font-semibold">
+                                    ₹{parseFloat(
+                                      bet.stake || 
+                                      (bet as any).amount || 
+                                      (bet as any).bet_amount || 
+                                      0
+                                    ).toFixed(2)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">
+                                    {isMarketBet 
+                                      ? (bet.market_type === 'odds' ? 'Odds' : 'Rate')
+                                      : 'Odds'}
+                                  </p>
+                                  <p className="font-semibold">
+                                    {bet.odds || 
+                                     bet.rate || 
+                                     bet.rate_at_bet || 
+                                     (bet as any).odds || 
+                                     'N/A'}
+                                  </p>
+                                </div>
+                                {isMarketBet && bet.market_type === 'session' && bet.line_at_bet && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-1">Line</p>
+                                    <p className="font-semibold">{bet.line_at_bet}</p>
+                                  </div>
+                                )}
+                                {(isMarketBet || (bet as any).bet_type) && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-1">Side</p>
+                                    <p className="font-semibold">
+                                      {bet.bet_side === 'back' ? 'BACK' : 
+                                       bet.bet_side === 'lay' ? 'LAY' :
+                                       bet.bet_side === 'yes' ? 'YES' : 
+                                       bet.bet_side === 'no' ? 'NO' :
+                                       (bet as any).bet_type === 'back' ? 'BACK' :
+                                       (bet as any).bet_type === 'lay' ? 'LAY' :
+                                       (bet as any).bet_type === 'yes' ? 'YES' :
+                                       (bet as any).bet_type === 'no' ? 'NO' : 'N/A'}
+                                    </p>
+                                  </div>
+                                )}
+                                {(bet.potential_profit || (bet as any).potential_win) && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-1">Potential Win</p>
+                                    <p className="font-semibold text-green-600">
+                                      ₹{parseFloat(
+                                        (bet.potential_profit || (bet as any).potential_win || 0).toString()
+                                      ).toFixed(2)}
+                                    </p>
+                                  </div>
+                                )}
+                                {bet.profit_loss !== null && bet.profit_loss !== undefined && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-1">P&L</p>
+                                    <p className={`font-semibold ${bet.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      ₹{parseFloat(bet.profit_loss.toString()).toFixed(2)}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Timestamp */}
+                              <div className="pt-2 border-t">
+                                <p className="text-xs text-muted-foreground">
+                                  Placed: {new Date(bet.created_at).toLocaleString()}
+                                </p>
+                                {bet.settled_at && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Settled: {new Date(bet.settled_at).toLocaleString()}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Match Bet Tab */}
