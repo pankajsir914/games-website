@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info, Trophy, Users, Cloud, Receipt } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info, Trophy, Users, Cloud, Receipt, Clock, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
 import { useDiamondSportsData } from '@/hooks/useDiamondSportsData';
@@ -691,7 +691,7 @@ const SportsBet: React.FC = () => {
 
       // Fetch from sports_market_bets table (new betting system)
       // First get all markets for this event_id, then get bets for those markets
-      const { data: markets, error: marketsError } = await supabase
+      const { data: markets, error: marketsError } = await (supabase as any)
         .from('sports_markets')
         .select('id, event_id')
         .in('event_id', possibleEventIds);
@@ -700,12 +700,12 @@ const SportsBet: React.FC = () => {
         console.error('[fetchMyBets] Error fetching markets:', marketsError);
       }
 
-      const marketIds = (markets || []).map(m => m.id);
+      const marketIds = (markets || []).map((m: any) => m.id);
       console.log('[fetchMyBets] Found markets:', marketIds.length, 'for event_ids:', possibleEventIds);
 
       let marketBets: any[] = [];
       if (marketIds.length > 0) {
-        const { data: bets, error: marketBetsError } = await supabase
+        const { data: bets, error: marketBetsError } = await (supabase as any)
           .from('sports_market_bets')
           .select(`
             *,
@@ -910,47 +910,121 @@ const SportsBet: React.FC = () => {
       const potentialWin = calculatePotentialWin();
       const liability = calculateLiability();
       
-      // Generate market_id from market type and selection
-      const marketId = `${selectedBet.mname || 'market'}-${selectedBet.marketType || 'unknown'}`.toLowerCase().replace(/\s+/g, '-');
+      const eventId = matchId || match?.id || match?.eventId || match?.eventId;
+      const marketName = selectedBet.mname || 'Market';
+      const marketType = selectedBet.marketType === 'session' ? 'session' : 'odds';
       
-      // Extract line_value from selection or meta (for session markets)
-      const lineValue = selectedBet.line || selectedBet.lineValue || null;
+      // Step 1: Find or create market in sports_markets table
+      let marketId: string | null = null;
       
-      // Call Supabase RPC to place and store the bet
-      // Note: Parameter order must match function signature (required params first, then optional)
-      const payload = {
-        p_sport: sport || match?.sport || 'unknown',
-        p_event_id: matchId || match?.id || match?.eventId,
-        p_market_type: selectedBet.marketType || 'unknown',
-        p_selection: selectedBet.selection || selectedBet.matchName || 'selection',
-        p_bet_type: selectedBet.type,
-        p_rate: selectedBet.rate,
-        p_stake: amount,
-        // Optional parameters (with defaults)
-        p_market_id: marketId,
-        p_mname: selectedBet.mname || '',
-        p_line_value: lineValue,
-        p_profit: potentialWin, // Use the same value shown in bet slip
-        p_liability: liability,
-        p_provider: match?.provider || 'diamond',
-        p_meta: {
-          matchName: selectedBet.matchName,
-          marketType: selectedBet.marketType,
-          selection: selectedBet.selection,
-          mname: selectedBet.mname || '',
-          raw: selectedBet
+      // Try to find existing market
+      const { data: existingMarkets, error: findError } = await (supabase as any)
+        .from('sports_markets')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('market_name', marketName)
+        .eq('market_type', marketType)
+        .eq('selection', selectedBet.selection || '')
+        .maybeSingle();
+      
+      if (findError) {
+        console.error('Error finding market:', findError);
+      }
+      
+      if (existingMarkets?.id) {
+        marketId = existingMarkets.id;
+        console.log('[handlePlaceBet] Found existing market:', marketId);
+      } else {
+        // Create new market if not found
+        // Determine odds/rates based on market type
+        let oddsBack = null;
+        let oddsLay = null;
+        let rateYes = null;
+        let rateNo = null;
+        let currentLine = null;
+        
+        if (marketType === 'odds') {
+          // For ODDS markets, extract odds from rate
+          oddsBack = selectedBet.type === 'back' ? selectedBet.rate : null;
+          oddsLay = selectedBet.type === 'lay' ? selectedBet.rate : null;
+          // If we don't have the opposite side, use the same rate
+          if (!oddsBack && selectedBet.rate) oddsBack = selectedBet.rate;
+          if (!oddsLay && selectedBet.rate) oddsLay = selectedBet.rate;
+        } else if (marketType === 'session') {
+          // For SESSION markets, extract rate and line
+          rateYes = selectedBet.type === 'yes' ? selectedBet.rate : null;
+          rateNo = selectedBet.type === 'no' ? selectedBet.rate : null;
+          // If we don't have the opposite side, use the same rate
+          if (!rateYes && selectedBet.rate) rateYes = selectedBet.rate;
+          if (!rateNo && selectedBet.rate) rateNo = selectedBet.rate;
+          
+          // Extract line from selection (e.g., "Over 45.5" -> 45.5)
+          const lineMatch = selectedBet.selection?.match(/(\d+\.?\d*)/);
+          if (lineMatch) {
+            currentLine = parseFloat(lineMatch[1]);
+          }
         }
-      };
-
-      const { data, error: rpcError } = await (supabase as any).rpc('place_sports_bet', payload);
+        
+        // Create market
+        const { data: newMarket, error: createError } = await (supabase as any)
+          .from('sports_markets')
+          .insert({
+            event_id: eventId,
+            market_name: marketName,
+            market_type: marketType,
+            selection: selectedBet.selection || '',
+            sport: sport || match?.sport || 'cricket',
+            odds_back: oddsBack,
+            odds_lay: oddsLay,
+            rate_yes: rateYes,
+            rate_no: rateNo,
+            current_line: currentLine,
+            status: 'open',
+            is_suspended: false
+          })
+          .select('id')
+          .single();
+        
+        if (createError) {
+          console.error('Error creating market:', createError);
+          throw new Error(`Failed to create market: ${createError.message}`);
+        }
+        
+        if (newMarket?.id) {
+          marketId = newMarket.id;
+          console.log('[handlePlaceBet] Created new market:', marketId);
+        } else {
+          throw new Error('Failed to create market - no ID returned');
+        }
+      }
+      
+      if (!marketId) {
+        throw new Error('Market ID is required to place bet');
+      }
+      
+      // Step 2: Place bet using new system (place_market_bet)
+      const betSide = selectedBet.type; // 'back', 'lay', 'yes', 'no'
+      const selection = marketType === 'odds' ? selectedBet.selection : null;
+      const odds = marketType === 'odds' ? selectedBet.rate : null;
+      const rate = marketType === 'session' ? selectedBet.rate : null;
+      
+      const { data: betData, error: rpcError } = await (supabase as any).rpc('place_market_bet', {
+        p_market_id: marketId,
+        p_bet_side: betSide,
+        p_stake: amount,
+        p_selection: selection,
+        p_odds: odds,
+        p_rate: rate
+      });
+      
       if (rpcError) {
         console.error('RPC Error:', rpcError);
         throw new Error(rpcError.message || rpcError.details || 'Bet placement failed');
       }
-      const rpcData = data as any;
-      if (!rpcData?.success) {
-        console.error('RPC Data Error:', rpcData);
-        throw new Error(rpcData?.error || 'Bet placement failed');
+      
+      if (!betData?.success) {
+        console.error('RPC Data Error:', betData);
+        throw new Error(betData?.error || 'Bet placement failed');
       }
 
       // Refresh bets list after successful bet placement
@@ -960,8 +1034,8 @@ const SportsBet: React.FC = () => {
       }, 1000); // Wait 1 second for database to update
       
       toast({
-        title: "Bet placed successfully!",
-        description: `Your ${selectedBet.type} bet of ₹${amount} has been placed`,
+        title: "Bet Placed!",
+        description: `Your bet of ₹${amount.toFixed(2)} on ${selectedBet.selection} has been placed.`,
       });
       
       // Reset bet slip
@@ -1561,109 +1635,196 @@ const SportsBet: React.FC = () => {
                         refunded: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
                       };
 
+                      const betSide = bet.bet_side || (bet as any).bet_type || '';
+                      const betSideDisplay = betSide === 'back' ? 'BACK' : 
+                                           betSide === 'lay' ? 'LAY' :
+                                           betSide === 'yes' ? 'YES' : 
+                                           betSide === 'no' ? 'NO' : 'N/A';
+                      
+                      const stakeAmount = parseFloat(
+                        bet.stake || 
+                        (bet as any).amount || 
+                        (bet as any).bet_amount || 
+                        0
+                      );
+                      
+                      const oddsRate = bet.odds || 
+                                      bet.rate || 
+                                      bet.rate_at_bet || 
+                                      (bet as any).odds || 
+                                      'N/A';
+                      
+                      const potentialWin = bet.potential_profit || (bet as any).potential_win || 0;
+                      const exposure = bet.exposure || stakeAmount;
+                      const profitLoss = bet.profit_loss;
+
                       return (
-                        <Card key={bet.id} className="border-l-4 border-l-primary">
+                        <Card key={bet.id} className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
                           <CardContent className="pt-6">
-                            <div className="space-y-3">
-                              {/* Header */}
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-base">
-                                    {isMarketBet 
-                                      ? (bet.market_name || bet.selection || 'Market Bet')
-                                      : (bet.selection || (bet as any).market_type || 'Bet')}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground mt-1">
+                            <div className="space-y-4">
+                              {/* Header with Status */}
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h4 className="font-semibold text-base sm:text-lg truncate">
+                                      {isMarketBet 
+                                        ? (bet.market_name || bet.selection || 'Market Bet')
+                                        : (bet.selection || (bet as any).market_type || 'Bet')}
+                                    </h4>
+                                    {bet.market_type && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {bet.market_type === 'odds' ? 'ODDS' : 'SESSION'}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Selection/Team Name */}
+                                  {bet.selection && (
+                                    <p className="text-sm font-medium text-foreground mb-1">
+                                      Selection: <span className="text-primary">{bet.selection}</span>
+                                    </p>
+                                  )}
+                                  
+                                  {/* Market Type Info */}
+                                  <p className="text-xs text-muted-foreground">
                                     {isMarketBet 
                                       ? `${bet.market_type === 'odds' ? 'ODDS' : 'SESSION'} Market`
-                                      : `${(bet as any).market_type || 'Sports'} - ${(bet as any).bet_type?.toUpperCase() || 'BET'}`}
+                                      : `${(bet as any).market_type || 'Sports'} Bet`}
+                                    {bet.sports_markets?.sport && ` • ${bet.sports_markets.sport}`}
                                   </p>
                                 </div>
+                                
                                 <Badge 
-                                  className={`${statusColors[status] || statusColors.placed} border`}
+                                  className={`${statusColors[status] || statusColors.placed} border shrink-0`}
                                 >
                                   {status.toUpperCase()}
                                 </Badge>
                               </div>
 
-                              {/* Bet Details */}
-                              <div className="grid grid-cols-2 gap-4 pt-3 border-t">
-                                <div>
+                              {/* Main Bet Details Grid */}
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pt-3 border-t">
+                                {/* Stake */}
+                                <div className="p-3 bg-muted/50 rounded-lg">
                                   <p className="text-xs text-muted-foreground mb-1">Stake</p>
-                                  <p className="font-semibold">
-                                    ₹{parseFloat(
-                                      bet.stake || 
-                                      (bet as any).amount || 
-                                      (bet as any).bet_amount || 
-                                      0
-                                    ).toFixed(2)}
+                                  <p className="font-bold text-base sm:text-lg">
+                                    ₹{stakeAmount.toFixed(2)}
                                   </p>
                                 </div>
-                                <div>
+
+                                {/* Odds/Rate */}
+                                <div className="p-3 bg-muted/50 rounded-lg">
                                   <p className="text-xs text-muted-foreground mb-1">
                                     {isMarketBet 
                                       ? (bet.market_type === 'odds' ? 'Odds' : 'Rate')
                                       : 'Odds'}
                                   </p>
-                                  <p className="font-semibold">
-                                    {bet.odds || 
-                                     bet.rate || 
-                                     bet.rate_at_bet || 
-                                     (bet as any).odds || 
-                                     'N/A'}
+                                  <p className="font-bold text-base sm:text-lg">
+                                    {oddsRate}
                                   </p>
                                 </div>
+
+                                {/* Bet Side */}
+                                <div className="p-3 bg-muted/50 rounded-lg">
+                                  <p className="text-xs text-muted-foreground mb-1">Side</p>
+                                  <p className="font-bold text-base sm:text-lg">
+                                    {betSideDisplay}
+                                  </p>
+                                </div>
+
+                                {/* Line (for SESSION markets) */}
                                 {isMarketBet && bet.market_type === 'session' && bet.line_at_bet && (
-                                  <div>
+                                  <div className="p-3 bg-muted/50 rounded-lg">
                                     <p className="text-xs text-muted-foreground mb-1">Line</p>
-                                    <p className="font-semibold">{bet.line_at_bet}</p>
+                                    <p className="font-bold text-base sm:text-lg">{bet.line_at_bet}</p>
                                   </div>
                                 )}
-                                {(isMarketBet || (bet as any).bet_type) && (
-                                  <div>
-                                    <p className="text-xs text-muted-foreground mb-1">Side</p>
-                                    <p className="font-semibold">
-                                      {bet.bet_side === 'back' ? 'BACK' : 
-                                       bet.bet_side === 'lay' ? 'LAY' :
-                                       bet.bet_side === 'yes' ? 'YES' : 
-                                       bet.bet_side === 'no' ? 'NO' :
-                                       (bet as any).bet_type === 'back' ? 'BACK' :
-                                       (bet as any).bet_type === 'lay' ? 'LAY' :
-                                       (bet as any).bet_type === 'yes' ? 'YES' :
-                                       (bet as any).bet_type === 'no' ? 'NO' : 'N/A'}
+
+                                {/* Exposure */}
+                                {isMarketBet && (
+                                  <div className="p-3 bg-muted/50 rounded-lg">
+                                    <p className="text-xs text-muted-foreground mb-1">Exposure</p>
+                                    <p className="font-bold text-base sm:text-lg text-orange-600">
+                                      ₹{parseFloat(exposure.toString()).toFixed(2)}
                                     </p>
                                   </div>
                                 )}
-                                {(bet.potential_profit || (bet as any).potential_win) && (
-                                  <div>
+
+                                {/* Potential Win */}
+                                {potentialWin > 0 && (
+                                  <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
                                     <p className="text-xs text-muted-foreground mb-1">Potential Win</p>
-                                    <p className="font-semibold text-green-600">
-                                      ₹{parseFloat(
-                                        (bet.potential_profit || (bet as any).potential_win || 0).toString()
-                                      ).toFixed(2)}
+                                    <p className="font-bold text-base sm:text-lg text-green-600">
+                                      ₹{parseFloat(potentialWin.toString()).toFixed(2)}
                                     </p>
                                   </div>
                                 )}
-                                {bet.profit_loss !== null && bet.profit_loss !== undefined && (
-                                  <div>
-                                    <p className="text-xs text-muted-foreground mb-1">P&L</p>
-                                    <p className={`font-semibold ${bet.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                      ₹{parseFloat(bet.profit_loss.toString()).toFixed(2)}
+
+                                {/* P&L (if settled) */}
+                                {profitLoss !== null && profitLoss !== undefined && (
+                                  <div className={`p-3 rounded-lg border ${
+                                    profitLoss >= 0 
+                                      ? 'bg-green-500/10 border-green-500/20' 
+                                      : 'bg-red-500/10 border-red-500/20'
+                                  }`}>
+                                    <p className="text-xs text-muted-foreground mb-1">Profit/Loss</p>
+                                    <p className={`font-bold text-base sm:text-lg ${
+                                      profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {profitLoss >= 0 ? '+' : ''}₹{parseFloat(profitLoss.toString()).toFixed(2)}
                                     </p>
                                   </div>
                                 )}
                               </div>
 
-                              {/* Timestamp */}
-                              <div className="pt-2 border-t">
-                                <p className="text-xs text-muted-foreground">
-                                  Placed: {new Date(bet.created_at).toLocaleString()}
-                                </p>
-                                {bet.settled_at && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Settled: {new Date(bet.settled_at).toLocaleString()}
-                                  </p>
+                              {/* Additional Info */}
+                              <div className="pt-3 border-t space-y-2">
+                                {/* Match Info */}
+                                {match && (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Trophy className="h-3 w-3" />
+                                    <span className="truncate">
+                                      {match.team1} vs {match.team2}
+                                    </span>
+                                  </div>
                                 )}
+                                
+                                {/* Timestamps */}
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>Placed: {new Date(bet.created_at).toLocaleString('en-IN', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}</span>
+                                  </div>
+                                  {bet.settled_at && (
+                                    <div className="flex items-center gap-1">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      <span>Settled: {new Date(bet.settled_at).toLocaleString('en-IN', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Settlement Reason */}
+                                {bet.settlement_reason && (
+                                  <div className="text-xs text-muted-foreground italic">
+                                    Note: {bet.settlement_reason}
+                                  </div>
+                                )}
+
+                                {/* Bet ID (for reference) */}
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  ID: {bet.id.slice(0, 8)}...
+                                </div>
                               </div>
                             </div>
                           </CardContent>
