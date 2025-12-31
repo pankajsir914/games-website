@@ -16,6 +16,7 @@ import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
 import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
 import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjBetting";
+import { Ab4Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab4Betting";
 
 
 /* =====================================================
@@ -26,6 +27,8 @@ const DOLIDANA_TABLE_IDS = ["dolidana"];
 const TEEN_PATTI_TABLE_IDS = ["teen62"];
 const AB3_TABLE_IDS = ["ab3"];
 const ABJ_TABLE_IDS = ["abj"];
+const AB4_TABLE_IDS = ["ab4"];
+
 
 
 const getTableId = (table: any, odds: any) =>
@@ -75,7 +78,55 @@ const hasLayOdds = betTypes.some(
   const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
+  const isAb4 = AB4_TABLE_IDS.includes(tableId);
 
+  /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
+  // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
+  let normalizedBetTypes = betTypes;
+  if (isAb4 && betTypes.length === 1 && betTypes[0]?.nat?.includes("Card")) {
+    const baseBet = betTypes[0];
+    const baseOdds = baseBet.back || baseBet.b || baseBet.b1 || baseBet.odds || baseBet.l || 0;
+    const baseSid = baseBet.sid || 1; 
+    
+    const CARD_ORDER = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+    normalizedBetTypes = [];
+    
+    // Generate Andar bets (sid 1-13)
+    CARD_ORDER.forEach((card, idx) => {
+      normalizedBetTypes.push({
+        ...baseBet,
+        sid: baseSid + idx,
+        nat: `Andar ${card}`,
+        type: `Andar ${card}`,
+        back: baseOdds,
+        b: baseOdds,
+        b1: baseOdds,
+        odds: baseOdds,
+        l: baseOdds,
+      });
+    });
+    
+    // Generate Bahar bets (sid 14-26)
+    CARD_ORDER.forEach((card, idx) => {
+      normalizedBetTypes.push({
+        ...baseBet,
+        sid: baseSid + 13 + idx,
+        nat: `Bahar ${card}`,
+        type: `Bahar ${card}`,
+        back: baseOdds,
+        b: baseOdds,
+        b1: baseOdds,
+        odds: baseOdds,
+        l: baseOdds,
+      });
+    });
+    
+    console.log("🔄 [AB4 Normalizer] Generated 26 bets from 1 bet:", {
+      original: baseBet.nat,
+      generated: normalizedBetTypes.length,
+      sample: normalizedBetTypes.slice(0, 3).map((b: any) => b.nat),
+    });
+  }
 
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
@@ -215,7 +266,16 @@ const hasLayOdds = betTypes.some(
                 onPlaceBet={onPlaceBet}
                 loading={loading}
               />
+            ) : isAb4 ? (   
+              <Ab4Betting
+                betTypes={normalizedBetTypes}
+                formatOdds={formatOdds}
+                resultHistory={resultHistory}
+                onPlaceBet={onPlaceBet}
+                loading={loading}
+              />
             ) : (
+            
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {betTypes.map((bet: any, idx: number) => {
