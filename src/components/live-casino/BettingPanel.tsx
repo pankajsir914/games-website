@@ -17,6 +17,7 @@ import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
 import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjBetting";
 import { Ab4Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab4Betting";
+import { Ab20Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab20Betting";
 
 
 /* =====================================================
@@ -28,6 +29,7 @@ const TEEN_PATTI_TABLE_IDS = ["teen62"];
 const AB3_TABLE_IDS = ["ab3"];
 const ABJ_TABLE_IDS = ["abj"];
 const AB4_TABLE_IDS = ["ab4"];
+const AB20_TABLE_IDS = ["ab20"];
 
 
 
@@ -79,7 +81,7 @@ const hasLayOdds = betTypes.some(
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
   const isAb4 = AB4_TABLE_IDS.includes(tableId);
-
+  const isAb20 = AB20_TABLE_IDS.includes(tableId);
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -269,6 +271,15 @@ const hasLayOdds = betTypes.some(
             ) : isAb4 ? (   
               <Ab4Betting
                 betTypes={normalizedBetTypes}
+                formatOdds={formatOdds}
+                resultHistory={resultHistory}
+                onPlaceBet={onPlaceBet}
+                loading={loading}
+              />
+            ) : isAb20 ? (
+              <Ab20Betting
+                betTypes={betTypes}
+                selectedBet={selectedBet}
                 formatOdds={formatOdds}
                 resultHistory={resultHistory}
                 onPlaceBet={onPlaceBet}
