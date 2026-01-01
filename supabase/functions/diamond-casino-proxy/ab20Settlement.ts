@@ -5,8 +5,10 @@
 ===================================================== */
 
 export type AB20Result = {
-  lastCard: string;   // "JSS"
-  rank: string;       // "J"
+  lastCard: string;     // "JSS"
+  rank: string;         // "J"
+  side: "andar" | "bahar";
+  isFirstBahar: boolean;
 };
 
 /* =====================================================
@@ -14,8 +16,7 @@ export type AB20Result = {
 ===================================================== */
 
 export function isAB20Table(tableId: string): boolean {
-  if (!tableId) return false;
-  return tableId.toLowerCase() === "ab20";
+  return tableId?.toLowerCase() === "ab20";
 }
 
 /* =====================================================
@@ -23,9 +24,7 @@ export function isAB20Table(tableId: string): boolean {
 ===================================================== */
 
 function extractRank(card: string): string {
-  // "10HH" → "10"
-  // "JSS"  → "J"
-  return card.slice(0, card.length - 2);
+  return card.slice(0, card.length - 2); // "10HH" -> "10"
 }
 
 /* =====================================================
@@ -33,62 +32,70 @@ function extractRank(card: string): string {
 ===================================================== */
 
 export function parseAB20Result(
-  cardString: string | null
+  cardString: string | null,
+  ares?: string,
+  bres?: string
 ): AB20Result | null {
-
   if (!cardString) return null;
 
-  const cards = cardString
-    .split(",")
-    .map(c => c.trim())
-    .filter(Boolean);
-
-  if (cards.length === 0) return null;
+  const cards = cardString.split(",").map(c => c.trim()).filter(Boolean);
+  if (!cards.length) return null;
 
   const lastCard = cards[cards.length - 1];
   const rank = extractRank(lastCard);
 
-  return { lastCard, rank };
+  // ares / bres array tells which side won
+  const andarHits = ares ? ares.split(",").map(Number) : [];
+  const baharHits = bres ? bres.split(",").map(Number) : [];
+
+  const isBahar = baharHits.some(v => v > 0);
+  const isFirstBahar = isBahar && baharHits.findIndex(v => v > 0) === 0;
+
+  return {
+    lastCard,
+    rank,
+    side: isBahar ? "bahar" : "andar",
+    isFirstBahar,
+  };
 }
 
 /* =====================================================
-   BET MATCHING
+   BET MATCHING + PAYOUT
 ===================================================== */
 
-export function isAB20WinningBet(
+export function settleAB20Bet(
   betType: string,
-  result: AB20Result,
-  side: "back" | "lay" = "back"
-): boolean {
-
+  result: AB20Result
+) {
   const bet = betType.toLowerCase().trim();
   const rank = result.rank.toLowerCase();
 
-  let isMatch = false;
+  let isWin = false;
+  let payoutMultiplier = 0;
 
-  // Andar X
   if (bet.startsWith("andar")) {
     const v = bet.replace("andar", "").trim();
-    isMatch = v === rank;
+    isWin = result.side === "andar" && v === rank;
+    payoutMultiplier = isWin ? 1 : 0;
   }
 
-  // Bahar X
   if (bet.startsWith("bahar")) {
     const v = bet.replace("bahar", "").trim();
-    isMatch = v === rank;
+    isWin = result.side === "bahar" && v === rank;
+
+    if (isWin) {
+      payoutMultiplier = result.isFirstBahar ? 0.25 : 1;
+    }
   }
 
-  console.log("🃏 [AB20 Match]", {
-    betType,
-    rank,
-    isMatch
-  });
-
-  return side === "back" ? isMatch : !isMatch;
+  return {
+    isWin,
+    payoutMultiplier,
+  };
 }
 
 /* =====================================================
-   LAST 10 RESULTS
+   LAST 10 RESULTS FORMAT
 ===================================================== */
 
 export function formatAB20LastResults(
@@ -96,6 +103,6 @@ export function formatAB20LastResults(
 ) {
   return results.map(r => ({
     mid: r.mid,
-    result: "-"   // AB20 me numeric history meaningless
+    result: "-",
   }));
 }
