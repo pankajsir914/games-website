@@ -11,6 +11,9 @@ export type Teen62Result = {
   isTie: boolean;
   rdesc?: string;
   cards?: string[];
+
+  playerA?: string[];
+  playerB?: string[];
 };
 
 /* =====================================================
@@ -18,12 +21,11 @@ export type Teen62Result = {
 ===================================================== */
 
 export function isTeen62Table(tableId?: string): boolean {
-  if (!tableId) return false;
-  return tableId.toLowerCase() === "teen62";
+  return !!tableId && tableId.toLowerCase() === "teen62";
 }
 
 /* =====================================================
-   RESULT PARSER (HARDENED)
+   RESULT PARSER (RULE SAFE)
 ===================================================== */
 
 export function parseTeen62Result(
@@ -35,6 +37,10 @@ export function parseTeen62Result(
 ): Teen62Result | null {
 
   const winCode = String(win ?? "");
+  const cards = card ? card.split(",") : [];
+
+  const playerA = cards.slice(0, 3);
+  const playerB = cards.slice(3, 6);
 
   /* ---------- TIE ---------- */
   if (winCode === "0" || winnat?.toLowerCase() === "tie") {
@@ -44,31 +50,43 @@ export function parseTeen62Result(
       winCode: "0",
       isTie: true,
       rdesc: rdesc || undefined,
-      cards: card?.split(","),
+      cards,
+      playerA,
+      playerB,
     };
   }
 
   /* ---------- PRIMARY: winnat ---------- */
   if (winnat) {
-    const clean = winnat.trim();
-    const winner =
-      clean === "Player A" ? "Player A" :
-      clean === "Player B" ? "Player B" :
-      null;
-
-    if (winner) {
+    if (winnat === "Player A" || winnat === "Player B") {
       return {
         mid,
-        winner,
-        winCode: winner === "Player A" ? "1" : "2",
+        winner: winnat,
+        winCode: winnat === "Player A" ? "1" : "2",
         isTie: false,
         rdesc: rdesc || undefined,
-        cards: card?.split(","),
+        cards,
+        playerA,
+        playerB,
       };
     }
   }
 
-  /* ---------- FALLBACK: rdesc parsing ---------- */
+  /* ---------- SECONDARY: win code ---------- */
+  if (winCode === "1" || winCode === "2") {
+    return {
+      mid,
+      winner: winCode === "1" ? "Player A" : "Player B",
+      winCode: winCode as "1" | "2",
+      isTie: false,
+      rdesc: rdesc || undefined,
+      cards,
+      playerA,
+      playerB,
+    };
+  }
+
+  /* ---------- FALLBACK: rdesc ---------- */
   if (rdesc) {
     if (rdesc.includes("A : Yes")) {
       return {
@@ -77,10 +95,11 @@ export function parseTeen62Result(
         winCode: "1",
         isTie: false,
         rdesc,
-        cards: card?.split(","),
+        cards,
+        playerA,
+        playerB,
       };
     }
-
     if (rdesc.includes("B : Yes")) {
       return {
         mid,
@@ -88,7 +107,9 @@ export function parseTeen62Result(
         winCode: "2",
         isTie: false,
         rdesc,
-        cards: card?.split(","),
+        cards,
+        playerA,
+        playerB,
       };
     }
   }
@@ -108,7 +129,7 @@ export function isTeen62WinningBet(
 
   if (!betType || !result) return "LOSS";
 
-  /* Tie → PUSH (rules) */
+  /* Tie → PUSH */
   if (result.isTie) return "PUSH";
 
   const bet = betType.toLowerCase().trim();
@@ -116,19 +137,17 @@ export function isTeen62WinningBet(
 
   const isMatch = bet === winner;
 
-  if (side === "back") return isMatch ? "WIN" : "LOSS";
-  return isMatch ? "LOSS" : "WIN";
+  return side === "back"
+    ? isMatch ? "WIN" : "LOSS"
+    : isMatch ? "LOSS" : "WIN";
 }
 
 /* =====================================================
    SIDE BET HANDLING
-   - Odd / Even
-   - Suit
-   - Consecutive
 ===================================================== */
 
 export function isTeen62SideBetResult(
-  isConditionMet: boolean,
+  conditionMet: boolean,
   result: Teen62Result,
   side: "back" | "lay" = "back"
 ): "WIN" | "LOSS" | "PUSH" {
@@ -138,12 +157,13 @@ export function isTeen62SideBetResult(
   /* Tie → PUSH */
   if (result.isTie) return "PUSH";
 
-  if (side === "back") return isConditionMet ? "WIN" : "LOSS";
-  return isConditionMet ? "LOSS" : "WIN";
+  return side === "back"
+    ? conditionMet ? "WIN" : "LOSS"
+    : conditionMet ? "LOSS" : "WIN";
 }
 
 /* =====================================================
-   LAST RESULTS FORMAT (UI SAFE)
+   LAST RESULTS (UI SAFE)
 ===================================================== */
 
 export function formatTeen62LastResults(
