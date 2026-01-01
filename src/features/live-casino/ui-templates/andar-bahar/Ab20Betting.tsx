@@ -108,11 +108,10 @@ const Ab20BettingComponent = ({
   const CardCell = ({ side, card }: { side: "andar" | "bahar"; card: string }) => {
     const bet = getBet(side, card);
     const suspended = bet?.gstatus === "SUSPENDED";
-    const opened = highlight[side].has(card); // 👈 only for UI
+    const opened = highlight[side].has(card);
     const odds = bet?.back ?? bet?.l ?? bet?.odds ?? 0;
 
     const handleClick = () => {
-      // ❗ ONLY suspend blocks betting
       if (suspended) return;
 
       const payload = {
@@ -136,13 +135,14 @@ const Ab20BettingComponent = ({
           relative w-[56px] h-[82px]
           rounded-lg flex flex-col items-center justify-between
           font-bold text-sm
+          transition-colors duration-150
           ${side === "andar"
-            ? "bg-[#2e1f1f] text-white"
-            : "bg-[#ffe08a] text-black"}
-          ${opened ? "ring-2 ring-green-400 animate-pulse" : ""}
+            ? "bg-[#2e1f1f] text-white hover:bg-[#3a2626]"
+            : "bg-[#ffe08a] text-black hover:bg-[#ffeaad]"}
+          ${opened ? "ring-2 ring-green-400 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : ""}
           ${suspended
             ? "opacity-40 cursor-not-allowed"
-            : "cursor-pointer hover:scale-105 transition"}
+            : "cursor-pointer"}
         `}
       >
         <div className="pt-1">{card}</div>
@@ -158,7 +158,7 @@ const Ab20BettingComponent = ({
         </div>
 
         {suspended && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
             <Lock className="w-4 h-4 text-white" />
           </div>
         )}
