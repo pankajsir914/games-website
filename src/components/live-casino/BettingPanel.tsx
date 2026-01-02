@@ -267,6 +267,7 @@ const hasLayOdds = betTypes.some(
                 onAmountChange={setAmount}
                 onPlaceBet={onPlaceBet}
                 loading={loading}
+                odds={odds}
               />
             ) : isAb4 ? (   
               <Ab4Betting
