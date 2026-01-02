@@ -29,6 +29,7 @@ interface AbjBettingProps {
   onAmountChange?: (amount: string) => void;
   onPlaceBet?: (betData: any) => Promise<void>;
   loading?: boolean;
+  odds?: any; // Add odds prop to extract roundId
 }
 
 /* ================= CONSTANTS ================= */
@@ -66,6 +67,7 @@ export const AbjBetting = ({
   onAmountChange,
   onPlaceBet,
   loading = false,
+  odds,
 }: AbjBettingProps) => {
   const [localAmount, setLocalAmount] = useState("100");
   const [modalOpen, setModalOpen] = useState(false);
@@ -230,11 +232,19 @@ export const AbjBetting = ({
             className="w-full mt-3"
             disabled={loading}
             onClick={async () => {
+              // Extract roundId from bet data or odds
+              const roundIdFromBet = selectedBetData?.mid || selectedBetData?.round_id || selectedBetData?.round;
+              const roundIdFromOdds = odds?.rawData?.mid || odds?.raw?.mid || odds?.mid || 
+                                     odds?.rawData?.round_id || odds?.raw?.round_id || odds?.round_id ||
+                                     odds?.rawData?.round || odds?.raw?.round || odds?.round ||
+                                     odds?.rawData?.gmid || odds?.raw?.gmid || odds?.gmid;
+              
               await onPlaceBet?.({
                 amount: Number(currentAmount),
                 betType: selectedBetData?.nat || selectedBetData?.type,
                 odds: getOdds(selectedBetData),
                 sid: selectedBetData?.sid,
+                roundId: roundIdFromBet || roundIdFromOdds || null,
               });
               setModalOpen(false);
             }}
