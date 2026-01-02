@@ -1160,88 +1160,59 @@ const SportsBet: React.FC = () => {
       const marketName = selectedBet.mname || 'Market';
       const marketType = selectedBet.marketType === 'session' ? 'session' : 'odds';
       
-      // Step 1: Find or create market in sports_markets table
-      let marketId: string | null = null;
+      // Step 1: Get or create market using backend RPC (race condition safe)
+      // Determine odds/rates based on market type
+      let oddsBack = null;
+      let oddsLay = null;
+      let rateYes = null;
+      let rateNo = null;
+      let currentLine = null;
       
-      // Try to find existing market
-      const { data: existingMarkets, error: findError } = await (supabase as any)
-        .from('sports_markets')
-        .select('id')
-        .eq('event_id', eventId)
-        .eq('market_name', marketName)
-        .eq('market_type', marketType)
-        .eq('selection', selectedBet.selection || '')
-        .maybeSingle();
-      
-      if (findError) {
-        console.error('Error finding market:', findError);
+      if (marketType === 'odds') {
+        // For ODDS markets, extract odds from rate
+        oddsBack = selectedBet.type === 'back' ? selectedBet.rate : null;
+        oddsLay = selectedBet.type === 'lay' ? selectedBet.rate : null;
+        // If we don't have the opposite side, use the same rate
+        if (!oddsBack && selectedBet.rate) oddsBack = selectedBet.rate;
+        if (!oddsLay && selectedBet.rate) oddsLay = selectedBet.rate;
+      } else if (marketType === 'session') {
+        // For SESSION markets, extract rate and line
+        rateYes = selectedBet.type === 'yes' ? selectedBet.rate : null;
+        rateNo = selectedBet.type === 'no' ? selectedBet.rate : null;
+        // If we don't have the opposite side, use the same rate
+        if (!rateYes && selectedBet.rate) rateYes = selectedBet.rate;
+        if (!rateNo && selectedBet.rate) rateNo = selectedBet.rate;
+        
+        // Extract line from selection (e.g., "Over 45.5" -> 45.5)
+        const lineMatch = selectedBet.selection?.match(/(\d+\.?\d*)/);
+        if (lineMatch) {
+          currentLine = parseFloat(lineMatch[1]);
+        }
       }
       
-      if (existingMarkets?.id) {
-        marketId = existingMarkets.id;
-        console.log('[handlePlaceBet] Found existing market:', marketId);
-      } else {
-        // Create new market if not found
-        // Determine odds/rates based on market type
-        let oddsBack = null;
-        let oddsLay = null;
-        let rateYes = null;
-        let rateNo = null;
-        let currentLine = null;
-        
-        if (marketType === 'odds') {
-          // For ODDS markets, extract odds from rate
-          oddsBack = selectedBet.type === 'back' ? selectedBet.rate : null;
-          oddsLay = selectedBet.type === 'lay' ? selectedBet.rate : null;
-          // If we don't have the opposite side, use the same rate
-          if (!oddsBack && selectedBet.rate) oddsBack = selectedBet.rate;
-          if (!oddsLay && selectedBet.rate) oddsLay = selectedBet.rate;
-        } else if (marketType === 'session') {
-          // For SESSION markets, extract rate and line
-          rateYes = selectedBet.type === 'yes' ? selectedBet.rate : null;
-          rateNo = selectedBet.type === 'no' ? selectedBet.rate : null;
-          // If we don't have the opposite side, use the same rate
-          if (!rateYes && selectedBet.rate) rateYes = selectedBet.rate;
-          if (!rateNo && selectedBet.rate) rateNo = selectedBet.rate;
-          
-          // Extract line from selection (e.g., "Over 45.5" -> 45.5)
-          const lineMatch = selectedBet.selection?.match(/(\d+\.?\d*)/);
-          if (lineMatch) {
-            currentLine = parseFloat(lineMatch[1]);
-          }
-        }
-        
-        // Create market
-        const { data: newMarket, error: createError } = await (supabase as any)
-          .from('sports_markets')
-          .insert({
-            event_id: eventId,
-            market_name: marketName,
-            market_type: marketType,
-            selection: selectedBet.selection || '',
-            sport: sport || match?.sport || 'cricket',
-            odds_back: oddsBack,
-            odds_lay: oddsLay,
-            rate_yes: rateYes,
-            rate_no: rateNo,
-            current_line: currentLine,
-            status: 'open',
-            is_suspended: false
-          })
-          .select('id')
-          .single();
-        
-        if (createError) {
-          console.error('Error creating market:', createError);
-          throw new Error(`Failed to create market: ${createError.message}`);
-        }
-        
-        if (newMarket?.id) {
-          marketId = newMarket.id;
-          console.log('[handlePlaceBet] Created new market:', marketId);
-        } else {
-          throw new Error('Failed to create market - no ID returned');
-        }
+      // Extract sportsid and gmid from match data for auto-settlement
+      const sportsid = match?.raw?.sid || match?.raw?.sportsid || match?.sid || null;
+      const gmid = match?.gmid || match?.id || match?.eventId || eventId || null;
+      
+      // Use backend RPC to get or create market (race condition safe)
+      const { data: marketId, error: marketError } = await (supabase as any).rpc('get_or_create_market', {
+        p_event_id: eventId,
+        p_sport: sport || match?.sport || 'cricket',
+        p_market_name: marketName,
+        p_market_type: marketType,
+        p_selection: selectedBet.selection || null,
+        p_odds_back: oddsBack,
+        p_odds_lay: oddsLay,
+        p_rate_yes: rateYes,
+        p_rate_no: rateNo,
+        p_line_value: currentLine,
+        p_sportsid: sportsid,
+        p_gmid: gmid
+      });
+      
+      if (marketError) {
+        console.error('Error getting/creating market:', marketError);
+        throw new Error(`Failed to get or create market: ${marketError.message}`);
       }
       
       if (!marketId) {
