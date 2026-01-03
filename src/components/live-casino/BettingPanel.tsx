@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
-import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
 import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjBetting";
 import { Ab4Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab4Betting";
 import { Ab20Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab20Betting";
+import { Teen62Betting } from "@/features/live-casino/ui-templates/teen-patti/Teen62Betting";
 
 
 /* =====================================================
@@ -25,11 +25,11 @@ import { Ab20Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab2
 ===================================================== */
 
 const DOLIDANA_TABLE_IDS = ["dolidana"];
-const TEEN_PATTI_TABLE_IDS = ["teen62"];
 const AB3_TABLE_IDS = ["ab3"];
 const ABJ_TABLE_IDS = ["abj"];
 const AB4_TABLE_IDS = ["ab4"];
 const AB20_TABLE_IDS = ["ab20"];
+const TEEN62_TABLE_IDS = ["teen62"]; 
 
 
 
@@ -77,11 +77,11 @@ const hasLayOdds = betTypes.some(
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
-  const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
   const isAb4 = AB4_TABLE_IDS.includes(tableId);
   const isAb20 = AB20_TABLE_IDS.includes(tableId);
+  const isTeen62 = TEEN62_TABLE_IDS.includes(tableId);
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -154,13 +154,46 @@ const hasLayOdds = betTypes.some(
   };
 
   const getSelectedBetOdds = () => {
-    const bet = betTypes.find((b: any) => b.type === selectedBet);
+    // Try to find bet by type first
+    let bet = betTypes.find((b: any) => b.type === selectedBet);
+    
+    // If not found, try to find by nat (for Teen62Betting)
+    if (!bet && selectedBet) {
+      if (selectedBet === "Player A" || selectedBet === "Player B") {
+        bet = betTypes.find((b: any) => 
+          (b.nat || "").toLowerCase() === selectedBet.toLowerCase()
+        );
+      } else if (selectedBet.startsWith("Consecutive")) {
+        const player = selectedBet.includes("A") ? "Player A" : "Player B";
+        bet = betTypes.find((b: any) => 
+          b.subtype === "con" && (b.nat || "").toLowerCase() === player.toLowerCase()
+        );
+      } else if (selectedBet.startsWith("Card")) {
+        // Extract card number from "Card X Odd" or "Card X Even"
+        const match = selectedBet.match(/Card (\d+)/);
+        if (match) {
+          const cardNo = parseInt(match[1]);
+          bet = betTypes.find((b: any) => b.nat === `Card ${cardNo}`);
+          if (bet && bet.odds) {
+            const type = selectedBet.includes("Odd") ? "Odd" : "Even";
+            const oddsObj = bet.odds.find((x: any) => x.nat === type);
+            if (oddsObj) {
+              const raw = oddsObj.b;
+              const num = Number(raw);
+              if (!num || isNaN(num)) return 1;
+              return num > 1000 ? num / 100000 : num;
+            }
+          }
+        }
+      }
+    }
+
     if (!bet) return 1;
 
     const raw =
       betType === "back"
-        ? bet?.back ?? bet?.odds
-        : bet?.lay ?? bet?.back ?? bet?.odds;
+        ? bet?.back ?? bet?.b ?? bet?.odds
+        : bet?.lay ?? bet?.l ?? bet?.back ?? bet?.b ?? bet?.odds;
 
     const num = Number(raw);
     if (!num || isNaN(num)) return 1;
@@ -168,8 +201,13 @@ const hasLayOdds = betTypes.some(
   };
 
   const handleSelectBet = (bet: any, side: "back" | "lay") => {
-    if (!bet || bet.status === "suspended") return;
-    setSelectedBet(bet.type);
+    if (!bet || bet.status === "suspended" || bet.gstatus === "SUSPENDED") return;
+    
+    // Use bet.type if available, otherwise construct from bet data
+    const betTypeLabel = bet.type || bet.nat || "";
+    if (!betTypeLabel) return;
+    
+    setSelectedBet(betTypeLabel);
     setBetType(side);
   };
 
@@ -234,14 +272,6 @@ const hasLayOdds = betTypes.some(
                 onSelect={handleSelectBet}
                 formatOdds={formatOdds}
               />
-            ) : isTeenPatti ? (
-              <TeenPattiBetting
-                betTypes={betTypes}
-                selectedBet={selectedBet}
-                betType={betType}
-                onSelect={handleSelectBet}
-                formatOdds={formatOdds}
-              />
             ) : isAb3 ? (
               <Ab3Betting
                 betTypes={betTypes}
@@ -286,7 +316,14 @@ const hasLayOdds = betTypes.some(
                 onPlaceBet={onPlaceBet}
                 loading={loading}
               />
-            ) : (
+            ) : isTeen62 ? (
+              <Teen62Betting
+                betTypes={betTypes}
+                table={table}
+                onPlaceBet={onPlaceBet}
+                loading={loading}
+              />
+            ): (
             
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
