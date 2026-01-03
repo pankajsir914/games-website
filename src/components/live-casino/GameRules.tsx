@@ -1,49 +1,116 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, AlertCircle } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 import { useDiamondCasino } from "@/hooks/useDiamondCasino";
 
-const sectionTitleMap = {
+/* ===============================
+   SECTION TITLES
+================================ */
+const sectionTitleMap: Record<string, string> = {
   main: "Game Rules",
   players: "Player Rules",
   banker: "Banker Rules",
+  sidebets: "Side Bets",
   side: "Side Bets",
 };
 
-const GameRules = ({ tableId }) => {
+/* ===============================
+   HTML SANITIZER
+================================ */
+const sanitizeHTML = (html: string): string => {
+  if (!html) return "";
+
+  let sanitized = html;
+  sanitized = sanitized.replace(/<script[\s\S]*?<\/script>/gi, "");
+  sanitized = sanitized.replace(/\son\w+="[^"]*"/gi, "");
+  sanitized = sanitized.replace(/\son\w+='[^']*'/gi, "");
+  sanitized = sanitized.replace(/javascript:/gi, "");
+  sanitized = sanitized.replace(/data:text\/html/gi, "");
+  sanitized = sanitized.replace(/vbscript:/gi, "");
+  sanitized = sanitized.replace(/<iframe[\s\S]*?<\/iframe>/gi, "");
+  sanitized = sanitized.replace(/<object[\s\S]*?<\/object>/gi, "");
+  sanitized = sanitized.replace(/<embed[\s\S]*?<\/embed>/gi, "");
+
+  return sanitized;
+};
+
+/* ===============================
+   🔹 SKELETON COMPONENT
+================================ */
+const RulesSkeleton = () => {
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {[1, 2, 3].map((i) => (
+        <Card key={i} className="shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+          </CardHeader>
+
+          <CardContent className="space-y-2">
+            <div className="h-3 w-full bg-muted animate-pulse rounded" />
+            <div className="h-3 w-[95%] bg-muted animate-pulse rounded" />
+            <div className="h-3 w-[90%] bg-muted animate-pulse rounded" />
+            <div className="h-3 w-[85%] bg-muted animate-pulse rounded" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+/* ===============================
+   COMPONENT
+================================ */
+const GameRules = ({ tableId }: { tableId: string }) => {
   const { fetchCasinoRules } = useDiamondCasino();
 
-  const [rules, setRules] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [rules, setRules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 🔒 StrictMode double-call fix
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!tableId) return;
+    if (!tableId || hasFetchedRef.current) return;
 
-    const loadRules = async () => {
-      setLoading(true);
-      setError(null);
+    hasFetchedRef.current = true;
+    setLoading(true);
+    setError(null);
 
-      const { rules, error } = await fetchCasinoRules(tableId);
+    fetchCasinoRules(tableId)
+      .then(({ rules, error }) => {
+        if (error) {
+          setError(error);
+          setRules([]);
+        } else {
+          setRules(rules || []);
+        }
+      })
+      .catch((err: any) => {
+        setError(err?.message || "Failed to load rules");
+        setRules([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [tableId, fetchCasinoRules]);
 
-      if (error) {
-        setError(error);
-      } else {
-        setRules(rules || []);
-      }
+  /* ===============================
+     SANITIZE ONCE
+  ================================ */
+  const sanitizedRules = useMemo(() => {
+    return rules.map((rule) => ({
+      ...rule,
+      safeHTML: sanitizeHTML(rule.rules || ""),
+    }));
+  }, [rules]);
 
-      setLoading(false);
-    };
-
-    loadRules();
-  }, [tableId]);
-
+  /* ===============================
+     STATES
+  ================================ */
   if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="animate-spin h-6 w-6" />
-      </div>
-    );
+    return <RulesSkeleton />;
   }
 
   if (error) {
@@ -55,27 +122,34 @@ const GameRules = ({ tableId }) => {
     );
   }
 
-  if (!rules.length) {
+  if (sanitizedRules.length === 0) {
     return (
-      <p className="text-muted-foreground py-10">
-        No rules available
-      </p>
+      <div className="flex flex-col items-center justify-center py-16">
+        <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+        <p className="text-muted-foreground text-center text-base">
+          Rules not found
+        </p>
+      </div>
     );
   }
 
+  /* ===============================
+     RENDER
+  ================================ */
   return (
-    <div className="space-y-6">
-      {rules.map((rule, idx) => (
-        <Card key={idx}>
-          <CardHeader>
-            <CardTitle className="text-base">
+    <div className="space-y-4 sm:space-y-6">
+      {sanitizedRules.map((rule, idx) => (
+        <Card key={`${rule.stype}-${idx}`} className="shadow-sm">
+          <CardHeader className="pb-2 sm:pb-3">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold">
               {sectionTitleMap[rule.stype] || rule.stype}
-            </CardTitle>
+            </h3>
           </CardHeader>
+
           <CardContent>
             <div
-              className="rules-wrapper"
-              dangerouslySetInnerHTML={{ __html: rule.rules }}
+              className="casino-rules-content text-xs sm:text-sm md:text-base leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: rule.safeHTML }}
             />
           </CardContent>
         </Card>
