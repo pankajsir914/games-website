@@ -250,6 +250,8 @@ export const Teen62Betting = ({
                 if (oNat === typeLower) return true;
                 // Try partial match (e.g., "odd" in "card 1 odd")
                 if (oNat.includes(typeLower) || typeLower.includes(oNat)) return true;
+                // Try with space variations
+                if (oNat === `${typeLower} card` || oNat === `card ${typeLower}`) return true;
                 return false;
               });
               
@@ -263,6 +265,19 @@ export const Teen62Betting = ({
                   oddsItem.bs ?? 
                   0
                 );
+              } else {
+                // If no match found, try to get first item if array has only one item
+                if (oddsArray.length === 1) {
+                  const firstItem = oddsArray[0];
+                  oddsValue = Number(
+                    firstItem.b ?? 
+                    firstItem.back ?? 
+                    firstItem.odds ?? 
+                    firstItem.b1 ?? 
+                    firstItem.bs ?? 
+                    0
+                  );
+                }
               }
             }
             
@@ -290,7 +305,7 @@ export const Teen62Betting = ({
                 className={`
                   relative h-9 flex items-center justify-center
                   font-semibold rounded
-                  ${!isSuspended 
+                  ${!isSuspended
                     ? "bg-sky-400 cursor-pointer hover:brightness-110 active:scale-95"
                     : "bg-slate-500 opacity-40 cursor-not-allowed"}
                   ${isSelected ? "ring-2 ring-yellow-400 ring-offset-1" : ""}
@@ -306,3 +321,4 @@ export const Teen62Betting = ({
     </div>
   );
 };
+  
