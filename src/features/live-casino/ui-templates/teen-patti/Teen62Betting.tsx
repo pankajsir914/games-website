@@ -1,31 +1,28 @@
-import { useMemo, useState } from "react";
-import { Lock, X } from "lucide-react";
+import { useMemo } from "react";
+import { Lock } from "lucide-react";
 
 /* =====================================================
    TYPES
 ===================================================== */
 
-type RawBet = any;
-
-type Bet = {
-  key: string;           // unique key
-  label: string;         // UI label
-  odds: number;          // back odds
-  sid?: number | string;
-  mid?: number | string;
-  suspended: boolean;
-};
-
-/* =====================================================
-   PROPS
-===================================================== */
-
 interface Teen62BettingProps {
-  betTypes: RawBet[];
-  table: any;
-  onPlaceBet: (payload: any) => Promise<void>;
+  betTypes?: any[];
+  selectedBet?: string;
+  betType?: "back" | "lay";
+  onSelect?: (bet: any, side: "back" | "lay") => void;
+  formatOdds?: (val: any) => string;
+  table?: any;
+  onPlaceBet?: (payload: any) => Promise<void>;
   loading?: boolean;
 }
+
+const formatDefaultOdds = (val: any): string => {
+  if (val === null || val === undefined || val === "") return "0.00";
+  const num = Number(val);
+  if (isNaN(num) || num === 0) return "0.00";
+  if (num > 1000) return (num / 100000).toFixed(2);
+  return num.toFixed(2);
+};
 
 /* =====================================================
    COMPONENT
@@ -33,179 +30,263 @@ interface Teen62BettingProps {
 
 export const Teen62Betting = ({
   betTypes = [],
-  table,
-  onPlaceBet,
-  loading = false,
+  selectedBet = "",
+  betType = "back",
+  onSelect,
+  formatOdds = formatDefaultOdds,
 }: Teen62BettingProps) => {
+  /* ================= FIND BETS ================= */
+  const byNat = (nat: string) =>
+    betTypes.find((b: any) => (b.nat || b.type || "").toLowerCase() === nat.toLowerCase());
 
-  /* ================= NORMALIZE BETS ================= */
-
-  const betMap = useMemo(() => {
-    const map: Record<string, Bet> = {};
-
-    console.log("🟡 Teen62 RAW betTypes:", betTypes);
-
-    betTypes.forEach((b: any) => {
-      const label =
-        b.type ||
-        b.nat ||
-        "";
-
-      if (!label) return;
-
-      const odds =
-        Number(b.back ?? b.b ?? b.odds ?? 0);
-
-      map[label] = {
-        key: label,
-        label,
-        odds,
-        sid: b.sid,
-        mid: b.mid,
-        suspended:
-          b.status === "suspended" ||
-          b.gstatus === "SUSPENDED" ||
-          odds === 0,
-      };
+  const cardBet = (n: number) => {
+    // Try multiple formats: "Card 1", "Card1", etc.
+    const found = betTypes.find((b: any) => {
+      const nat = (b.nat || b.type || "").trim();
+      return nat === `Card ${n}` || nat === `Card${n}`;
     });
-
-    console.log("🟢 Teen62 betMap:", map);
-    return map;
-  }, [betTypes]);
-
-  /* ================= STATE ================= */
-
-  const [betSlip, setBetSlip] = useState<Bet | null>(null);
-  const [amount, setAmount] = useState("");
-
-  /* ================= HELPERS ================= */
-
-  const openBet = (key: string) => {
-    const bet = betMap[key];
-    if (!bet || bet.suspended) return;
-
-    setAmount("");
-    setBetSlip(bet);
+    return found;
   };
 
-  const confirmBet = async () => {
-    if (!betSlip || !amount || Number(amount) <= 0) return;
+  const conA = betTypes.find(
+    (b: any) => b.subtype === "con" && ((b.nat || b.type || "").toLowerCase() === "player a")
+  );
 
-    await onPlaceBet({
-      tableId: table.id,
-      tableName: table.name,
-      betType: betSlip.label,
-      odds: betSlip.odds,
-      amount: Number(amount),
-      sid: betSlip.sid,
-      roundId: betSlip.mid,
-      side: "back",
-    });
+  const conB = betTypes.find(
+    (b: any) => b.subtype === "con" && ((b.nat || b.type || "").toLowerCase() === "player b")
+  );
 
-    setBetSlip(null);
-    setAmount("");
+  /* ================= GET ODDS ================= */
+  const getOdds = (bet: any, side: "back" | "lay") => {
+    if (!bet) return 0;
+    if (side === "back") {
+      return Number(bet.back ?? bet.b ?? bet.b1 ?? bet.odds ?? 0);
+    } else {
+      return Number(bet.lay ?? bet.l ?? bet.l1 ?? 0);
+    }
   };
 
-  /* =====================================================
-     RENDER
-  ===================================================== */
+  /* ================= CHECK SUSPENDED ================= */
+  const isSuspendedBet = (bet: any) => {
+    if (!bet) return true;
+    // Check status field (can be "suspended" or "open")
+    if (bet.status === "suspended") return true;
+    // Check gstatus field (can be "SUSPENDED", "OPEN", or "0")
+    if (bet.gstatus === "SUSPENDED" || bet.gstatus === "0") return true;
+    // If status is "open" or gstatus is "OPEN", it's NOT suspended - allow betting
+    if (bet.status === "open" || bet.gstatus === "OPEN") return false;
+    // Default: if no explicit status but bet exists, assume not suspended (allow betting)
+    return false;
+  };
 
-  const Cell = ({ betKey }: { betKey: string }) => {
-    const bet = betMap[betKey];
-    const locked = !bet || bet.suspended;
+  /* ================= HANDLERS ================= */
+  const handleBetClick = (bet: any, side: "back" | "lay", label: string) => {
+    if (!bet || !onSelect) return;
+    
+    // Check suspended status
+    if (isSuspendedBet(bet)) return;
+
+    // Pass bet with type label for BettingPanel
+    onSelect({ ...bet, type: label }, side);
+  };
+
+  /* ================= CELL COMPONENT ================= */
+  const Cell = ({
+    bet,
+    side,
+    odds,
+    label,
+    color,
+  }: {
+    bet?: any;
+    side: "back" | "lay";
+    odds?: number;
+    label: string;
+    color: string;
+  }) => {
+    const isSuspended = isSuspendedBet(bet);
+    const isSelected = selectedBet === label && betType === side;
+    const displayOdds = odds && odds > 0 ? formatOdds(odds) : "--";
 
     return (
       <div
-        onClick={locked ? undefined : () => openBet(betKey)}
+        onClick={() => !isSuspended && handleBetClick(bet, side, label)}
         className={`
-          relative h-9 flex items-center justify-center font-semibold rounded
-          ${locked
-            ? "bg-slate-400 opacity-40"
-            : "bg-sky-400 cursor-pointer hover:brightness-110"}
+          relative h-9 flex items-center justify-center
+          text-xs font-semibold rounded
+          ${color}
+          ${isSuspended
+            ? "opacity-40 cursor-not-allowed"
+            : "cursor-pointer hover:brightness-110 active:scale-95"}
+          ${isSelected ? "ring-2 ring-yellow-400 ring-offset-1" : ""}
         `}
       >
-        {bet ? bet.odds.toFixed(2) : "0.00"}
-        {locked && <Lock className="absolute w-3 h-3 text-dark" />}
+        {displayOdds}
+        {isSuspended && <Lock className="absolute w-3 h-3 text-black" />}
       </div>
     );
   };
 
+  const playerA = byNat("Player A");
+  const playerB = byNat("Player B");
+
   return (
-    <>
-      <div className="border rounded-md overflow-hidden text-xs bg-dark">
+    <div className="border rounded-md overflow-hidden text-xs bg-white">
+      {/* HEADER */}
+      <div className="grid grid-cols-[1fr_80px_80px_1fr_80px_80px] bg-gray-100 font-bold text-center text-gray-900">
+        <div className="p-2 text-left">Player A</div>
+        <div className="bg-sky-300 p-2 text-gray-900">Back</div>
+        <div className="bg-pink-300 p-2 text-gray-900">Lay</div>
+        <div className="p-2 text-left">Player B</div>
+        <div className="bg-sky-300 p-2 text-gray-900">Back</div>
+        <div className="bg-pink-300 p-2 text-gray-900">Lay</div>
+      </div>
 
-        {/* HEADER */}
-        <div className="grid grid-cols-[1fr_80px_80px_1fr_80px_80px] bg-gray-500 font-bold text-center">
-          <div className="p-2 text-left">Player A</div>
-          <div className="bg-sky-300 p-2">Back</div>
-          <div className="bg-pink-300 p-2">Lay</div>
-          <div className="p-2 text-left">Player B</div>
-          <div className="bg-sky-300 p-2">Back</div>
-          <div className="bg-pink-300 p-2">Lay</div>
-        </div>
+      {/* MAIN */}
+      <div className="grid grid-cols-[1fr_80px_80px_1fr_80px_80px] border-t">
+        <div className="p-2 bg-gray-500">Main</div>
+        <Cell
+          bet={playerA}
+          side="back"
+          odds={getOdds(playerA, "back")}
+          label="Player A"
+          color="bg-sky-400"
+        />
+        <Cell
+          bet={playerA}
+          side="lay"
+          odds={getOdds(playerA, "lay")}
+          label="Player A"
+          color="bg-pink-300"
+        />
 
-        {/* MAIN */}
+        <div className="p-2 bg-gray-500">Main</div>
+        <Cell
+          bet={playerB}
+          side="back"
+          odds={getOdds(playerB, "back")}
+          label="Player B"
+          color="bg-sky-400"
+        />
+        <Cell
+          bet={playerB}
+          side="lay"
+          odds={getOdds(playerB, "lay")}
+          label="Player B"
+          color="bg-pink-300"
+        />
+      </div>
+
+      {/* CONSECUTIVE */}
+      {(conA || conB) && (
         <div className="grid grid-cols-[1fr_80px_80px_1fr_80px_80px] border-t">
-          <div className="p-2">Main</div>
-          <Cell betKey="Player A" />
-          <Cell betKey="Player A Lay" />
+          <div className="p-2">Consecutive</div>
+          <Cell
+            bet={conA}
+            side="back"
+            odds={getOdds(conA, "back")}
+            label="Consecutive A"
+            color="bg-sky-400"
+          />
+          <Cell
+            bet={conA}
+            side="lay"
+            odds={getOdds(conA, "lay")}
+            label="Consecutive A"
+            color="bg-pink-300"
+          />
 
-          <div className="p-2">Main</div>
-          <Cell betKey="Player B" />
-          <Cell betKey="Player B Lay" />
+          <div className="p-2">Consecutive</div>
+          <Cell
+            bet={conB}
+            side="back"
+            odds={getOdds(conB, "back")}
+            label="Consecutive B"
+            color="bg-sky-400"
+          />
+          <Cell
+            bet={conB}
+            side="lay"
+            odds={getOdds(conB, "lay")}
+            label="Consecutive B"
+            color="bg-pink-300"
+          />
         </div>
+      )}
 
-        {/* CARD HEADER */}
-        <div className="grid grid-cols-[80px_repeat(6,1fr)] bg-gray-500 font-bold text-center border-t">
-          <div />
-          {[1,2,3,4,5,6].map(c => (
-            <div key={c} className="p-2">Card {c}</div>
-          ))}
-        </div>
-
-        {/* ODD / EVEN */}
-        {["Odd", "Even"].map(type => (
-          <div key={type} className="grid grid-cols-[80px_repeat(6,1fr)] border-t text-center">
-            <div className="p-2 font-bold">{type}</div>
-            {[1,2,3,4,5,6].map(n => (
-              <Cell key={n} betKey={`Card ${n} ${type}`} />
-            ))}
+      {/* CARD HEADER */}
+      <div className="grid grid-cols-[80px_repeat(6,1fr)] bg-gray-100 font-bold text-center border-t">
+        <div className="bg-gray-500" />
+        {[1, 2, 3, 4, 5, 6].map((c) => (
+          <div key={c} className="p-2 bg-gray-500">
+            Card {c}
           </div>
         ))}
       </div>
 
-      {/* ================= MODAL ================= */}
-      {betSlip && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-          <div className="bg-gray-500 rounded-lg w-[90%] max-w-sm p-4 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-sm">Place Bet</h3>
-              <X className="w-4 h-4 cursor-pointer" onClick={() => setBetSlip(null)} />
-            </div>
+      {/* ODD / EVEN */}
+      {["Odd", "Even"].map((type) => (
+        <div
+          key={type}
+          className="grid grid-cols-[80px_repeat(6,1fr)] border-t text-center"
+        >
+          <div className="p-2 font-bold bg-gray-500">{type}</div>
+          {[1, 2, 3, 4, 5, 6].map((cardNo) => {
+            const bet = cardBet(cardNo);
+            const label = `Card ${cardNo} ${type}`;
+            
+            // Check if bet has nested odds array
+            const oddsArray = bet?.odds;
+            let oddsValue = 0;
+            let oddsItem = null;
 
-            <div className="text-sm space-y-1">
-              <div><b>Bet:</b> {betSlip.label}</div>
-              <div><b>Odds:</b> {betSlip.odds.toFixed(2)}</div>
-            </div>
+            if (Array.isArray(oddsArray) && oddsArray.length > 0) {
+              // Find the Odd/Even odds from nested array
+              oddsItem = oddsArray.find((o: any) => {
+                const oNat = (o.nat || o.type || o.name || "").toLowerCase().trim();
+                const typeLower = type.toLowerCase().trim();
+                return oNat === typeLower;
+              });
+              if (oddsItem) {
+                oddsValue = Number(oddsItem.b ?? oddsItem.back ?? oddsItem.odds ?? oddsItem.b1 ?? 0);
+              }
+            } else {
+              // Fallback: use direct odds if no nested array
+              oddsValue = getOdds(bet, "back");
+            }
 
-            <input
-              type="number"
-              className="w-full border text-black rounded px-3 py-2 text-sm"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+            // Check suspended status - if status is "open", allow betting even if odds are 0
+            const isSuspended = isSuspendedBet(bet);
+            const isSelected = selectedBet === label && betType === "back";
+            const displayOdds = oddsValue && oddsValue > 0 ? formatOdds(oddsValue) : "--";
 
-            <button
-              onClick={confirmBet}
-              disabled={!amount || loading}
-              className="w-full py-2 rounded bg-blue-600 text-black font-bold disabled:opacity-50"
-            >
-              {loading ? "Placing..." : "Confirm Bet"}
-            </button>
-          </div>
+            // Create bet object for selection - pass the parent Card bet with type label
+            const cardBetObj = bet ? {
+              ...bet,
+              type: label, // Set type to full label "Card X Odd/Even"
+              nat: bet.nat || bet.type, // Keep original nat for reference
+            } : null;
+
+            return (
+              <div
+                key={cardNo}
+                onClick={() => !isSuspended && cardBetObj && handleBetClick(cardBetObj, "back", label)}
+                className={`
+                  relative h-9 flex items-center justify-center
+                  font-semibold rounded
+                  ${!isSuspended
+                    ? "bg-sky-400 cursor-pointer hover:brightness-110 active:scale-95"
+                    : "bg-slate-500 opacity-40 cursor-not-allowed"}
+                  ${isSelected ? "ring-2 ring-yellow-400 ring-offset-1" : ""}
+                `}
+              >
+                {displayOdds}
+                {isSuspended && <Lock className="absolute w-3 h-3 text-white" />}
+              </div>
+            );
+          })}
         </div>
-      )}
-    </>
+      ))}
+    </div>
   );
 };
