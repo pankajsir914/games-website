@@ -40,10 +40,11 @@ export const Teen62Betting = ({
     betTypes.find((b: any) => (b.nat || b.type || "").toLowerCase() === nat.toLowerCase());
 
   const cardBet = (n: number) => {
-    // Try multiple formats: "Card 1", "Card1", etc.
+    // Try multiple formats: "Card 1", "Card1", "card 1", etc.
     const found = betTypes.find((b: any) => {
       const nat = (b.nat || b.type || "").trim();
-      return nat === `Card ${n}` || nat === `Card${n}`;
+      const natLower = nat.toLowerCase();
+      return nat === `Card ${n}` || nat === `Card${n}` || natLower === `card ${n}` || natLower === `card${n}`;
     });
     return found;
   };
@@ -241,17 +242,32 @@ export const Teen62Betting = ({
             let oddsItem = null;
 
             if (Array.isArray(oddsArray) && oddsArray.length > 0) {
-              // Find the Odd/Even odds from nested array
+              // Find the Odd/Even odds from nested array - try multiple matching strategies
               oddsItem = oddsArray.find((o: any) => {
                 const oNat = (o.nat || o.type || o.name || "").toLowerCase().trim();
                 const typeLower = type.toLowerCase().trim();
-                return oNat === typeLower;
+                // Try exact match
+                if (oNat === typeLower) return true;
+                // Try partial match (e.g., "odd" in "card 1 odd")
+                if (oNat.includes(typeLower) || typeLower.includes(oNat)) return true;
+                return false;
               });
+              
               if (oddsItem) {
-                oddsValue = Number(oddsItem.b ?? oddsItem.back ?? oddsItem.odds ?? oddsItem.b1 ?? 0);
+                // Try multiple fields for odds value
+                oddsValue = Number(
+                  oddsItem.b ?? 
+                  oddsItem.back ?? 
+                  oddsItem.odds ?? 
+                  oddsItem.b1 ?? 
+                  oddsItem.bs ?? 
+                  0
+                );
               }
-            } else {
-              // Fallback: use direct odds if no nested array
+            }
+            
+            // If no odds from nested array, try direct odds on the bet object
+            if (!oddsValue || oddsValue === 0) {
               oddsValue = getOdds(bet, "back");
             }
 
@@ -274,7 +290,7 @@ export const Teen62Betting = ({
                 className={`
                   relative h-9 flex items-center justify-center
                   font-semibold rounded
-                  ${!isSuspended
+                  ${!isSuspended 
                     ? "bg-sky-400 cursor-pointer hover:brightness-110 active:scale-95"
                     : "bg-slate-500 opacity-40 cursor-not-allowed"}
                   ${isSelected ? "ring-2 ring-yellow-400 ring-offset-1" : ""}
