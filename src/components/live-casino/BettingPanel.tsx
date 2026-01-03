@@ -214,7 +214,29 @@ const hasLayOdds = betTypes.some(
   const handlePlaceBet = async () => {
     if (!selectedBet || !amount || parseFloat(amount) <= 0) return;
 
-    const bet = betTypes.find((b: any) => b.type === selectedBet);
+    // Find bet - handle Card bets specially
+    let bet = betTypes.find((b: any) => b.type === selectedBet);
+    
+    // If not found, try to find by nat (for Teen62Betting)
+    if (!bet && selectedBet) {
+      if (selectedBet === "Player A" || selectedBet === "Player B") {
+        bet = betTypes.find((b: any) => 
+          (b.nat || "").toLowerCase() === selectedBet.toLowerCase()
+        );
+      } else if (selectedBet.startsWith("Consecutive")) {
+        const player = selectedBet.includes("A") ? "Player A" : "Player B";
+        bet = betTypes.find((b: any) => 
+          b.subtype === "con" && (b.nat || "").toLowerCase() === player.toLowerCase()
+        );
+      } else if (selectedBet.startsWith("Card")) {
+        // Extract card number from "Card X Odd" or "Card X Even"
+        const match = selectedBet.match(/Card (\d+)/);
+        if (match) {
+          const cardNo = parseInt(match[1]);
+          bet = betTypes.find((b: any) => (b.nat || b.type) === `Card ${cardNo}`);
+        }
+      }
+    }
 
     await onPlaceBet({
       tableId: table.id,
@@ -319,6 +341,10 @@ const hasLayOdds = betTypes.some(
             ) : isTeen62 ? (
               <Teen62Betting
                 betTypes={betTypes}
+                selectedBet={selectedBet}
+                betType={betType}
+                onSelect={handleSelectBet}
+                formatOdds={formatOdds}
                 table={table}
                 onPlaceBet={onPlaceBet}
                 loading={loading}
