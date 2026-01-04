@@ -10,7 +10,7 @@ export const Teen62Betting = ({
   selectedBet = "",
   betType = "back",
   onSelect,
-  formatOdds = (v: any) => (v > 0 ? Number(v).toFixed(2) : "--"),
+  formatOdds,
 }: any) => {
   /* ================= HELPERS ================= */
   const byNat = (nat: string) =>
@@ -21,9 +21,7 @@ export const Teen62Betting = ({
 
   const cardBet = (n: number) =>
     betTypes.find((b: any) =>
-      (b.nat || b.type || "")
-        .toLowerCase()
-        .replace(/\s+/g, "") === `card${n}`
+      (b.nat || b.type || "").toLowerCase().replace(/\s+/g, "") === `card${n}`
     );
 
   const getOdds = (bet: any, side: "back" | "lay") => {
@@ -57,12 +55,9 @@ export const Teen62Betting = ({
 
         {/* ODD / EVEN HEADER */}
         <div className="grid grid-cols-2 gap-2 font-bold text-center">
-          {["Odd", "Even"].map((t) => (
-            <div
-              key={t}
-              className="bg-gray-800 text-white py-2 rounded"
-            >
-              {t}
+          {["Odd", "Even"].map((type) => (
+            <div key={type} className="bg-gray-800 text-white py-2 rounded">
+              {type}
             </div>
           ))}
         </div>
@@ -76,7 +71,7 @@ export const Teen62Betting = ({
             <div key={cardNo} className="border rounded p-2 space-y-2">
 
               {/* CARD TITLE */}
-              <div className="text-center font-bold bg-gray-200 py-1 rounded">
+              <div className="font-bold text-center bg-gray-200 py-1 rounded">
                 Card {cardNo}
               </div>
 
@@ -101,10 +96,8 @@ export const Teen62Betting = ({
                       ${suspended ? "opacity-40" : "cursor-pointer"}
                     `}
                   >
-                    {formatOdds(getOdds(bet, side))}
-                    {suspended && (
-                      <Lock className="w-3 h-3 ml-1" />
-                    )}
+                    {getOdds(bet, side) || "--"}
+                    {suspended && <Lock className="w-3 h-3 ml-1" />}
                   </div>
                 ))}
               </div>
@@ -130,10 +123,8 @@ export const Teen62Betting = ({
                       ${suspended ? "opacity-40" : "cursor-pointer"}
                     `}
                   >
-                    {formatOdds(getOdds(bet, side))}
-                    {suspended && (
-                      <Lock className="w-3 h-3 ml-1" />
-                    )}
+                    {getOdds(bet, side) || "--"}
+                    {suspended && <Lock className="w-3 h-3 ml-1" />}
                   </div>
                 ))}
               </div>
@@ -143,58 +134,8 @@ export const Teen62Betting = ({
       </div>
 
       {/* ================= DESKTOP ================= */}
-      <div className="hidden sm:block border rounded bg-white text-xs">
-
-        {/* HEADER */}
-        <div className="grid grid-cols-[1fr_80px_80px_1fr_80px_80px] bg-gray-100 font-bold text-center">
-          <div className="p-2 text-left">Player A</div>
-          <div className="bg-sky-300 p-2">Back</div>
-          <div className="bg-pink-300 p-2">Lay</div>
-          <div className="p-2 text-left">Player B</div>
-          <div className="bg-sky-300 p-2">Back</div>
-          <div className="bg-pink-300 p-2">Lay</div>
-        </div>
-
-        {/* MAIN */}
-        <div className="grid grid-cols-[1fr_80px_80px_1fr_80px_80px] border-t">
-          <div className="p-2 bg-gray-500 text-white">Main</div>
-
-          {["back", "lay"].map((side: any) => (
-            <div
-              key={side}
-              onClick={() =>
-                !isSuspended(playerA) &&
-                clickBet(playerA, side, "Player A")
-              }
-              className={`
-                h-9 flex items-center justify-center font-semibold rounded
-                ${side === "back" ? "bg-sky-400" : "bg-pink-300"}
-                ${isSuspended(playerA) ? "opacity-40" : "cursor-pointer"}
-              `}
-            >
-              {formatOdds(getOdds(playerA, side))}
-            </div>
-          ))}
-
-          <div className="p-2 bg-gray-500 text-white">Main</div>
-
-          {["back", "lay"].map((side: any) => (
-            <div
-              key={side}
-              onClick={() =>
-                !isSuspended(playerB) &&
-                clickBet(playerB, side, "Player B")
-              }
-              className={`
-                h-9 flex items-center justify-center font-semibold rounded
-                ${side === "back" ? "bg-sky-400" : "bg-pink-300"}
-                ${isSuspended(playerB) ? "opacity-40" : "cursor-pointer"}
-              `}
-            >
-              {formatOdds(getOdds(playerB, side))}
-            </div>
-          ))}
-        </div>
+      <div className="hidden sm:block">
+        {/* 👇 AAPKA EXISTING DESKTOP CODE YAHI RAKHO */}
       </div>
     </>
   );
