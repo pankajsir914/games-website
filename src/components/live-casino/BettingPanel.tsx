@@ -18,6 +18,7 @@ import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjB
 import { Ab4Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab4Betting";
 import { Ab20Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab20Betting";
 import { Teen62Betting } from "@/features/live-casino/ui-templates/teen-patti/Teen62Betting";
+import { MogamboBetting } from "@/features/live-casino/ui-templates/teen-patti/MogamboBetting";
 
 
 /* =====================================================
@@ -30,6 +31,7 @@ const ABJ_TABLE_IDS = ["abj"];
 const AB4_TABLE_IDS = ["ab4"];
 const AB20_TABLE_IDS = ["ab20"];
 const TEEN62_TABLE_IDS = ["teen62"]; 
+const MOGAMBO_TABLE_IDS = ["mogambo"];
 
 
 
@@ -82,6 +84,7 @@ const hasLayOdds = betTypes.some(
   const isAb4 = AB4_TABLE_IDS.includes(tableId);
   const isAb20 = AB20_TABLE_IDS.includes(tableId);
   const isTeen62 = TEEN62_TABLE_IDS.includes(tableId);
+  const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -346,6 +349,12 @@ const hasLayOdds = betTypes.some(
                 onSelect={handleSelectBet}
                 formatOdds={formatOdds}
                 table={table}
+                onPlaceBet={onPlaceBet}
+                loading={loading}
+              />
+            ) : isMogambo ? (
+              <MogamboBetting
+                betTypes={betTypes}
                 onPlaceBet={onPlaceBet}
                 loading={loading}
               />
