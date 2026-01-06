@@ -7,7 +7,7 @@ import { VideoPlayer } from "../../common/VideoPlayer";
 import { LiveCasinoTemplateProps } from "../../types";
 import { deriveRoundMeta } from "../../common/roundUtils";
 
-export const BlackjackTemplate = ({
+export const BaccaratTemplate = ({
   table,
   odds,
   bets,
@@ -28,10 +28,10 @@ export const BlackjackTemplate = ({
 
   const accentBar =
     variant === "vip"
-      ? "bg-gradient-to-r from-purple-500 to-amber-500"
+      ? "bg-gradient-to-r from-yellow-500 to-amber-500"
       : variant === "speed"
-        ? "bg-gradient-to-r from-teal-500 to-cyan-500"
-        : "bg-gradient-to-r from-indigo-500 to-blue-600";
+        ? "bg-gradient-to-r from-cyan-500 to-sky-500"
+        : "bg-gradient-to-r from-emerald-500 to-lime-500";
 
   const { remainingSeconds, status, roundId } = deriveRoundMeta({
     currentResult,
@@ -49,7 +49,7 @@ export const BlackjackTemplate = ({
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base">
-                {table.tableName} · Blackjack
+                {table.tableName} · Baccarat
               </CardTitle>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="uppercase">{variant}</span>
