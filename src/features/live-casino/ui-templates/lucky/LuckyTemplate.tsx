@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BetHistory } from "@/components/live-casino/BetHistory";
 import { OddsDisplay } from "@/components/live-casino/OddsDisplay";
 import { CurrentResult } from "@/components/live-casino/CurrentResult";
-import { RoundTimer } from "../../common/RoundTimer";
 import { VideoPlayer } from "../../common/VideoPlayer";
 import { LiveCasinoTemplateProps } from "../../types";
 import { deriveRoundMeta } from "../../common/roundUtils";
@@ -79,12 +78,6 @@ export const LuckyTemplate = ({
       </div>
 
       <div className="lg:col-span-1 space-y-3 md:space-y-4">
-        <RoundTimer
-          status={status}
-          remainingSeconds={Number(remainingSeconds) || 0}
-          roundId={roundId}
-        />
-
         {currentResult && (
           <CurrentResult
             result={currentResult}
