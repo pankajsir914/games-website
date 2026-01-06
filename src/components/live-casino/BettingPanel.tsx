@@ -20,6 +20,7 @@ import { Ab20Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab2
 import { Teen62Betting } from "@/features/live-casino/ui-templates/teen-patti/Teen62Betting";
 import { MogamboBetting } from "@/features/live-casino/ui-templates/teen-patti/MogamboBetting";
 import { Dt6Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt6Betting";
+import { Dtl20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dtl20Betting";
 
 
 /* =====================================================
@@ -34,6 +35,7 @@ const AB20_TABLE_IDS = ["ab20"];
 const TEEN62_TABLE_IDS = ["teen62"]; 
 const MOGAMBO_TABLE_IDS = ["mogambo"];
 const DT6_TABLE_IDS = ["dt6"];
+const DTL20_TABLE_IDS = ["dtl20"];
 
 
 
@@ -88,6 +90,11 @@ const hasLayOdds = betTypes.some(
   const isTeen62 = TEEN62_TABLE_IDS.includes(tableId);
   const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
   const isDt6 = DT6_TABLE_IDS.includes(tableId);
+  // DTL20 matching - flexible to catch variations
+  const isDtl20 = DTL20_TABLE_IDS.includes(tableId) || 
+                  tableId.includes("dtl20") || 
+                  tableId.includes("dt20") ||
+                  tableId === "dtl20";
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -290,7 +297,7 @@ const hasLayOdds = betTypes.some(
         )}
 
         {/* ================= BETTING UI ================= */}
-        {!isRestricted && hasRealOdds && (
+        {!isRestricted && (hasRealOdds || isDtl20) && (
           <>
             {isDolidana ? (
               <DolidanaBetting
@@ -383,6 +390,26 @@ const hasLayOdds = betTypes.some(
                 }}
                 loading={loading}
               />
+            ) : isDtl20 ? (
+              <Dtl20Betting
+                betTypes={betTypes}
+                onPlaceBet={async (payload) => {
+                  // Dtl20Betting sends {sid, odds, nat}, convert to expected format
+                  const bet = betTypes.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: parseFloat(amount),
+                    betType: payload.nat || bet?.type || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: bet?.mid,
+                    sid: payload.sid,
+                    side: "back",
+                  });
+                }}
+                loading={loading}
+                formatOdds={formatOdds}
+              />
             ): (
             
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
@@ -420,7 +447,7 @@ const hasLayOdds = betTypes.some(
                         } gap-1`}
                       >
                         <Button
-                          size="sm"
+                          size="sm" 
                           className={`
                             h-7 text-[11px] px-1
                             ${
