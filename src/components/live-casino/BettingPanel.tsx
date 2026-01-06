@@ -357,6 +357,9 @@ const hasLayOdds = betTypes.some(
                 betTypes={betTypes}
                 onPlaceBet={onPlaceBet}
                 loading={loading}
+                table={table}
+                formatOdds={formatOdds}
+                odds={odds}
               />
             ): (
             
