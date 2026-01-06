@@ -19,6 +19,7 @@ import { Ab4Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab4B
 import { Ab20Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab20Betting";
 import { Teen62Betting } from "@/features/live-casino/ui-templates/teen-patti/Teen62Betting";
 import { MogamboBetting } from "@/features/live-casino/ui-templates/teen-patti/MogamboBetting";
+import { Dt6Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt6Betting";
 
 
 /* =====================================================
@@ -32,6 +33,7 @@ const AB4_TABLE_IDS = ["ab4"];
 const AB20_TABLE_IDS = ["ab20"];
 const TEEN62_TABLE_IDS = ["teen62"]; 
 const MOGAMBO_TABLE_IDS = ["mogambo"];
+const DT6_TABLE_IDS = ["dt6"];
 
 
 
@@ -85,6 +87,7 @@ const hasLayOdds = betTypes.some(
   const isAb20 = AB20_TABLE_IDS.includes(tableId);
   const isTeen62 = TEEN62_TABLE_IDS.includes(tableId);
   const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
+  const isDt6 = DT6_TABLE_IDS.includes(tableId);
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -360,6 +363,25 @@ const hasLayOdds = betTypes.some(
                 table={table}
                 formatOdds={formatOdds}
                 odds={odds}
+              />
+            ) : isDt6 ? (
+              <Dt6Betting
+                betTypes={betTypes}
+                onPlaceBet={async (payload) => {
+                  // Dt6Betting sends {sid, odds, nat}, convert to expected format
+                  const bet = betTypes.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: parseFloat(amount),
+                    betType: payload.nat || bet?.type || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: bet?.mid,
+                    sid: payload.sid,
+                    side: "back",
+                  });
+                }}
+                loading={loading}
               />
             ): (
             
