@@ -40,19 +40,31 @@ const CARD_ORDER = [
 
 /* ================= HELPERS ================= */
 
-const isSuspended = (b: any) =>
-  !b || b?.gstatus === "SUSPENDED" || b?.status === "suspended";
+const isSuspended = (b: any) => {
+  // Only consider suspended if bet exists and is actually suspended
+  if (!b) return false; // Don't lock if bet doesn't exist - show card as available
+  return b?.gstatus === "SUSPENDED" || b?.status === "suspended" || b?.gstatus === "0";
+};
 
 const byName = (betTypes: any[], k: string) =>
   betTypes.find((b: any) =>
     (b.nat || b.type || "").toLowerCase().includes(k)
   );
 
-const getJokerBet = (betTypes: any[], card: string) =>
-  betTypes.find(
-    (b: any) =>
-      (b.nat || "").toLowerCase() === `joker ${card.toLowerCase()}`
-  );
+const getJokerBet = (betTypes: any[], card: string) => {
+  if (!betTypes || betTypes.length === 0) return null;
+  
+  // Try multiple formats: "joker A", "Joker A", "JOKER A", etc.
+  const searchTerm = `joker ${card.toLowerCase()}`;
+  return betTypes.find(
+    (b: any) => {
+      const nat = (b.nat || "").toLowerCase().trim();
+      const type = (b.type || "").toLowerCase().trim();
+      return nat === searchTerm || type === searchTerm || 
+             nat.includes(searchTerm) || type.includes(searchTerm);
+    }
+  ) || null;
+};
 
 /* ================= COMPONENT ================= */
 
@@ -96,8 +108,21 @@ export const AbjBetting = ({
   const getOdds = (bet: any) =>
     bet?.l ?? bet?.back ?? bet?.b ?? bet?.odds ?? 0;
 
+  const isLocked = (bet: any) => {
+    if (!bet) return false;
+    const suspended = isSuspended(bet);
+    const odds = getOdds(bet);
+    const oddsValue = formatOdds(odds);
+    const hasZeroOdds = oddsValue === "0.00" || Number(odds) === 0;
+    return suspended || hasZeroOdds;
+  };
+
   const handleBetClick = (bet: any) => {
-    if (!bet || isSuspended(bet)) return;
+    if (!bet) return;
+    
+    if (isLocked(bet)) return;
+    
+    // Allow clicking if bet exists and is not locked
     setSelectedBetData(bet);
     setModalOpen(true);
     onSelect?.(bet, "back");
@@ -109,89 +134,131 @@ export const AbjBetting = ({
       {/* SA / SB */}
       <div className="flex justify-between gap-4">
         {[{ label: "A", bet: SA }, { label: "B", bet: SB }].map(
-          ({ label, bet }) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="font-bold">{label}</span>
-              <div
-                onClick={() => handleBetClick(bet)}
-                className={`w-[90px] h-[44px] border rounded flex flex-col items-center justify-center
-                  ${
-                    isSuspended(bet)
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer border-yellow-400"
-                  }`}
-              >
-                <div className="font-bold">{label === "A" ? "SA" : "SB"}</div>
-                <div className="text-xs">
-                  {formatOdds(getOdds(bet))}
+          ({ label, bet }) => {
+            const locked = isLocked(bet);
+            return (
+              <div key={label} className="flex items-center gap-2">
+                <span className="font-bold">{label}</span>
+                <div
+                  onClick={() => handleBetClick(bet)}
+                  className={`w-[90px] h-[44px] border rounded flex flex-col items-center justify-center relative
+                    ${
+                      locked
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer border-yellow-400"
+                    }`}
+                >
+                  {locked && (
+                    <Lock className="w-3 h-3 absolute top-1 right-1 text-red-500" />
+                  )}
+                  <div className="font-bold">{label === "A" ? "SA" : "SB"}</div>
+                  <div className="text-xs">
+                    {formatOdds(getOdds(bet))}
+                  </div>
                 </div>
               </div>
-            </div>
-          )
+            );
+          }
         )}
       </div>
 
       {/* ODD EVEN */}
       <div className="grid grid-cols-2 gap-4">
         {[{ label: "ODD", bet: odd }, { label: "EVEN", bet: even }].map(
-          ({ label, bet }) => (
-            <div key={label} className="text-center">
-              <div className="font-bold">{label}</div>
-              <div
-                onClick={() => handleBetClick(bet)}
-                className={`h-[44px] rounded flex items-center justify-center font-bold
-                  ${
-                    isSuspended(bet)
-                      ? "opacity-50 cursor-not-allowed bg-sky-400"
-                      : "cursor-pointer bg-sky-400"
-                  }`}
-              >
-                {formatOdds(getOdds(bet))}
+          ({ label, bet }) => {
+            const locked = isLocked(bet);
+            return (
+              <div key={label} className="text-center">
+                <div className="font-bold">{label}</div>
+                <div
+                  onClick={() => handleBetClick(bet)}
+                  className={`h-[44px] rounded flex items-center justify-center font-bold relative
+                    ${
+                      locked
+                        ? "opacity-50 cursor-not-allowed bg-sky-400"
+                        : "cursor-pointer bg-sky-400"
+                    }`}
+                >
+                  {locked && (
+                    <Lock className="w-4 h-4 absolute top-1 right-1 text-red-500" />
+                  )}
+                  {formatOdds(getOdds(bet))}
+                </div>
               </div>
-            </div>
-          )
+            );
+          }
         )}
       </div>
 
       {/* SUITS */}
       <div className="grid grid-cols-4 gap-3 text-center">
-        {suits.map((s) => (
-          <div key={s.key}>
-            <div className="text-xl">{s.icon}</div>
-            <div
-              onClick={() => handleBetClick(s.bet)}
-              className={`h-[44px] rounded flex items-center justify-center font-bold
-                ${
-                  isSuspended(s.bet)
-                    ? "opacity-50 cursor-not-allowed bg-sky-400"
-                    : "cursor-pointer bg-sky-400"
-                }`}
-            >
-              {formatOdds(getOdds(s.bet))}
+        {suits.map((s) => {
+          const locked = isLocked(s.bet);
+          return (
+            <div key={s.key}>
+              <div className="text-xl">{s.icon}</div>
+              <div
+                onClick={() => handleBetClick(s.bet)}
+                className={`h-[44px] rounded flex items-center justify-center font-bold relative
+                  ${
+                    locked
+                      ? "opacity-50 cursor-not-allowed bg-sky-400"
+                      : "cursor-pointer bg-sky-400"
+                  }`}
+              >
+                {locked && (
+                  <Lock className="w-4 h-4 absolute top-1 right-1 text-red-500" />
+                )}
+                {formatOdds(getOdds(s.bet))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* JOKER CARDS */}
       <div className="flex flex-wrap justify-center gap-2">
         {CARD_ORDER.map((card) => {
           const bet = getJokerBet(betTypes, card);
-          const locked = isSuspended(bet);
+          // Show all cards always - lock if bet exists AND (is suspended OR odds are 0.00)
+          const locked = bet ? isLocked(bet) : false;
+          const canBet = bet && !locked;
+          const hasBet = !!bet;
 
           return (
             <div
               key={card}
-              onClick={() => !locked && handleBetClick(bet)}
-              className={`w-[42px] h-[60px] border rounded flex flex-col items-center justify-center
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canBet && bet) {
+                  handleBetClick(bet);
+                }
+              }}
+              className={`w-[42px] h-[60px] border-2 rounded flex flex-col items-center justify-center transition-all relative select-none
                 ${
                   locked
-                    ? "bg-gray-600 text-white"
-                    : "bg-white cursor-pointer border-yellow-400"
+                    ? "bg-gray-600 text-white opacity-60 cursor-not-allowed border-gray-500"
+                    : hasBet && canBet
+                    ? "bg-white cursor-pointer border-yellow-400 hover:border-yellow-500 hover:scale-105 hover:shadow-md active:scale-95"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300"
                 }`}
+              style={{
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                touchAction: 'manipulation',
+              }}
             >
-              <div className="font-bold text-xs">{card}</div>
-              {locked && <Lock className="w-3 h-3 mt-1" />}
+              <div className={`font-bold text-xs ${locked ? 'text-white' : hasBet && canBet ? 'text-black' : 'text-gray-400'}`}>
+                {card}
+              </div>
+              {bet && (
+                <div className={`text-[9px] mt-0.5 ${locked ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {formatOdds(getOdds(bet))}
+                </div>
+              )}
+              {locked && (
+                <Lock className="w-3 h-3 text-red-500 absolute top-1 right-1 bg-white rounded-full p-0.5 shadow-sm" />
+              )}
             </div>
           );
         })}
