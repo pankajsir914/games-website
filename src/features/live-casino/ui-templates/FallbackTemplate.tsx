@@ -2,7 +2,6 @@ import { BetHistory } from "@/components/live-casino/BetHistory";
 import { CurrentResult } from "@/components/live-casino/CurrentResult";
 import { BetSlip } from "../common/BetSlip";
 import { VideoPlayer } from "../common/VideoPlayer";
-import { RoundTimer } from "../common/RoundTimer";
 import { deriveRoundMeta } from "../common/roundUtils";
 import { LiveCasinoTemplateProps } from "../types";
 
@@ -38,11 +37,6 @@ export const FallbackTemplate = ({
       </div>
 
       <div className="lg:col-span-1 space-y-3 md:space-y-4">
-        <RoundTimer
-          status={status}
-          remainingSeconds={Number(remainingSeconds) || 0}
-          roundId={roundId}
-        />
         {currentResult && (
           <CurrentResult
             result={currentResult}
