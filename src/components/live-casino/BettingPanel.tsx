@@ -443,48 +443,52 @@ const hasLayOdds = betTypes.some(
         )}
 
         {/* ================= AMOUNT ================= */}
-        <div className="space-y-2">
-          <Label className="text-xs">Quick Amount</Label>
+        {!isAbj && (
+          <div className="space-y-2">
+            <Label className="text-xs">Quick Amount</Label>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {quickAmounts.map((amt) => (
-              <Button
-                key={amt}
-                size="sm"
-                variant={amount === String(amt) ? "default" : "outline"}
-                onClick={() => setAmount(String(amt))}
-              >
-                ₹{amt}
-              </Button>
-            ))}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {quickAmounts.map((amt) => (
+                <Button
+                  key={amt}
+                  size="sm"
+                  variant={amount === String(amt) ? "default" : "outline"}
+                  onClick={() => setAmount(String(amt))}
+                >
+                  ₹{amt}
+                </Button>
+              ))}
+            </div>
+
+            <Input
+              type="number"
+              value={amount}
+              className="h-9"
+              onChange={(e) => setAmount(e.target.value)}
+            />
           </div>
-
-          <Input
-            type="number"
-            value={amount}
-            className="h-9"
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </div>
+        )}
 
         {/* ================= PLACE BET ================= */}
-        <Button
-          className="w-full h-9"
-          disabled={!selectedBet || loading || isRestricted}
-          onClick={handlePlaceBet}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Placing...
-            </>
-          ) : (
-            `${betType.toUpperCase()} ₹${amount}`
-          )}
-        </Button>
+        {!isAbj && (
+          <Button
+            className="w-full h-9"
+            disabled={!selectedBet || loading || isRestricted}
+            onClick={handlePlaceBet}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Placing...
+              </>
+            ) : (
+              `${betType.toUpperCase()} ₹${amount}`
+            )}
+          </Button>
+        )}
 
         {/* ================= CALC ================= */}
-        {selectedBet && (
+        {!isAbj && selectedBet && (
           <div className="text-xs text-center text-muted-foreground">
             {betType === "back" ? "Potential win" : "Liability"}: ₹
             {(parseFloat(amount) * (getSelectedBetOdds() - 1)).toFixed(2)}
