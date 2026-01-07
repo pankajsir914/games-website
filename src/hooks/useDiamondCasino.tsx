@@ -238,9 +238,60 @@ export const useDiamondCasino = () => {
 
       let extractedBets: any[] = [];
       const payload = oddsResponse?.data || oddsResponse;
+      // For Teen62, check payload.raw for sub array (API structure: data.raw.sub)
+      const rawData = payload?.raw || payload; // Check raw data for sub array
+      const isTeen62 = rawData?.gtype === "teen62" || payload?.gtype === "teen62" || tableId?.toLowerCase().includes("teen62");
 
-      // Check if we have bets directly
-      if (payload?.bets && Array.isArray(payload.bets)) {
+      // Debug: Log API response for Teen62
+      if (isTeen62) {
+        // console.log("🔍 API Response for Teen62:", {
+        //   fullResponse: oddsResponse,
+        //   payload: payload,
+        //   rawData: rawData,
+        //   hasSubInPayload: !!payload?.sub,
+        //   hasSubInRaw: !!rawData?.sub,
+        //   subLength: rawData?.sub?.length,
+        //   subArray: rawData?.sub,
+        //   rawDataKeys: rawData ? Object.keys(rawData) : [],
+        // });
+      }
+
+      // For Teen62, check 'sub' array first (API structure)
+      // Check in rawData first, then payload
+      const subArray = rawData?.sub || payload?.sub;
+      if (isTeen62 && subArray && Array.isArray(subArray)) {
+        extractedBets = subArray
+          .filter((bet: any) => {
+            // Include all bets for Teen62 (even with 0 odds, they might have odds array)
+            return bet && bet.subtype;
+          })
+          .map((bet: any) => {
+            const convert = (v: number) => (v > 1000 ? v / 100000 : v || 0);
+            const back = convert(Number(bet.b || bet.back || bet.b1 || 0));
+            const lay = convert(Number(bet.l || bet.lay || bet.l1 || 0));
+
+            return {
+              type: bet.type || bet.nat || bet.nation || "Unknown",
+              nat: bet.nat || bet.type || bet.nation,
+              odds: back || lay,
+              back,
+              lay,
+              status: bet.status || (bet.gstatus === "OPEN" ? "active" : "suspended"),
+              gstatus: bet.gstatus,
+              min: bet.min || 100,
+              max: bet.max || 100000,
+              sid: bet.sid,
+              mid: bet.mid || payload.mid,
+              // Preserve ALL original fields for Teen62
+              subtype: bet.subtype, // "teen", "con", "oddeven"
+              b: bet.b, // Original back odds (decimal format from API)
+              l: bet.l, // Original lay odds (decimal format from API)
+              odds: bet.odds, // Odds array for card bets
+            };
+          });
+      }
+      // Check if we have bets directly (for other games)
+      else if (payload?.bets && Array.isArray(payload.bets)) {
         extractedBets = payload.bets
           .filter((bet: any) => {
             if (!bet) return false;
@@ -420,9 +471,13 @@ export const useDiamondCasino = () => {
               // If item has a valid bet type name, include it even if visible is 0 (odds might be loading)
               const shouldShow = hasValidBetType ? (item.visible !== false) : (!isExplicitlyHidden && item.visible !== 0 && item.visible !== '0');
               
+              // Check if this is Teen62
+              const isTeen62 = rawData?.gtype === "teen62" || tableId?.toLowerCase().includes("teen62");
+              
               // Add if there's a valid back or lay value, OR if the item should be shown and has a valid bet type name
               // (some games might show options even with 0 odds initially - they'll update when odds become available)
-              const shouldInclude = (finalBack > 0 || finalLay > 0) || (shouldShow && hasValidBetType);
+              // For Teen62, include bets with subtype even if odds are 0
+              const shouldInclude = (finalBack > 0 || finalLay > 0) || (shouldShow && hasValidBetType) || (isTeen62 && item.subtype);
               
               if (shouldInclude) {
                 // Convert odds from points format to decimal format
@@ -446,14 +501,23 @@ export const useDiamondCasino = () => {
                 
                 extractedBets.push({
                   type: betType,
+                  nat: item.nat || item.nation || item.name || item.type || item.label, // Preserve nat
                   odds: oddsValue,
                   back: convertedBack,
                   lay: convertedLay,
                   status: (item.gstatus === "0" || item.gstatus === "SUSPENDED" || item.status === "suspended" || item.suspended) ? "suspended" : "active",
+                  gstatus: item.gstatus, // Preserve gstatus
                   min: item.min || rawData.min || 100,
                   max: item.max || rawData.max || 100000,
                   sid: item.sid,
                   mid: item.mid || rawData.mid,
+                  // Preserve ALL original fields for Teen62
+                  ...(isTeen62 && {
+                    subtype: item.subtype, // "teen", "con", "oddeven"
+                    b: item.b, // Original back odds (decimal format)
+                    l: item.l, // Original lay odds (decimal format)
+                    odds: item.odds, // Odds array for card bets
+                  }),
                 });
               }
             });
