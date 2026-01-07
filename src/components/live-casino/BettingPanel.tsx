@@ -21,6 +21,9 @@ import { Dt6Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt6
 import { Dtl20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dtl20Betting";
 import { Dt202Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt202Betting";
 import { Dt20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt20Betting";
+import { PokerBettingBoard } from "@/features/live-casino/ui-templates/poker/PokerBetting";
+import { Poker6BettingBoard } from "@/features/live-casino/ui-templates/poker/Poker6Betting";
+import { Poker20BettingBoard } from "@/features/live-casino/ui-templates/poker/Poker20Betting";
 
 
 /* =====================================================
