@@ -244,7 +244,7 @@ export const MogamboBetting = ({
             ${
               isSuspended(dagaTeja)
                 ? "bg-gray-200 text-gray-500"
-                : "bg-blue-100 hover:bg-blue-200"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
             }`}
         >
           <span>Daga / Teja</span>
@@ -266,7 +266,7 @@ export const MogamboBetting = ({
             ${
               isSuspended(mogambo)
                 ? "bg-gray-200 text-gray-500"
-                : "bg-blue-100 hover:bg-blue-200"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
             }`}
         >
           <span>Mogambo</span>
@@ -289,7 +289,7 @@ export const MogamboBetting = ({
           ${
             isSuspended(cardTotal)
               ? "bg-gray-200 text-gray-500"
-              : "bg-pink-100 hover:bg-pink-200"
+              : "bg-pink-600 hover:bg-pink-700 text-white"
           }`}
       >
         <span>3 Card Total</span>
@@ -316,16 +316,16 @@ export const MogamboBetting = ({
             </button>
           </DialogHeader>
 
-          <div className="bg-pink-200 p-3 text-sm">
-            <div className="flex justify-between mb-2">
-              <span>{selectedBet?.nat}</span>
-              <span>Range: {selectedBet?.min} to {selectedBet?.max}</span>
+          <div className="bg-white dark:bg-gray-800 p-3 text-sm">
+            <div className="flex justify-between mb-2 text-gray-900 dark:text-white">
+              <span className="font-semibold">{selectedBet?.nat}</span>
+              <span className="text-gray-600 dark:text-gray-300">Range: {selectedBet?.min} to {selectedBet?.max}</span>
             </div>
 
             {/* 3 CARD TOTAL SELECTION */}
             {selectedBet?.nat?.toLowerCase().includes("3 card total") && (
               <div className="mb-3">
-                <label className="block text-xs font-semibold mb-2">
+                <label className="block text-xs font-semibold mb-2 text-gray-900 dark:text-white">
                   Select Total Value:
                 </label>
                 <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto">
@@ -340,7 +340,7 @@ export const MogamboBetting = ({
                           className={`py-2 px-1 rounded text-xs font-bold ${
                             selectedTotal === value
                               ? "bg-blue-600 text-white"
-                              : "bg-gray-300 hover:bg-gray-400"
+                              : "bg-gray-600 hover:bg-gray-700 text-white"
                           }`}
                         >
                           {value}
@@ -350,8 +350,8 @@ export const MogamboBetting = ({
                   )}
                 </div>
                 {selectedTotal !== null && (
-                  <div className="mt-2 text-xs text-gray-700">
-                    Selected: <strong>{selectedTotal}</strong>
+                  <div className="mt-2 text-xs text-gray-900 dark:text-white">
+                    Selected: <strong className="text-blue-600 dark:text-blue-400">{selectedTotal}</strong>
                   </div>
                 )}
               </div>
@@ -363,11 +363,13 @@ export const MogamboBetting = ({
                 disabled
                 value={formatOdds(getOdds(selectedBet))}
                 placeholder="Odds"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
               />
               <Input
                 value={stake}
                 onChange={(e) => setStake(e.target.value)}
                 placeholder="Stake"
+                className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
               />
               <Input
                 disabled
@@ -377,6 +379,7 @@ export const MogamboBetting = ({
                     : ""
                 }
                 placeholder="Profit"
+                className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
               />
             </div>
 
@@ -386,7 +389,7 @@ export const MogamboBetting = ({
                 <button
                   key={v}
                   onClick={() => setStake(String(v))}
-                  className="bg-gray-300 py-1 rounded text-xs hover:bg-gray-400"
+                  className="bg-gray-600 hover:bg-gray-700 text-white py-1 rounded text-xs font-medium"
                 >
                   +{v}
                 </button>
@@ -396,8 +399,9 @@ export const MogamboBetting = ({
             {/* ACTIONS */}
             <div className="flex justify-between items-center">
               <Button
-                variant="secondary"
                 size="sm"
+                variant="outline"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white border-gray-300 dark:border-gray-600"
                 onClick={() => setStake("")}
               >
                 Reset
@@ -405,6 +409,7 @@ export const MogamboBetting = ({
 
               <Button
                 size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 disabled={
                   loading ||
                   (selectedBet?.nat?.toLowerCase().includes("3 card total") &&
