@@ -125,10 +125,10 @@ export const Dt6Betting = ({
 
       {/* ================= DRAGON / TIGER ================= */}
       <div className="border mb-2">
-        <div className="grid grid-cols-3 text-xs font-semibold bg-gray-100">
-          <div />
-          <div className="text-center bg-sky-300">Back</div>
-          <div className="text-center bg-pink-300">Lay</div>
+        <div className="grid grid-cols-3 text-sm font-semibold ">
+          <div className="h-10 flex items-center" />
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Back</div>
+          <div className="text-center bg-pink-300 text-gray-900 h-10 flex items-center justify-center">Lay</div>
         </div>
 
         <div className="grid grid-cols-3 border-t">
@@ -170,10 +170,10 @@ export const Dt6Betting = ({
 
       {/* ================= EVEN / ODD ================= */}
       <div className="border mb-2">
-        <div className="grid grid-cols-3 text-xs font-semibold bg-gray-100">
-          <div />
-          <div className="text-center bg-sky-300">Even</div>
-          <div className="text-center bg-sky-300">Odd</div>
+        <div className="grid grid-cols-3 text-sm font-semibold">
+          <div className="h-10 flex items-center" />
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Even</div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Odd</div>
         </div>
 
         <div className="grid grid-cols-3 border-t">
@@ -191,10 +191,10 @@ export const Dt6Betting = ({
 
       {/* ================= RED / BLACK ================= */}
       <div className="border mb-2">
-        <div className="grid grid-cols-3 text-xs font-semibold bg-gray-100">
-          <div />
-          <div className="text-center bg-sky-300">Red ♦</div>
-          <div className="text-center bg-sky-300">Black ♠</div>
+        <div className="grid grid-cols-3 text-sm font-semibold">
+          <div className="h-10 flex items-center" />
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Red ♦</div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Black ♠</div>
         </div>
 
         <div className="grid grid-cols-3 border-t">
@@ -212,12 +212,12 @@ export const Dt6Betting = ({
 
       {/* ================= SUITS ================= */}
       <div className="border">
-        <div className="grid grid-cols-5 text-xs font-semibold bg-gray-100">
-          <div />
-          <div className="text-center">♠</div>
-          <div className="text-center text-red-500">♥</div>
-          <div className="text-center">♣</div>
-          <div className="text-center text-red-500">♦</div>
+        <div className="grid grid-cols-5 text-sm font-semibold">
+          <div className="h-10 flex items-center" />
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">♠</div>
+          <div className="text-center bg-sky-300 text-red-500 h-10 flex items-center justify-center">♥</div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">♣</div>
+          <div className="text-center bg-sky-300 text-red-500 h-10 flex items-center justify-center">♦</div>
         </div>
 
         {["Dragon", "Tiger"].map((side) => (
