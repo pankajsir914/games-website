@@ -89,6 +89,8 @@ const hasLayOdds = betTypes.some(
 
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
+  const tableName = String(table?.name || "").toLowerCase();
+  const searchText = `${tableId} ${tableName}`.toLowerCase();
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
