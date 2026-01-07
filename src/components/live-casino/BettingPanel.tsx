@@ -104,6 +104,19 @@ const hasLayOdds = betTypes.some(
                   tableId.includes("dtl20") || 
                   // tableId.includes("dt20") ||
                   tableId === "dtl20";
+  // Poker detection - check tableId and tableName
+  const isPoker6 = POKER6_TABLE_IDS.includes(tableId) || 
+                   POKER6_TABLE_IDS.some(id => searchText.includes(id)) ||
+                   searchText.includes("poker6") || 
+                   searchText.includes("poker-6") || 
+                   searchText.includes("poker_6");
+  const isPoker20 = POKER20_TABLE_IDS.includes(tableId) || 
+                    POKER20_TABLE_IDS.some(id => searchText.includes(id)) ||
+                    searchText.includes("poker20") || 
+                    searchText.includes("poker-20") || 
+                    searchText.includes("poker_20");
+  const isPoker = searchText.includes("poker") && !isPoker6 && !isPoker20;
+ 
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
