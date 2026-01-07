@@ -241,6 +241,22 @@ export const useDiamondCasino = () => {
       // For Teen62, check payload.raw for sub array (API structure: data.raw.sub)
       const rawData = payload?.raw || payload; // Check raw data for sub array
       const isTeen62 = rawData?.gtype === "teen62" || payload?.gtype === "teen62" || tableId?.toLowerCase().includes("teen62");
+      const isDt6 = tableId?.toLowerCase().includes("dt6") || rawData?.gtype === "dt6" || payload?.gtype === "dt6";
+
+      // Debug: Log API response for DT6
+      if (isDt6) {
+        // console.log("🔍 [DT6] API Response:", {
+        //   tableId,
+        //   fullResponse: oddsResponse,
+        //   payload: payload,
+        //   rawData: rawData,
+        //   hasBets: !!payload?.bets,
+        //   betsLength: payload?.bets?.length,
+        //   betsArray: payload?.bets,
+        //   rawDataKeys: rawData ? Object.keys(rawData) : [],
+        //   payloadKeys: payload ? Object.keys(payload) : [],
+        // });
+      }
 
       // Debug: Log API response for Teen62
       if (isTeen62) {
@@ -324,14 +340,19 @@ export const useDiamondCasino = () => {
             
             return {
               type: betType,
+              nat: bet.nat || betType, // Add nat field for compatibility
               odds: backVal > 0 ? backVal : (layVal > 0 ? layVal : 0),
               back: backVal || 0,
               lay: layVal || 0,
               status: bet.status || 'active',
+              gstatus: bet.gstatus,
               min: bet.min || 100,
               max: bet.max || 100000,
               sid: bet.sid,
               mid: bet.mid,
+              // Preserve original fields
+              b: bet.b || bet.back || bet.b1,
+              l: bet.l || bet.lay || bet.l1,
             };
           });
       }
@@ -526,6 +547,16 @@ export const useDiamondCasino = () => {
       }
 
       if (extractedBets.length > 0) {
+        // Debug: Log extracted bets for DT6
+        if (isDt6) {
+          console.log("🔍 [DT6] Extracted Bets:", {
+            count: extractedBets.length,
+            bets: extractedBets,
+            sampleBet: extractedBets[0],
+            allBetTypes: extractedBets.map(b => ({ type: b.type, nat: b.nat, back: b.back, b: b.b, sid: b.sid })),
+          });
+        }
+        
         setOdds({ bets: extractedBets, rawData: payload || {}, error: false, noOdds: false });
       } else {
         setOdds({ bets: [], rawData: payload || {}, noOdds: true, error: false });
