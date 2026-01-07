@@ -41,6 +41,9 @@ const DT6_TABLE_IDS = ["dt6"];
 const DTL20_TABLE_IDS = ["dtl20"];
 const DT202_TABLE_IDS = ["dt202"];
 const DT20_TABLE_IDS = ["dt20"];
+const POKER6_TABLE_IDS = ["poker6", "poker-6", "poker_6"];
+const POKER20_TABLE_IDS = ["poker20", "poker-20", "poker_20"];
+
 
 
 
