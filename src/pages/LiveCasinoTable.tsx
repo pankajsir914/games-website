@@ -111,14 +111,49 @@ const LiveCasinoTable = () => {
 
     const payload = rawOdds?.data || rawOdds;
     let extractedBets: any[] = [];
+    const isTeen62 = payload?.gtype === "teen62" || tableId?.toLowerCase().includes("teen62");
 
-    // Check bets array first
-    if (payload?.bets && Array.isArray(payload.bets)) {
+    // For Teen62, check 'sub' array first (API structure)
+    if (isTeen62 && payload?.sub && Array.isArray(payload.sub)) {
+      extractedBets = payload.sub
+        .filter((bet: any) => {
+          // Include all bets for Teen62 (even with 0 odds, they might have odds array)
+          return bet && bet.subtype;
+        })
+        .map((bet: any) => {
+          const convert = (v: number) => (v > 1000 ? v / 100000 : v || 0);
+          const back = convert(Number(bet.b || bet.back || bet.b1 || 0));
+          const lay = convert(Number(bet.l || bet.lay || bet.l1 || 0));
+
+          return {
+            type: bet.type || bet.nat || bet.nation || "Unknown",
+            nat: bet.nat || bet.type || bet.nation,
+            odds: back || lay,
+            back,
+            lay,
+            status: bet.status || (bet.gstatus === "OPEN" ? "active" : "suspended"),
+            gstatus: bet.gstatus,
+            min: bet.min || 100,
+            max: bet.max || 100000,
+            sid: bet.sid,
+            mid: bet.mid || payload.mid,
+            // Preserve ALL original fields for Teen62
+            subtype: bet.subtype, // "teen", "con", "oddeven"
+            b: bet.b, // Original back odds (decimal format from API)
+            l: bet.l, // Original lay odds (decimal format from API)
+            odds: bet.odds, // Odds array for card bets
+          };
+        });
+    }
+    // Check bets array first (for other games)
+    else if (payload?.bets && Array.isArray(payload.bets)) {
       extractedBets = payload.bets
         .filter((bet: any) => {
           const backVal = bet.back || bet.b1 || bet.b || bet.odds || 0;
           const layVal = bet.lay || bet.l1 || bet.l || 0;
-          return backVal > 0 || layVal > 0;
+          // For Teen62, include bets even if odds are 0 (they might have odds array)
+          const isTeen62 = payload?.gtype === "teen62" || tableId?.toLowerCase().includes("teen62");
+          return (backVal > 0 || layVal > 0) || (isTeen62 && bet.subtype);
         })
         .map((bet: any) => {
           const convert = (v: number) => (v > 1000 ? v / 100000 : v || 0);
@@ -138,20 +173,29 @@ const LiveCasinoTable = () => {
             sid: bet.sid,
             mid: bet.mid,
             l: bet.l || bet.back || bet.b1 || bet.b, // Preserve l for Ab3Betting
+            // Preserve original fields for Teen62
+            subtype: bet.subtype, // For Teen62: "teen", "con", "oddeven"
+            b: bet.b, // Original back odds field
+            l: bet.l, // Original lay odds field
+            odds: bet.odds, // Odds array for card bets
           };
         });
     }
 
-    // Also check child, sub, t1, t2, t3 arrays (for ab3 and other games)
-    if (extractedBets.length === 0) {
-      ["child", "sub", "t1", "t2", "t3"].forEach((key) => {
+    // Also check child, sub, t1, t2, t3 arrays (for ab3, teen62 and other games)
+    // For Teen62, data comes in 'sub' array
+    if (extractedBets.length === 0 || (isTeen62 && payload?.sub)) {
+      const keysToCheck = isTeen62 && payload?.sub ? ["sub"] : ["child", "sub", "t1", "t2", "t3"];
+      keysToCheck.forEach((key) => {
         if (payload?.[key] && Array.isArray(payload[key])) {
           payload[key].forEach((item: any) => {
             if (!item) return;
             const backVal = item.b || item.b1 || item.back || item.odds || 0;
             const layVal = item.l || item.l1 || item.lay || 0;
+            // For Teen62, include bets even if odds are 0 (they might have odds array)
+            const isTeen62 = payload?.gtype === "teen62" || tableId?.toLowerCase().includes("teen62");
             
-            if (backVal > 0 || layVal > 0) {
+            if (backVal > 0 || layVal > 0 || (isTeen62 && item.subtype)) {
               const convert = (v: number) => (v > 1000 ? v / 100000 : v || 0);
               const back = convert(Number(backVal));
               const lay = convert(Number(layVal));
@@ -169,6 +213,11 @@ const LiveCasinoTable = () => {
                 sid: item.sid,
                 mid: item.mid || payload.mid,
                 l: item.l || item.b || item.b1 || item.back,
+                // Preserve original fields for Teen62
+                subtype: item.subtype, // For Teen62: "teen", "con", "oddeven"
+                b: item.b, // Original back odds field
+                l: item.l, // Original lay odds field
+                odds: item.odds, // Odds array for card bets
               });
             }
           });
@@ -177,7 +226,7 @@ const LiveCasinoTable = () => {
     }
 
     return extractedBets.length ? { bets: extractedBets, rawData: payload } : null;
-  }, []);
+  }, [tableId]);
 
   useEffect(() => {
     if (initialOdds) {
