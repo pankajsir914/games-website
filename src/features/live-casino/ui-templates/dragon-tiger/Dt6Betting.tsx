@@ -21,8 +21,7 @@ interface Dt6BettingProps {
 
 /* ================= HELPERS ================= */
 
-const isSuspended = (b: any) =>
-  !b || b?.gstatus === "SUSPENDED";
+const isSuspended = (b: any) => !b || b?.gstatus === "SUSPENDED";
 
 const find = (bets: any[], nat: string) =>
   bets.find((b) => {
@@ -76,14 +75,14 @@ export const Dt6Betting = ({
 
   const handlePlaceBet = async () => {
     if (!selectedBet || !amount || parseFloat(amount) <= 0) return;
-    
+
     await onPlaceBet({
       sid: selectedBet.sid,
       odds: getOdds(selectedBet),
       nat: selectedBet.nat,
       amount: parseFloat(amount),
     });
-    
+
     setBetModalOpen(false);
     setSelectedBet(null);
     setAmount("100");
@@ -93,7 +92,7 @@ export const Dt6Betting = ({
     const odds = getOdds(bet);
     const formattedOdds = formatOdds(odds);
     const suspended = isSuspended(bet) || formattedOdds === "0.00";
-    
+
     return (
       <button
         disabled={suspended || loading}
@@ -127,8 +126,12 @@ export const Dt6Betting = ({
       <div className="border mb-2">
         <div className="grid grid-cols-3 text-sm font-semibold ">
           <div className="h-10 flex items-center" />
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Back</div>
-          <div className="text-center bg-pink-300 text-gray-900 h-10 flex items-center justify-center">Lay</div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">
+            Back
+          </div>
+          <div className="text-center bg-pink-300 text-gray-900 h-10 flex items-center justify-center">
+            Lay
+          </div>
         </div>
 
         <div className="grid grid-cols-3 border-t">
@@ -150,7 +153,11 @@ export const Dt6Betting = ({
           <div className="grid grid-cols-2">
             <div className="p-2 text-sm">12</div>
             <button
-              disabled={isSuspended(pair) || loading || formatOdds(getOdds(pair)) === "0.00"}
+              disabled={
+                isSuspended(pair) ||
+                loading ||
+                formatOdds(getOdds(pair)) === "0.00"
+              }
               onClick={() => openBetModal(pair)}
               className={`h-10 bg-gradient-to-r from-sky-600 to-slate-700 text-white font-semibold ${
                 isSuspended(pair) || formatOdds(getOdds(pair)) === "0.00"
@@ -172,8 +179,12 @@ export const Dt6Betting = ({
       <div className="border mb-2">
         <div className="grid grid-cols-3 text-sm font-semibold">
           <div className="h-10 flex items-center" />
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Even</div>
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Odd</div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">
+            Even
+          </div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">
+            Odd
+          </div>
         </div>
 
         <div className="grid grid-cols-3 border-t">
@@ -193,8 +204,12 @@ export const Dt6Betting = ({
       <div className="border mb-2">
         <div className="grid grid-cols-3 text-sm font-semibold">
           <div className="h-10 flex items-center" />
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Red ♦</div>
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">Black ♠</div>
+          <div className="text-center bg-sky-300 gap-2  text-gray-900 h-10 flex items-center justify-center">
+            Red <span className="text-2xl"> ♦</span>
+          </div>
+          <div className="text-center bg-sky-300 gap-2 text-gray-900 h-10 flex items-center justify-center">
+            Black <span className="text-2xl"> ♠</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 border-t">
@@ -214,10 +229,18 @@ export const Dt6Betting = ({
       <div className="border">
         <div className="grid grid-cols-5 text-sm font-semibold">
           <div className="h-10 flex items-center" />
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">♠</div>
-          <div className="text-center bg-sky-300 text-red-500 h-10 flex items-center justify-center">♥</div>
-          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center">♣</div>
-          <div className="text-center bg-sky-300 text-red-500 h-10 flex items-center justify-center">♦</div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center text-2xl font-bold">
+            ♠
+          </div>
+          <div className="text-center bg-sky-300 text-red-500  h-10 flex items-center justify-center text-2xl font-bold">
+            ♥
+          </div>
+          <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center text-2xl font-bold">
+            ♣
+          </div>
+          <div className="text-center bg-sky-300 text-red-500  h-10 flex items-center justify-center text-2xl font-bold">
+            ♦
+          </div>
         </div>
 
         {["Dragon", "Tiger"].map((side) => (
@@ -248,7 +271,10 @@ export const Dt6Betting = ({
                   {selectedBet.nat}
                 </div>
                 <div className="text-gray-600 dark:text-gray-300">
-                  Odds: <span className="font-bold text-blue-600 dark:text-blue-400">{formatOdds(getOdds(selectedBet))}</span>
+                  Odds:{" "}
+                  <span className="font-bold text-blue-600 dark:text-blue-400">
+                    {formatOdds(getOdds(selectedBet))}
+                  </span>
                 </div>
               </div>
 
@@ -282,7 +308,12 @@ export const Dt6Betting = ({
               {amount && parseFloat(amount) > 0 && (
                 <div className="text-xs text-gray-600 dark:text-gray-300">
                   Potential win: ₹
-                  {(parseFloat(amount) * (Number(getOdds(selectedBet)) > 1000 ? Number(getOdds(selectedBet)) / 100000 : Number(getOdds(selectedBet)))).toFixed(2)}
+                  {(
+                    parseFloat(amount) *
+                    (Number(getOdds(selectedBet)) > 1000
+                      ? Number(getOdds(selectedBet)) / 100000
+                      : Number(getOdds(selectedBet)))
+                  ).toFixed(2)}
                 </div>
               )}
 
@@ -308,18 +339,17 @@ export const Dt6Betting = ({
 
           <div className="space-y-2 text-xs leading-relaxed">
             <p>
-              • Dragon Tiger game me 2 hands deal hoti hain – ek Dragon ke liye aur
-              ek Tiger ke liye. Player bet karta hai kaunsa jeetega ya tie hoga.
+              • Dragon Tiger game me 2 hands deal hoti hain – ek Dragon ke liye
+              aur ek Tiger ke liye. Player bet karta hai kaunsa jeetega ya tie
+              hoga.
             </p>
 
             <p>
-              • Har side ko ek hi card milta hai. Highest ranking card winner hota
-              hai.
+              • Har side ko ek hi card milta hai. Highest ranking card winner
+              hota hai.
             </p>
 
-            <p>
-              • Game 1 deck (52 cards) se khela jata hai.
-            </p>
+            <p>• Game 1 deck (52 cards) se khela jata hai.</p>
 
             <p>
               • Card ranking (lowest se highest): <br />
@@ -337,7 +367,6 @@ export const Dt6Betting = ({
           </div>
         </DialogContent>
       </Dialog>
-
     </>
   );
 };
