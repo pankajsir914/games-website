@@ -90,7 +90,7 @@ const hasLayOdds = betTypes.some(
   // DTL20 matching - flexible to catch variations
   const isDtl20 = DTL20_TABLE_IDS.includes(tableId) || 
                   tableId.includes("dtl20") || 
-                  tableId.includes("dt20") ||
+                  // tableId.includes("dt20") ||
                   tableId === "dtl20";
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
@@ -391,12 +391,12 @@ const hasLayOdds = betTypes.some(
               <Dtl20Betting
                 betTypes={betTypes}
                 onPlaceBet={async (payload) => {
-                  // Dtl20Betting sends {sid, odds, nat}, convert to expected format
+                  // Dtl20Betting sends {sid, odds, nat, amount}, convert to expected format
                   const bet = betTypes.find((b: any) => b.sid === payload.sid);
                   await onPlaceBet({
                     tableId: table.id,
                     tableName: table.name,
-                    amount: parseFloat(amount),
+                    amount: payload.amount || parseFloat(amount),
                     betType: payload.nat || bet?.type || bet?.nat || "",
                     odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
                     roundId: bet?.mid,
