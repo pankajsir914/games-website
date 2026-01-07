@@ -1,11 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BetHistory } from "@/components/live-casino/BetHistory";
-import { OddsDisplay } from "@/components/live-casino/OddsDisplay";
 import { CurrentResult } from "@/components/live-casino/CurrentResult";
+import { BetSlip } from "../../common/BetSlip";
 import { VideoPlayer } from "../../common/VideoPlayer";
 import { LiveCasinoTemplateProps } from "../../types";
 import { deriveRoundMeta } from "../../common/roundUtils";
-import { PokerBettingBoard } from "./PokerBetting";
 
 export const PokerTemplate = ({
   table,
@@ -64,13 +63,12 @@ export const PokerTemplate = ({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <OddsDisplay odds={odds} />
-            <PokerBettingBoard
-              bets={odds?.bets || []}
-              locked={Number(remainingSeconds) <= 0 || loading}
-              min={table.min}
-              max={table.max}
+            <BetSlip
+              table={table}
+              odds={odds}
+              loading={loading}
               onPlaceBet={onPlaceBet}
+              resultHistory={[]}
             />
           </CardContent>
         </Card>
