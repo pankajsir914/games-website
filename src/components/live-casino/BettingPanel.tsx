@@ -20,6 +20,7 @@ import { MogamboBetting } from "@/features/live-casino/ui-templates/teen-patti/M
 import { Dt6Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt6Betting";
 import { Dtl20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dtl20Betting";
 import { Dt202Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt202Betting";
+import { Dt20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt20Betting";
 
 
 /* =====================================================
@@ -36,6 +37,7 @@ const MOGAMBO_TABLE_IDS = ["mogambo"];
 const DT6_TABLE_IDS = ["dt6"];
 const DTL20_TABLE_IDS = ["dtl20"];
 const DT202_TABLE_IDS = ["dt202"];
+const DT20_TABLE_IDS = ["dt20"];
 
 
 
@@ -90,6 +92,7 @@ const hasLayOdds = betTypes.some(
   const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
   const isDt6 = DT6_TABLE_IDS.includes(tableId);
   const isDt202 = DT202_TABLE_IDS.includes(tableId);
+  const isDt20 = DT20_TABLE_IDS.includes(tableId);
   // DTL20 matching - flexible to catch variations
   const isDtl20 = DTL20_TABLE_IDS.includes(tableId) || 
                   tableId.includes("dtl20") || 
@@ -415,6 +418,25 @@ const hasLayOdds = betTypes.some(
                 betTypes={betTypes}
                 onPlaceBet={async (payload) => {
                   // Dt202Betting sends {sid, odds, nat, amount}, convert to expected format
+                  const bet = betTypes.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.type || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: bet?.mid,
+                    sid: payload.sid,
+                    side: "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isDt20 ? (
+              <Dt20Betting
+                betTypes={betTypes}
+                onPlaceBet={async (payload) => {
+                  // Dt20Betting sends {sid, odds, nat, amount}, convert to expected format
                   const bet = betTypes.find((b: any) => b.sid === payload.sid);
                   await onPlaceBet({
                     tableId: table.id,
