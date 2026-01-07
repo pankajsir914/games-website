@@ -372,12 +372,12 @@ const hasLayOdds = betTypes.some(
               <Dt6Betting
                 betTypes={betTypes}
                 onPlaceBet={async (payload) => {
-                  // Dt6Betting sends {sid, odds, nat}, convert to expected format
+                  // Dt6Betting sends {sid, odds, nat, amount}, convert to expected format
                   const bet = betTypes.find((b: any) => b.sid === payload.sid);
                   await onPlaceBet({
                     tableId: table.id,
                     tableName: table.name,
-                    amount: parseFloat(amount),
+                    amount: payload.amount || parseFloat(amount),
                     betType: payload.nat || bet?.type || bet?.nat || "",
                     odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
                     roundId: bet?.mid,
