@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { Lock, Info } from "lucide-react";
+import { useState } from "react";
+import { Lock, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog, 
   DialogContent,
@@ -50,6 +51,44 @@ const find = (bets: any[], nat: string) =>
 
 const cardRanks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
 
+// Playing Card Label Component
+const CardLabel = ({ rank }: { rank: string }) => {
+  const getSuitColor = (suit: string) => {
+    return suit === "♥" || suit === "♦" ? "text-red-600" : "text-black";
+  };
+
+  return (
+    <div className="p-1 sm:p-1.5 md:p-2 flex items-center justify-center h-9 m-0.5 sm:m-1">
+      <div className="relative bg-white rounded border border-gray-400 shadow-sm 
+                      w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 
+                      flex flex-col items-center justify-center">
+        {/* Rank at top left */}
+        <div className="absolute top-0.5 left-0.5 sm:top-0.5 sm:left-0.5 
+                        text-[7px] sm:text-[8px] md:text-[9px] 
+                        font-bold text-black leading-none">
+          {rank}
+        </div>
+        
+        {/* Four suits in center in a 2x2 grid */}
+        <div className="grid grid-cols-2 gap-0.5 
+                        text-[7px] sm:text-[8px] md:text-[9px]">
+          <span className={getSuitColor("♠")}>♠</span>
+          <span className={getSuitColor("♥")}>♥</span>
+          <span className={getSuitColor("♣")}>♣</span>
+          <span className={getSuitColor("♦")}>♦</span>
+        </div>
+        
+        {/* Rank at bottom right (rotated) */}
+        <div className="absolute bottom-0.5 right-0.5 sm:bottom-0.5 sm:right-0.5 
+                        text-[7px] sm:text-[8px] md:text-[9px] 
+                        font-bold text-black rotate-180 leading-none">
+          {rank}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ================= COMPONENT ================= */
 
 export const Dtl20Betting = ({
@@ -59,10 +98,37 @@ export const Dtl20Betting = ({
   formatOdds = formatOddsValue,
 }: Dtl20BettingProps) => {
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [betModalOpen, setBetModalOpen] = useState(false);
+  const [selectedBet, setSelectedBet] = useState<any>(null);
+  const [amount, setAmount] = useState("100");
+
+  const quickAmounts = [100, 500, 1000, 5000];
 
   // Show UI even without data - just display the structure
 
   const get = (nat: string) => find(betTypes, nat);
+
+  const openBetModal = (bet: any) => {
+    if (!bet || isSuspended(bet) || formatOdds(getOdds(bet)) === "0.00") return;
+    setSelectedBet(bet);
+    setAmount("100");
+    setBetModalOpen(true);
+  };
+
+  const handlePlaceBet = async () => {
+    if (!selectedBet || !amount || parseFloat(amount) <= 0) return;
+    
+    await onPlaceBet({
+      sid: selectedBet.sid,
+      odds: getOdds(selectedBet),
+      nat: selectedBet.nat,
+      amount: parseFloat(amount),
+    });
+    
+    setBetModalOpen(false);
+    setSelectedBet(null);
+    setAmount("100");
+  };
 
   const Cell = ({ bet }: { bet: any }) => {
     // Show UI even if bet is undefined - just show placeholder/locked state
@@ -84,9 +150,7 @@ export const Dtl20Betting = ({
     return (
       <button
         disabled={suspended || loading}
-        onClick={() =>
-          onPlaceBet({ sid: bet.sid, odds: odds, nat: bet.nat })
-        }
+        onClick={() => openBetModal(bet)}
         className={`
           h-9 w-full flex items-center justify-center
           text-xs font-semibold rounded
@@ -114,11 +178,11 @@ export const Dtl20Betting = ({
 
       {/* ================= WINNER ================= */}
       <div className="border mb-2">
-        <div className="grid grid-cols-4 text-xs font-semibold bg-gray-100">
+        <div className="grid grid-cols-4 text-xs font-semibold bg-card">
           <div />
-          <div className="text-center">Dragon</div>
-          <div className="text-center">Tiger</div>
-          <div className="text-center">Lion</div>
+          <div className="text-center text-white">Dragon</div>
+          <div className="text-center text-white">Tiger</div>
+          <div className="text-center text-white">Lion</div>
         </div>
 
         <div className="grid grid-cols-4 border-t">
@@ -131,11 +195,11 @@ export const Dtl20Betting = ({
 
       {/* ================= COLOR ================= */}
       <div className="border mb-2">
-        <div className="grid grid-cols-4 text-xs font-semibold bg-gray-100">
+        <div className="grid grid-cols-4 text-xs font-semibold bg-card">
           <div />
-          <div className="text-center">Dragon</div>
-          <div className="text-center">Tiger</div>
-          <div className="text-center">Lion</div>
+          <div className="text-center text-white">Dragon</div>
+          <div className="text-center text-white">Tiger</div>
+          <div className="text-center text-white">Lion</div>
         </div>
 
         {["Black", "Red"].map((c) => (
@@ -150,11 +214,11 @@ export const Dtl20Betting = ({
 
       {/* ================= ODD / EVEN ================= */}
       <div className="border mb-2">
-        <div className="grid grid-cols-4 text-xs font-semibold bg-gray-100">
+        <div className="grid grid-cols-4 text-xs font-semibold bg-card">
           <div />
-          <div className="text-center">Dragon</div>
-          <div className="text-center">Tiger</div>
-          <div className="text-center">Lion</div>
+          <div className="text-center text-white">Dragon</div>
+          <div className="text-center text-white">Tiger</div>
+          <div className="text-center text-white">Lion</div>
         </div>
 
         {["Odd", "Even"].map((v) => (
@@ -169,22 +233,90 @@ export const Dtl20Betting = ({
 
       {/* ================= CARD VALUE (A-K) ================= */}
       <div className="border">
-        <div className="grid grid-cols-4 text-xs font-semibold bg-gray-100">
+        <div className="grid grid-cols-4 text-xs font-semibold bg-card">
           <div />
-          <div className="text-center">Dragon</div>
-          <div className="text-center">Tiger</div>
-          <div className="text-center">Lion</div>
+          <div className="text-center text-white">Dragon</div>
+          <div className="text-center text-white">Tiger</div>
+          <div className="text-center text-white">Lion</div>
         </div>
 
         {cardRanks.map((r) => (
           <div key={r} className="grid grid-cols-4 border-t">
-            <div className="p-2 text-xs">{r}</div>
+            <CardLabel rank={r} />
             <Cell bet={get(`Dragon ${r}`)} />
             <Cell bet={get(`Tiger ${r}`)} />
             <Cell bet={get(`Lion ${r}`)} />
           </div>
         ))}
       </div>
+
+      {/* ================= BET MODAL ================= */}
+      <Dialog open={betModalOpen} onOpenChange={setBetModalOpen}>
+        <DialogContent className="max-w-md p-0">
+          <DialogHeader className="bg-slate-800 text-white px-4 py-2 flex flex-row justify-between items-center">
+            <DialogTitle className="text-sm">Place Bet</DialogTitle>
+            <button onClick={() => setBetModalOpen(false)}>
+              <X size={16} />
+            </button>
+          </DialogHeader>
+
+          {selectedBet && (
+            <div className="bg-white dark:bg-gray-800 p-4 space-y-4">
+              <div className="text-sm">
+                <div className="font-semibold text-gray-900 dark:text-white mb-1">
+                  {selectedBet.nat}
+                </div>
+                <div className="text-gray-600 dark:text-gray-300">
+                  Odds: <span className="font-bold text-blue-600 dark:text-blue-400">{formatOdds(getOdds(selectedBet))}</span>
+                </div>
+              </div>
+
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-4 gap-2">
+                {quickAmounts.map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => setAmount(String(amt))}
+                    className={`py-2 px-2 rounded text-xs font-medium ${
+                      amount === String(amt)
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-600 hover:bg-gray-700 text-white"
+                    }`}
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
+              </div>
+
+              {/* Amount Input */}
+              <Input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+              />
+
+              {/* Profit Calculation */}
+              {amount && parseFloat(amount) > 0 && (
+                <div className="text-xs text-gray-600 dark:text-gray-300">
+                  Potential win: ₹
+                  {(parseFloat(amount) * (Number(getOdds(selectedBet)) > 1000 ? Number(getOdds(selectedBet)) / 100000 : Number(getOdds(selectedBet)))).toFixed(2)}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                disabled={loading || !amount || parseFloat(amount) <= 0}
+                onClick={handlePlaceBet}
+              >
+                {loading ? "Placing..." : `Place Bet ₹${amount}`}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ================= RULES MODAL ================= */}
       <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
@@ -222,5 +354,5 @@ export const Dtl20Betting = ({
       </Dialog>
 
     </>
-  );
+  ); 
 };
