@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
@@ -74,7 +72,6 @@ export const BettingPanel = ({
   const [selectedBet, setSelectedBet] = useState<string>("");
   const [betType, setBetType] = useState<"back" | "lay">("back");
 
-  const quickAmounts = [100, 500, 1000, 5000];
   const betTypes = odds?.bets || [];
 const hasLayOdds = betTypes.some(
   (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
@@ -449,11 +446,11 @@ const hasLayOdds = betTypes.some(
                         <Button
                           size="sm" 
                           className={`
-                            h-7 text-[11px] px-1
+                            h-7 text-[11px] px-1 text-white font-medium
                             ${
                               isSelected && betType === "back"
-                                ? "ring-2 ring-green-500 scale-[1.02]"
-                                : ""
+                                ? "ring-2 ring-green-500 scale-[1.02] bg-green-600 hover:bg-green-700"
+                                : "bg-green-600 hover:bg-green-700"
                             }
                           `}
                           onClick={() => handleSelectBet(bet, "back")}
@@ -472,13 +469,12 @@ const hasLayOdds = betTypes.some(
                         {hasLayOdds && (
                           <Button
                             size="sm"
-                            variant="secondary"
                             className={`
-                              h-7 text-[11px] px-1
+                              h-7 text-[11px] px-1 text-white font-medium
                               ${
                                 isSelected && betType === "lay"
-                                  ? "ring-2 ring-red-500 scale-[1.02]"
-                                  : ""
+                                  ? "ring-2 ring-red-500 scale-[1.02] bg-red-600 hover:bg-red-700"
+                                  : "bg-red-600 hover:bg-red-700"
                               }
                             `}
                             onClick={() => handleSelectBet(bet, "lay")}
@@ -501,51 +497,6 @@ const hasLayOdds = betTypes.some(
               </div>
             )}
           </>
-        )}
-
-        {/* ================= AMOUNT ================= */}
-        {!isAbj && (
-          <div className="space-y-2">
-            <Label className="text-xs">Quick Amount</Label>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {quickAmounts.map((amt) => (
-                <Button
-                  key={amt}
-                  size="sm"
-                  variant={amount === String(amt) ? "default" : "outline"}
-                  onClick={() => setAmount(String(amt))}
-                >
-                  ₹{amt}
-                </Button>
-              ))}
-            </div>
-
-            <Input
-              type="number"
-              value={amount}
-              className="h-9"
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-        )}
-
-        {/* ================= PLACE BET ================= */}
-        {!isAbj && (
-          <Button
-            className="w-full h-9"
-            disabled={!selectedBet || loading || isRestricted}
-            onClick={handlePlaceBet}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Placing...
-              </>
-            ) : (
-              `${betType.toUpperCase()} ₹${amount}`
-            )}
-          </Button>
         )}
 
         {/* ================= CALC ================= */}
