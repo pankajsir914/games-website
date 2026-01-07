@@ -470,6 +470,63 @@ const hasLayOdds = betTypes.some(
                 }}
                 loading={loading}
               />
+             ) : isPoker6 ? (
+              <Poker6BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table.min || 100}
+                max={table.max || 100000}
+                onPlaceBet={async (betData) => {
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: betData.amount,
+                    betType: betData.betType,
+                    odds: betData.odds,
+                    roundId: betData.roundId,
+                    sid: betData.sid,
+                    side: betData.side || "back",
+                  });
+                }}
+              />
+            ) : isPoker20 ? (
+              <Poker20BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table.min || 100}
+                max={table.max || 100000}
+                onPlaceBet={async (betData) => {
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: betData.amount,
+                    betType: betData.betType,
+                    odds: betData.odds,
+                    roundId: betData.roundId,
+                    sid: betData.sid,
+                    side: betData.side || "back",
+                  });
+                }}
+              />
+            ) : isPoker ? (
+              <PokerBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table.min || 100}
+                max={table.max || 100000}
+                onPlaceBet={async (betData) => {
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: betData.amount,
+                    betType: betData.betType,
+                    odds: betData.odds,
+                    roundId: betData.roundId,
+                    sid: betData.sid,
+                    side: betData.side || "back",
+                  });
+                }}
+              />
             ): (
             
               /* ===== DEFAULT BET UI (IMPROVED SELECTION) ===== */
