@@ -49,15 +49,28 @@ import { Roulette11Betting } from "@/features/live-casino/ui-templates/roulette/
 
 
 /* =====================================================
-   GAME IDS
+   GAME IDS 
 ===================================================== */
 
 const DOLIDANA_TABLE_IDS = ["dolidana"];
+const TEEN_PATTI_TABLE_IDS = ["teen62"];
+const TEEN62_TABLE_IDS = ["teen62", "teen 62", "teen-62"];
 const AB3_TABLE_IDS = ["ab3"];
 const ABJ_TABLE_IDS = ["abj"];
 const AB4_TABLE_IDS = ["ab4"];
 const AB20_TABLE_IDS = ["ab20"];
-const TEEN62_TABLE_IDS = ["teen62"]; 
+const TEEN3_TABLE_IDS = ["teen3", "teen 3", "teen-3", "instant teen", "teen32", "teen 32", "teen-32", "teen33", "teen 33", "teen-33"];
+const TEEN6_TABLE_IDS = ["teen6", "teen 6", "teen-6"];
+const TEEN20_TABLE_IDS = ["teen20", "teen 20", "teen-20"];
+const TEEN20B_TABLE_IDS = ["teen20b", "teen 20b", "teen-20b"];
+const TEEN20C_TABLE_IDS = ["teen20c", "teen 20c", "teen-20c"];
+const TEEN42_TABLE_IDS = ["teen42", "teen 42", "teen-42", "teen41", "teen 41", "teen-41"];
+const TEEN8_TABLE_IDS = ["teen8", "teen 8", "teen-8"];
+const TEEN_TABLE_IDS = ["teen"];
+const TEEN9_TABLE_IDS = ["teen9", "teen 9", "teen-9"];
+const TEENUNIQUE_TABLE_IDS = ["teenunique", "teen unique", "teen-unique"];
+const JOKER1_TABLE_IDS = ["joker1", "joker 1", "joker-1"];
+const JOKER20_TABLE_IDS = ["joker20", "joker 20", "joker-20"];
 const MOGAMBO_TABLE_IDS = ["mogambo"];
 const DT6_TABLE_IDS = ["dt6"];
 const DTL20_TABLE_IDS = ["dtl20"];
@@ -109,21 +122,39 @@ export const BettingPanel = ({
   const [selectedBet, setSelectedBet] = useState<string>("");
   const [betType, setBetType] = useState<"back" | "lay">("back");
 
+  const quickAmounts = [100, 500, 1000, 5000];
   const betTypes = odds?.bets || [];
-const hasLayOdds = betTypes.some(
-  (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
-);
+  const hasLayOdds = betTypes.some(
+    (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
+  );
 
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
   const tableName = String(table?.name || "").toLowerCase();
   const searchText = `${tableId} ${tableName}`.toLowerCase();
+  
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
+  const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
   const isAb4 = AB4_TABLE_IDS.includes(tableId);
   const isAb20 = AB20_TABLE_IDS.includes(tableId);
-  const isTeen62 = TEEN62_TABLE_IDS.includes(tableId);
+  const isTeen3 = TEEN3_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen6 = TEEN6_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen20 = TEEN20_TABLE_IDS.some(id => tableId.includes(id) && !tableId.includes("teen20c") && !tableId.includes("teen20v1") && !tableId.includes("teen20b"));
+  const isTeen20B = TEEN20B_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen20C = TEEN20C_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen42 = TEEN42_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen8 = TEEN8_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen9 = TEEN9_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen62 = TEEN62_TABLE_IDS.some(id => tableId.includes(id));
+  const isJoker1 = JOKER1_TABLE_IDS.some(id => tableId.includes(id));
+  const isJoker20 = JOKER20_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeen = TEEN_TABLE_IDS.some(id => tableId === id || tableId.includes(id)) && 
+    !tableId.includes("teen3") && !tableId.includes("teen6") && !tableId.includes("teen8") && 
+    !tableId.includes("teen9") && !tableId.includes("teen20") && !tableId.includes("teen42") &&
+    !tableId.includes("teen62") && !tableId.includes("teen120") && !tableId.includes("teenunique");
+  const isTeenUnique = TEENUNIQUE_TABLE_IDS.some(id => tableId.includes(id));
   const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
   const isDt6 = DT6_TABLE_IDS.includes(tableId);
   const isDt202 = DT202_TABLE_IDS.includes(tableId);
@@ -149,7 +180,6 @@ const hasLayOdds = betTypes.some(
   // DTL20 matching - flexible to catch variations
   const isDtl20 = DTL20_TABLE_IDS.includes(tableId) || 
                   tableId.includes("dtl20") || 
-                  // tableId.includes("dt20") ||
                   tableId === "dtl20";
   // Poker detection - check tableId and tableName
   const isPoker6 = POKER6_TABLE_IDS.includes(tableId) || 
@@ -163,6 +193,7 @@ const hasLayOdds = betTypes.some(
                     searchText.includes("poker-20") || 
                     searchText.includes("poker_20");
   const isPoker = searchText.includes("poker") && !isPoker6 && !isPoker20;
+
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -367,8 +398,157 @@ const hasLayOdds = betTypes.some(
         {/* ================= BETTING UI ================= */}
         {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11) && (
           <>
-            {isDolidana ? (
+            {isTeen ? (
+              <TeenBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen result", r)}
+              />
+            ) : isTeen9 ? (
+              <Teen9BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen9 result", r)}
+              />
+            ) : isTeenUnique ? (
+              <TeenUniqueBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+              />
+            ) : isTeen8 ? (
+              <Teen8BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen8 result", r)}
+              />
+            ) : isTeen42 ? (
+              <Teen42BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen42 result", r)}
+              />
+            ) : isTeen20 ? (
+              <Teen20BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen20 result", r)}
+              />
+            ) : isTeen20B ? (
+              <Teen20BBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen20B result", r)}
+              />
+            ) : isTeen20C ? (
+              <Teen20CBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen20C result", r)}
+              />
+            ) : isTeen6 ? (
+              <Teen6BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen6 result", r)}
+              />
+            ) : isTeen3 ? (
+              <Teen3BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen3 result", r)}
+              />
+            ) : isJoker1 ? (
+              <Joker1BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Joker1 result", r)}
+              />
+            ) : isJoker20 ? (
+              <Joker20BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Joker20 result", r)}
+              />
+            ) : isTeen62 ? (
+              <Teen62BettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen62 result", r)}
+              />
+            ) : isDolidana ? (
               <DolidanaBetting
+                betTypes={betTypes}
+                selectedBet={selectedBet}
+                betType={betType}
+                onSelect={handleSelectBet}
+                formatOdds={formatOdds}
+              />
+            ) : isTeenPatti ? (
+              <TeenPattiBetting
                 betTypes={betTypes}
                 selectedBet={selectedBet}
                 betType={betType}
@@ -416,17 +596,6 @@ const hasLayOdds = betTypes.some(
                 selectedBet={selectedBet}
                 formatOdds={formatOdds}
                 resultHistory={resultHistory}
-                onPlaceBet={onPlaceBet}
-                loading={loading}
-              />
-            ) : isTeen62 ? (
-              <Teen62Betting
-                betTypes={betTypes}
-                selectedBet={selectedBet}
-                betType={betType}
-                onSelect={handleSelectBet}
-                formatOdds={formatOdds}
-                table={table}
                 onPlaceBet={onPlaceBet}
                 loading={loading}
               />
@@ -779,12 +948,58 @@ const hasLayOdds = betTypes.some(
           </>
         )}
 
-        {/* ================= CALC ================= */}
-        {!isAbj && selectedBet && (
-          <div className="text-xs text-center text-muted-foreground">
-            {betType === "back" ? "Potential win" : "Liability"}: ₹
-            {(parseFloat(amount) * (getSelectedBetOdds() - 1)).toFixed(2)}
-          </div>
+        {/* ================= AMOUNT ================= */}
+        {/* Only show amount/place bet controls for games that don't have their own betting UI */}
+        {!isTeen && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-xs">Quick Amount</Label>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {quickAmounts.map((amt) => (
+                  <Button
+                    key={amt}
+                    size="sm"
+                    variant={amount === String(amt) ? "default" : "outline"}
+                    onClick={() => setAmount(String(amt))}
+                  >
+                    ₹{amt}
+                  </Button>
+                ))}
+              </div>
+
+              <Input
+                type="number"
+                value={amount}
+                className="h-9"
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+
+            {/* ================= PLACE BET ================= */}
+            <Button
+              className="w-full h-9"
+              disabled={!selectedBet || loading || isRestricted}
+              onClick={handlePlaceBet}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Placing...
+                </>
+              ) : (
+                `${betType.toUpperCase()} ₹${amount}`
+              )}
+            </Button>
+
+            {/* ================= CALC ================= */}
+            {selectedBet && (
+              <div className="text-xs text-center text-muted-foreground">
+                {betType === "back" ? "Potential win" : "Liability"}: ₹
+                {(parseFloat(amount) * (getSelectedBetOdds() - 1)).toFixed(2)}
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
