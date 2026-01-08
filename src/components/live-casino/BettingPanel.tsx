@@ -34,7 +34,7 @@ import { Joker20BettingBoard } from "@/features/live-casino/ui-templates/joker/J
 
 
 /* =====================================================
-   GAME IDS
+   GAME IDS 
 ===================================================== */
 
 const DOLIDANA_TABLE_IDS = ["dolidana"];
