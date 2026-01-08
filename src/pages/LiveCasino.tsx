@@ -72,12 +72,14 @@ const LiveCasino = () => {
   };
 
   /* =========================
-     Filter tables by search
+     Filter tables by search (name or ID)
      ========================= */
   const filteredTables = useMemo(() => {
     if (!search.trim()) return liveTables;
+    const searchLower = search.toLowerCase();
     return liveTables.filter((table) =>
-      table.name.toLowerCase().includes(search.toLowerCase())
+      table.name.toLowerCase().includes(searchLower) ||
+      table.id.toLowerCase().includes(searchLower)
     );
   }, [liveTables, search]);
 
@@ -91,7 +93,7 @@ const LiveCasino = () => {
         <TableSearchBox
           value={search}
           onChange={setSearch}
-          placeholder="Search live casino table..."
+          placeholder="Search live-casino table..."
         />
 
         {/* ===== TABLE GRID ===== */}
