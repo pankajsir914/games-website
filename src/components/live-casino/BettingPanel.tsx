@@ -21,6 +21,8 @@ import { Dt6Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt6
 import { Dtl20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dtl20Betting";
 import { Dt202Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt202Betting";
 import { Dt20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt20Betting";
+import { AaaBetting } from "@/features/live-casino/ui-templates/amar-akbar-anthony/AaaBetting";
+import { Aaa2Betting } from "@/features/live-casino/ui-templates/amar-akbar-anthony/Aaa2Betting";
 import { PokerBettingBoard } from "@/features/live-casino/ui-templates/poker/PokerBetting";
 import { Poker6BettingBoard } from "@/features/live-casino/ui-templates/poker/Poker6Betting";
 import { Poker20BettingBoard } from "@/features/live-casino/ui-templates/poker/Poker20Betting";
@@ -41,9 +43,10 @@ const DT6_TABLE_IDS = ["dt6"];
 const DTL20_TABLE_IDS = ["dtl20"];
 const DT202_TABLE_IDS = ["dt202"];
 const DT20_TABLE_IDS = ["dt20"];
+const AAA_TABLE_IDS = ["aaa"];
+const AAA2_TABLE_IDS = ["aaa2"];
 const POKER6_TABLE_IDS = ["poker6", "poker-6", "poker_6"];
 const POKER20_TABLE_IDS = ["poker20", "poker-20", "poker_20"];
-
 
 
 
@@ -101,6 +104,8 @@ const hasLayOdds = betTypes.some(
   const isDt6 = DT6_TABLE_IDS.includes(tableId);
   const isDt202 = DT202_TABLE_IDS.includes(tableId);
   const isDt20 = DT20_TABLE_IDS.includes(tableId);
+  const isAaa = AAA_TABLE_IDS.includes(tableId);
+  const isAaa2 = AAA2_TABLE_IDS.includes(tableId);
   // DTL20 matching - flexible to catch variations
   const isDtl20 = DTL20_TABLE_IDS.includes(tableId) || 
                   tableId.includes("dtl20") || 
@@ -118,7 +123,6 @@ const hasLayOdds = betTypes.some(
                     searchText.includes("poker-20") || 
                     searchText.includes("poker_20");
   const isPoker = searchText.includes("poker") && !isPoker6 && !isPoker20;
- 
   /* ---------------- AB4 BET NORMALIZER (TEMPORARY FIX) ---------------- */
   // If AB4 API returns only 1 generic bet, normalize it to 26 card-wise bets
   let normalizedBetTypes = betTypes;
@@ -472,7 +476,45 @@ const hasLayOdds = betTypes.some(
                 }}
                 loading={loading}
               />
-             ) : isPoker6 ? (
+            ) : isAaa ? (
+              <AaaBetting
+                betTypes={betTypes}
+                onPlaceBet={async (payload) => {
+                  // AaaBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const bet = betTypes.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.type || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isAaa2 ? (
+              <Aaa2Betting
+                betTypes={betTypes}
+                onPlaceBet={async (payload) => {
+                  // Aaa2Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const bet = betTypes.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.type || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isPoker6 ? (
               <Poker6BettingBoard
                 bets={betTypes}
                 locked={loading}
