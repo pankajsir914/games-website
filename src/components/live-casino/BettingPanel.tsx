@@ -37,6 +37,7 @@ import { Dt202Betting } from "@/features/live-casino/ui-templates/dragon-tiger/D
 import { Dt20Betting } from "@/features/live-casino/ui-templates/dragon-tiger/Dt20Betting";
 import { AaaBetting } from "@/features/live-casino/ui-templates/amar-akbar-anthony/AaaBetting";
 import { Aaa2Betting } from "@/features/live-casino/ui-templates/amar-akbar-anthony/Aaa2Betting";
+import { KbcBetting } from "@/features/live-casino/ui-templates/kbc/KbcBetting";
 import { PokerBettingBoard } from "@/features/live-casino/ui-templates/poker/PokerBetting";
 import { Poker6BettingBoard } from "@/features/live-casino/ui-templates/poker/Poker6Betting";
 import { Poker20BettingBoard } from "@/features/live-casino/ui-templates/poker/Poker20Betting";
@@ -44,6 +45,18 @@ import { OurroulleteBetting } from "@/features/live-casino/ui-templates/roulette
 import { Roulette12Betting } from "@/features/live-casino/ui-templates/roulette/Roulette12Betting";
 import { Roulette13Betting } from "@/features/live-casino/ui-templates/roulette/Roulette13Betting";
 import { Roulette11Betting } from "@/features/live-casino/ui-templates/roulette/Roulette11Betting";
+import { Dum10Betting } from "@/features/live-casino/ui-templates/others/Dum10Betting";
+import { Cmeter1Betting } from "@/features/live-casino/ui-templates/others/Cmeter1Betting";
+import { Race2Betting } from "@/features/live-casino/ui-templates/others/Race2Betting";
+import { Teen120Betting } from "@/features/live-casino/ui-templates/others/Teen120Betting";
+import { NotenumBetting } from "@/features/live-casino/ui-templates/others/NotenumBetting";
+import { TrioBetting } from "@/features/live-casino/ui-templates/others/TrioBetting";
+import { Race17Betting } from "@/features/live-casino/ui-templates/others/Race17Betting";
+import { Patti2Betting } from "@/features/live-casino/ui-templates/others/Patti2Betting";
+import { TrapBetting } from "@/features/live-casino/ui-templates/others/TrapBetting";
+import { SuperoverBetting } from "@/features/live-casino/ui-templates/others/SuperoverBetting";
+import { Lucky7eu2Betting } from "@/features/live-casino/ui-templates/others/Lucky7eu2Betting";
+import { Race20Betting } from "@/features/live-casino/ui-templates/others/Race20Betting";
 
 
 /* =====================================================
@@ -81,6 +94,19 @@ const OURROULLETE_TABLE_IDS = ["ourroullete", "our-roullete", "our_roullete"];
 const ROULETTE12_TABLE_IDS = ["roulette12", "roulette-12", "roulette_12"];
 const ROULETTE13_TABLE_IDS = ["roulette13", "roulette-13", "roulette_13"];
 const ROULETTE11_TABLE_IDS = ["roulette11", "roulette-11", "roulette_11"];
+const KBC_TABLE_IDS = ["kbc", "k.b.c", "kaun banega crorepati"];
+const DUM10_TABLE_IDS = ["dum10", "dus ka dum", "dus-ka-dum"];
+const CMETER1_TABLE_IDS = ["cmeter1", "1 card meter", "1-card-meter"];
+const RACE2_TABLE_IDS = ["race2", "race to 2nd", "race-to-2nd"];
+const TEEN120_TABLE_IDS = ["teen120", "1 card 20-20", "1-card-20-20"];
+const NOTENUM_TABLE_IDS = ["notenum", "note number", "note-number"];
+const TRIO_TABLE_IDS = ["trio"];
+const RACE17_TABLE_IDS = ["race17", "race to 17", "race-to-17"];
+const PATTI2_TABLE_IDS = ["patti2", "2 cards teenpatti", "2-cards-teenpatti"];
+const TRAP_TABLE_IDS = ["trap", "the trap"];
+const SUPEROVER_TABLE_IDS = ["superover", "super over"];
+const LUCKY7EU2_TABLE_IDS = ["lucky7eu2", "lucky 7", "lucky-7"];
+const RACE20_TABLE_IDS = ["race20", "race 20", "race-20"];
 
 
 
@@ -120,16 +146,33 @@ export const BettingPanel = ({
   const [betType, setBetType] = useState<"back" | "lay">("back");
 
   const quickAmounts = [100, 500, 1000, 5000];
-  const betTypes = odds?.bets || [];
-  const hasLayOdds = betTypes.some(
-    (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
-  );
 
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
   const tableName = String(table?.name || "").toLowerCase();
   const searchText = `${tableId} ${tableName}`.toLowerCase();
   
+  const isKbc = KBC_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isDum10 = DUM10_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isCmeter1 = CMETER1_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isRace2 = RACE2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isTeen120 = TEEN120_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isNotenum = NOTENUM_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isTrio = TRIO_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isRace17 = RACE17_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isPatti2 = PATTI2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isTrap = TRAP_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isSuperover = SUPEROVER_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isLucky7eu2 = LUCKY7EU2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isRace20 = RACE20_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  
+  // For KBC, Dum10, Cmeter1, Race2, Teen120, Notenum, Trio, Race17, Patti2, Trap, Superover, Lucky7eu2, and Race20, the data structure is different - it's in odds.data.sub or odds.data.t2
+  const betTypes = (isKbc || isDum10 || isCmeter1 || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20)
+    ? (odds?.data || odds || {})
+    : (odds?.bets || []);
+  const hasLayOdds = !isKbc && Array.isArray(betTypes) && betTypes.some(
+    (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
+  );
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
@@ -241,13 +284,14 @@ export const BettingPanel = ({
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
 
-  const hasRealOdds =
-    betTypes.length > 0 &&
-    betTypes.some((b: any) => {
-      const back = b?.back ?? b?.odds ?? 0;
-      const lay = b?.lay ?? 0;
-      return back > 0 || lay > 0 || (b?.type && b.type.trim() !== "");
-    });
+  const hasRealOdds = (isKbc || isDum10 || isCmeter1 || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20)
+    ? (betTypes?.sub && Array.isArray(betTypes.sub) && betTypes.sub.length > 0) || (betTypes?.t2 && Array.isArray(betTypes.t2) && betTypes.t2.length > 0)
+    : (Array.isArray(betTypes) && betTypes.length > 0 &&
+        betTypes.some((b: any) => {
+          const back = b?.back ?? b?.odds ?? 0;
+          const lay = b?.lay ?? 0;
+          return back > 0 || lay > 0 || (b?.type && b.type.trim() !== "");
+        }));
 
   /* =====================================================
      HELPERS
@@ -392,9 +436,284 @@ export const BettingPanel = ({
         )}
 
         {/* ================= BETTING UI ================= */}
-        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11) && (
+        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20) && (
           <>
-            {isTeen ? (
+            {isKbc ? (
+              <KbcBetting
+                betTypes={betTypes}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // KbcBetting sends {sid, ssid, odds, nat, amount, subtype}, convert to expected format
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || "",
+                    odds: payload.odds || 1,
+                    roundId: odds?.data?.mid || odds?.mid,
+                    sid: payload.sid,
+                    ssid: payload.ssid,
+                    side: "back",
+                  });
+                }}
+                loading={loading}
+                resultHistory={resultHistory}
+                tableId={tableId}
+              />
+            ) : isDum10 ? (
+              <Dum10Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Dum10Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isCmeter1 ? (
+              <Cmeter1Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Cmeter1Betting sends {sid, odds, nat, amount}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isRace2 ? (
+              <Race2Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Race2Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isTeen120 ? (
+              <Teen120Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Teen120Betting sends {sid, odds, nat, amount}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isNotenum ? (
+              <NotenumBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // NotenumBetting sends {sid, ssid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    ssid: payload.ssid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isTrio ? (
+              <TrioBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // TrioBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isRace17 ? (
+              <Race17Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Race17Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isPatti2 ? (
+              <Patti2Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Patti2Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isTrap ? (
+              <TrapBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // TrapBetting sends {sid, ssid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    ssid: payload.ssid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isSuperover ? (
+              <SuperoverBetting
+                betTypes={[]}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // SuperoverBetting sends {sid, psid, mid, odds, nat, amount, side}, convert to expected format
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || "",
+                    odds: payload.odds || 1,
+                    roundId: payload.mid || odds?.data?.t1?.gmid || odds?.gmid,
+                    sid: payload.sid,
+                    psid: payload.psid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isLucky7eu2 ? (
+              <Lucky7eu2Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Lucky7eu2Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isRace20 ? (
+              <Race20Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Race20Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isTeen ? (
               <TeenBettingBoard
                 bets={betTypes}
                 locked={loading}
@@ -938,7 +1257,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && (
+        {!isTeen && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && (
           <>
             <div className="space-y-2">
               <Label className="text-xs">Quick Amount</Label>
