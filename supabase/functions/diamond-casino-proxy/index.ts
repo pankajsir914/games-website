@@ -55,7 +55,10 @@ import {
   parseMogamboResult,
   isMogamboWinningBet,
   isMogamboTable,
-  type MogamboResult
+  parseThreeCardTotal,
+  isThreeCardTotalWinningBet,
+  type MogamboResult,
+  type ThreeCardTotalResult
 } from './mogamboSettlement.ts';
 import {
   parseDolidanaResult,
@@ -71,7 +74,11 @@ import {
 } from './ab20Settlement.ts';
 import {
   parseTeen62Result,
-  isTeen62WinningBet,
+  settleTeen62MainBet,
+  settleTeen62SuitBet,
+  settleTeen62OddEven,
+  settleTeen62Consecutive,
+  formatTeen62LastResults,
   isTeen62Table,
   type Teen62Result
 } from './teen62Settlement.ts';
@@ -2139,6 +2146,33 @@ serve(async (req) => {
               }
             }
             
+            // For Mogambo 3 Card Total: Parse card string
+            let threeCardTotalResult: ThreeCardTotalResult | null = null;
+            let threeCardTotalParseError: string | null = null;
+            
+            if (isMogambo) {
+              try {
+                // Extract card string from resultData (similar to AB20)
+                const cardString = resultData?.card || resultData?.t1?.card || resultData?.data?.card || null;
+                
+                if (cardString) {
+                  threeCardTotalResult = parseThreeCardTotal(cardString);
+                  if (threeCardTotalResult) {
+                    console.log(`✅ [Mogambo 3 Card Total] Parsed: total=${threeCardTotalResult.total}, isValid=${threeCardTotalResult.isValid}`);
+                  } else {
+                    threeCardTotalParseError = 'Could not parse 3 Card Total from card string';
+                    console.warn(`⚠️ [Mogambo 3 Card Total] Parsing failed`);
+                  }
+                } else {
+                  // Card string not available, but that's okay - it will be handled during settlement
+                  console.log(`ℹ️ [Mogambo 3 Card Total] No card string available yet`);
+                }
+              } catch (error) {
+                threeCardTotalParseError = error instanceof Error ? error.message : String(error);
+                console.error(`❌ [Mogambo 3 Card Total] Parse error:`, threeCardTotalParseError);
+              }
+            }
+            
             // For Dolidana: Parse result from card/win
             let dolidanaResult: DolidanaResult | null = null;
             let dolidanaParseError: string | null = null;
@@ -2184,17 +2218,21 @@ serve(async (req) => {
               }
             }
             
-            // For Teen62: Parse result from rdesc/winnat
+            // For Teen62: Parse result from rdesc/winnat/card
             let teen62Result: Teen62Result | null = null;
             let teen62ParseError: string | null = null;
             
             if (isTeen62) {
               try {
-                teen62Result = parseTeen62Result(rdesc, winnat, win);
+                // Extract card data from resultData if available
+                const cardData = resultData?.card || resultData?.t1?.card || resultData?.data?.card || null;
+                const resultMid = resultData?.mid || resultData?.t1?.mid || resultData?.data?.mid || null;
+                
+                teen62Result = parseTeen62Result(rdesc, winnat, win, resultMid, cardData);
                 if (teen62Result) {
-                  console.log(`✅ [Teen62] Parsed: winner=${teen62Result.winner} (${teen62Result.winCode})`);
+                  console.log(`✅ [Teen62] Parsed: winner=${teen62Result.winner} (${teen62Result.winCode}), cards=${teen62Result.cards?.join(',') || 'N/A'}`);
                 } else {
-                  teen62ParseError = 'Could not parse Teen62 result from rdesc/winnat';
+                  teen62ParseError = 'Could not parse Teen62 result from rdesc/winnat/card';
                   console.warn(`⚠️ [Teen62] Parsing failed`);
                 }
               } catch (error) {
@@ -3637,22 +3675,75 @@ serve(async (req) => {
                   
                   // PRIMARY: Mogambo-specific matching (if Mogambo table and not other specialized tables)
                   if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && isMogambo) {
-                    if (mogamboResult) {
+                    // Check if this is a 3 Card Total bet
+                    const isThreeCardTotalBet = (bet.nat || '').toLowerCase().includes('3 card total') || 
+                                                (betType || '').toLowerCase().includes('3 card total');
+                    
+                    if (isThreeCardTotalBet) {
+                      // Handle 3 Card Total bet
                       try {
-                        betWon = isMogamboWinningBet(betType, mogamboResult, betSide);
-                        matchReason = betWon
-                          ? `Mogambo bet "${betType}" matched winner ${mogamboResult.winner}`
-                          : `Mogambo bet "${betType}" did not match winner ${mogamboResult.winner}`;
-                        matchedResult = mogamboResult.winner;
-                        specializedMatchingDone = true;
-                        console.log(`🎭 [Mogambo] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
-                      } catch (mogamboError) {
-                        matchingError = mogamboError instanceof Error ? mogamboError.message : String(mogamboError);
-                        console.error(`❌ [Mogambo] Matching error:`, matchingError);
+                        // Extract card string from resultData
+                        const cardString = resultData?.card || resultData?.t1?.card || resultData?.data?.card || null;
+                        
+                        if (cardString) {
+                          // Parse the bet value (should be a number)
+                          const betValue = parseInt(betType, 10);
+                          
+                          if (isNaN(betValue)) {
+                            matchingError = `Invalid 3 Card Total bet value: "${betType}"`;
+                            console.warn(`⚠️ [Mogambo 3 Card Total] ${matchingError}`);
+                          } else {
+                            const result = isThreeCardTotalWinningBet(betValue, cardString);
+                            
+                            if (result === "RETURN") {
+                              betWon = false; // Mark as not won, but will be returned
+                              matchReason = `3 Card Total bet "${betType}" - Game ended early (RETURN)`;
+                              matchedResult = "RETURN";
+                              // Note: The bet will be returned (stake refunded) in the payout calculation
+                              console.log(`🔄 [Mogambo 3 Card Total] Bet ${bet.id}: RETURN - ${matchReason}`);
+                            } else if (result === "WIN") {
+                              betWon = true;
+                              const totalResult = parseThreeCardTotal(cardString);
+                              matchReason = `3 Card Total bet "${betType}" matched total ${totalResult?.total || 'N/A'}`;
+                              matchedResult = String(totalResult?.total || betValue);
+                              console.log(`✅ [Mogambo 3 Card Total] Bet ${bet.id}: WIN - ${matchReason}`);
+                            } else {
+                              betWon = false;
+                              const totalResult = parseThreeCardTotal(cardString);
+                              matchReason = `3 Card Total bet "${betType}" did not match total ${totalResult?.total || 'N/A'}`;
+                              matchedResult = String(totalResult?.total || 'N/A');
+                              console.log(`❌ [Mogambo 3 Card Total] Bet ${bet.id}: LOSE - ${matchReason}`);
+                            }
+                            
+                            specializedMatchingDone = true;
+                          }
+                        } else {
+                          matchingError = 'Card string not available for 3 Card Total settlement';
+                          console.warn(`⚠️ [Mogambo 3 Card Total] ${matchingError}`);
+                        }
+                      } catch (threeCardError) {
+                        matchingError = threeCardError instanceof Error ? threeCardError.message : String(threeCardError);
+                        console.error(`❌ [Mogambo 3 Card Total] Matching error:`, matchingError);
                       }
                     } else {
-                      matchingError = mogamboParseError || 'Mogambo result not available';
-                      console.warn(`⚠️ [Mogambo] No result available: ${matchingError}`);
+                      // Handle regular Mogambo/DagaTeja bet
+                      if (mogamboResult) {
+                        try {
+                          betWon = isMogamboWinningBet(betType, mogamboResult, betSide);
+                          matchReason = betWon
+                            ? `Mogambo bet "${betType}" matched winner ${mogamboResult.winner}`
+                            : `Mogambo bet "${betType}" did not match winner ${mogamboResult.winner}`;
+                          matchedResult = mogamboResult.winner;
+                          specializedMatchingDone = true;
+                          console.log(`🎭 [Mogambo] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                        } catch (mogamboError) {
+                          matchingError = mogamboError instanceof Error ? mogamboError.message : String(mogamboError);
+                          console.error(`❌ [Mogambo] Matching error:`, matchingError);
+                        }
+                      } else {
+                        matchingError = mogamboParseError || 'Mogambo result not available';
+                        console.warn(`⚠️ [Mogambo] No result available: ${matchingError}`);
+                      }
                     }
                   }
                   
@@ -3702,13 +3793,43 @@ serve(async (req) => {
                   if (!isRoulette && !isLucky5 && !isDT6 && !isTeen3 && !isAAA2 && !isCMeter1 && !isMogambo && !isDolidana && !isAB20 && isTeen62) {
                     if (teen62Result) {
                       try {
-                        betWon = isTeen62WinningBet(betType, teen62Result, betSide);
-                        matchReason = betWon
-                          ? `Teen62 bet "${betType}" matched winner ${teen62Result.winner}`
-                          : `Teen62 bet "${betType}" did not match winner ${teen62Result.winner}`;
-                        matchedResult = teen62Result.winner;
+                        // Extract betNat from bet object (bet_type contains the bet label)
+                        const betNat = (bet as any).nat || betType || '';
+                        const betSubtype = (bet as any).subtype || '';
+                        
+                        let settlementResult: "WIN" | "LOSS" | "PUSH" = "LOSS";
+                        
+                        // Determine which settlement function to use based on bet type
+                        if (betType === "Player A" || betType === "Player B") {
+                          // Main bet
+                          settlementResult = settleTeen62MainBet(betNat, teen62Result, betSide);
+                        } else if (betSubtype === "con" || betType.startsWith("Consecutive")) {
+                          // Consecutive bet - extract player from betNat
+                          const player = betNat.includes("Player A") || betType.includes("A") ? "A" : "B";
+                          // For consecutive, we need to check if condition is met (simplified - always true for now)
+                          settlementResult = settleTeen62Consecutive(player, true, teen62Result, betSide);
+                        } else if (betType.includes("Card") && (betType.includes("Odd") || betType.includes("Even"))) {
+                          // Card Odd/Even bet
+                          const cardMatch = betType.match(/Card (\d+)\s*(Odd|Even)/i);
+                          if (cardMatch) {
+                            const cardIndex = parseInt(cardMatch[1]) - 1; // Convert to 0-based index
+                            const betType_oe = cardMatch[2].toLowerCase() as "odd" | "even";
+                            settlementResult = settleTeen62OddEven(cardIndex, betType_oe, teen62Result, betSide);
+                          }
+                        } else {
+                          // Default: try main bet settlement
+                          settlementResult = settleTeen62MainBet(betNat, teen62Result, betSide);
+                        }
+                        
+                        betWon = settlementResult === "WIN";
+                        matchReason = settlementResult === "WIN"
+                          ? `Teen62 bet "${betType}" matched - ${settlementResult}`
+                          : settlementResult === "PUSH"
+                          ? `Teen62 bet "${betType}" pushed (Tie)`
+                          : `Teen62 bet "${betType}" did not match - ${settlementResult}`;
+                        matchedResult = settlementResult === "WIN" ? teen62Result.winner : settlementResult;
                         specializedMatchingDone = true;
-                        console.log(`🃏 [Teen62] Bet ${bet.id}: ${betWon ? '✅ WIN' : '❌ LOSE'} - ${matchReason}`);
+                        console.log(`🃏 [Teen62] Bet ${bet.id}: ${betWon ? '✅ WIN' : settlementResult === 'PUSH' ? '⚪ PUSH' : '❌ LOSE'} - ${matchReason}`);
                       } catch (teen62Error) {
                         matchingError = teen62Error instanceof Error ? teen62Error.message : String(teen62Error);
                         console.error(`❌ [Teen62] Matching error:`, matchingError);
@@ -5073,10 +5194,15 @@ serve(async (req) => {
                   matchReason = `Unexpected error: ${errorMsg}`;
                 }
 
-                const newStatus = betWon ? 'won' : 'lost';
-                const payoutAmount = betWon && bet.odds 
-                  ? parseFloat((bet.bet_amount * bet.odds).toFixed(2))
-                  : 0;
+                // Check if this is a RETURN bet (stake refund)
+                const isReturnBet = matchedResult === "RETURN";
+                
+                const newStatus = isReturnBet ? 'returned' : (betWon ? 'won' : 'lost');
+                const payoutAmount = isReturnBet
+                  ? bet.bet_amount // Refund the stake for RETURN bets
+                  : (betWon && bet.odds 
+                    ? parseFloat((bet.bet_amount * bet.odds).toFixed(2))
+                    : 0);
 
                 // ============================================
                 // STEP 6: UPDATE BET STATUS (atomic operation)
@@ -5099,15 +5225,17 @@ serve(async (req) => {
                 }
 
                 // ============================================
-                // STEP 7: CREDIT WALLET (if won)
+                // STEP 7: CREDIT WALLET (if won or returned)
                 // ============================================
                 
-                if (betWon && payoutAmount > 0) {
+                if ((betWon && payoutAmount > 0) || isReturnBet) {
                   const { error: walletError } = await supabase.rpc('update_wallet_balance', {
                     p_user_id: bet.user_id,
                     p_amount: payoutAmount,
                     p_type: 'credit',
-                    p_reason: `Diamond Casino win - ${bet.table_name || bet.table_id} (${bet.bet_type})`,
+                    p_reason: isReturnBet 
+                      ? `Diamond Casino bet returned - ${bet.table_name || bet.table_id} (${bet.bet_type})`
+                      : `Diamond Casino win - ${bet.table_name || bet.table_id} (${bet.bet_type})`,
                     p_game_type: 'casino'
                   });
 
@@ -5115,8 +5243,12 @@ serve(async (req) => {
                     console.error(`❌ Error crediting wallet for bet ${bet.id}:`, walletError);
                   } else {
                     totalPayouts += payoutAmount;
-                    won++;
-                    console.log(`  💰 Wallet credited: ₹${payoutAmount}`);
+                    if (isReturnBet) {
+                      console.log(`  🔄 Bet returned: ₹${payoutAmount} (stake refunded)`);
+                    } else {
+                      won++;
+                      console.log(`  💰 Wallet credited: ₹${payoutAmount}`);
+                    }
                   }
                 } else {
                   lost++;
@@ -5242,6 +5374,46 @@ serve(async (req) => {
           });
           result = { success: false, error: errorMessage, data: null };
         }
+      }
+    }
+    // Get casino rules (returns HTML content in JSON)
+    else if (action === 'get-casino-rules' && tableId) {
+      try {
+        // Fetch rules from the Hostinger proxy
+        // Endpoint: /casinorules?type={tableId}
+        const rulesUrl = `${HOSTINGER_PROXY_BASE}/casinorules?type=${tableId}`;
+        console.log('📡 Fetching casino rules from:', rulesUrl);
+        
+        const response = await fetchWithTimeout(rulesUrl, {
+          headers: { 'Content-Type': 'application/json' }
+        }, TIMEOUTS.TABLE_FETCH);
+
+        console.log('📊 Rules response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Rules data received, success:', data?.success);
+          
+          // The API returns { success: true, data: [{ ctype, stype, rules: "<html>..." }] }
+          // HTML content in the "rules" field is valid JSON (as a string)
+          // JSON.stringify() will properly escape it when we return the response
+          result = { success: true, data };
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Rules API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText.substring(0, 200) // Limit error text length
+          });
+          result = { success: false, error: `API returned ${response.status}`, data: null };
+        }
+      } catch (fetchError) {
+        const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        console.error('❌ Error fetching casino rules:', {
+          tableId,
+          message: errorMessage
+        });
+        result = { success: false, error: errorMessage, data: null };
       }
     }
     else {
