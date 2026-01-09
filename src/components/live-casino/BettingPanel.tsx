@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { DolidanaBetting } from "@/pages/tables/DolidanaBetting";
-import { TeenPattiBetting } from "@/pages/tables/TeenPattiBetting";
 import { Ab3Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab3Betting";
 import { AbjBetting } from "@/features/live-casino/ui-templates/andar-bahar/AbjBetting";
 import { Ab4Betting } from "@/features/live-casino/ui-templates/andar-bahar/Ab4Betting";
@@ -53,7 +52,6 @@ import { Roulette11Betting } from "@/features/live-casino/ui-templates/roulette/
 ===================================================== */
 
 const DOLIDANA_TABLE_IDS = ["dolidana"];
-const TEEN_PATTI_TABLE_IDS = ["teen62"];
 const TEEN62_TABLE_IDS = ["teen62", "teen 62", "teen-62"];
 const AB3_TABLE_IDS = ["ab3"];
 const ABJ_TABLE_IDS = ["abj"];
@@ -134,7 +132,6 @@ export const BettingPanel = ({
   const searchText = `${tableId} ${tableName}`.toLowerCase();
   
   const isDolidana = DOLIDANA_TABLE_IDS.includes(tableId);
-  const isTeenPatti = TEEN_PATTI_TABLE_IDS.includes(tableId);
   const isAb3 = AB3_TABLE_IDS.includes(tableId);
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
   const isAb4 = AB4_TABLE_IDS.includes(tableId);
@@ -286,9 +283,9 @@ export const BettingPanel = ({
         if (match) {
           const cardNo = parseInt(match[1]);
           bet = betTypes.find((b: any) => b.nat === `Card ${cardNo}`);
-          if (bet && bet.odds) {
+          if (bet && bet.oddsArray) {
             const type = selectedBet.includes("Odd") ? "Odd" : "Even";
-            const oddsObj = bet.odds.find((x: any) => x.nat === type);
+            const oddsObj = bet.oddsArray.find((x: any) => x.nat === type);
             if (oddsObj) {
               const raw = oddsObj.b;
               const num = Number(raw);
@@ -541,14 +538,6 @@ export const BettingPanel = ({
               />
             ) : isDolidana ? (
               <DolidanaBetting
-                betTypes={betTypes}
-                selectedBet={selectedBet}
-                betType={betType}
-                onSelect={handleSelectBet}
-                formatOdds={formatOdds}
-              />
-            ) : isTeenPatti ? (
-              <TeenPattiBetting
                 betTypes={betTypes}
                 selectedBet={selectedBet}
                 betType={betType}
