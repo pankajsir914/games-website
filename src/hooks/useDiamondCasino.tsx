@@ -302,7 +302,7 @@ export const useDiamondCasino = () => {
               subtype: bet.subtype, // "teen", "con", "oddeven"
               b: bet.b, // Original back odds (decimal format from API)
               l: bet.l, // Original lay odds (decimal format from API)
-              odds: bet.odds, // Odds array for card bets
+              oddsArray: bet.odds, // Odds array for card bets
             };
           });
       }
@@ -537,7 +537,7 @@ export const useDiamondCasino = () => {
                     subtype: item.subtype, // "teen", "con", "oddeven"
                     b: item.b, // Original back odds (decimal format)
                     l: item.l, // Original lay odds (decimal format)
-                    odds: item.odds, // Odds array for card bets
+                    oddsArray: item.odds, // Odds array for card bets
                   }),
                 });
               }
