@@ -141,7 +141,7 @@ const LiveCasinoTable = () => {
             subtype: bet.subtype, // "teen", "con", "oddeven"
             b: bet.b, // Original back odds (decimal format from API)
             l: bet.l, // Original lay odds (decimal format from API)
-            odds: bet.odds, // Odds array for card bets
+            oddsArray: bet.odds, // Odds array for card bets
           };
         });
     }
@@ -176,8 +176,7 @@ const LiveCasinoTable = () => {
             // Preserve original fields for Teen62
             subtype: bet.subtype, // For Teen62: "teen", "con", "oddeven"
             b: bet.b, // Original back odds field
-            l: bet.l, // Original lay odds field
-            odds: bet.odds, // Odds array for card bets
+            oddsArray: bet.odds, // Odds array for card bets
           };
         });
     }
@@ -216,8 +215,7 @@ const LiveCasinoTable = () => {
                 // Preserve original fields for Teen62
                 subtype: item.subtype, // For Teen62: "teen", "con", "oddeven"
                 b: item.b, // Original back odds field
-                l: item.l, // Original lay odds field
-                odds: item.odds, // Odds array for card bets
+                oddsArray: item.odds, // Odds array for card bets
               });
             }
           });
