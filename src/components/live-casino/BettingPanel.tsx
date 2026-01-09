@@ -27,7 +27,6 @@ import { Teen8BettingBoard } from "@/features/live-casino/ui-templates/teen-patt
 import { TeenUniqueBettingBoard } from "@/features/live-casino/ui-templates/teen-patti/TeenUniqueBettingBoard";
 import { Teen9BettingBoard } from "@/features/live-casino/ui-templates/teen-patti/Teen9BettingBoard";
 import { TeenBettingBoard } from "@/features/live-casino/ui-templates/teen-patti/TeenBettingBoard";
-import { Teen62Betting } from "@/features/live-casino/ui-templates/teen-patti/Teen62Betting";
 import { Teen62BettingBoard } from "@/features/live-casino/ui-templates/teen-patti/Teen62BettingBoard";
 import { MogamboBetting } from "@/features/live-casino/ui-templates/teen-patti/MogamboBetting";
 import { Joker1BettingBoard } from "@/features/live-casino/ui-templates/joker/Joker1BettingBoard";
