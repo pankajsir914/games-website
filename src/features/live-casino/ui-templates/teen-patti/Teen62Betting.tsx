@@ -87,8 +87,8 @@ export const Teen62Betting = ({
     const cardBetObj = cardBet(cardNo);
     
     // If card bet has odds array, look for Odd/Even in it
-    if (cardBetObj && cardBetObj.odds && Array.isArray(cardBetObj.odds)) {
-      const oddEvenObj = cardBetObj.odds.find((o: any) => {
+    if (cardBetObj && cardBetObj.oddsArray && Array.isArray(cardBetObj.oddsArray)) {
+      const oddEvenObj = cardBetObj.oddsArray.find((o: any) => {
         // API structure: odds array items have nat: "Odd" or "Even"
         const nat = String(o.nat || "").toLowerCase().trim();
         return nat === oddEvenType.toLowerCase();
