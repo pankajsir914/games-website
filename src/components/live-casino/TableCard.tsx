@@ -119,7 +119,7 @@ const TableCard = memo(({ table, onClick, theme }: TableCardProps) => {
             onError={() => {
               setImageError(true);
               setImageLoaded(false);
-            }}
+            }} 
           />
         )}
 
