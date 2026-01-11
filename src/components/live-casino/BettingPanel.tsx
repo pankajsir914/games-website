@@ -78,6 +78,8 @@ const AB3_TABLE_IDS = ["ab3"];
 const ABJ_TABLE_IDS = ["abj"];
 const AB4_TABLE_IDS = ["ab4"];
 const AB20_TABLE_IDS = ["ab20"];
+
+const TEEN1_TABLE_IDS = ["teen1", "teen 1", "teen-1"];
 const TEEN3_TABLE_IDS = ["teen3", "teen 3", "teen-3", "instant teen", "teen32", "teen 32", "teen-32", "teen33", "teen 33", "teen-33"];
 const TEEN6_TABLE_IDS = ["teen6", "teen 6", "teen-6"];
 const TEEN20_TABLE_IDS = ["teen20", "teen 20", "teen-20"];
@@ -228,6 +230,7 @@ export const BettingPanel = ({
   const isAbj = ABJ_TABLE_IDS.includes(tableId);
   const isAb4 = AB4_TABLE_IDS.includes(tableId);
   const isAb20 = AB20_TABLE_IDS.includes(tableId);
+  const isTeen1 = TEEN1_TABLE_IDS.some(id => tableId.includes(id));
   const isTeen3 = TEEN3_TABLE_IDS.some(id => tableId.includes(id));
   const isTeen6 = TEEN6_TABLE_IDS.some(id => tableId.includes(id));
   const isTeen20 = TEEN20_TABLE_IDS.some(id => tableId.includes(id) && !tableId.includes("teen20c") && !tableId.includes("teen20v1") && !tableId.includes("teen20b"));
@@ -240,7 +243,7 @@ export const BettingPanel = ({
   const isJoker1 = JOKER1_TABLE_IDS.some(id => tableId.includes(id));
   const isJoker20 = JOKER20_TABLE_IDS.some(id => tableId.includes(id));
   const isTeen = TEEN_TABLE_IDS.some(id => tableId === id || tableId.includes(id)) && 
-    !tableId.includes("teen3") && !tableId.includes("teen6") && !tableId.includes("teen8") && 
+    !tableId.includes("teen1") && !tableId.includes("teen3") && !tableId.includes("teen6") && !tableId.includes("teen8") && 
     !tableId.includes("teen9") && !tableId.includes("teen20") && !tableId.includes("teen42") &&
     !tableId.includes("teen62") && !tableId.includes("teen120") && !tableId.includes("teenunique");
   const isTeenUnique = TEENUNIQUE_TABLE_IDS.some(id => tableId.includes(id));
@@ -1051,6 +1054,17 @@ export const BettingPanel = ({
                 resultHistory={resultHistory}
                 onResultClick={(r) => console.log("Teen6 result", r)}
               />
+            ) : isTeen1 ? (
+              <TeenBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teen1 result", r)}
+              />
             ) : isTeen3 ? (
               <Teen3BettingBoard
                 bets={betTypes}
@@ -1501,7 +1515,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && (
+        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && (
           <>
             <div className="space-y-2">
               <Input
