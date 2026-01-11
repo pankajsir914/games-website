@@ -33,6 +33,8 @@ export const FallbackTemplate = ({
           odds={odds}
           loading={loading}
           onPlaceBet={onPlaceBet}
+          resultHistory={resultHistory || []}
+          currentResult={currentResult}
         />
       </div>
 
