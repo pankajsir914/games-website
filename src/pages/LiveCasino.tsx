@@ -72,15 +72,29 @@ const LiveCasino = () => {
   };
 
   /* =========================
-     Filter tables by search (name or ID)
+     Filter tables by search (name or ID) and sort (maintenance tables last)
      ========================= */
   const filteredTables = useMemo(() => {
-    if (!search.trim()) return liveTables;
-    const searchLower = search.toLowerCase();
-    return liveTables.filter((table) =>
-      table.name.toLowerCase().includes(searchLower) ||
-      table.id.toLowerCase().includes(searchLower)
-    );
+    let tables = liveTables;
+    
+    // Filter by search
+    if (search.trim()) {
+      const searchLower = search.toLowerCase();
+      tables = liveTables.filter((table) =>
+        table.name.toLowerCase().includes(searchLower) ||
+        table.id.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Sort: maintenance tables should appear at the end
+    return [...tables].sort((a, b) => {
+      const aIsMaintenance = a.status === "maintenance";
+      const bIsMaintenance = b.status === "maintenance";
+      
+      if (aIsMaintenance && !bIsMaintenance) return 1;
+      if (!aIsMaintenance && bIsMaintenance) return -1;
+      return 0;
+    });
   }, [liveTables, search]);
 
   return (
