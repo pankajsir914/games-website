@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,6 +145,7 @@ interface BettingPanelProps {
   onPlaceBet: (betData: any) => Promise<void>;
   loading: boolean;
   resultHistory?: any[]; // Last 10 results for display
+  currentResult?: any; // Current result object (may contain results array)
 }
 
 /* =====================================================
@@ -157,6 +158,7 @@ export const BettingPanel = ({
   onPlaceBet,
   loading,
   resultHistory = [],
+  currentResult,
 }: BettingPanelProps) => {
   /* ---------------- STATE ---------------- */
   const [amount, setAmount] = useState<string>("100");
@@ -164,6 +166,27 @@ export const BettingPanel = ({
   const [betType, setBetType] = useState<"back" | "lay">("back");
 
   const quickAmounts = [100, 500, 1000, 5000];
+
+  /* ---------------- RESULT HISTORY EXTRACTION ---------------- */
+  // Extract resultHistory from currentResult.results if resultHistory is empty
+  const finalResultHistory = useMemo(() => {
+    console.log("🟡 BettingPanel - Extracting resultHistory:", {
+      resultHistoryLength: resultHistory?.length,
+      hasCurrentResult: !!currentResult,
+      currentResultResults: currentResult?.results?.length,
+    });
+    
+    if (Array.isArray(resultHistory) && resultHistory.length > 0) {
+      console.log("🟡 BettingPanel - Using resultHistory array, length:", resultHistory.length);
+      return resultHistory;
+    }
+    if (currentResult?.results && Array.isArray(currentResult.results) && currentResult.results.length > 0) {
+      console.log("🟡 BettingPanel - Using currentResult.results, length:", currentResult.results.length);
+      return currentResult.results;
+    }
+    console.log("🟡 BettingPanel - No results found, returning empty array");
+    return [];
+  }, [resultHistory, currentResult]);
 
   /* ---------------- TABLE IDENTIFICATION ---------------- */
   const tableId = String(getTableId(table, odds)).toLowerCase();
@@ -1151,6 +1174,9 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={table.id}
               />
             ) : isDtl20 ? (
               <Dtl20Betting
