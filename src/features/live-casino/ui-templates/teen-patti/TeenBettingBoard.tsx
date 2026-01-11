@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, Lock, Users } from "lucide-react";
+import { TrendingUp, Lock, Users, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TeenBettingBoardProps {
   bets: any[];
@@ -31,6 +32,7 @@ interface TeenBettingBoardProps {
     winnerId?: string;
   }>;
   onResultClick?: (result: any) => void;
+  tableId?: string;
 }
 
 const QUICK_CHIPS = [10, 50, 100, 500, 1000];
@@ -88,11 +90,18 @@ export const TeenBettingBoard = ({
   odds,
   resultHistory = [],
   onResultClick,
+  tableId,
 }: TeenBettingBoardProps) => {
   const [selectedBet, setSelectedBet] = useState<string>("");
   const [amount, setAmount] = useState<string>(String(min));
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBetData, setSelectedBetData] = useState<any>(null);
+  
+  // Detail result modal state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
 
   // Find Player A and Player B bets
   const playerA = findBet(bets, "player a") || findBet(bets, "a");
@@ -143,6 +152,61 @@ export const TeenBettingBoard = ({
   };
 
   const last10 = resultHistory.slice(0, 10);
+
+  // Fetch detail result
+  const fetchDetailResult = async (mid: string | number) => {
+    if (!tableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId, mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Handle result click
+  const handleResultClick = (result: any) => {
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    } else {
+      // Fallback to onResultClick if provided
+      onResultClick?.(result);
+    }
+  };
 
   return (
     <>
@@ -405,11 +469,19 @@ export const TeenBettingBoard = ({
               <p className="text-xs mb-2 text-muted-foreground">Last 10 Results</p>
               <div className="flex gap-1 flex-wrap">
                 {last10.map((r, i) => {
-                  const winner = r.win === "Player A" || r.win === "A" ? "A" : "B";
-                  const isPlayerA = winner === "A";
+                  // Handle different win formats: "1"/"2", "Player A"/"Player B", "A"/"B"
+                  const winValue = r.win?.toString() || r.winnerId?.toString() || "";
+                  const isPlayerA = 
+                    winValue === "1" || 
+                    winValue === "Player A" || 
+                    winValue === "A" ||
+                    winValue.toLowerCase() === "playera" ||
+                    (r.winnerId && r.winnerId.toString() === "1");
+                  const winner = isPlayerA ? "A" : "B";
+                  
                   return (
                     <Button
-                      key={i}
+                      key={r.mid || r.round || r.round_id || i}
                       size="sm"
                       variant="outline"
                       className={`w-9 h-9 p-0 font-bold ${
@@ -417,7 +489,7 @@ export const TeenBettingBoard = ({
                           ? "bg-blue-500 text-white border-blue-600"
                           : "bg-red-500 text-white border-red-600"
                       }`}
-                      onClick={() => onResultClick?.(r)}
+                      onClick={() => handleResultClick(r)}
                     >
                       {winner}
                     </Button>
@@ -498,6 +570,82 @@ export const TeenBettingBoard = ({
               Place Bet
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Result Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detailed Result</DialogTitle>
+          </DialogHeader>
+          
+          {detailLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <span className="ml-2">Loading result details...</span>
+            </div>
+          ) : detailData?.error ? (
+            <div className="text-center py-8 text-destructive">
+              <p>Error: {detailData.error}</p>
+            </div>
+          ) : detailData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Round ID</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md font-semibold">
+                    {detailData.mid || detailData.round_id || detailData.round || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Winner</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md font-semibold">
+                    {detailData.winnat || detailData.rdesc || detailData.win || "N/A"}
+                  </div>
+                </div>
+              </div>
+              
+              {detailData.card && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Cards</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md">
+                    <div className="font-mono text-sm">
+                      {typeof detailData.card === 'string' 
+                        ? detailData.card.split(',').map((c: string, i: number) => (
+                            <span key={i} className="inline-block mr-2">{c.trim()}</span>
+                          ))
+                        : Array.isArray(detailData.card)
+                        ? detailData.card.map((c: string, i: number) => (
+                            <span key={i} className="inline-block mr-2">{c}</span>
+                          ))
+                        : String(detailData.card)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {detailData.rdesc && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <div className="mt-1 p-2 bg-muted rounded-md">
+                    {detailData.rdesc}
+                  </div>
+                </div>
+              )}
+              
+              <div className="pt-2 border-t">
+                <Label className="text-xs text-muted-foreground">Full Data</Label>
+                <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-auto max-h-64">
+                  {JSON.stringify(detailData, null, 2)}
+                </pre>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No data available</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
