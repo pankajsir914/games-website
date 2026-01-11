@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { TableTheme } from "./config";
 
 /* ======================================================
-   🔍 TABLE SEARCH BOX (Reusable)
+   🔍 TABLE SEARCH BOX (Reusable)  
    ====================================================== */
 
 interface TableSearchBoxProps {
