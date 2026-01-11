@@ -13,8 +13,17 @@ export const DragonTigerTemplate = ({
   bets,
   loading,
   currentResult,
+  resultHistory = [],
   onPlaceBet,
 }: LiveCasinoTemplateProps) => {
+  // Debug: log what we're receiving
+  console.log("🟢 DragonTigerTemplate - Receiving props:", {
+    hasCurrentResult: !!currentResult,
+    currentResultResults: currentResult?.results?.length,
+    resultHistoryLength: resultHistory?.length,
+    tableId: table?.tableId
+  });
+  
   const variant =
     table.variant ||
     table.uiConfig?.variant ||
@@ -70,6 +79,8 @@ export const DragonTigerTemplate = ({
               odds={odds}
               loading={loading}
               onPlaceBet={onPlaceBet}
+              resultHistory={resultHistory || []}
+              currentResult={currentResult}
             />
           </CardContent>
         </Card>
