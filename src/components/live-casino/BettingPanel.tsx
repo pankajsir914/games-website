@@ -57,6 +57,15 @@ import { TrapBetting } from "@/features/live-casino/ui-templates/others/TrapBett
 import { SuperoverBetting } from "@/features/live-casino/ui-templates/others/SuperoverBetting";
 import { Lucky7eu2Betting } from "@/features/live-casino/ui-templates/others/Lucky7eu2Betting";
 import { Race20Betting } from "@/features/live-casino/ui-templates/others/Race20Betting";
+import { QueenBetting } from "@/features/live-casino/ui-templates/others/QueenBetting";
+import { CmeterBetting } from "@/features/live-casino/ui-templates/others/CmeterBetting";
+import { Cmatch20Betting } from "@/features/live-casino/ui-templates/others/Cmatch20Betting";
+import { Cricketv3Betting } from "@/features/live-casino/ui-templates/others/Cricketv3Betting";
+import { LottcardBetting } from "@/features/live-casino/ui-templates/others/LottcardBetting";
+import { BtableBetting } from "@/features/live-casino/ui-templates/others/BtableBetting";
+import { Worli2Betting } from "@/features/live-casino/ui-templates/others/Worli2Betting";
+import { WorliBetting } from "@/features/live-casino/ui-templates/others/WorliBetting";
+import { WarBetting } from "@/features/live-casino/ui-templates/others/WarBetting";
 
 
 /* =====================================================
@@ -97,6 +106,7 @@ const ROULETTE11_TABLE_IDS = ["roulette11", "roulette-11", "roulette_11"];
 const KBC_TABLE_IDS = ["kbc", "k.b.c", "kaun banega crorepati"];
 const DUM10_TABLE_IDS = ["dum10", "dus ka dum", "dus-ka-dum"];
 const CMETER1_TABLE_IDS = ["cmeter1", "1 card meter", "1-card-meter"];
+const CMETER_TABLE_IDS = ["cmeter", "casino meter"];
 const RACE2_TABLE_IDS = ["race2", "race to 2nd", "race-to-2nd"];
 const TEEN120_TABLE_IDS = ["teen120", "1 card 20-20", "1-card-20-20"];
 const NOTENUM_TABLE_IDS = ["notenum", "note number", "note-number"];
@@ -107,6 +117,14 @@ const TRAP_TABLE_IDS = ["trap", "the trap"];
 const SUPEROVER_TABLE_IDS = ["superover", "super over"];
 const LUCKY7EU2_TABLE_IDS = ["lucky7eu2", "lucky 7", "lucky-7"];
 const RACE20_TABLE_IDS = ["race20", "race 20", "race-20"];
+const QUEEN_TABLE_IDS = ["queen"];
+const CMATCH20_TABLE_IDS = ["cmatch20", "cricket match 20-20", "cricket-match-20-20"];
+const CRICKETV3_TABLE_IDS = ["cricketv3", "five five cricket", "5five cricket"];
+const LOTTCARD_TABLE_IDS = ["lottcard", "lottery card", "lottery"];
+const BTABLE_TABLE_IDS = ["btable", "bollywood table", "bollywood-table"];
+const WORLI_TABLE_IDS = ["worli"];
+const WORLI2_TABLE_IDS = ["worli2", "worli 2", "instant worli"];
+const WAR_TABLE_IDS = ["war", "casino war"];
 
 
 
@@ -155,6 +173,9 @@ export const BettingPanel = ({
   const isKbc = KBC_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isDum10 = DUM10_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isCmeter1 = CMETER1_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isCmeter = CMETER_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isCmatch20 = CMATCH20_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isCricketv3 = CRICKETV3_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isRace2 = RACE2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isTeen120 = TEEN120_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isNotenum = NOTENUM_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
@@ -165,9 +186,15 @@ export const BettingPanel = ({
   const isSuperover = SUPEROVER_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isLucky7eu2 = LUCKY7EU2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isRace20 = RACE20_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isQueen = QUEEN_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isLottcard = LOTTCARD_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isBtable = BTABLE_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isWorli = WORLI_TABLE_IDS.some(id => (tableId === id || tableId.includes(id)) && !tableId.includes("worli2") && !tableId.includes("worli 2") && !searchText.includes("instant worli"));
+  const isWorli2 = WORLI2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isWar = WAR_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   
-  // For KBC, Dum10, Cmeter1, Race2, Teen120, Notenum, Trio, Race17, Patti2, Trap, Superover, Lucky7eu2, and Race20, the data structure is different - it's in odds.data.sub or odds.data.t2
-  const betTypes = (isKbc || isDum10 || isCmeter1 || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20)
+  // For KBC, Dum10, Cmeter1, Cmeter, Cmatch20, Cricketv3, Lottcard, Btable, Worli, Worli2, War, Race2, Teen120, Notenum, Trio, Race17, Patti2, Trap, Superover, Lucky7eu2, Race20, and Queen, the data structure is different - it's in odds.data.sub or odds.data.t2
+  const betTypes = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen)
     ? (odds?.data || odds || {})
     : (odds?.bets || []);
   const hasLayOdds = !isKbc && Array.isArray(betTypes) && betTypes.some(
@@ -284,7 +311,7 @@ export const BettingPanel = ({
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
 
-  const hasRealOdds = (isKbc || isDum10 || isCmeter1 || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20)
+  const hasRealOdds = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen)
     ? (betTypes?.sub && Array.isArray(betTypes.sub) && betTypes.sub.length > 0) || (betTypes?.t2 && Array.isArray(betTypes.t2) && betTypes.t2.length > 0)
     : (Array.isArray(betTypes) && betTypes.length > 0 &&
         betTypes.some((b: any) => {
@@ -436,7 +463,7 @@ export const BettingPanel = ({
         )}
 
         {/* ================= BETTING UI ================= */}
-        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20) && (
+        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen) && (
           <>
             {isKbc ? (
               <KbcBetting
@@ -498,6 +525,48 @@ export const BettingPanel = ({
                     roundId: odds?.data?.mid || odds?.mid || bet?.mid,
                     sid: payload.sid,
                     side: "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isCmeter ? (
+              <CmeterBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // CmeterBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isCmatch20 ? (
+              <Cmatch20Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Cmatch20Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
                   });
                 }}
                 loading={loading}
@@ -629,6 +698,26 @@ export const BettingPanel = ({
                 }}
                 loading={loading}
               />
+            ) : isCricketv3 ? (
+              <Cricketv3Betting
+                betTypes={[]}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Cricketv3Betting sends {sid, psid, mid, odds, nat, amount, side}, convert to expected format
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || "",
+                    odds: payload.odds || 1,
+                    roundId: payload.mid || odds?.data?.t1?.gmid || odds?.gmid,
+                    sid: payload.sid,
+                    psid: payload.psid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
             ) : isTrap ? (
               <TrapBetting
                 betTypes={betTypes?.sub || []}
@@ -708,6 +797,135 @@ export const BettingPanel = ({
                     odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
                     roundId: odds?.data?.mid || odds?.mid || bet?.mid,
                     sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isQueen ? (
+              <QueenBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // QueenBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isLottcard ? (
+              <LottcardBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // LottcardBetting sends {sid, odds, nat, amount, side, number, betType}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid || b.nat === payload.betType);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || `${payload.betType} ${payload.number}` || "",
+                    odds: payload.odds || bet?.b || bet?.back || 1,
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid || bet?.sid,
+                    side: payload.side || "back",
+                    number: payload.number,
+                    lottcardBetType: payload.betType,
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isBtable ? (
+              <BtableBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // BtableBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid || bet?.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isWorli ? (
+              <WorliBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // WorliBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid) || allBets[0]; // Fallback to first bet if specific sid not found
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid || bet?.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isWorli2 ? (
+              <Worli2Betting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                onPlaceBet={async (payload) => {
+                  // Worli2Betting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid) || allBets[0];
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid || bet?.sid,
+                    side: payload.side || "back",
+                  });
+                }}
+                loading={loading}
+              />
+            ) : isWar ? (
+              <WarBetting
+                betTypes={betTypes?.sub || []}
+                odds={odds}
+                resultHistory={resultHistory}
+                onPlaceBet={async (payload) => {
+                  // WarBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid) || allBets[0]; // Fallback to first bet if specific sid not found
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || "",
+                    odds: payload.odds || (payload.side === "back" ? (bet?.b || bet?.back || 1) : (bet?.l || bet?.lay || 1)),
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid || bet?.sid,
                     side: payload.side || "back",
                   });
                 }}
@@ -1257,7 +1475,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && (
+        {!isTeen && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && (
           <>
             <div className="space-y-2">
               <Label className="text-xs">Quick Amount</Label>
