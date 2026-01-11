@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { TableTheme } from "./config";
-
+   
 /* ======================================================
    🔍 TABLE SEARCH BOX (Reusable)  
    ====================================================== */
