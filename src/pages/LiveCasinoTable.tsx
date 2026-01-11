@@ -98,9 +98,14 @@ const LiveCasinoTable = () => {
   // Real-time result updates via WebSocket + API polling
   useCasinoResultSocket(tableId, (result) => {
     if (result) {
+      // Set currentResult with the full result object (includes results array)
       setCurrentResult({ ...result, _updated: Date.now() });
+      // Also set resultHistory from results array
       if (result.results && Array.isArray(result.results)) {
         setResultHistory([...result.results]);
+      } else if (Array.isArray(result)) {
+        // If result itself is an array
+        setResultHistory([...result]);
       }
     }
   });
@@ -234,11 +239,21 @@ const LiveCasinoTable = () => {
   }, [initialOdds, formatOddsData]);
 
   useEffect(() => {
-    if (initialCurrentResult) setCurrentResult(initialCurrentResult);
+    if (initialCurrentResult) {
+      setCurrentResult(initialCurrentResult);
+      // Also extract results from currentResult if available
+      if (initialCurrentResult.results && Array.isArray(initialCurrentResult.results)) {
+        setResultHistory(initialCurrentResult.results);
+      }
+    }
   }, [initialCurrentResult]);
 
   useEffect(() => {
-    if (initialResultHistory?.length) setResultHistory(initialResultHistory);
+    if (initialResultHistory?.length) {
+      setResultHistory(initialResultHistory);
+    } else if (initialResultHistory && Array.isArray(initialResultHistory)) {
+      setResultHistory(initialResultHistory);
+    }
   }, [initialResultHistory]);
 
   useEffect(() => {
@@ -354,7 +369,7 @@ const LiveCasinoTable = () => {
               bets={bets}
               loading={loading}
               currentResult={currentResult}
-              resultHistory={resultHistory}
+              resultHistory={resultHistory || []}
               onPlaceBet={handlePlaceBet}
             />
           </TabsContent>
