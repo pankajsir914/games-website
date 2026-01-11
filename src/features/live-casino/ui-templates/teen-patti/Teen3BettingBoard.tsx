@@ -96,12 +96,10 @@ export const Teen3BettingBoard = ({
   }));
 
   const totalBets = useMemo(() => {
-    const bet = bets.find((b: any) => 
-      (b.nat || b.type || "").toLowerCase() === selectedBet.toLowerCase()
-    );
+    if (!selectedBetData || !amount) return 0;
     const amt = parseFloat(amount) || 0;
-    return bet ? amt : 0;
-  }, [bets, selectedBet, amount]);
+    return amt > 0 ? amt : 0;
+  }, [selectedBetData, amount]);
 
   const getBackOdds = (bet: any) => bet?.back ?? bet?.b ?? bet?.odds ?? 0;
   const getLayOdds = (bet: any) => bet?.lay ?? bet?.l ?? bet?.l1 ?? 0;
@@ -114,36 +112,62 @@ export const Teen3BettingBoard = ({
   };
 
   const handlePlace = async () => {
-    if (!selectedBetData || !amount || parseFloat(amount) <= 0 || locked) return;
+    if (!selectedBetData || !amount || parseFloat(amount) <= 0 || locked) {
+      console.warn("⚠️ [Teen3] Cannot place bet:", {
+        hasSelectedBetData: !!selectedBetData,
+        amount,
+        locked
+      });
+      return;
+    }
     
-    const amt = parseFloat(amount);
-    const side = selectedBetData?.side || "back";
-    const oddsValue = side === "back" 
-      ? Number(getBackOdds(selectedBetData))
-      : Number(getLayOdds(selectedBetData));
-    const finalOdds = oddsValue > 1000 ? oddsValue / 100000 : oddsValue;
-    
-    // Extract roundId from bet data or odds
-    const roundIdFromBet = selectedBetData?.mid || selectedBetData?.round_id || selectedBetData?.round;
-    const raw = odds?.rawData || odds?.raw || odds || {};
-    const roundIdFromOdds = raw?.mid || raw?.round_id || raw?.round || raw?.gmid || raw?.game_id ||
-                           odds?.mid || odds?.round_id || odds?.round || odds?.gmid || odds?.game_id;
-    const roundIdFromFirstBet = bets.length > 0 && (bets[0]?.mid || bets[0]?.round_id || bets[0]?.round);
-    const finalRoundId = roundIdFromBet || roundIdFromOdds || roundIdFromFirstBet || null;
+    try {
+      const amt = parseFloat(amount);
+      const side = selectedBetData?.side || "back";
+      const oddsValue = side === "back" 
+        ? Number(getBackOdds(selectedBetData))
+        : Number(getLayOdds(selectedBetData));
+      const finalOdds = oddsValue > 1000 ? oddsValue / 100000 : oddsValue;
+      
+      // Extract roundId from bet data or odds
+      const roundIdFromBet = selectedBetData?.mid || selectedBetData?.round_id || selectedBetData?.round;
+      const raw = odds?.rawData || odds?.raw || odds || {};
+      const roundIdFromOdds = raw?.mid || raw?.round_id || raw?.round || raw?.gmid || raw?.game_id ||
+                             odds?.mid || odds?.round_id || odds?.round || odds?.gmid || odds?.game_id;
+      const roundIdFromFirstBet = bets.length > 0 && (bets[0]?.mid || bets[0]?.round_id || bets[0]?.round);
+      const finalRoundId = roundIdFromBet || roundIdFromOdds || roundIdFromFirstBet || null;
 
-    await onPlaceBet({
-      betType: selectedBetData?.nat || selectedBetData?.type || selectedBet.split("-")[0],
-      amount: Math.min(Math.max(amt, min), max),
-      odds: finalOdds,
-      roundId: finalRoundId,
-      sid: selectedBetData?.sid,
-      side: side,
-    });
-    
-    setModalOpen(false);
-    setSelectedBet("");
-    setAmount(String(min));
-    setSelectedBetData(null);
+      const betType = selectedBetData?.nat || selectedBetData?.type || selectedBet.split("-")[0];
+      const betAmount = Math.min(Math.max(amt, min), max);
+
+      console.log("🟢 [Teen3] Placing bet:", {
+        betType,
+        amount: betAmount,
+        odds: finalOdds,
+        roundId: finalRoundId,
+        sid: selectedBetData?.sid,
+        side: side,
+      });
+
+      await onPlaceBet({
+        betType: betType,
+        amount: betAmount,
+        odds: finalOdds,
+        roundId: finalRoundId,
+        sid: selectedBetData?.sid,
+        side: side,
+      });
+      
+      console.log("✅ [Teen3] Bet placed successfully");
+      
+      setModalOpen(false);
+      setSelectedBet("");
+      setAmount(String(min));
+      setSelectedBetData(null);
+    } catch (error) {
+      console.error("❌ [Teen3] Error placing bet:", error);
+      // Don't close modal on error so user can retry
+    }
   };
 
   const last10 = resultHistory.slice(0, 10);
@@ -425,7 +449,7 @@ export const Teen3BettingBoard = ({
 
             <Button
               className="w-full"
-              disabled={locked || !selectedBetData || totalBets === 0}
+              disabled={locked || !selectedBetData || !amount || parseFloat(amount) <= 0 || parseFloat(amount) < min}
               onClick={handlePlace}
             >
               <TrendingUp className="w-4 h-4 mr-2" />
