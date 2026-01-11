@@ -1,6 +1,6 @@
 // src/pages/tables/Dt6Betting.tsx
 
-import { Lock, Info, X } from "lucide-react";
+import { Lock, Info, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ================= TYPES ================= */
 
@@ -17,6 +18,9 @@ interface Dt6BettingProps {
   betTypes: any[];
   onPlaceBet: (payload: any) => Promise<void>;
   loading?: boolean;
+  resultHistory?: any[];
+  currentResult?: any;
+  tableId?: string;
 }
 
 /* ================= HELPERS ================= */
@@ -52,13 +56,48 @@ export const Dt6Betting = ({
   betTypes = [],
   onPlaceBet,
   loading = false,
+  resultHistory = [],
+  currentResult,
+  tableId,
 }: Dt6BettingProps) => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [betModalOpen, setBetModalOpen] = useState(false);
   const [selectedBet, setSelectedBet] = useState<any>(null);
   const [amount, setAmount] = useState("100");
+  
+  // Detail result modal state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
 
   const quickAmounts = [100, 500, 1000, 5000];
+  
+  // Get last 10 results - handle different data structures
+  // Priority: resultHistory array > currentResult.results > resultHistory.results
+  const last10Results = useMemo(() => {
+    // First try: resultHistory as direct array
+    if (Array.isArray(resultHistory) && resultHistory.length > 0) {
+      return resultHistory.slice(0, 10);
+    }
+    
+    // Second try: currentResult.results array (same as CurrentResult component)
+    if (currentResult?.results && Array.isArray(currentResult.results) && currentResult.results.length > 0) {
+      return currentResult.results.slice(0, 10);
+    }
+    
+    // Third try: resultHistory.results (nested)
+    if ((resultHistory as any)?.results && Array.isArray((resultHistory as any).results)) {
+      return (resultHistory as any).results.slice(0, 10);
+    }
+    
+    // Fourth try: currentResult as array (if it's the results array itself)
+    if (Array.isArray(currentResult) && currentResult.length > 0) {
+      return currentResult.slice(0, 10);
+    }
+    
+    return [];
+  }, [resultHistory, currentResult]);
 
   const dragon = find(betTypes, "Dragon");
   const tiger = find(betTypes, "Tiger");
@@ -86,6 +125,58 @@ export const Dt6Betting = ({
     setBetModalOpen(false);
     setSelectedBet(null);
     setAmount("100");
+  };
+
+  // Fetch detail result
+  const fetchDetailResult = async (mid: string | number) => {
+    if (!tableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId, mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Handle result click
+  const handleResultClick = (result: any) => {
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    }
   };
 
   const Cell = ({ bet }: { bet: any }) => {
@@ -226,7 +317,7 @@ export const Dt6Betting = ({
       </div>
 
       {/* ================= SUITS ================= */}
-      <div className="border">
+      <div className="border mb-2">
         <div className="grid grid-cols-5 text-sm font-semibold">
           <div className="h-10 flex items-center" />
           <div className="text-center bg-sky-300 text-gray-900 h-10 flex items-center justify-center text-2xl font-bold">
@@ -252,6 +343,63 @@ export const Dt6Betting = ({
             <Cell bet={get(`${side} Diamond`)} />
           </div>
         ))}
+      </div>
+
+      {/* ================= LAST 10 RESULTS ================= */}
+      <div className="border pt-2 pb-2">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Last 10 Results</p>
+        {last10Results.length > 0 ? (
+          <div className="flex gap-1.5 px-2 overflow-x-auto">
+            {last10Results.map((result: any, index: number) => {
+              const winner = result.win || result.winner || result.result || result.nat || "";
+              const winnerStr = String(winner).toLowerCase().trim();
+              
+              // Handle numeric values: 1 = Dragon, 2 = Tiger
+              // Also handle text: "dragon", "tiger", "d", "t"
+              let letter = "?";
+              let textColor = "text-white";
+              
+              // Check for numeric values first (1 = Dragon, 2 = Tiger)
+              if (winner === 1 || winner === "1" || winnerStr === "1") {
+                letter = "D";
+                textColor = "text-orange-500";
+              } else if (winner === 2 || winner === "2" || winnerStr === "2") {
+                letter = "T";
+                textColor = "text-yellow-400";
+              } else if (winnerStr.includes("dragon") || winnerStr === "d") {
+                letter = "D";
+                textColor = "text-orange-500";
+              } else if (winnerStr.includes("tiger") || winnerStr === "t") {
+                letter = "T";
+                textColor = "text-yellow-400";
+              } else {
+                // Try to extract first letter if it's a single character
+                const firstChar = String(winner).charAt(0).toUpperCase();
+                if (firstChar === "D" || firstChar === "1") {
+                  letter = "D";
+                  textColor = "text-orange-500";
+                } else if (firstChar === "T" || firstChar === "2") {
+                  letter = "T";
+                  textColor = "text-yellow-400";
+                }
+              }
+
+              return (
+                <button
+                  key={result.mid || result.round_id || result.round || index}
+                  onClick={() => handleResultClick(result)}
+                  className={`flex-shrink-0 w-10 h-10 rounded-full bg-green-700 ${textColor} font-bold text-lg flex items-center justify-center hover:scale-110 transition-transform cursor-pointer`}
+                >
+                  {letter}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-2 text-xs text-muted-foreground text-center py-2">
+            No results yet
+          </div>
+        )}
       </div>
 
       {/* ================= BET MODAL ================= */}
@@ -364,6 +512,191 @@ export const Dt6Betting = ({
             <p className="font-semibold">
               ♠ Spade &gt; ♥ Heart &gt; ♣ Club &gt; ♦ Diamond
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= DETAIL RESULT MODAL ================= */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Round #{selectedResult?.mid || selectedResult?.round || selectedResult?.round_id || "N/A"} - Detailed Result
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading details...</span>
+              </div>
+            ) : detailData ? (
+              <div className="space-y-4">
+                {detailData.error ? (
+                  <div className="text-center py-8">
+                    <p className="text-destructive font-medium mb-2">Error</p>
+                    <p className="text-sm text-muted-foreground">{detailData.error}</p>
+                  </div>
+                ) : (() => {
+                  // Extract t1 data from the response
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || null;
+                  
+                  if (!t1Data) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No detailed result data available
+                      </div>
+                    );
+                  }
+
+                  // Parse rdesc to extract winner and one or more bet results
+                  const parseRdesc = (rdesc: string) => {
+                    if (!rdesc) {
+                      return {
+                        winner: null,
+                        results: [] as { betOption: string | null; result: string | null }[],
+                        fullText: null
+                      };
+                    }
+
+                    const parts = rdesc.split('#').map((p) => p.trim()).filter(Boolean);
+
+                    if (parts.length === 0) {
+                      return {
+                        winner: null,
+                        results: [],
+                        fullText: rdesc
+                      };
+                    }
+
+                    const winner = parts[0];
+                    const results = parts.slice(1).map((segment) => {
+                      const colonIndex = segment.indexOf(':');
+                      if (colonIndex === -1) {
+                        return {
+                          betOption: segment.trim(),
+                          result: null
+                        };
+                      }
+                      const betOption = segment.substring(0, colonIndex).trim();
+                      const result = segment.substring(colonIndex + 1).trim();
+                      return { betOption, result };
+                    });
+
+                    return {
+                      winner: winner || null,
+                      results,
+                      fullText: rdesc
+                    };
+                  };
+
+                  // Format cards for display
+                  const formatCards = (cardString: string) => {
+                    if (!cardString) return [];
+                    return cardString.split(',').map(card => card.trim());
+                  };
+
+                  const cards = formatCards(t1Data.card || '');
+                  const parsedRdesc = parseRdesc(t1Data.rdesc || '');
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Winner Section - Highlighted */}
+                      <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 rounded-lg p-4">
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Winner</p>
+                            <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                              {parsedRdesc.winner || t1Data.winnat || 'N/A'}
+                            </p>
+                          </div>
+                          
+                          {/* Multiple bet results for same round */}
+                          {parsedRdesc.results && parsedRdesc.results.length > 0 && (
+                            <div className="pt-2 border-t border-green-500/30 space-y-2">
+                              <p className="text-xs font-semibold text-muted-foreground">
+                                Round Results
+                              </p>
+                              <div className="space-y-1">
+                                {parsedRdesc.results.map((res, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-md bg-green-500/10 px-2 py-1.5"
+                                  >
+                                    <span className="text-xs font-medium text-green-700 dark:text-green-200">
+                                      Bet:{" "}
+                                      <span className="font-semibold">
+                                        {res.betOption || "N/A"}
+                                      </span>
+                                    </span>
+                                    {res.result && (
+                                      <span className="text-xs text-green-800 dark:text-green-100">
+                                        Result:{" "}
+                                        <span className="font-medium">
+                                          {res.result}
+                                        </span>
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="pt-2 border-t border-green-500/30">
+                            <p className="text-xs text-muted-foreground mb-1">Win Code</p>
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {t1Data.win || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Game Information */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground">Event Name</p>
+                          <p className="text-sm font-medium">{t1Data.ename || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground">Round ID</p>
+                          <p className="text-sm font-medium font-mono">{t1Data.rid || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1 col-span-2">
+                          <p className="text-xs font-semibold text-muted-foreground">Round Description</p>
+                          <p className="text-sm font-medium break-words">{parsedRdesc.fullText || t1Data.rdesc || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-muted-foreground">Time</p>
+                          <p className="text-sm font-medium">{t1Data.mtime || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      {/* Cards Display */}
+                      {cards.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-muted-foreground">Cards</p>
+                          <div className="flex flex-wrap gap-2">
+                            {cards.map((card, index) => (
+                              <div
+                                key={index}
+                                className="px-3 py-2 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border border-red-300 dark:border-red-700 rounded-md font-mono font-bold text-sm text-red-700 dark:text-red-300"
+                              >
+                                {card}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No detailed data available
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
