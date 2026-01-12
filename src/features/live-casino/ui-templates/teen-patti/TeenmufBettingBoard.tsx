@@ -327,7 +327,7 @@ export const TeenmufBettingBoard = ({
 
   return (
     <>
-      <Card className="border border-white/10">
+      <Card className="border-0 shadow-none">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <CardTitle className="text-sm sm:text-base flex items-center gap-2">
