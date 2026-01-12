@@ -1076,6 +1076,7 @@ export const BettingPanel = ({
                 odds={odds}
                 resultHistory={resultHistory}
                 onResultClick={(r) => console.log("Teen3 result", r)}
+                tableId={tableId}
               />
             ) : isJoker1 ? (
               <Joker1BettingBoard
