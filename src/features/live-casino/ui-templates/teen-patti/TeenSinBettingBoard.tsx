@@ -61,9 +61,15 @@ const findBet = (bets: any[], searchTerm: string) => {
       betName.includes(`${normalized} player`) ||
       betName.includes(`winner ${normalized}`) ||
       betName.includes(`high card ${normalized}`) ||
+      betName.includes(`highcard ${normalized}`) ||
       betName.includes(`pair ${normalized}`) ||
       betName.includes(`color plus ${normalized}`) ||
-      betName.includes(`color+ ${normalized}`)
+      betName.includes(`color+ ${normalized}`) ||
+      betName.includes(`colorplus ${normalized}`) ||
+      betName.includes(`lucky ${normalized}`) ||
+      betName.includes(`lucky9 ${normalized}`) ||
+      betName.includes(`lucky 9 ${normalized}`) ||
+      (normalized.includes("lucky") && betName.includes("lucky"))
     );
   });
 };
@@ -99,8 +105,31 @@ export const TeenSinBettingBoard = ({
   const colorPlusB = findBet(bets, "color plus b") || findBet(bets, "color+ b") || findBet(bets, "colorplus b");
 
   // Find Lucky 9 bets
-  const lucky9A = findBet(bets, "lucky 9 a") || findBet(bets, "lucky9 a");
-  const lucky9B = findBet(bets, "lucky 9 b") || findBet(bets, "lucky9 b");
+  // First, try to find the base "LUCKY 9" bet (without A/B)
+  const lucky9Base = findBet(bets, "lucky 9") || findBet(bets, "lucky9") || findBet(bets, "lucky");
+  
+  // Then try to find separate A/B bets
+  const lucky9A = findBet(bets, "lucky 9 a") || findBet(bets, "lucky9 a") || findBet(bets, "lucky a") || 
+                  findBet(bets, "lucky9a") || 
+                  bets.find((b: any) => {
+                    const betName = (b.nat || b.type || "").toLowerCase().trim();
+                    return betName.includes("lucky") && betName.includes("9") && (betName.includes(" a") || betName.endsWith("a") || betName.includes("player a"));
+                  });
+  const lucky9B = findBet(bets, "lucky 9 b") || findBet(bets, "lucky9 b") || findBet(bets, "lucky b") || 
+                  findBet(bets, "lucky9b") || 
+                  bets.find((b: any) => {
+                    const betName = (b.nat || b.type || "").toLowerCase().trim();
+                    return betName.includes("lucky") && betName.includes("9") && (betName.includes(" b") || betName.endsWith("b") || betName.includes("player b"));
+                  });
+  
+  // Debug: Log what we found
+  if (lucky9A || lucky9B || lucky9Base) {
+    console.log("🎰 [TeenSin] Lucky 9 bets found:", {
+      lucky9A: lucky9A ? { nat: lucky9A.nat, back: getBackOdds(lucky9A) } : null,
+      lucky9B: lucky9B ? { nat: lucky9B.nat, back: getBackOdds(lucky9B) } : null,
+      lucky9Base: lucky9Base ? { nat: lucky9Base.nat, back: getBackOdds(lucky9Base) } : null,
+    });
+  }
 
   const handleBetClick = (bet: any, betName: string, side: "back" | "lay" = "back") => {
     if (!bet || isSuspended(bet)) return;
@@ -306,35 +335,35 @@ export const TeenSinBettingBoard = ({
               <div className="flex gap-3 sm:gap-4 flex-1">
                 {/* Player A Lucky 9 */}
                 <button
-                  onClick={() => handleBetClick(lucky9A, "Lucky 9 A", "back")}
-                  disabled={locked || isSuspended(lucky9A)}
+                  onClick={() => handleBetClick(lucky9A || lucky9Base, "Lucky 9 A", "back")}
+                  disabled={locked || isSuspended(lucky9A || lucky9Base) || !(lucky9A || lucky9Base)}
                   className={`flex-1 h-12 sm:h-14 rounded-lg px-4 flex items-center justify-center font-bold text-white text-lg sm:text-xl transition-all ${
-                    locked || isSuspended(lucky9A)
+                    locked || isSuspended(lucky9A || lucky9Base) || !(lucky9A || lucky9Base)
                       ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                       : "bg-blue-400 hover:bg-blue-500 shadow-md hover:shadow-lg"
                   }`}
                 >
-                  {locked || isSuspended(lucky9A) ? (
+                  {locked || isSuspended(lucky9A || lucky9Base) || !(lucky9A || lucky9Base) ? (
                     <Lock className="w-5 h-5" />
                   ) : (
-                    formatOdds(getBackOdds(lucky9A))
+                    formatOdds(getBackOdds(lucky9A || lucky9Base))
                   )}
                 </button>
 
                 {/* Player B Lucky 9 */}
                 <button
-                  onClick={() => handleBetClick(lucky9B, "Lucky 9 B", "back")}
-                  disabled={locked || isSuspended(lucky9B)}
+                  onClick={() => handleBetClick(lucky9B || lucky9Base, "Lucky 9 B", "back")}
+                  disabled={locked || isSuspended(lucky9B || lucky9Base) || !(lucky9B || lucky9Base)}
                   className={`flex-1 h-12 sm:h-14 rounded-lg px-4 flex items-center justify-center font-bold text-white text-lg sm:text-xl transition-all ${
-                    locked || isSuspended(lucky9B)
+                    locked || isSuspended(lucky9B || lucky9Base) || !(lucky9B || lucky9Base)
                       ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                       : "bg-pink-400 hover:bg-pink-500 shadow-md hover:shadow-lg"
                   }`}
                 >
-                  {locked || isSuspended(lucky9B) ? (
+                  {locked || isSuspended(lucky9B || lucky9Base) || !(lucky9B || lucky9Base) ? (
                     <Lock className="w-5 h-5" />
                   ) : (
-                    formatOdds(getBackOdds(lucky9B))
+                    formatOdds(getBackOdds(lucky9B || lucky9Base))
                   )}
                 </button>
               </div>
