@@ -253,7 +253,7 @@ export const BettingPanel = ({
     !tableId.includes("teen9") && !tableId.includes("teen20") && !tableId.includes("teen42") &&
     !tableId.includes("teen62") && !tableId.includes("teen120") && !tableId.includes("teenunique") && !tableId.includes("teenmuf") && !tableId.includes("teensin");
   const isTeenUnique = TEENUNIQUE_TABLE_IDS.some(id => tableId.includes(id));
-  const isTeenmuf = TEENMUF_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  
   const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
   const isDt6 = DT6_TABLE_IDS.includes(tableId);
   const isDt202 = DT202_TABLE_IDS.includes(tableId);
