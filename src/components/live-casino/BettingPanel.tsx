@@ -28,6 +28,7 @@ import { TeenUniqueBettingBoard } from "@/features/live-casino/ui-templates/teen
 import { Teen9BettingBoard } from "@/features/live-casino/ui-templates/teen-patti/Teen9BettingBoard";
 import { TeenBettingBoard } from "@/features/live-casino/ui-templates/teen-patti/TeenBettingBoard";
 import { Teen62BettingBoard } from "@/features/live-casino/ui-templates/teen-patti/Teen62BettingBoard";
+import { TeenmufBettingBoard } from "@/features/live-casino/ui-templates/teen-patti/TeenmufBettingBoard";
 import { MogamboBetting } from "@/features/live-casino/ui-templates/teen-patti/MogamboBetting";
 import { Joker1BettingBoard } from "@/features/live-casino/ui-templates/joker/Joker1BettingBoard";
 import { Joker20BettingBoard } from "@/features/live-casino/ui-templates/joker/Joker20BettingBoard";
@@ -90,6 +91,7 @@ const TEEN8_TABLE_IDS = ["teen8", "teen 8", "teen-8"];
 const TEEN_TABLE_IDS = ["teen"];
 const TEEN9_TABLE_IDS = ["teen9", "teen 9", "teen-9"];
 const TEENUNIQUE_TABLE_IDS = ["teenunique", "teen unique", "teen-unique"];
+const TEENMUF_TABLE_IDS = ["teenmuf", "teen muf", "teen-muf"];
 const JOKER1_TABLE_IDS = ["joker1", "joker 1", "joker-1"];
 const JOKER20_TABLE_IDS = ["joker20", "joker 20", "joker-20"];
 const MOGAMBO_TABLE_IDS = ["mogambo"];
@@ -245,8 +247,9 @@ export const BettingPanel = ({
   const isTeen = TEEN_TABLE_IDS.some(id => tableId === id || tableId.includes(id)) && 
     !tableId.includes("teen1") && !tableId.includes("teen3") && !tableId.includes("teen6") && !tableId.includes("teen8") && 
     !tableId.includes("teen9") && !tableId.includes("teen20") && !tableId.includes("teen42") &&
-    !tableId.includes("teen62") && !tableId.includes("teen120") && !tableId.includes("teenunique");
+    !tableId.includes("teen62") && !tableId.includes("teen120") && !tableId.includes("teenunique") && !tableId.includes("teenmuf");
   const isTeenUnique = TEENUNIQUE_TABLE_IDS.some(id => tableId.includes(id));
+  const isTeenmuf = TEENMUF_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isMogambo = MOGAMBO_TABLE_IDS.includes(tableId);
   const isDt6 = DT6_TABLE_IDS.includes(tableId);
   const isDt202 = DT202_TABLE_IDS.includes(tableId);
@@ -622,6 +625,9 @@ export const BettingPanel = ({
               <Teen120Betting
                 betTypes={betTypes?.sub || []}
                 odds={odds}
+                resultHistory={finalResultHistory}
+                onResultClick={(r) => console.log("Teen120 result", r)}
+                tableId={tableId}
                 onPlaceBet={async (payload) => {
                   // Teen120Betting sends {sid, odds, nat, amount}, convert to expected format
                   const allBets = betTypes?.sub || [];
@@ -1078,6 +1084,17 @@ export const BettingPanel = ({
                 onResultClick={(r) => console.log("Teen3 result", r)}
                 tableId={tableId}
               />
+            ) : isTeenmuf ? (
+              <TeenmufBettingBoard
+                bets={betTypes}
+                locked={loading}
+                min={table?.min || 10}
+                max={table?.max || 100000}
+                onPlaceBet={onPlaceBet}
+                odds={odds}
+                resultHistory={resultHistory}
+                onResultClick={(r) => console.log("Teenmuf result", r)}
+              />
             ) : isJoker1 ? (
               <Joker1BettingBoard
                 bets={betTypes}
@@ -1517,7 +1534,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && (
+        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && (
           <>
             <div className="space-y-2">
               <Input
