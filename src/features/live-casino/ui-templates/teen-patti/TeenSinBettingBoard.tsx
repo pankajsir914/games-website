@@ -333,7 +333,7 @@ export const TeenSinBettingBoard = ({
 
               {/* Two Bars */}
               <div className="flex gap-3 sm:gap-4 flex-1">
-                {/* Player A Lucky 9 */}
+                {/* Player A Lucky 9 - Back Odds */}
                 <button
                   onClick={() => handleBetClick(lucky9A || lucky9Base, "Lucky 9 A", "back")}
                   disabled={locked || isSuspended(lucky9A || lucky9Base) || !(lucky9A || lucky9Base)}
@@ -350,9 +350,9 @@ export const TeenSinBettingBoard = ({
                   )}
                 </button>
 
-                {/* Player B Lucky 9 */}
+                {/* Player B Lucky 9 - Lay Odds */}
                 <button
-                  onClick={() => handleBetClick(lucky9B || lucky9Base, "Lucky 9 B", "back")}
+                  onClick={() => handleBetClick(lucky9B || lucky9Base, "Lucky 9 B", "lay")}
                   disabled={locked || isSuspended(lucky9B || lucky9Base) || !(lucky9B || lucky9Base)}
                   className={`flex-1 h-12 sm:h-14 rounded-lg px-4 flex items-center justify-center font-bold text-white text-lg sm:text-xl transition-all ${
                     locked || isSuspended(lucky9B || lucky9Base) || !(lucky9B || lucky9Base)
@@ -363,7 +363,7 @@ export const TeenSinBettingBoard = ({
                   {locked || isSuspended(lucky9B || lucky9Base) || !(lucky9B || lucky9Base) ? (
                     <Lock className="w-5 h-5" />
                   ) : (
-                    formatOdds(getBackOdds(lucky9B || lucky9Base))
+                    formatOdds(getLayOdds(lucky9B || lucky9Base))
                   )}
                 </button>
               </div>
