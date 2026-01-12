@@ -131,9 +131,40 @@ export const TeenSinBettingBoard = ({
     let betType = selectedBetData?.nat || selectedBetData?.type || "";
     const betName = selectedBet.split("-")[0].toLowerCase();
     
-    // If bet.nat is not in correct format, use it as is
+    // If bet.nat is not in correct format, map it based on bet name
     if (!betType || betType === "") {
-      betType = betName;
+      if (betName.includes("winner")) {
+        // Winner bet - map to BA/BB based on which player
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = side === "back" ? "BA" : "LA";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = side === "back" ? "BB" : "LB";
+        }
+      } else if (betName.includes("high card") || betName.includes("highcard")) {
+        // High Card bet
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = "HIGH CARD A";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = "HIGH CARD B";
+        }
+      } else if (betName.includes("pair")) {
+        // Pair bet
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = "PAIR A";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = "PAIR B";
+        }
+      } else if (betName.includes("lucky 9") || betName.includes("lucky9")) {
+        // Lucky 9 bet (no A/B needed, but we can add it for clarity)
+        betType = "LUCKY 9";
+      } else if (betName.includes("color plus") || betName.includes("color+") || betName.includes("colorplus")) {
+        // Color Plus bet
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = "COLOR PLUS A";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = "COLOR PLUS B";
+        }
+      }
     }
 
     await onPlaceBet({
