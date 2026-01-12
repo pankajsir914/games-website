@@ -259,60 +259,67 @@ export const Teen120Betting = ({
 
       {/* ================= RULES MODAL ================= */}
       <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
-        <DialogContent className="max-w-md text-sm max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
             <DialogTitle>1 CARD 20-20 Rules</DialogTitle>
           </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-500">
+            <div className="space-y-3 text-sm leading-relaxed">
+              <p>
+                1 CARD 20-20 is a very easy and fast paced game.
+              </p>
+              <p>
+                This game is played with 8 decks of regular 52 cards between the player and dealer.
+              </p>
+              <p>
+                Both, the player and dealer will be dealt one card each.
+              </p>
+              <p>
+                The objective of the game is to guess whether the player or dealer will draw a card of the higher value and will therefore win.
+              </p>
+              <p>
+                You can place your bets on the player as well as dealer.
+              </p>
+              
+              <p className="font-semibold mt-3">Ranking of cards : from lowest to highest</p>
+              <p className="font-mono text-xs bg-gray-900 dark:bg-gray-800 p-2 rounded">
+                2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , J , Q , K , A
+              </p>
 
-          <div className="space-y-2 text-xs leading-relaxed">
-            <p>
-              Teenpatti is an indian origin three cards game.
-            </p>
-            <p>
-              This game is played with a regular 52 cards deck between Player A and Player B.
-            </p>
-            <p>
-              The objective of the game is to make the best three cards hand as per the hand rankings and win.
-            </p>
-            <p>
-              You have a betting option of Back and Lay for the main bet.
-            </p>
-            
-            <p className="font-semibold mt-2">Rankings of the card hands from highest to lowest:</p>
-            <ol className="list-decimal pl-4 space-y-1">
-              <li>Straight Flush (pure Sequence)</li>
-              <li>Trail (Three of a Kind)</li>
-              <li>Straight (Sequence)</li>
-              <li>Flush (Color)</li>
-              <li>Pair (Two of a kind)</li>
-              <li>High Card</li>
-            </ol>
+              <p className="font-semibold mt-3">
+                If the player and dealer both have the same hands with the same ranking cards but of different suits then the winner will be decided according to the order of the suits
+              </p>
+              <p className="font-semibold">Order of suits : from highest to lowest</p>
+              <p className="font-mono text-xs bg-gray-900 dark:bg-gray-800 p-2 rounded">
+                Spades , Hearts , Clubs , Diamonds
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                eg: Clubs ACE vs Diamonds ACE - Here ACE of Clubs wins.
+              </p>
 
-            <p className="font-semibold mt-2">Side bets:</p>
-            <p>
-              <b>CONSECUTIVE CARDS:</b> It is a bet of having two or more consecutive cards in the game.
-            </p>
-            <p className="text-xs text-gray-600">
-              eg: 2,3,5 | 10,3,9 | Q,5,K | 6,7,8 | A,K,7
-            </p>
-            <p>
-              For both the players Back and Lay odds are available, you can bet on either or both the players.
-            </p>
-            
-            <p className="font-semibold mt-2">Odd - Even:</p>
-            <p>
-              Here you can bet on every card whether it will be an odd card or an even card.
-            </p>
-            <p>
-              <b>ODD CARDS:</b> A, 3, 5, 7, 9, J, K
-            </p>
-            <p>
-              <b>EVEN CARDS:</b> 2, 4, 6, 8, 10, Q
-            </p>
+              <p className="font-semibold mt-3">
+                If both, the player and dealer hands have the same ranking cards which are of the same suit, then it will be a TIE.
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                eg: Spades ACE vs Spades ACE
+              </p>
+              <p className="font-semibold text-red-600 dark:text-red-400">
+                In case of a TIE, bets placed on both the player and dealer will lose the bet amount.
+              </p>
 
-            <p className="font-semibold mt-2 text-yellow-500">
-              NOTE: In case of a Tie between the player A and player B bets placed on player A and player B (Main bets) will be returned. (Pushed)
-            </p>
+              <div className="border-t pt-3 mt-3">
+                <p className="font-semibold text-lg mb-2">Side Bets</p>
+                <p className="mb-2">
+                  <b>Pair :</b> Here you can bet that both, the player and dealer will have the same ranking cards irrespective of suits
+                </p>
+                <p className="mb-2">
+                  <b>Tie :</b> Here you can bet that the game will be a Tie.
+                </p>
+                <p className="font-semibold text-yellow-600 dark:text-yellow-400 mt-2">
+                  Note : In case of a Tie between the player and dealer, bets placed on Side bets will be considered valid.
+                </p>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
