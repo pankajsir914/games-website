@@ -27,9 +27,11 @@ interface TeenBettingBoardProps {
   }) => Promise<void>;
   odds?: any;
   resultHistory?: Array<{
-    mid: string | number;
-    win: "Player A" | "Player B" | "A" | "B";
+    mid?: string | number;
+    win?: "Player A" | "Player B" | "A" | "B" | string | number;
     winnerId?: string;
+    round?: string | number;
+    round_id?: string | number;
   }>;
   onResultClick?: (result: any) => void;
   tableId?: string;
@@ -103,13 +105,51 @@ export const TeenBettingBoard = ({
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState<any>(null);
 
-  // Find Player A and Player B bets
-  const playerA = findBet(bets, "player a") || findBet(bets, "a");
-  const playerB = findBet(bets, "player b") || findBet(bets, "b");
+  // Find Player and Dealer bets (Teen1 uses "Player" and "Dealer" instead of "Player A/B")
+  const playerBet = findBet(bets, "player") || findBet(bets, "player a") || findBet(bets, "a");
+  const dealerBet = findBet(bets, "dealer") || findBet(bets, "player b") || findBet(bets, "b");
+
+  // For Teen1, also check for Player A/Dealer B format
+  const playerA = findBet(bets, "player a") || findBet(bets, "a") || playerBet;
+  const playerB = findBet(bets, "player b") || findBet(bets, "b") || dealerBet;
 
   // Find consecutive bets (if any)
-  const consecutiveA = findBet(bets, "consecutive a") || findBet(bets, "con a");
-  const consecutiveB = findBet(bets, "consecutive b") || findBet(bets, "con b");
+  const consecutiveA = findBet(bets, "consecutive a") || findBet(bets, "con a") || findBet(bets, "consecutive player");
+  const consecutiveB = findBet(bets, "consecutive b") || findBet(bets, "con b") || findBet(bets, "consecutive dealer");
+
+  // Find DOWN and UP bets for each player
+  // DOWN = Card 1 (first card), UP = Card 3 (third card)
+  const findDownUpBet = (playerLabel: string, position: "down" | "up") => {
+    const playerPrefix = playerLabel.toLowerCase();
+    const searchTerms = [
+      `${playerPrefix} card 1 ${position}`,
+      `${playerPrefix} ${position} card 1`,
+      `card 1 ${position} ${playerPrefix}`,
+      `${playerPrefix} card 3 ${position}`,
+      `${playerPrefix} ${position} card 3`,
+      `card 3 ${position} ${playerPrefix}`,
+      `${playerPrefix} ${position}`,
+      `card 1 ${position}`,
+      `card 3 ${position}`,
+      position === "down" ? `${playerPrefix} down` : `${playerPrefix} up`,
+    ];
+    
+    for (const term of searchTerms) {
+      const bet = findBet(bets, term);
+      if (bet) return bet;
+    }
+    
+    // Fallback: try to find any bet with DOWN/UP in the name
+    return bets.find((b: any) => {
+      const nat = (b.nat || b.type || "").toLowerCase();
+      return nat.includes(position) && (nat.includes(playerPrefix) || nat.includes("card"));
+    }) || null;
+  };
+
+  const playerDownBet = findDownUpBet("player", "down");
+  const playerUpBet = findDownUpBet("player", "up");
+  const dealerDownBet = findDownUpBet("dealer", "down");
+  const dealerUpBet = findDownUpBet("dealer", "up");
 
   const handleBetClick = (bet: any, betName: string, side: "back" | "lay" = "back") => {
     if (!bet || isSuspended(bet)) return;
@@ -240,12 +280,26 @@ export const TeenBettingBoard = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Player A and Player B Section */}
+          {/* Player and Dealer Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {[
-              { label: "Player A", mainBet: playerA, consecutiveBet: consecutiveA },
-              { label: "Player B", mainBet: playerB, consecutiveBet: consecutiveB },
-            ].map(({ label, mainBet, consecutiveBet }) => {
+              { 
+                label: "Player", 
+                mainBet: playerA, 
+                consecutiveBet: consecutiveA, 
+                isPlayer: true,
+                downBet: playerDownBet,
+                upBet: playerUpBet,
+              },
+              { 
+                label: "Dealer", 
+                mainBet: playerB, 
+                consecutiveBet: consecutiveB, 
+                isPlayer: false,
+                downBet: dealerDownBet,
+                upBet: dealerUpBet,
+              },
+            ].map(({ label, mainBet, consecutiveBet, isPlayer, downBet, upBet }) => {
               const disabled = locked || isSuspended(mainBet);
               const backOdds = formatOdds(getBackOdds(mainBet));
               const layOdds = formatOdds(getLayOdds(mainBet));
@@ -310,6 +364,56 @@ export const TeenBettingBoard = ({
                     </div>
                   </div>
 
+                  {/* Card Display Section (2 DOWN, Card Number, 2 UP) */}
+                  <div className="border-t border-border/30 bg-white p-3 sm:p-4">
+                    <div className="flex items-center justify-center gap-2 sm:gap-4">
+                      {/* 2 DOWN Button */}
+                      <button
+                        onClick={() => {
+                          if (downBet && !isSuspended(downBet)) {
+                            handleBetClick(downBet, `${label} DOWN`, "back");
+                          }
+                        }}
+                        disabled={!downBet || isSuspended(downBet) || locked}
+                        className={`flex flex-col items-center transition-all ${
+                          downBet && !isSuspended(downBet) && !locked
+                            ? "cursor-pointer hover:scale-105 active:scale-95"
+                            : "cursor-not-allowed opacity-50"
+                        }`}
+                      >
+                        <span className="text-lg sm:text-xl font-bold text-gray-800">
+                          {downBet ? formatOdds(getBackOdds(downBet)) : "2"}
+                        </span>
+                        <span className="text-[10px] sm:text-xs text-gray-600 font-semibold">DOWN</span>
+                      </button>
+                      
+                      {/* Card Number Circle (Middle Card - Card 2) */}
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-yellow-400 flex items-center justify-center border-2 border-yellow-500 shadow-lg">
+                        <span className="text-xl sm:text-2xl font-bold text-red-600">7</span>
+                      </div>
+                      
+                      {/* 2 UP Button */}
+                      <button
+                        onClick={() => {
+                          if (upBet && !isSuspended(upBet)) {
+                            handleBetClick(upBet, `${label} UP`, "back");
+                          }
+                        }}
+                        disabled={!upBet || isSuspended(upBet) || locked}
+                        className={`flex flex-col items-center transition-all ${
+                          upBet && !isSuspended(upBet) && !locked
+                            ? "cursor-pointer hover:scale-105 active:scale-95"
+                            : "cursor-not-allowed opacity-50"
+                        }`}
+                      >
+                        <span className="text-lg sm:text-xl font-bold text-gray-800">
+                          {upBet ? formatOdds(getBackOdds(upBet)) : "2"}
+                        </span>
+                        <span className="text-[10px] sm:text-xs text-gray-600 font-semibold">UP</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Consecutive Row (if exists) */}
                   {consecutiveBet && (
                     <div className="grid grid-cols-2 gap-0 border-t border-border/30">
@@ -351,96 +455,6 @@ export const TeenBettingBoard = ({
             })}
           </div>
 
-          {/* Card Bets Section */}
-          <div className="pt-2 border-t border-border/50">
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full text-xs sm:text-sm border-collapse min-w-[400px]">
-                <thead>
-                  <tr className="bg-gray-200/50">
-                    <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left text-[10px] sm:text-xs font-semibold">
-                      Card
-                    </th>
-                    {CARDS.map((cardNum) => (
-                      <th
-                        key={cardNum}
-                        className="px-2 sm:px-3 py-1.5 sm:py-2 text-center text-[10px] sm:text-xs font-semibold"
-                      >
-                        Card {cardNum}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Odd Row */}
-                  <tr>
-                    <td className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-200/50 font-bold text-[10px] sm:text-xs">
-                      Odd
-                    </td>
-                    {CARDS.map((cardNum) => {
-                      const cardBet = findCardBet(bets, cardNum, "odd");
-                      const disabled = locked || isSuspended(cardBet);
-                      const backOdds = formatOdds(getBackOdds(cardBet));
-                      const isDisabled = disabled || backOdds === "0.00";
-
-                      return (
-                        <td
-                          key={`odd-${cardNum}`}
-                          className="px-1 sm:px-2 py-1.5 sm:py-2 bg-blue-400/20 text-center"
-                        >
-                          {isDisabled ? (
-                            <div className="flex items-center justify-center h-[35px] sm:h-[40px] bg-gray-700 rounded">
-                              <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleBetClick(cardBet, `Card ${cardNum} Odd`, "back")}
-                              className="w-full h-[35px] sm:h-[40px] bg-blue-400 hover:bg-blue-500 text-white font-bold rounded transition-all shadow-md hover:shadow-lg text-[10px] sm:text-xs"
-                            >
-                              {backOdds === "0.00" ? "0" : backOdds}
-                            </button>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* Even Row */}
-                  <tr>
-                    <td className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-200/50 font-bold text-[10px] sm:text-xs">
-                      Even
-                    </td>
-                    {CARDS.map((cardNum) => {
-                      const cardBet = findCardBet(bets, cardNum, "even");
-                      const disabled = locked || isSuspended(cardBet);
-                      const backOdds = formatOdds(getBackOdds(cardBet));
-                      const isDisabled = disabled || backOdds === "0.00";
-
-                      return (
-                        <td
-                          key={`even-${cardNum}`}
-                          className="px-1 sm:px-2 py-1.5 sm:py-2 bg-blue-400/20 text-center"
-                        >
-                          {isDisabled ? (
-                            <div className="flex items-center justify-center h-[35px] sm:h-[40px] bg-gray-700 rounded">
-                              <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleBetClick(cardBet, `Card ${cardNum} Even`, "back")}
-                              className="w-full h-[35px] sm:h-[40px] bg-blue-400 hover:bg-blue-500 text-white font-bold rounded transition-all shadow-md hover:shadow-lg text-[10px] sm:text-xs"
-                            >
-                              {backOdds === "0.00" ? "0" : backOdds}
-                            </button>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           {/* Amount Input and Place Bet */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border/50">
             <div className="flex items-center gap-2 flex-1">
@@ -469,15 +483,19 @@ export const TeenBettingBoard = ({
               <p className="text-xs mb-2 text-muted-foreground">Last 10 Results</p>
               <div className="flex gap-1 flex-wrap">
                 {last10.map((r, i) => {
-                  // Handle different win formats: "1"/"2", "Player A"/"Player B", "A"/"B"
+                  // Handle different win formats: "1"/"2", "Player A"/"Player B", "A"/"B", "Player"/"Dealer"
                   const winValue = r.win?.toString() || r.winnerId?.toString() || "";
-                  const isPlayerA = 
+                  const isPlayer = 
                     winValue === "1" || 
                     winValue === "Player A" || 
                     winValue === "A" ||
+                    winValue === "Player" ||
+                    winValue === "P" ||
                     winValue.toLowerCase() === "playera" ||
+                    winValue.toLowerCase() === "player" ||
                     (r.winnerId && r.winnerId.toString() === "1");
-                  const winner = isPlayerA ? "A" : "B";
+                  // Display "P" for Player, "D" for Dealer
+                  const winner = isPlayer ? "P" : "D";
                   
                   return (
                     <Button
@@ -485,7 +503,7 @@ export const TeenBettingBoard = ({
                       size="sm"
                       variant="outline"
                       className={`w-9 h-9 p-0 font-bold ${
-                        isPlayerA
+                        isPlayer
                           ? "bg-blue-500 text-white border-blue-600"
                           : "bg-red-500 text-white border-red-600"
                       }`}
