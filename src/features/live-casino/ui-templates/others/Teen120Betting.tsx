@@ -1,6 +1,6 @@
 // src/features/live-casino/ui-templates/others/Teen120Betting.tsx
 
-import { Lock, Info, X } from "lucide-react";
+import { Lock, Info, X, Loader2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ================= TYPES ================= */
 
@@ -18,6 +19,14 @@ interface Teen120BettingProps {
   onPlaceBet: (payload: any) => Promise<void>;
   loading?: boolean;
   odds?: any;
+  resultHistory?: Array<{
+    mid: string | number;
+    win?: string;
+    winner?: string;
+    result?: string;
+  }>;
+  onResultClick?: (result: any) => void;
+  tableId?: string;
 }
 
 /* ================= HELPERS ================= */
@@ -53,13 +62,30 @@ export const Teen120Betting = ({
   onPlaceBet,
   loading = false,
   odds,
+  resultHistory = [],
+  onResultClick,
+  tableId,
 }: Teen120BettingProps) => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [betModalOpen, setBetModalOpen] = useState(false);
   const [selectedBet, setSelectedBet] = useState<any>(null);
   const [amount, setAmount] = useState("100");
+  
+  // Detail result modal state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
 
   const quickAmounts = [100, 500, 1000, 5000];
+
+  // Get last 10 results
+  const last10Results = useMemo(() => {
+    if (Array.isArray(resultHistory) && resultHistory.length > 0) {
+      return resultHistory.slice(0, 10);
+    }
+    return [];
+  }, [resultHistory]);
 
   // Extract bets from multiple possible sources (similar to KBC/Dum10)
   const actualBetTypes = useMemo(() => {
@@ -123,6 +149,114 @@ export const Teen120Betting = ({
     setAmount("100");
   };
 
+  // Fetch detail result
+  const fetchDetailResult = async (mid: string | number) => {
+    const finalTableId = tableId || odds?.tableId || odds?.rawData?.gtype || "teen120";
+    
+    if (!mid) {
+      console.error("Missing mid:", { mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId: finalTableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Handle result click
+  const handleResultClick = (result: any) => {
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    } else {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+    }
+  };
+
+  // Parse 1 CARD 20-20 card format (similar to Teen3 but for single cards)
+  const parseCard = (cardString: string) => {
+    if (!cardString) return null;
+    
+    // Card format: "KSS", "8SS", "QHH", "10DD", "ACC" etc.
+    // Format: Rank + Suit + Suit (e.g., KSS = King of Spades, 10DD = 10 of Diamonds)
+    let rank = '';
+    let suit = '';
+    
+    if (cardString.length >= 3) {
+      // Check if it starts with "10" (two digits)
+      if (cardString.length >= 4 && cardString.startsWith('10')) {
+        rank = '10';
+        suit = cardString.charAt(cardString.length - 1); // Last character is the suit
+      } else {
+        // Single character rank (K, Q, J, A, 1-9)
+        rank = cardString.substring(0, cardString.length - 2); // Everything except last 2 chars
+        suit = cardString.charAt(cardString.length - 1); // Last character is the suit
+      }
+    }
+    
+    // Map suit codes to symbols
+    const suitMap: { [key: string]: string } = {
+      'S': '♠', // Spades
+      'H': '♥', // Hearts
+      'C': '♣', // Clubs
+      'D': '♦', // Diamonds
+    };
+    
+    // Map rank codes
+    const rankMap: { [key: string]: string } = {
+      '1': 'A',
+      'A': 'A',
+      'K': 'K',
+      'Q': 'Q',
+      'J': 'J',
+    };
+    
+    const displayRank = rankMap[rank] || rank;
+    const displaySuit = suitMap[suit] || suit;
+    
+    return {
+      raw: cardString,
+      rank: displayRank,
+      suit: displaySuit,
+      display: `${displayRank}${displaySuit}`,
+      isRed: suit === 'H' || suit === 'D',
+    };
+  };
+
   const BettingOption = ({ bet, label }: { bet: any; label: string }) => {
     const odds = getOdds(bet);
     const formattedOdds = formatOdds(odds);
@@ -168,7 +302,7 @@ export const Teen120Betting = ({
       </div>
 
       {/* ================= BETTING OPTIONS ================= */}
-      <div className="grid grid-cols-4 gap-2 relative">
+      <div className="grid grid-cols-4 gap-2 relative mb-2">
         {bettingOptions.map((option, index) => (
           <div
             key={option.label}
@@ -180,6 +314,68 @@ export const Teen120Betting = ({
             />
           </div>
         ))}
+      </div>
+
+      {/* ================= LAST 10 RESULTS ================= */}
+      <div className="border pt-2 pb-2">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Last 10 Results</p>
+        {last10Results.length > 0 ? (
+          <div className="flex gap-1 sm:gap-1.5 px-1 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
+            {last10Results.map((result: any, index: number) => {
+              const winner = result.win || result.winner || result.result || "";
+              const winnerStr = String(winner).toLowerCase().trim();
+              
+              // Determine winner: Player, Dealer, or Tie
+              // Default to "P" (Player) if unknown, or "D" (Dealer) based on index/pattern
+              let letter = "P"; // Default to Player
+              let bgColor = "bg-blue-600";
+              let textColor = "text-white";
+              
+              if (winnerStr.includes("player") || winnerStr === "p" || winnerStr === "1") {
+                letter = "P";
+                bgColor = "bg-blue-600";
+                textColor = "text-white";
+              } else if (winnerStr.includes("dealer") || winnerStr === "d" || winnerStr === "2") {
+                letter = "D";
+                bgColor = "bg-red-600";
+                textColor = "text-white";
+              } else if (winnerStr.includes("tie") || winnerStr === "t") {
+                letter = "T";
+                bgColor = "bg-yellow-600";
+                textColor = "text-white";
+              } else {
+                // If unknown, try to infer from other data or default to Player
+                // Check if result has any indicator for dealer
+                const resultStr = JSON.stringify(result).toLowerCase();
+                if (resultStr.includes("dealer") || resultStr.includes("d")) {
+                  letter = "D";
+                  bgColor = "bg-red-600";
+                } else {
+                  // Default to Player
+                  letter = "P";
+                  bgColor = "bg-blue-600";
+                }
+              }
+
+              return (
+                <button
+                  key={result.mid || result.round_id || result.round || index}
+                  onClick={() => {
+                    handleResultClick(result);
+                    onResultClick?.(result);
+                  }}
+                  className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full ${bgColor} ${textColor} font-bold text-xs sm:text-sm flex items-center justify-center active:opacity-80 cursor-pointer touch-none`}
+                >
+                  {letter}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-2 text-xs text-muted-foreground text-center py-2">
+            No results yet
+          </div>
+        )}
       </div>
 
       {/* ================= BET MODAL ================= */}
@@ -320,6 +516,152 @@ export const Teen120Betting = ({
                 </p>
               </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= DETAIL RESULT MODAL ================= */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-900 [&>button[class*='right-4']]:hidden">
+          <div className="bg-blue-600 text-white px-6 py-4 flex flex-row justify-between items-center sticky top-0 z-10">
+            <h2 className="text-lg font-semibold text-white m-0">1 CARD 20-20 Result</h2>
+            <button 
+              onClick={() => setDetailDialogOpen(false)} 
+              className="text-white hover:text-gray-200 transition-colors p-1 rounded hover:bg-blue-700 flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X size={20} className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="px-6 py-6 bg-white dark:bg-gray-900">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading details...</span>
+              </div>
+            ) : detailData ? (
+              <div className="space-y-4">
+                {detailData.error ? (
+                  <div className="text-center py-8">
+                    <p className="text-destructive font-medium mb-2">Error</p>
+                    <p className="text-sm text-muted-foreground">{detailData.error}</p>
+                  </div>
+                ) : (() => {
+                  // Extract t1 data from the response
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || null;
+                  
+                  if (!t1Data) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No detailed result data available
+                      </div>
+                    );
+                  }
+
+                  // Parse cards - format: "KSS,8SS" or "ACC,5SS" (Player, Dealer)
+                  const cardString = t1Data.card || '';
+                  const cards = cardString.split(',').map(c => c.trim()).filter(Boolean);
+                  const playerCard = cards.length > 0 ? parseCard(cards[0]) : null;
+                  const dealerCard = cards.length > 1 ? parseCard(cards[1]) : null;
+                  
+                  // Determine winner
+                  const winner = t1Data.winnat || t1Data.win || t1Data.rdesc || '';
+                  const winnerStr = String(winner).toLowerCase().trim();
+                  const isPlayerWinner = winnerStr.includes("player") || winnerStr === "p";
+                  const isDealerWinner = winnerStr.includes("dealer") || winnerStr === "d";
+                  const isTie = winnerStr.includes("tie") || winnerStr === "t";
+                  
+                  // Check for Pair
+                  const pairInfo = t1Data.rdesc || '';
+                  const hasPair = pairInfo.toLowerCase().includes("pair yes") || pairInfo.toLowerCase().includes("pair: yes");
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Round Information */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b pb-3">
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Round Id: </span>
+                          <span className="text-gray-900 dark:text-gray-100 font-mono">{t1Data.rid || selectedResult?.mid || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Match Time: </span>
+                          <span className="text-gray-900 dark:text-gray-100">{t1Data.mtime || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      {/* Player vs Dealer Cards - Horizontal Layout */}
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Player Card */}
+                        <div className="space-y-3">
+                          <div className="text-center">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Player</h3>
+                          </div>
+                          <div className="flex justify-center items-center gap-2">
+                            {isPlayerWinner && (
+                              <Trophy className="w-6 h-6 text-yellow-500 flex-shrink-0" />
+                            )}
+                            {playerCard ? (
+                              <div className="w-10 h-14 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md">
+                                <span className={`text-sm font-bold ${playerCard.isRed ? 'text-red-600' : 'text-black dark:text-white'}`}>
+                                  {playerCard.rank}
+                                </span>
+                                <span className={`text-lg ${playerCard.isRed ? 'text-red-600' : 'text-black dark:text-white'}`}>
+                                  {playerCard.suit}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-xs">No card</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Dealer Card */}
+                        <div className="space-y-3">
+                          <div className="text-center">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Dealer</h3>
+                          </div>
+                          <div className="flex justify-center items-center gap-2">
+                            {isDealerWinner && (
+                              <Trophy className="w-6 h-6 text-yellow-500 flex-shrink-0" />
+                            )}
+                            {dealerCard ? (
+                              <div className="w-10 h-14 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md">
+                                <span className={`text-sm font-bold ${dealerCard.isRed ? 'text-red-600' : 'text-black dark:text-white'}`}>
+                                  {dealerCard.rank}
+                                </span>
+                                <span className={`text-lg ${dealerCard.isRed ? 'text-red-600' : 'text-black dark:text-white'}`}>
+                                  {dealerCard.suit}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-xs">No card</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Winner and Pair Declaration - At Bottom */}
+                      <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center shadow-md space-y-1">
+                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                          Winner: <span className="text-green-600 dark:text-green-400">
+                            {isPlayerWinner ? "Player" : isDealerWinner ? "Dealer" : isTie ? "Tie" : winner || "N/A"}
+                          </span>
+                        </p>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          Pair: <span className={hasPair ? "text-green-600 dark:text-green-400" : "text-gray-600 dark:text-gray-400"}>
+                            {hasPair ? "Yes" : "No"}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No detailed data available
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
