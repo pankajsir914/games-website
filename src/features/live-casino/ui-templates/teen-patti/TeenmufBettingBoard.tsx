@@ -26,9 +26,11 @@ interface TeenmufBettingBoardProps {
   }) => Promise<void>;
   odds?: any;
   resultHistory?: Array<{
-    mid: string | number;
-    win: "Player A" | "Player B" | "A" | "B";
+    mid?: string | number;
+    win?: "Player A" | "Player B" | "A" | "B" | string;
     winnerId?: string;
+    round?: string | number;
+    round_id?: string | number;
   }>;
   onResultClick?: (result: any) => void;
 }
@@ -118,8 +120,38 @@ export const TeenmufBettingBoard = ({
     const roundIdFromFirstBet = bets.length > 0 && (bets[0]?.mid || bets[0]?.round_id || bets[0]?.round);
     const finalRoundId = roundIdFromBet || roundIdFromOdds || roundIdFromFirstBet || null;
 
+    // Map bet to correct backend format
+    let betType = selectedBetData?.nat || selectedBetData?.type || "";
+    const betName = selectedBet.split("-")[0].toLowerCase();
+    
+    // If bet.nat is not in correct format, map it based on bet name
+    if (!betType || betType === "") {
+      if (betName.includes("winner")) {
+        // Winner bet - map to BA/BB based on which player
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = side === "back" ? "BA" : "LA";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = side === "back" ? "BB" : "LB";
+        }
+      } else if (betName.includes("top 9") || betName.includes("top9")) {
+        // Top 9 bet
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = "TOP 9 A";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = "TOP 9 B";
+        }
+      } else if (betName.includes("baccarat") || betName.includes("m baccarat")) {
+        // M Baccarat bet
+        if (betName.includes("player a") || betName.includes("a")) {
+          betType = "M BACCARAT A";
+        } else if (betName.includes("player b") || betName.includes("b")) {
+          betType = "M BACCARAT B";
+        }
+      }
+    }
+
     await onPlaceBet({
-      betType: selectedBetData?.nat || selectedBetData?.type || selectedBet.split("-")[0],
+      betType: betType || selectedBet.split("-")[0],
       amount: Math.min(Math.max(amt, min), max),
       odds: finalOdds,
       roundId: finalRoundId,
