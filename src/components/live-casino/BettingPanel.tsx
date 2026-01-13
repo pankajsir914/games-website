@@ -1062,7 +1062,7 @@ export const BettingPanel = ({
                 max={table?.max || 100000}
                 onPlaceBet={onPlaceBet}
                 odds={odds}
-                resultHistory={resultHistory}
+                 resultHistory={finalResultHistory}
                 onResultClick={(r) => console.log("Teen6 result", r)}
               />
             ) : isTeen1 ? (
