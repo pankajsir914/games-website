@@ -216,6 +216,45 @@ export const TeenSinBettingBoard = ({
     });
   };
 
+  // Parse rdesc to extract all result information
+  // Format: "Player B  (A: 5 | B: 9)#Player B#-#A : Flush#No"
+  const parseRdesc = (rdesc: string) => {
+    if (!rdesc) return null;
+    
+    const parts = rdesc.split('#');
+    if (parts.length < 5) return null;
+    
+    // Part 1: Winner with baccarat values - "Player B  (A: 5 | B: 9)"
+    const winnerPart = parts[0] || '';
+    const winnerMatch = winnerPart.match(/^(.+?)\s*\((.+?)\)$/);
+    const winner = winnerMatch ? winnerMatch[1].trim() : winnerPart.trim();
+    const baccaratValues = winnerMatch ? winnerMatch[2] : '';
+    const baccaratAValue = baccaratValues.match(/A\s*:\s*(\d+)/)?.[1] || '';
+    const baccaratBValue = baccaratValues.match(/B\s*:\s*(\d+)/)?.[1] || '';
+    
+    // Part 2: High Card - "Player B"
+    const highCard = parts[1] || '';
+    
+    // Part 3: Pair - "-" or actual pair value
+    const pair = parts[2] || '-';
+    
+    // Part 4: Color Plus - "A : Flush" or "-"
+    const colorPlus = parts[3] || '-';
+    
+    // Part 5: Lucky 9 - "No" or "Yes"
+    const lucky9 = parts[4] || 'No';
+    
+    return {
+      winner,
+      baccaratAValue,
+      baccaratBValue,
+      highCard,
+      pair,
+      colorPlus,
+      lucky9,
+    };
+  };
+
   const fetchDetailResult = async (mid: string | number) => {
     const finalTableId = tableId || odds?.tableId || odds?.rawData?.gtype || odds?.data?.gtype || "teensin";
     setDetailLoading(true);
@@ -716,17 +755,25 @@ export const TeenSinBettingBoard = ({
                   if (!t1Data) {
                     return <div className="text-center py-8 text-muted-foreground">No detailed result data available</div>;
                   }
+                  
+                  // Parse rdesc to get all result information
+                  const rdesc = t1Data.rdesc || '';
+                  const parsedRdesc = parseRdesc(rdesc);
+                  
                   const cardString = t1Data.card || "";
                   const allCards = parseCards(cardString);
                   const playerACards = allCards.slice(0, 3);
                   const playerBCards = allCards.slice(3, 6);
-                  const winner = t1Data.winnat || t1Data.win || "";
+                  
+                  // Determine winner from rdesc or fallback to winnat/win
+                  const winner = parsedRdesc?.winner || t1Data.winnat || t1Data.win || "";
                   const winnerStr = String(winner).toLowerCase().trim();
                   const isPlayerAWinner = winnerStr.includes("player a") || winnerStr === "a" || winnerStr === "1";
                   const isPlayerBWinner = winnerStr.includes("player b") || winnerStr === "b" || winnerStr === "2";
 
                   return (
                     <div className="space-y-4">
+                      {/* Round Information */}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b pb-3">
                         <div>
                           <span className="font-semibold text-gray-700 dark:text-gray-300">Round Id: </span>
@@ -738,6 +785,7 @@ export const TeenSinBettingBoard = ({
                         </div>
                       </div>
 
+                      {/* Player A vs Player B Cards */}
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <div className="text-center">
@@ -780,11 +828,40 @@ export const TeenSinBettingBoard = ({
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center shadow-md">
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                          Winner: <span className="text-green-600 dark:text-green-400">{isPlayerAWinner ? "Player A" : isPlayerBWinner ? "Player B" : winner || "N/A"}</span>
-                        </p>
-                      </div>
+                      {/* Detailed Result Summary Box */}
+                      {parsedRdesc && (
+                        <div className="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-4 shadow-md">
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">Winner:</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">
+                                {parsedRdesc.winner}
+                                {parsedRdesc.baccaratAValue && parsedRdesc.baccaratBValue && (
+                                  <span className="text-gray-600 dark:text-gray-400 ml-2">
+                                    (A: {parsedRdesc.baccaratAValue} | B: {parsedRdesc.baccaratBValue})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">High Card:</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">{parsedRdesc.highCard || "-"}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">Pair:</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">{parsedRdesc.pair || "-"}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">Color Plus:</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">{parsedRdesc.colorPlus || "-"}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">Lucky 9:</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">{parsedRdesc.lucky9 || "No"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
