@@ -775,6 +775,10 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+                resultHistory={finalResultHistory}
+                onResultClick={(r) => console.log("Trap result", r)}
+                min={table?.min || 10}
+                max={table?.max || 100000}
               />
             ) : isSuperover ? (
               <SuperoverBetting
@@ -1006,7 +1010,7 @@ export const BettingPanel = ({
                 max={table?.max || 100000}
                 onPlaceBet={onPlaceBet}
                 odds={odds}
-                resultHistory={finalResultHistory}
+                resultHistory={resultHistory}
                 onResultClick={(r) => console.log("Teen8 result", r)}
               />
             ) : isTeen42 ? (
@@ -1062,7 +1066,7 @@ export const BettingPanel = ({
                 max={table?.max || 100000}
                 onPlaceBet={onPlaceBet}
                 odds={odds}
-                 resultHistory={finalResultHistory}
+                resultHistory={resultHistory}
                 onResultClick={(r) => console.log("Teen6 result", r)}
               />
             ) : isTeen1 ? (
