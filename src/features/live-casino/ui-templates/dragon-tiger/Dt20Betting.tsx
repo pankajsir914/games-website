@@ -1,4 +1,4 @@
-import { Lock, Info, X } from "lucide-react";
+import { Lock, Info, X, Loader2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -7,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ================= TYPES ================= */
 
@@ -15,6 +16,9 @@ interface Dt20BettingProps {
   betTypes: any[];
   onPlaceBet: (payload: any) => Promise<void>;
   loading?: boolean;
+  resultHistory?: any[];
+  currentResult?: any;
+  tableId?: string;
 }
 
 /* ================= HELPERS ================= */
@@ -40,13 +44,64 @@ export const Dt20Betting = ({
   betTypes = [],
   onPlaceBet,
   loading = false,
+  resultHistory = [],
+  currentResult,
+  tableId,
 }: Dt20BettingProps) => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [betModalOpen, setBetModalOpen] = useState(false);
   const [selectedBet, setSelectedBet] = useState<any>(null);
   const [amount, setAmount] = useState("100");
+  
+  // Detail result modal state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
 
   const quickAmounts = [100, 500, 1000, 5000];
+  
+  // Get last 10 results - handle different data structures
+  const last10Results = useMemo(() => {
+    // Handle different API response structures:
+    // 1. Direct array: [...]
+    // 2. Wrapped: { data: { res: [...] } }
+    // 3. Wrapped: { res: [...] }
+    // 4. From currentResult: { results: [...] }
+    
+    let results: any[] = [];
+    
+    // First try: resultHistory as direct array
+    if (Array.isArray(resultHistory) && resultHistory.length > 0) {
+      results = resultHistory;
+    } else if (resultHistory && typeof resultHistory === 'object') {
+      // Try to extract from nested structures
+      results = (resultHistory as any)?.data?.res || 
+                (resultHistory as any)?.res || 
+                (resultHistory as any)?.results ||
+                (resultHistory as any)?.data?.data?.res ||
+                [];
+    }
+    
+    // Second try: currentResult.results array
+    if (results.length === 0 && currentResult?.results && Array.isArray(currentResult.results) && currentResult.results.length > 0) {
+      results = currentResult.results;
+    }
+    
+    // Third try: currentResult.data.res
+    if (results.length === 0 && currentResult?.data?.res && Array.isArray(currentResult.data.res)) {
+      results = currentResult.data.res;
+    }
+    
+    // Fourth try: currentResult as array
+    if (results.length === 0 && Array.isArray(currentResult) && currentResult.length > 0) {
+      results = currentResult;
+    }
+    
+    // Ensure it's an array and take first 10
+    const finalResults = Array.isArray(results) ? results.slice(0, 10) : [];
+    return finalResults;
+  }, [resultHistory, currentResult]);
 
   const openBetModal = (bet: any) => {
     if (!bet || isSuspended(bet) || formatOdds(getOdds(bet)) === "0.00") return;
@@ -64,6 +119,58 @@ export const Dt20Betting = ({
       amount: Number(amount),
     });
     setBetModalOpen(false);
+  };
+
+  // Fetch detail result
+  const fetchDetailResult = async (mid: string | number) => {
+    if (!tableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId, mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Handle result click
+  const handleResultClick = (result: any) => {
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    }
   };
 
   // Primary Bet Cell with odds above
@@ -290,6 +397,63 @@ export const Dt20Betting = ({
         </div>
       </div>
 
+      {/* ================= LAST 10 RESULTS ================= */}
+      <div className="border pt-2 pb-2">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Last 10 Results</p>
+        {last10Results.length > 0 ? (
+          <div className="flex gap-1 sm:gap-1.5 px-1 sm:px-2 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
+            {last10Results.map((result: any, index: number) => {
+              const winner = result.win || result.winner || result.result || result.nat || "";
+              const winnerStr = String(winner).toLowerCase().trim();
+              
+              // Handle numeric values: 1 = Dragon, 2 = Tiger
+              // Also handle text: "dragon", "tiger", "d", "t"
+              let letter = "?";
+              let bgColor = "bg-gray-600";
+              
+              // Check for numeric values first (1 = Dragon, 2 = Tiger)
+              if (winner === 1 || winner === "1" || winnerStr === "1") {
+                letter = "D";
+                bgColor = "bg-orange-500";
+              } else if (winner === 2 || winner === "2" || winnerStr === "2") {
+                letter = "T";
+                bgColor = "bg-yellow-500";
+              } else if (winnerStr.includes("dragon") || winnerStr === "d") {
+                letter = "D";
+                bgColor = "bg-orange-500";
+              } else if (winnerStr.includes("tiger") || winnerStr === "t") {
+                letter = "T";
+                bgColor = "bg-yellow-500";
+              } else {
+                // Try to extract first letter if it's a single character
+                const firstChar = String(winner).charAt(0).toUpperCase();
+                if (firstChar === "D" || firstChar === "1") {
+                  letter = "D";
+                  bgColor = "bg-orange-500";
+                } else if (firstChar === "T" || firstChar === "2") {
+                  letter = "T";
+                  bgColor = "bg-yellow-500";
+                }
+              }
+
+              return (
+                <button
+                  key={result.mid || result.round_id || result.round || index}
+                  onClick={() => handleResultClick(result)}
+                  className={`flex-shrink-0 w-6 h-6 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full ${bgColor} text-white font-bold text-[10px] sm:text-xs md:text-sm flex items-center justify-center active:opacity-80 touch-none hover:scale-110 transition-transform cursor-pointer`}
+                >
+                  {letter}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-2 text-xs text-muted-foreground text-center py-2">
+            No results yet
+          </div>
+        )}
+      </div>
+
       {/* ================= BET MODAL ================= */}
       <Dialog open={betModalOpen} onOpenChange={setBetModalOpen}>
         <DialogContent className="max-w-sm p-0">
@@ -370,6 +534,246 @@ export const Dt20Betting = ({
             </p>
             <p>• Same rank + same suit = Tie</p>
             <p>• Pair = same rank</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= DETAIL RESULT MODAL ================= */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-900 [&>button[class*='right-4']]:hidden">
+          <div className="bg-blue-600 text-white px-4 sm:px-6 py-4 flex flex-row justify-between items-center sticky top-0 z-10">
+            <h2 className="text-base sm:text-lg font-semibold text-white m-0">Dragon Tiger Result</h2>
+            <button
+              onClick={() => setDetailDialogOpen(false)}
+              className="text-white hover:text-gray-200 transition-colors p-1 rounded hover:bg-blue-700 flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X size={20} className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="px-4 sm:px-6 py-4 sm:py-6 bg-white dark:bg-gray-900">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading details...</span>
+              </div>
+            ) : detailData ? (
+              <div className="space-y-4">
+                {detailData.error ? (
+                  <div className="text-center py-8">
+                    <p className="text-destructive font-medium mb-2">Error</p>
+                    <p className="text-sm text-muted-foreground">{detailData.error}</p>
+                  </div>
+                ) : (() => {
+                  // Extract t1 data from the response
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || null;
+                  
+                  if (!t1Data) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No detailed result data available
+                      </div>
+                    );
+                  }
+
+                  // Parse rdesc to extract winner and one or more bet results
+                  const parseRdesc = (rdesc: string) => {
+                    if (!rdesc) {
+                      return {
+                        winner: null,
+                        results: [] as { betOption: string | null; result: string | null }[],
+                        fullText: null
+                      };
+                    }
+
+                    const parts = rdesc.split('#').map((p) => p.trim()).filter(Boolean);
+
+                    if (parts.length === 0) {
+                      return {
+                        winner: null,
+                        results: [],
+                        fullText: rdesc
+                      };
+                    }
+
+                    const winner = parts[0];
+                    const results = parts.slice(1).map((segment) => {
+                      const colonIndex = segment.indexOf(':');
+                      if (colonIndex === -1) {
+                        return {
+                          betOption: segment.trim(),
+                          result: null
+                        };
+                      }
+                      const betOption = segment.substring(0, colonIndex).trim();
+                      const result = segment.substring(colonIndex + 1).trim();
+                      return { betOption, result };
+                    });
+
+                    return {
+                      winner: winner || null,
+                      results,
+                      fullText: rdesc
+                    };
+                  };
+
+                  const parsedRdesc = parseRdesc(t1Data.rdesc || '');
+
+                  // Parse cards similar to TrapBetting
+                  const parseCards = (cardString: string) => {
+                    if (!cardString) return [];
+                    const cards = cardString.split(',').map((c) => c.trim()).filter(Boolean);
+                    return cards.map((card) => {
+                      if (card === "1") return null;
+                      
+                      let rank = "";
+                      let suit = "";
+                      if (card.length >= 3) {
+                        if (card.startsWith("10")) {
+                          rank = "10";
+                          suit = card.slice(2);
+                        } else {
+                          rank = card[0];
+                          suit = card.slice(1);
+                        }
+                      }
+                      
+                      const suitMap: Record<string, string> = { 
+                        S: "♠", H: "♥", C: "♣", D: "♦",
+                        SS: "♠", HH: "♥", CC: "♣", DD: "♦"
+                      };
+                      const rankMap: Record<string, string> = { 
+                        "1": "A", A: "A", K: "K", Q: "Q", J: "J",
+                        "10": "10"
+                      };
+                      const displayRank = rankMap[rank] || rank;
+                      const displaySuit = suitMap[suit] || suit;
+                      
+                      return {
+                        raw: card,
+                        rank: displayRank,
+                        suit: displaySuit,
+                        isRed: suit === "H" || suit === "HH" || suit === "D" || suit === "DD",
+                      };
+                    }).filter(Boolean);
+                  };
+
+                  const cardString = t1Data.card || "";
+                  const allCards = parseCards(cardString);
+                  // For Dragon Tiger, first card is Dragon, second is Tiger
+                  const dragonCard = allCards[0] || null;
+                  const tigerCard = allCards[1] || null;
+
+                  // Parse winner
+                  const winner = t1Data.winnat || t1Data.win || parsedRdesc.winner || "";
+                  const winnerStr = String(winner).toLowerCase().trim();
+                  const isDragonWinner = 
+                    winnerStr.includes("dragon") || 
+                    winnerStr === "d" || 
+                    winnerStr === "1" ||
+                    winner === 1 ||
+                    winner === "1";
+                  const isTigerWinner = 
+                    winnerStr.includes("tiger") || 
+                    winnerStr === "t" || 
+                    winnerStr === "2" ||
+                    winner === 2 ||
+                    winner === "2";
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b pb-3">
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Round Id: </span>
+                          <span className="text-gray-900 dark:text-gray-100 font-mono">{t1Data.rid || selectedResult?.mid || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Match Time: </span>
+                          <span className="text-gray-900 dark:text-gray-100">{t1Data.mtime || "N/A"}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div className="space-y-3">
+                          <div className="text-center">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200">
+                              Dragon
+                            </h3>
+                          </div>
+                          <div className="flex justify-center items-center gap-2">
+                            {isDragonWinner && <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 flex-shrink-0" />}
+                            <div className="flex gap-1.5 justify-center">
+                              {dragonCard ? (
+                                <div className="w-10 h-14 sm:w-12 sm:h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md">
+                                  <span className={`text-sm font-bold ${dragonCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>{dragonCard.rank}</span>
+                                  <span className={`text-lg ${dragonCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>{dragonCard.suit}</span>
+                                </div>
+                              ) : (
+                                <div className="text-gray-500 text-xs">No card</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="text-center">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200">
+                              Tiger
+                            </h3>
+                          </div>
+                          <div className="flex justify-center items-center gap-2">
+                            {isTigerWinner && <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 flex-shrink-0" />}
+                            <div className="flex gap-1.5 justify-center">
+                              {tigerCard ? (
+                                <div className="w-10 h-14 sm:w-12 sm:h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md">
+                                  <span className={`text-sm font-bold ${tigerCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>{tigerCard.rank}</span>
+                                  <span className={`text-lg ${tigerCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>{tigerCard.suit}</span>
+                                </div>
+                              ) : (
+                                <div className="text-gray-500 text-xs">No card</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3 sm:p-4">
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">Winner: </span>
+                            <span className="text-gray-900 dark:text-gray-100">
+                              {isDragonWinner ? "Dragon" : isTigerWinner ? "Tiger" : winner || "N/A"}
+                            </span>
+                          </div>
+                          {parsedRdesc.results && parsedRdesc.results.length > 0 && (
+                            <div className="pt-2 border-t border-gray-300 dark:border-gray-600 space-y-1">
+                              {parsedRdesc.results.map((res, idx) => (
+                                <div key={idx}>
+                                  <span className="font-semibold text-gray-700 dark:text-gray-300">{res.betOption || "N/A"}: </span>
+                                  {res.result && (
+                                    <span className="text-gray-900 dark:text-gray-100">{res.result}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {t1Data.win && (
+                            <div>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">Win Code: </span>
+                              <span className="text-gray-900 dark:text-gray-100 font-mono">{t1Data.win}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No detailed data available
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
