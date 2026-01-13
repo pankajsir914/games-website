@@ -1252,6 +1252,9 @@ export const BettingPanel = ({
                 }}
                 loading={loading}
                 formatOdds={formatOdds}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={tableId}
               />
             ) : isDt202 ? (
               <Dt202Betting
