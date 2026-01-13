@@ -369,7 +369,7 @@ export const TrapBetting = ({
         <div className="flex items-center gap-2">
           {/* Player A Section */}
           <div className="flex-1">
-            <div className="text-sm font-bold text-black mb-1">Player A</div>
+            <div className="text-sm font-bold text-white mb-1">Player A</div>
             <div className="grid grid-cols-2 gap-1">
               <OddsCell bet={playerABet} side="back" />
               <OddsCell bet={playerABet} side="lay" />
@@ -378,7 +378,7 @@ export const TrapBetting = ({
 
           {/* Player B Section */}
           <div className="flex-1">
-            <div className="text-sm font-bold text-black mb-1">Player B</div>
+            <div className="text-sm font-bold text-white mb-1">Player B</div>
             <div className="grid grid-cols-2 gap-1">
               <OddsCell bet={playerBBet} side="back" />
               <OddsCell bet={playerBBet} side="lay" />
