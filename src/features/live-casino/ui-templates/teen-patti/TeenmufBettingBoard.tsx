@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Users, Info, X, Loader2, Trophy } from "lucide-react";
+import { Lock, Info, X, Loader2, Trophy } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -327,42 +326,17 @@ export const TeenmufBettingBoard = ({
 
   return (
     <>
-      <Card className="border-0 shadow-none">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Teen Muf Bets
-            </CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
-              {QUICK_CHIPS.map((chip) => (
-                <Button
-                  key={chip}
-                  size="sm"
-                  variant="outline"
-                  disabled={locked || loading}
-                  onClick={() =>
-                    setAmount((prev) => {
-                      const current = Number(prev) || 0;
-                      const next = current + chip;
-                      return String(next);
-                    })
-                  }
-                  className="text-[10px] sm:text-xs px-2 sm:px-3"
-                >
-                  ₹{chip}
-                </Button>
-              ))}
-              <Button size="icon" variant="ghost" onClick={() => setRulesOpen(true)}>
-                <Info className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Player A and Player B Tables */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {[
+      {/* ================= HEADER ================= */}
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-sm font-semibold">Teen Muf Bets</h3>
+        <Button size="icon" variant="ghost" onClick={() => setRulesOpen(true)}>
+          <Info size={16} />
+        </Button>
+      </div>
+
+      {/* ================= BETTING OPTIONS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative mb-2">
+        {[
               { 
                 label: "Player A", 
                 winnerBet: winnerA, 
@@ -417,14 +391,14 @@ export const TeenmufBettingBoard = ({
                 </div>
               );
             })}
-          </div>
+      </div>
 
-          {/* Last 10 Results */}
-          {last10.length > 0 && (
-            <div className="pt-2 border-t border-border/50">
-              <p className="text-xs mb-2 text-muted-foreground">Last 10 Results</p>
-              <div className="flex gap-1 sm:gap-1.5 px-1 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                {last10.map((r, i) => {
+      {/* ================= LAST 10 RESULTS ================= */}
+      <div className="border pt-2 pb-2">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Last 10 Results</p>
+        {last10.length > 0 ? (
+          <div className="flex gap-1 sm:gap-1.5 px-1 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
+            {last10.map((r, i) => {
                   // Handle different win formats: "1"/"2", "Player A"/"Player B", "A"/"B"
                   const winValue = r.win?.toString() || r.winnerId?.toString() || "";
                   const isPlayerA = 
@@ -449,11 +423,13 @@ export const TeenmufBettingBoard = ({
                     </button>
                   );
                 })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : (
+          <div className="px-2 text-xs text-muted-foreground text-center py-2">
+            No results yet
+          </div>
+        )}
+      </div>
 
       {/* Bet Confirmation Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
