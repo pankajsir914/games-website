@@ -349,7 +349,7 @@ export const Dt6Betting = ({
       <div className="border pt-2 pb-2">
         <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Last 10 Results</p>
         {last10Results.length > 0 ? (
-          <div className="flex gap-1 sm:gap-1.5 px-1 sm:px-2 m-2 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
+          <div className="flex gap-1 sm:gap-1.5 px-1 sm:px-2  overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
             {last10Results.map((result: any, index: number) => {
               const winner = result.win || result.winner || result.result || result.nat || "";
               const winnerStr = String(winner).toLowerCase().trim();
