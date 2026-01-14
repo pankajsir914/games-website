@@ -68,6 +68,7 @@ import { BtableBetting } from "@/features/live-casino/ui-templates/others/Btable
 import { Worli2Betting } from "@/features/live-casino/ui-templates/others/Worli2Betting";
 import { WorliBetting } from "@/features/live-casino/ui-templates/others/WorliBetting";
 import { WarBetting } from "@/features/live-casino/ui-templates/others/WarBetting";
+import { Card3jBetting } from "@/features/live-casino/ui-templates/others/3cardjBetting";
 
 
 /* =====================================================
@@ -131,6 +132,7 @@ const BTABLE_TABLE_IDS = ["btable", "bollywood table", "bollywood-table"];
 const WORLI_TABLE_IDS = ["worli"];
 const WORLI2_TABLE_IDS = ["worli2", "worli 2", "instant worli"];
 const WAR_TABLE_IDS = ["war", "casino war"];
+const CARD3J_TABLE_IDS = ["3cardj", "3cardj", "3 card judgement", "3-card-judgement"];
 
 
 
@@ -221,9 +223,10 @@ export const BettingPanel = ({
   const isWorli = WORLI_TABLE_IDS.some(id => (tableId === id || tableId.includes(id)) && !tableId.includes("worli2") && !tableId.includes("worli 2") && !searchText.includes("instant worli"));
   const isWorli2 = WORLI2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isWar = WAR_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  const isCard3j = CARD3J_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   
-  // For KBC, Dum10, Cmeter1, Cmeter, Cmatch20, Cricketv3, Lottcard, Btable, Worli, Worli2, War, Race2, Teen120, Notenum, Trio, Race17, Patti2, Trap, Superover, Lucky7eu2, Race20, and Queen, the data structure is different - it's in odds.data.sub or odds.data.t2
-  const betTypes = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen)
+  // For KBC, Dum10, Cmeter1, Cmeter, Cmatch20, Cricketv3, Lottcard, Btable, Worli, Worli2, War, Race2, Teen120, Notenum, Trio, Race17, Patti2, Trap, Superover, Lucky7eu2, Race20, Queen, and Card3j, the data structure is different - it's in odds.data.sub or odds.data.t2
+  const betTypes = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen || isCard3j)
     ? (odds?.data || odds || {})
     : (odds?.bets || []);
   const hasLayOdds = !isKbc && Array.isArray(betTypes) && betTypes.some(
@@ -344,7 +347,7 @@ export const BettingPanel = ({
   /* ---------------- FLAGS ---------------- */
   const isRestricted = table?.status === "restricted";
 
-  const hasRealOdds = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen)
+  const hasRealOdds = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen || isCard3j)
     ? (betTypes?.sub && Array.isArray(betTypes.sub) && betTypes.sub.length > 0) || (betTypes?.t2 && Array.isArray(betTypes.t2) && betTypes.t2.length > 0)
     : (Array.isArray(betTypes) && betTypes.length > 0 &&
         betTypes.some((b: any) => {
@@ -496,7 +499,7 @@ export const BettingPanel = ({
         )}
 
         {/* ================= BETTING UI ================= */}
-        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen) && (
+        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen || isCard3j) && (
           <>
             {isKbc ? (
               <KbcBetting
@@ -970,6 +973,31 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+              />
+            ) : isCard3j ? (
+              <Card3jBetting
+                betTypes={betTypes?.sub || []}
+                onPlaceBet={async (payload) => {
+                  // Card3jBetting sends {sid, odds, nat, amount, selectedCards}, convert to expected format
+                  const allBets = betTypes?.sub || [];
+                  const bet = allBets.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: `${payload.nat} - ${payload.selectedCards?.join(", ") || ""}`,
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: "back",
+                    selectedCards: payload.selectedCards,
+                  });
+                }}
+                loading={loading}
+                formatOdds={formatOdds}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={tableId}
               />
             ) : isTeen ? (
               <TeenBettingBoard
@@ -1565,7 +1593,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && (
+        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && (
           <>
             <div className="space-y-2">
               <Input
