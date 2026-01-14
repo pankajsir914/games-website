@@ -1,4 +1,4 @@
-import { Lock, X } from "lucide-react";
+import { Lock, X, Loader2, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ===============================
    CONSTANTS
@@ -54,6 +55,8 @@ const Ab3BettingComponent = ({
   onSelect,
   formatOdds = (v: number) => v.toFixed(2),
   resultHistory = [], // Last 10 results
+  currentResult,
+  tableId,
   amount,
   onAmountChange,
   onPlaceBet,
@@ -63,6 +66,14 @@ const Ab3BettingComponent = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCardBet, setSelectedCardBet] = useState<any>(null);
   const [selectedCardInfo, setSelectedCardInfo] = useState<{side: string, card: string} | null>(null);
+  
+  // Detail result modal state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
+  const [cardScrollIndex, setCardScrollIndex] = useState(0);
+  
   const quickAmounts = [100, 500, 1000, 5000];
   
   // Use provided amount or local state
@@ -70,9 +81,34 @@ const Ab3BettingComponent = ({
   const setAmount = onAmountChange || setLocalAmount;
   
   // Get last 10 results
-  const last10Results = Array.isArray(resultHistory) 
-    ? resultHistory.slice(0, 10).reverse() 
-    : [];
+  const last10Results = useMemo(() => {
+    let results: any[] = [];
+    
+    if (Array.isArray(resultHistory) && resultHistory.length > 0) {
+      results = resultHistory;
+    } else if (resultHistory && typeof resultHistory === 'object') {
+      results = (resultHistory as any)?.data?.res || 
+                (resultHistory as any)?.res || 
+                (resultHistory as any)?.results ||
+                (resultHistory as any)?.data?.data?.res ||
+                [];
+    }
+    
+    if (results.length === 0 && currentResult?.results && Array.isArray(currentResult.results) && currentResult.results.length > 0) {
+      results = currentResult.results;
+    }
+    
+    if (results.length === 0 && currentResult?.data?.res && Array.isArray(currentResult.data.res)) {
+      results = currentResult.data.res;
+    }
+    
+    if (results.length === 0 && Array.isArray(currentResult) && currentResult.length > 0) {
+      results = currentResult;
+    }
+    
+    const finalResults = Array.isArray(results) ? results.slice(0, 10) : [];
+    return finalResults;
+  }, [resultHistory, currentResult]);
 
   // Debug: Log betTypes once when they change
   useMemo(() => {
@@ -466,6 +502,62 @@ const Ab3BettingComponent = ({
   );
 
   /* =========================
+     DETAIL RESULT FUNCTIONS
+  ========================= */
+
+  // Fetch detail result
+  const fetchDetailResult = async (mid: string | number) => {
+    if (!tableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId, mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Handle result click
+  const handleResultClick = (result: any) => {
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    }
+  };
+
+  /* =========================
      MAIN RENDER
   ========================= */
 
@@ -591,64 +683,231 @@ const Ab3BettingComponent = ({
         </DialogContent>
       </Dialog>
 
-      {/* Last 10 Results */}
-      {last10Results.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <History className="h-4 w-4" />
-              Last 10 Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-2">
-                {last10Results.map((result: any, index: number) => {
-                  const winValue = result.win || result.winner || result.result || result.nat || 'N/A';
-                  const roundId = result.mid || result.round_id || result.round || `Round ${index + 1}`;
+      {/* ================= LAST 10 RESULTS ================= */}
+      <div className="border pt-2 pb-2 mt-2">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Last 10 Results</p>
+        {last10Results.length > 0 ? (
+          <div className="flex gap-1 sm:gap-1.5 px-1 sm:px-2 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
+            {last10Results.map((result: any, index: number) => {
+              return (
+                <button
+                  key={result.mid || result.round_id || result.round || index}
+                  onClick={() => handleResultClick(result)}
+                  className="flex-shrink-0 w-6 h-6 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-blue-500 text-white font-bold text-[10px] sm:text-xs md:text-sm flex items-center justify-center active:opacity-80 touch-none hover:scale-110 transition-transform cursor-pointer"
+                >
+                  R
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-2 text-xs text-muted-foreground text-center py-2">
+            No results yet
+          </div>
+        )}
+      </div>
+
+      {/* ================= DETAIL RESULT MODAL ================= */}
+      <Dialog open={detailDialogOpen} onOpenChange={(open) => {
+        setDetailDialogOpen(open);
+        if (!open) setCardScrollIndex(0);
+      }}>
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-gray-900 [&>button[class*='right-4']]:hidden">
+          <div className="bg-blue-600 text-white px-4 sm:px-6 py-4 flex flex-row justify-between items-center sticky top-0 z-10">
+            <h2 className="text-base sm:text-lg font-semibold text-white m-0">ANDAR BAHAR 50 CARDS Result</h2>
+            <button
+              onClick={() => setDetailDialogOpen(false)}
+              className="text-white hover:text-gray-200 transition-colors p-1 rounded hover:bg-blue-700 flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X size={20} className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="px-4 sm:px-6 py-4 sm:py-6 bg-white dark:bg-gray-900">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading details...</span>
+              </div>
+            ) : detailData ? (
+              <div className="space-y-4">
+                {detailData.error ? (
+                  <div className="text-center py-8">
+                    <p className="text-destructive font-medium mb-2">Error</p>
+                    <p className="text-sm text-muted-foreground">{detailData.error}</p>
+                  </div>
+                ) : (() => {
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || null;
                   
-                  // Format for Andar Bahar - could be "Andar", "Bahar", or card info
-                  const formatResult = (win: string) => {
-                    const winStr = String(win).toLowerCase();
-                    if (winStr.includes('andar')) return 'Andar';
-                    if (winStr.includes('bahar')) return 'Bahar';
-                    if (winStr === '1' || winStr === 'a') return 'Andar';
-                    if (winStr === '2' || winStr === 'b') return 'Bahar';
-                    return win;
+                  if (!t1Data) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No detailed result data available
+                      </div>
+                    );
+                  }
+
+                  // Parse cards
+                  const parseCards = (cardString: string) => {
+                    if (!cardString) return [];
+                    const cards = cardString.split(',').map((c) => c.trim()).filter(Boolean);
+                    return cards.map((card, index) => {
+                      if (card === "1") return null;
+                      
+                      let rank = "";
+                      let suit = "";
+                      if (card.length >= 3) {
+                        if (card.startsWith("10")) {
+                          rank = "10";
+                          suit = card.slice(2);
+                        } else {
+                          rank = card[0];
+                          suit = card.slice(1);
+                        }
+                      }
+                      
+                      const suitMap: Record<string, string> = { 
+                        S: "♠", H: "♥", C: "♣", D: "♦",
+                        SS: "♠", HH: "♥", CC: "♣", DD: "♦"
+                      };
+                      const rankMap: Record<string, string> = { 
+                        "1": "A", A: "A", K: "K", Q: "Q", J: "J",
+                        "10": "10"
+                      };
+                      const displayRank = rankMap[rank] || rank;
+                      const displaySuit = suitMap[suit] || suit;
+                      
+                      return {
+                        raw: card,
+                        rank: displayRank,
+                        suit: displaySuit,
+                        isRed: suit === "H" || suit === "HH" || suit === "D" || suit === "DD",
+                        position: index + 1, // Position starts from 1
+                      };
+                    }).filter(Boolean);
                   };
+
+                  const cardString = t1Data.card || "";
+                  const allCards = parseCards(cardString);
                   
-                  const displayResult = formatResult(winValue);
+                  // Split cards into odd and even positions
+                  const evenCards = allCards.filter((_, idx) => (idx + 1) % 2 === 0); // Positions 2, 4, 6, ...
+                  const oddCards = allCards.filter((_, idx) => (idx + 1) % 2 === 1); // Positions 1, 3, 5, ...
                   
-                  return (
-                    <div
-                      key={result.mid || index}
-                      className="flex justify-between items-center p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-xs">
-                          Round #{String(roundId).slice(-6)}
+                  // Cards to display per scroll (15 cards per row)
+                  const cardsPerView = 15;
+                  const maxScrollIndex = Math.max(
+                    Math.ceil(evenCards.length / cardsPerView) - 1,
+                    Math.ceil(oddCards.length / cardsPerView) - 1,
+                    0
+                  );
+                  
+                  const visibleEvenCards = evenCards.slice(
+                    cardScrollIndex * cardsPerView,
+                    (cardScrollIndex + 1) * cardsPerView
+                  );
+                  const visibleOddCards = oddCards.slice(
+                    cardScrollIndex * cardsPerView,
+                    (cardScrollIndex + 1) * cardsPerView
+                  );
+
+                  const CardDisplay = ({ card, position }: { card: any; position: number }) => (
+                    <div className="flex flex-col items-center">
+                      <div className="text-[10px] text-gray-600 dark:text-gray-400 mb-1">{position}</div>
+                      <div className="w-10 h-14 sm:w-12 sm:h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-sm">
+                        <span className={`text-sm font-bold ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                          {card.rank}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {result.card || result.cardValue || ''}
+                        <span className={`text-lg ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                          {card.suit}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-bold text-sm ${
-                          displayResult === 'Andar' ? 'text-blue-500' : 
-                          displayResult === 'Bahar' ? 'text-yellow-500' : 
-                          'text-primary'
-                        }`}>
-                          {displayResult}
+                    </div>
+                  );
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Round Id and Match Time */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm">
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Round Id: </span>
+                          <span className="text-gray-900 dark:text-gray-100 font-mono">{t1Data.rid || selectedResult?.mid || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Match Time: </span>
+                          <span className="text-gray-900 dark:text-gray-100">{t1Data.mtime || "N/A"}</span>
+                        </div>
+                      </div>
+
+                      {/* Cards Display */}
+                      <div className="space-y-3">
+                        {/* Top Row - Even Positions */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setCardScrollIndex(Math.max(0, cardScrollIndex - 1))}
+                            disabled={cardScrollIndex === 0}
+                            className="w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <div className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide flex-1">
+                            {visibleEvenCards.map((card, idx) => {
+                              const position = (cardScrollIndex * cardsPerView * 2) + (idx * 2) + 2;
+                              return <CardDisplay key={idx} card={card} position={position} />;
+                            })}
+                          </div>
+                          <button
+                            onClick={() => setCardScrollIndex(Math.min(maxScrollIndex, cardScrollIndex + 1))}
+                            disabled={cardScrollIndex >= maxScrollIndex}
+                            className="w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+
+                        {/* Bottom Row - Odd Positions */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setCardScrollIndex(Math.max(0, cardScrollIndex - 1))}
+                            disabled={cardScrollIndex === 0}
+                            className="w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <div className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide flex-1">
+                            {visibleOddCards.map((card, idx) => {
+                              const position = (cardScrollIndex * cardsPerView * 2) + (idx * 2) + 1;
+                              return <CardDisplay key={idx} card={card} position={position} />;
+                            })}
+                          </div>
+                          <button
+                            onClick={() => setCardScrollIndex(Math.min(maxScrollIndex, cardScrollIndex + 1))}
+                            disabled={cardScrollIndex >= maxScrollIndex}
+                            className="w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Winner Display */}
+                      <div className="bg-gray-200 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3 sm:p-4 text-center">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          Winner {t1Data.winnat || t1Data.rdesc || "Win"}
                         </div>
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No detailed data available
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
