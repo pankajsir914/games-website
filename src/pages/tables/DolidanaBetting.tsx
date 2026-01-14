@@ -319,6 +319,16 @@ export const DolidanaBetting = ({
     );
   };
 
+  // Safety check: Ensure actualBetTypes is an array
+  if (!Array.isArray(actualBetTypes)) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive font-medium mb-2">Error</p>
+        <p className="text-sm text-muted-foreground">Unable to load betting options. Please refresh the page.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* ================= HEADER ================= */}
@@ -580,6 +590,9 @@ export const DolidanaBetting = ({
       {/* ================= DETAIL RESULT MODAL ================= */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-0 bg-white [&>button[class*='right-4']]:hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Doli dana Result</DialogTitle>
+          </DialogHeader>
           <div className="bg-blue-600 text-white px-4 sm:px-6 py-4 flex flex-row justify-between items-center sticky top-0 z-10">
             <h2 className="text-base sm:text-lg font-semibold text-white m-0">Doli dana Result</h2>
             <button
@@ -601,9 +614,10 @@ export const DolidanaBetting = ({
                 {detailData.error ? (
                   <div className="text-center py-8">
                     <p className="text-destructive font-medium mb-2">Error</p>
-                    <p className="text-sm text-muted-foreground">{detailData.error}</p>
+                    <p className="text-sm text-muted-foreground">{detailData.error || "Something went wrong"}</p>
                   </div>
                 ) : (() => {
+                  try {
                   // Parse dice values from result data
                   const t1Data = detailData?.data?.t1 || detailData?.t1 || detailData || {};
                   const winValue = selectedResult?.win || t1Data?.win || "";
@@ -750,6 +764,17 @@ export const DolidanaBetting = ({
                       </div>
                     </div>
                   );
+                  } catch (parseError) {
+                    console.error("❌ Error parsing detail data:", parseError);
+                    return (
+                      <div className="text-center py-8">
+                        <p className="text-destructive font-medium mb-2">Error</p>
+                        <p className="text-sm text-muted-foreground">
+                          {parseError instanceof Error ? parseError.message : "Failed to parse result data"}
+                        </p>
+                      </div>
+                    );
+                  }
                 })()}
               </div>
             ) : (
