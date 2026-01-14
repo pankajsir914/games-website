@@ -1196,7 +1196,9 @@ export const BettingPanel = ({
                 betType={betType}
                 onSelect={handleSelectBet}
                 formatOdds={formatOdds}
-                resultHistory={resultHistory}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={tableId}
                 amount={amount}
                 onAmountChange={setAmount}
                 onPlaceBet={handlePlaceBet}
@@ -1599,7 +1601,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && !isAaa2 && (
+        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && !isAaa2 && !isAb3 && (
           <>
             <div className="space-y-2">
               <Input
