@@ -1629,7 +1629,7 @@ const SportsBet: React.FC = () => {
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     console.error('[Banner Debug] Image load error:', matchBanner);
-                    // Hide banner if image fails to load
+                    // Hide banner if image fails to load and set fallback
                     (e.target as HTMLImageElement).style.display = 'none';
                     setMatchBanner(null);
                   }}
@@ -1639,8 +1639,13 @@ const SportsBet: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="w-full h-8 bg-muted/30 rounded-t-lg flex items-center justify-center">
-                <p className="text-xs text-muted-foreground">No banner available</p>
+              <div className="w-full h-32 sm:h-48 md:h-64 overflow-hidden rounded-t-lg bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center relative">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDEwIDAgTCAwIDAgMCAxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjAuNSIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20"></div>
+                <div className="relative z-10 text-center px-4">
+                  <Trophy className="h-12 w-12 mx-auto text-primary/40 mb-2" />
+                  <p className="text-sm font-semibold text-foreground/60">{match.team1} vs {match.team2}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{sport || 'Match'}</p>
+                </div>
               </div>
             )}
             
