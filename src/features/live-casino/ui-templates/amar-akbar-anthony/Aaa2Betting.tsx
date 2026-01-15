@@ -229,7 +229,7 @@ export const Aaa2Betting = ({
         onClick={() => openBetModal(bet)}
         className={`
           relative w-full flex flex-col items-center justify-center
-          py-4 px-2 rounded-md transition-all
+          py-[9.5px] px-[4.8px] rounded-md transition-all
           bg-gradient-to-b from-blue-500 to-blue-700 text-white
           ${
             suspended
@@ -238,14 +238,14 @@ export const Aaa2Betting = ({
           }
         `}
       >
-        <div className="text-xs font-semibold mb-1">{odds}</div>
-        <div className="text-sm font-bold flex items-center gap-1">
+        <div className="text-[8.5px] font-semibold mb-0.5">{odds}</div>
+        <div className="text-[10px] font-bold flex items-center gap-0.5">
           {icon}
           {label}
         </div>
         {suspended && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 rounded">
-            <Lock size={16} />
+            <Lock size={9} />
           </div>
         )}
       </button>
@@ -264,7 +264,7 @@ export const Aaa2Betting = ({
         className={`
           relative border-2 border-yellow-400 bg-white rounded-md
           flex flex-col items-center justify-center w-full
-          transition-all p-1 min-h-[45px]
+          transition-all px-[5px] py-1 min-h-[45px]
           ${
             suspended
               ? "opacity-50 cursor-not-allowed"
