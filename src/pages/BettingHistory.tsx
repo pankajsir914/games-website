@@ -15,6 +15,7 @@ import { ArrowLeft, Trophy, Target, Calendar, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 const BettingHistory: React.FC = () => {
@@ -42,18 +43,34 @@ const BettingHistory: React.FC = () => {
     setEndDate('');
   };
 
-  // Fetch sports bets
+  // Fetch sports bets from new sports_market_bets table
   const { data: sportsBets, isLoading: sportsBetsLoading } = useQuery({
     queryKey: ['user-sports-bets', user?.id, startDate, endDate],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      let query = supabase
-        .from('sports_bets')
-        .select('*')
+      const dateRange = getDateRange();
+      
+      // Fetch from new sports_market_bets table with market details
+      let query = (supabase as any)
+        .from('sports_market_bets')
+        .select(`
+          *,
+          sports_markets (
+            id,
+            market_name,
+            market_type,
+            selection,
+            event_id,
+            sport,
+            odds_back,
+            odds_lay,
+            rate_yes,
+            rate_no
+          )
+        `)
         .eq('user_id', user.id);
       
-      const dateRange = getDateRange();
       if (dateRange?.start) {
         query = query.gte('created_at', dateRange.start.toISOString());
       }
@@ -61,12 +78,63 @@ const BettingHistory: React.FC = () => {
         query = query.lte('created_at', dateRange.end.toISOString());
       }
       
-      const { data, error } = await query
+      const { data: marketBets, error: marketBetsError } = await query
         .order('created_at', { ascending: false })
         .limit(100);
       
-      if (error) throw error;
-      return data || [];
+      if (marketBetsError) {
+        console.error('Error fetching market bets:', marketBetsError);
+      }
+      
+      // Also fetch from old sports_bets table for backward compatibility
+      let oldBetsQuery = (supabase as any)
+        .from('sports_bets')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (dateRange?.start) {
+        oldBetsQuery = oldBetsQuery.gte('created_at', dateRange.start.toISOString());
+      }
+      if (dateRange?.end) {
+        oldBetsQuery = oldBetsQuery.lte('created_at', dateRange.end.toISOString());
+      }
+      
+      const { data: oldBets, error: oldBetsError } = await oldBetsQuery
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      if (oldBetsError) {
+        console.error('Error fetching old bets:', oldBetsError);
+      }
+      
+      // Combine and format bets
+      const formattedMarketBets = (marketBets || []).map((bet: any) => ({
+        ...bet,
+        source: 'market_bets',
+        market_name: bet.sports_markets?.market_name,
+        selection: bet.sports_markets?.selection || bet.selection,
+        market_type: bet.sports_markets?.market_type || bet.market_type,
+        sport: bet.sports_markets?.sport,
+        odds: bet.odds || bet.rate_at_bet,
+        rate: bet.rate_at_bet || bet.odds,
+        stake: bet.stake,
+        potential_win: bet.potential_profit,
+        profit_loss: bet.profit_loss,
+        bet_side: bet.bet_side,
+        status: bet.status?.toUpperCase() || 'PLACED'
+      }));
+      
+      const formattedOldBets = (oldBets || []).map((bet: any) => ({
+        ...bet,
+        source: 'old_bets',
+        market_type: bet.market_type || 'Market',
+        status: bet.status?.toUpperCase() || 'PLACED'
+      }));
+      
+      // Combine both sources
+      return [...formattedMarketBets, ...formattedOldBets].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
     enabled: !!user?.id,
   });
@@ -267,54 +335,170 @@ const BettingHistory: React.FC = () => {
                     <Skeleton className="h-20 sm:h-24 w-full" />
                   </div>
                 ) : sportsBets && sportsBets.length > 0 ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    {sportsBets.map((bet) => (
-                      <div key={bet.id} className="p-3 sm:p-4 border rounded-md hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm sm:text-base truncate">{bet.selection}</div>
-                            <div className="text-xs sm:text-sm text-muted-foreground">
-                              {bet.sport} • {bet.market_type || 'Market'}
-                            </div>
-                          </div>
-                          <Badge
-                            variant={
-                              bet.status === 'WON'
-                                ? 'default'
-                                : bet.status === 'LOST'
-                                ? 'destructive'
-                                : 'secondary'
-                            }
-                            className="text-xs w-fit"
-                          >
-                            {bet.status || 'OPEN'}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm mt-2">
-                          <div>
-                            <span className="text-muted-foreground">Stake: </span>
-                            <span className="font-medium">₹{Number(bet.stake).toLocaleString('en-IN')}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Rate: </span>
-                            <span className="font-medium">{bet.rate || bet.odds}</span>
-                          </div>
-                          <div className="col-span-2 sm:col-span-1">
-                            <span className="text-muted-foreground">Potential: </span>
-                            <span className="font-medium">₹{Number(bet.profit || bet.potential_win || 0).toLocaleString('en-IN')}</span>
-                          </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {new Date(bet.created_at).toLocaleString('en-IN', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[150px]">Market/Selection</TableHead>
+                          <TableHead className="min-w-[80px]">Type</TableHead>
+                          <TableHead className="min-w-[80px]">Side</TableHead>
+                          <TableHead className="min-w-[100px]">Stake</TableHead>
+                          <TableHead className="min-w-[80px]">Odds/Rate</TableHead>
+                          <TableHead className="min-w-[100px]">Exposure</TableHead>
+                          <TableHead className="min-w-[120px]">Potential Win</TableHead>
+                          <TableHead className="min-w-[100px]">P&L</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="min-w-[150px]">Placed At</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sportsBets.map((bet: any) => {
+                          const isMarketBet = bet.source === 'market_bets';
+                          const status = bet.status?.toUpperCase() || 'PLACED';
+                          const statusColors: Record<string, string> = {
+                            WON: 'bg-green-500/10 text-green-600 border-green-500/20',
+                            LOST: 'bg-red-500/10 text-red-600 border-red-500/20',
+                            PLACED: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                            VOID: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+                            REFUNDED: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                          };
+
+                          const betSide = bet.bet_side || bet.bet_type || '';
+                          const betSideDisplay = betSide === 'back' ? 'BACK' : 
+                                               betSide === 'lay' ? 'LAY' :
+                                               betSide === 'yes' ? 'YES' : 
+                                               betSide === 'no' ? 'NO' : 
+                                               betSide?.toUpperCase() || 'N/A';
+                          
+                          const stakeAmount = parseFloat(
+                            bet.stake || 
+                            (bet as any).amount || 
+                            (bet as any).bet_amount || 
+                            0
+                          );
+                          
+                          const oddsRate = bet.odds || 
+                                          bet.rate || 
+                                          bet.rate_at_bet || 
+                                          (bet as any).odds || 
+                                          'N/A';
+                          
+                          const potentialWin = bet.potential_profit || bet.potential_win || 0;
+                          const exposure = bet.exposure || stakeAmount;
+                          const profitLoss = bet.profit_loss;
+
+                          return (
+                            <TableRow key={bet.id} className="hover:bg-muted/50">
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="font-medium">
+                                    {isMarketBet 
+                                      ? (bet.market_name || bet.selection || 'Market Bet')
+                                      : (bet.selection || (bet as any).market_type || 'Bet')}
+                                  </div>
+                                  {bet.selection && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {bet.selection}
+                                    </div>
+                                  )}
+                                  {bet.market_type && (
+                                    <Badge variant="outline" className="text-xs mt-1">
+                                      {bet.market_type === 'odds' ? 'ODDS' : bet.market_type === 'session' ? 'SESSION' : bet.market_type.toUpperCase()}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  {isMarketBet 
+                                    ? (bet.market_type === 'odds' ? 'ODDS' : bet.market_type === 'session' ? 'SESSION' : bet.market_type?.toUpperCase() || 'MARKET')
+                                    : (bet.market_type?.toUpperCase() || 'MARKET')}
+                                </div>
+                                {bet.market_type === 'session' && bet.line_at_bet && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Line: {bet.line_at_bet}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-medium">
+                                  {betSideDisplay}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-semibold">
+                                  ₹{stakeAmount.toFixed(2)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-medium">
+                                  {oddsRate}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {isMarketBet ? (
+                                  <div className="font-semibold text-orange-600">
+                                    ₹{parseFloat(exposure.toString()).toFixed(2)}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {potentialWin > 0 ? (
+                                  <div className="font-semibold text-green-600">
+                                    ₹{parseFloat(potentialWin.toString()).toFixed(2)}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {profitLoss !== null && profitLoss !== undefined ? (
+                                  <div className={`font-semibold ${
+                                    profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {profitLoss >= 0 ? '+' : ''}₹{parseFloat(profitLoss.toString()).toFixed(2)}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  className={`${statusColors[status] || statusColors.PLACED} border`}
+                                >
+                                  {status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-xs space-y-1">
+                                  <div>
+                                    {new Date(bet.created_at).toLocaleString('en-IN', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </div>
+                                  {bet.settled_at && (
+                                    <div className="text-muted-foreground">
+                                      Settled: {new Date(bet.settled_at).toLocaleString('en-IN', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   </div>
                 ) : (
                   <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm sm:text-base">
