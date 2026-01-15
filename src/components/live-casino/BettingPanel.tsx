@@ -1028,7 +1028,8 @@ export const BettingPanel = ({
               <WarBetting
                 betTypes={betTypes?.sub || []}
                 odds={odds}
-                resultHistory={resultHistory}
+                resultHistory={finalResultHistory}
+                tableId={tableId}
                 onPlaceBet={async (payload) => {
                   // WarBetting sends {sid, odds, nat, amount, side}, convert to expected format
                   const allBets = betTypes?.sub || [];
