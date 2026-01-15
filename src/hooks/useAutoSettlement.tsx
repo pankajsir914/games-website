@@ -78,7 +78,11 @@ export function useAutoSettlement() {
     setLoading(true);
     setError(null);
 
+    console.log('[useAutoSettlement] settleAllMarkets called with:', { sportsid, gmid });
+
     try {
+      console.log('[useAutoSettlement] Invoking auto-settle-markets function...');
+      
       const { data, error: fnError } = await supabase.functions.invoke('auto-settle-markets', {
         body: {
           sportsid,
@@ -87,13 +91,27 @@ export function useAutoSettlement() {
         }
       });
 
-      if (fnError) throw new Error(fnError.message);
+      console.log('[useAutoSettlement] Function response:', { data, error: fnError });
+
+      if (fnError) {
+        console.error('[useAutoSettlement] Function error:', fnError);
+        throw new Error(fnError.message);
+      }
+      
       if (!data?.success) {
+        console.error('[useAutoSettlement] Settlement failed:', data);
         throw new Error(data?.error || 'Auto-settlement failed');
       }
 
       const settledCount = data.settled_count || 0;
       const failedCount = data.failed_count || 0;
+
+      console.log('[useAutoSettlement] Settlement result:', {
+        settledCount,
+        failedCount,
+        settledMarkets: data.settled_markets,
+        failedMarkets: data.failed_markets
+      });
 
       toast({
         title: "Markets Settled",
@@ -104,6 +122,7 @@ export function useAutoSettlement() {
       return data;
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to settle markets';
+      console.error('[useAutoSettlement] Exception:', err);
       setError(errorMsg);
       toast({
         title: "Settlement Failed",
