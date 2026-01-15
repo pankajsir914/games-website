@@ -235,7 +235,7 @@ export const Lucky5Betting = ({
         disabled={suspended || loading}
         onClick={() => openBetModal(bet)}
         className={`
-          h-16 w-full flex flex-col items-center justify-center
+          h-12 w-full flex flex-col items-center justify-center
           rounded-lg text-white font-semibold
           bg-gradient-to-b from-blue-500 to-blue-600
           ${suspended
@@ -245,11 +245,11 @@ export const Lucky5Betting = ({
         `}
       >
         {suspended ? (
-          <Lock size={14} />
+          <Lock size={10} />
         ) : (
           <>
-            <div className="text-lg font-bold">{oddsDisplay || odds}</div>
-            <div className="text-sm">{label}</div>
+            <div className="text-base font-bold">{oddsDisplay || odds}</div>
+            <div className="text-xs">{label}</div>
           </>
         )}
       </button>
@@ -266,7 +266,7 @@ export const Lucky5Betting = ({
         disabled={suspended || loading}
         onClick={() => openBetModal(bet)}
         className={`
-          h-16 w-full flex flex-col items-center justify-center
+          h-12 w-full flex flex-col items-center justify-center
           rounded-lg text-white font-semibold
           bg-gradient-to-b from-blue-500 to-blue-600
           ${suspended
@@ -276,11 +276,11 @@ export const Lucky5Betting = ({
         `}
       >
         {suspended ? (
-          <Lock size={14} />
+          <Lock size={10} />
         ) : (
           <>
-            <div className="text-lg font-bold">{odds}</div>
-            <div className="flex gap-1 text-sm">
+            <div className="text-base font-bold">{odds}</div>
+            <div className="flex gap-1 text-xs">
               {isRed ? (
                 <>
                   <span className="text-red-500">♥</span>
@@ -310,6 +310,7 @@ export const Lucky5Betting = ({
         className={`
           w-full aspect-[3/4] flex flex-col items-center justify-center
           rounded border-2 border-yellow-400 bg-white
+          transform scale-75 origin-center
           ${suspended
             ? "opacity-50 cursor-not-allowed"
             : "hover:bg-yellow-50 cursor-pointer"
@@ -317,11 +318,11 @@ export const Lucky5Betting = ({
         `}
       >
         {suspended ? (
-          <Lock size={12} />
+          <Lock size={9} />
         ) : (
           <>
-            <div className="font-bold text-gray-900 text-sm mb-0.5">{card === "1" ? "A" : card}</div>
-            <div className="flex flex-col gap-0 text-[10px]">
+            <div className="font-bold text-gray-900 text-xs mb-0.5">{card === "1" ? "A" : card}</div>
+            <div className="flex flex-col gap-0 text-[8px]">
               <span className="text-black">♠</span>
               <span className="text-red-600">♦</span>
             </div>
@@ -388,20 +389,20 @@ export const Lucky5Betting = ({
             }
             
             return (
-              <div className="w-16 h-20 sm:w-20 sm:h-28 border-2 border-yellow-400 rounded bg-white flex flex-col items-center justify-center">
+              <div className="w-12 h-[60px] sm:w-[60px] sm:h-[84px] border-2 border-yellow-400 rounded bg-white flex flex-col items-center justify-center">
                 {centerCard ? (
                   <>
-                    <div className={`text-lg sm:text-xl font-bold mb-1 ${centerCard.isRed ? "text-red-600" : "text-gray-900"}`}>
+                    <div className={`text-sm sm:text-base font-bold mb-0.5 ${centerCard.isRed ? "text-red-600" : "text-gray-900"}`}>
                       {centerCard.rank}
                     </div>
-                    <div className="flex flex-col gap-0 text-xs">
+                    <div className="flex flex-col gap-0 text-[10px]">
                       <span className={centerCard.isRed ? "text-red-600" : "text-black"}>{centerCard.suit}</span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-lg sm:text-xl font-bold text-gray-900 mb-1">6</div>
-                    <div className="flex flex-col gap-0 text-xs">
+                    <div className="text-sm sm:text-base font-bold text-gray-900 mb-0.5">6</div>
+                    <div className="flex flex-col gap-0 text-[10px]">
                       <span className="text-black">♠</span>
                       <span className="text-red-600">♦</span>
                     </div>
@@ -691,11 +692,11 @@ export const Lucky5Betting = ({
                       {/* Card Display */}
                       {resultCard && (
                         <div className="flex justify-center">
-                          <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md">
-                            <span className={`text-lg sm:text-xl font-bold ${resultCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                          <div className="w-[60px] h-[84px] sm:w-[72px] sm:h-[96px] border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md">
+                            <span className={`text-base sm:text-lg font-bold ${resultCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
                               {resultCard.rank}
                             </span>
-                            <span className={`text-2xl sm:text-3xl ${resultCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                            <span className={`text-xl sm:text-2xl ${resultCard.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
                               {resultCard.suit}
                             </span>
                           </div>
