@@ -39,6 +39,7 @@ interface TeenBettingBoardProps {
 
 const QUICK_CHIPS = [10, 50, 100, 500, 1000];
 const CARDS = [1, 2, 3, 4, 5, 6];
+const QUICK_AMOUNTS = [100, 500, 1000, 5000];
 
 const formatOdds = (val: any) => {
   if (val === null || val === undefined || val === "") return "0.00";
@@ -514,73 +515,91 @@ export const TeenBettingBoard = ({
 
       {/* Bet Confirmation Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Place Bet</DialogTitle>
+        <DialogContent className="max-w-md p-0">
+          <DialogHeader className="bg-slate-800 text-white px-4 py-2 flex flex-row justify-between items-center">
+            <DialogTitle className="text-sm">Place Bet</DialogTitle>
+            <button onClick={() => setModalOpen(false)}>
+              <X size={16} />
+            </button>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label>Bet Type</Label>
-              <div className="mt-1 p-2 bg-muted rounded-md font-semibold">
-                {selectedBetData?.nat || selectedBetData?.type || selectedBet.split("-")[0]}
+          {selectedBetData && (
+            <div className="bg-white dark:bg-gray-800 p-4 space-y-4">
+              <div className="text-sm">
+                <div className="font-semibold text-gray-900 dark:text-white mb-1">
+                  {selectedBetData?.nat || selectedBetData?.type || selectedBet.split("-")[0]}
+                </div>
+                <div className="text-gray-600 dark:text-gray-300">
+                  {selectedBetData?.side === "back" ? "Back" : "Lay"} Odds:{" "}
+                  <span className="font-bold text-blue-600 dark:text-blue-400">
+                    {selectedBetData?.side === "lay"
+                      ? formatOdds(getLayOdds(selectedBetData))
+                      : formatOdds(getBackOdds(selectedBetData))}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <Label>Side</Label>
-              <div className="mt-1 p-2 bg-muted rounded-md font-semibold uppercase">
-                {selectedBetData?.side || "back"}
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-4 gap-2">
+                {QUICK_AMOUNTS.map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => setAmount(String(amt))}
+                    className={`py-2 px-2 rounded text-xs font-medium ${
+                      amount === String(amt)
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-600 hover:bg-gray-700 text-white"
+                    }`}
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
               </div>
-            </div>
 
-            <div>
-              <Label>Odds</Label>
-              <div className="mt-1 p-2 bg-muted rounded-md font-semibold">
-                {selectedBetData?.side === "lay"
-                  ? formatOdds(getLayOdds(selectedBetData))
-                  : formatOdds(getBackOdds(selectedBetData))}
-              </div>
-            </div>
-
-            <div>
-              <Label>Amount</Label>
+              {/* Amount Input */}
               <Input
                 type="number"
                 min={min}
                 max={max}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
                 disabled={locked}
-                className="mt-1"
+                className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
               />
-            </div>
 
-            <div className="p-3 bg-muted rounded-md">
-              <div className="text-sm text-muted-foreground">Potential Win</div>
-              <div className="text-lg font-bold">
-                ₹{(
-                  (parseFloat(amount) || 0) *
-                  (() => {
+              {/* Profit/Liability Calculation */}
+              {amount && parseFloat(amount) > 0 && (
+                <div className="text-xs text-gray-600 dark:text-gray-300">
+                  {selectedBetData?.side === "back" ? "Potential win" : "Liability"}: ₹
+                  {(() => {
                     const side = selectedBetData?.side || "back";
                     const oddsValue = side === "back"
                       ? Number(getBackOdds(selectedBetData))
                       : Number(getLayOdds(selectedBetData));
-                    return oddsValue > 1000 ? oddsValue / 100000 : oddsValue;
-                  })()
-                ).toFixed(2)}
-              </div>
-            </div>
+                    const normalizedOdds = oddsValue > 1000 ? oddsValue / 100000 : oddsValue;
+                    if (side === "back") {
+                      // Total return for back bet
+                      return (parseFloat(amount) * normalizedOdds).toFixed(2);
+                    } else {
+                      // Liability for lay bet = (odds - 1) * amount
+                      return (parseFloat(amount) * (normalizedOdds - 1)).toFixed(2);
+                    }
+                  })()}
+                </div>
+              )}
 
-            <Button
-              className="w-full"
-              disabled={locked || !selectedBetData || parseFloat(amount) <= 0}
-              onClick={handlePlace}
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Place Bet
-            </Button>
-          </div>
+              {/* Submit Button */}
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                disabled={locked || !selectedBetData || !amount || parseFloat(amount) <= 0}
+                onClick={handlePlace}
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Place Bet ₹{amount}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
