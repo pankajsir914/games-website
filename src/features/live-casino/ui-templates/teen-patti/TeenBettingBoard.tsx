@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, Lock, Users, Loader2 } from "lucide-react";
+import { TrendingUp, Lock, Users, Loader2, Trophy, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -483,30 +483,59 @@ export const TeenBettingBoard = ({
               <p className="text-xs mb-2 text-muted-foreground">Last 10 Results</p>
               <div className="flex gap-1 flex-wrap">
                 {last10.map((r, i) => {
-                  // Handle different win formats: "1"/"2", "Player A"/"Player B", "A"/"B", "Player"/"Dealer"
+                  // Handle different win formats: "1"/"2", "Player A"/"Player B", "A"/"B", "Player"/"Dealer", "Tie"/"T"
                   const winValue = r.win?.toString() || r.winnerId?.toString() || "";
+                  const winValueLower = winValue.toLowerCase();
+                  
                   const isPlayer = 
                     winValue === "1" || 
                     winValue === "Player A" || 
                     winValue === "A" ||
                     winValue === "Player" ||
                     winValue === "P" ||
-                    winValue.toLowerCase() === "playera" ||
-                    winValue.toLowerCase() === "player" ||
+                    winValueLower === "playera" ||
+                    winValueLower === "player" ||
                     (r.winnerId && r.winnerId.toString() === "1");
-                  // Display "P" for Player, "D" for Dealer
-                  const winner = isPlayer ? "P" : "D";
+                  
+                  const isDealer = 
+                    winValue === "2" || 
+                    winValue === "Player B" || 
+                    winValue === "B" ||
+                    winValue === "Dealer" ||
+                    winValue === "D" ||
+                    winValueLower === "playerb" ||
+                    winValueLower === "dealer" ||
+                    (r.winnerId && r.winnerId.toString() === "2");
+                  
+                  const isTie = 
+                    winValue === "T" ||
+                    winValue === "Tie" ||
+                    winValueLower === "tie" ||
+                    winValueLower === "t" ||
+                    winValue === "3" ||
+                    (r.winnerId && r.winnerId.toString() === "3");
+                  
+                  // Display "P" for Player, "D" for Dealer, "T" for Tie
+                  let winner = "D";
+                  let bgColor = "bg-red-500 text-white border-red-600";
+                  
+                  if (isPlayer) {
+                    winner = "P";
+                    bgColor = "bg-blue-500 text-white border-blue-600";
+                  } else if (isDealer) {
+                    winner = "D";
+                    bgColor = "bg-red-500 text-white border-red-600";
+                  } else if (isTie) {
+                    winner = "T";
+                    bgColor = "bg-yellow-500 text-white border-yellow-600";
+                  }
                   
                   return (
                     <Button
                       key={r.mid || r.round || r.round_id || i}
                       size="sm"
                       variant="outline"
-                      className={`w-9 h-9 p-0 font-bold ${
-                        isPlayer
-                          ? "bg-blue-500 text-white border-blue-600"
-                          : "bg-red-500 text-white border-red-600"
-                      }`}
+                      className={`w-9 h-9 p-0 font-bold ${bgColor}`}
                       onClick={() => handleResultClick(r)}
                     >
                       {winner}
@@ -593,77 +622,249 @@ export const TeenBettingBoard = ({
 
       {/* Detail Result Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detailed Result</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 [&>button]:hidden bg-white rounded-lg border-0 shadow-xl">
+          {/* Blue Header */}
+          <div className="bg-blue-600 text-white px-4 py-3 flex items-center justify-between relative rounded-t-lg">
+            <DialogTitle className="text-white text-lg font-semibold">
+              1 CARD ONE-DAY Result
+            </DialogTitle>
+            <button
+              onClick={() => setDetailDialogOpen(false)}
+              className="text-white hover:bg-blue-700 rounded-full p-1.5 transition-colors absolute right-4 top-1/2 -translate-y-1/2 z-10"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
           
-          {detailLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              <span className="ml-2">Loading result details...</span>
-            </div>
-          ) : detailData?.error ? (
-            <div className="text-center py-8 text-destructive">
-              <p>Error: {detailData.error}</p>
-            </div>
-          ) : detailData ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Round ID</Label>
-                  <div className="mt-1 p-2 bg-muted rounded-md font-semibold">
-                    {detailData.mid || detailData.round_id || detailData.round || "N/A"}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Winner</Label>
-                  <div className="mt-1 p-2 bg-muted rounded-md font-semibold">
-                    {detailData.winnat || detailData.rdesc || detailData.win || "N/A"}
-                  </div>
-                </div>
+          {/* Content Area with Custom Scrollbar */}
+          <div className="p-4 bg-white overflow-y-auto max-h-[calc(90vh-64px)] custom-scrollbar">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="ml-2">Loading result details...</span>
               </div>
-              
-              {detailData.card && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Cards</Label>
-                  <div className="mt-1 p-2 bg-muted rounded-md">
-                    <div className="font-mono text-sm">
-                      {typeof detailData.card === 'string' 
-                        ? detailData.card.split(',').map((c: string, i: number) => (
-                            <span key={i} className="inline-block mr-2">{c.trim()}</span>
-                          ))
-                        : Array.isArray(detailData.card)
-                        ? detailData.card.map((c: string, i: number) => (
-                            <span key={i} className="inline-block mr-2">{c}</span>
-                          ))
-                        : String(detailData.card)}
+            ) : detailData?.error ? (
+              <div className="text-center py-8 text-destructive">
+                <p>Error: {detailData.error}</p>
+              </div>
+            ) : detailData ? (
+              <div className="space-y-4">
+                {(() => {
+                  // Extract t1 data from the response (nested structure)
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || detailData;
+                  
+                  if (!t1Data || (!t1Data.card && !t1Data.winnat && !t1Data.win)) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No detailed result data available</p>
+                        <pre className="mt-4 text-xs text-left bg-gray-100 p-2 rounded overflow-auto max-h-64">
+                          {JSON.stringify(detailData, null, 2)}
+                        </pre>
+                      </div>
+                    );
+                  }
+
+                  // Parse card function
+                  const parseCard = (cardString: string) => {
+                    if (!cardString) return null;
+                    
+                    // Card format: "KSS", "8SS", "QHH", "10DD", "ACC" etc.
+                    // Format: Rank + Suit + Suit (e.g., KSS = King of Spades, 10DD = 10 of Diamonds)
+                    let rank = '';
+                    let suit = '';
+                    
+                    if (cardString.length >= 3) {
+                      // Check if it starts with "10" (two digits)
+                      if (cardString.length >= 4 && cardString.startsWith('10')) {
+                        rank = '10';
+                        suit = cardString.charAt(cardString.length - 1); // Last character is the suit
+                      } else {
+                        // Single character rank (K, Q, J, A, 1-9)
+                        rank = cardString.substring(0, cardString.length - 2); // Everything except last 2 chars
+                        suit = cardString.charAt(cardString.length - 1); // Last character is the suit
+                      }
+                    }
+                    
+                    // Map suit codes to symbols
+                    const suitMap: { [key: string]: string } = {
+                      'S': '♠', // Spades
+                      'H': '♥', // Hearts
+                      'C': '♣', // Clubs
+                      'D': '♦', // Diamonds
+                    };
+                    
+                    // Map rank codes
+                    const rankMap: { [key: string]: string } = {
+                      '1': 'A',
+                      'A': 'A',
+                      'K': 'K',
+                      'Q': 'Q',
+                      'J': 'J',
+                    };
+                    
+                    const displayRank = rankMap[rank] || rank;
+                    const displaySuit = suitMap[suit] || suit;
+                    
+                    return {
+                      raw: cardString,
+                      rank: displayRank,
+                      suit: displaySuit,
+                      display: `${displayRank}${displaySuit}`,
+                      isRed: suit === 'H' || suit === 'D',
+                    };
+                  };
+
+                  // Parse cards - format: "3H,7C" or "3HH,7CC" (Player, Dealer)
+                  const cardString = t1Data.card || '';
+                  const cards = cardString.split(',').map(c => c.trim()).filter(Boolean);
+                  const playerCard = cards.length > 0 ? parseCard(cards[0]) : null;
+                  const dealerCard = cards.length > 1 ? parseCard(cards[1]) : null;
+
+                  // Parse winner
+                  const winner = t1Data.winnat || t1Data.win || t1Data.rdesc || "";
+                  const winnerStr = String(winner).toLowerCase().trim();
+                  const isPlayerWinner = 
+                    winnerStr.includes("player") || 
+                    winnerStr === "a" || 
+                    winnerStr === "1" ||
+                    winner === "A" ||
+                    winner === 1 ||
+                    winner === "1" ||
+                    winnerStr === "p";
+                  const isDealerWinner = 
+                    winnerStr.includes("dealer") || 
+                    winnerStr === "b" || 
+                    winnerStr === "2" ||
+                    winner === "B" ||
+                    winner === 2 ||
+                    winner === "2" ||
+                    winnerStr === "d";
+                  const isTie = 
+                    winnerStr.includes("tie") || 
+                    winnerStr === "t" ||
+                    winner === "Tie" ||
+                    winner === "T" ||
+                    winner === 3 ||
+                    winner === "3";
+
+                  // Get rdesc for additional info
+                  const rdesc = t1Data.rdesc || "";
+                  
+                  // Show trophy for both if tie
+                  const showPlayerTrophy = isPlayerWinner || (isTie && playerCard);
+                  const showDealerTrophy = isDealerWinner || (isTie && dealerCard);
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Round ID and Match Time */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b border-gray-200 pb-3 pt-2">
+                        <div>
+                          <span className="font-semibold text-gray-700">Round Id: </span>
+                          <span className="text-gray-900 font-mono">
+                            {t1Data.rid || t1Data.mid || detailData.mid || selectedResult?.mid || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-gray-700">Match Time: </span>
+                          <span className="text-gray-900">
+                            {t1Data.mtime || t1Data.match_time || detailData.mtime || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Player and Dealer Cards */}
+                      <div className="grid grid-cols-2 gap-6 sm:gap-8 py-4">
+                        {/* Player Section */}
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800">
+                              Player
+                            </h3>
+                          </div>
+                          <div className="flex justify-center items-center gap-3">
+                            {playerCard ? (
+                              <div className="relative">
+                                <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded-lg bg-white flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
+                                  <span className={`text-xl sm:text-2xl font-bold ${playerCard.isRed ? "text-red-600" : "text-black"}`}>
+                                    {playerCard.rank}
+                                  </span>
+                                  <span className={`text-3xl sm:text-4xl ${playerCard.isRed ? "text-red-600" : "text-black"}`}>
+                                    {playerCard.suit}
+                                  </span>
+                                </div>
+                                {showPlayerTrophy && (
+                                  <div className={`absolute -right-2 -top-2 rounded-full p-1 shadow-lg ${isTie ? "bg-yellow-500" : "bg-green-500"}`}>
+                                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 text-xs">
+                                No card
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Dealer Section */}
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800">
+                              Dealer
+                            </h3>
+                          </div>
+                          <div className="flex justify-center items-center gap-3">
+                            {dealerCard ? (
+                              <div className="relative">
+                                <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded-lg bg-white flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
+                                  <span className={`text-xl sm:text-2xl font-bold ${dealerCard.isRed ? "text-red-600" : "text-black"}`}>
+                                    {dealerCard.rank}
+                                  </span>
+                                  <span className={`text-3xl sm:text-4xl ${dealerCard.isRed ? "text-red-600" : "text-black"}`}>
+                                    {dealerCard.suit}
+                                  </span>
+                                </div>
+                                {showDealerTrophy && (
+                                  <div className={`absolute -right-2 -top-2 rounded-full p-1 shadow-lg ${isTie ? "bg-yellow-500" : "bg-green-500"}`}>
+                                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 text-xs">
+                                No card
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Winner Information Box */}
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-4 sm:p-5 shadow-sm">
+                        <div className="space-y-2">
+                          <div className="text-center">
+                            <span className="font-bold text-gray-900 text-lg sm:text-xl">
+                              Winner: {isPlayerWinner ? "Player" : isDealerWinner ? "Dealer" : isTie ? "Tie" : "N/A"}
+                            </span>
+                          </div>
+                          {rdesc && (
+                            <div className="text-center text-gray-700 text-sm sm:text-base mt-2">
+                              {rdesc}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-              
-              {detailData.rdesc && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Description</Label>
-                  <div className="mt-1 p-2 bg-muted rounded-md">
-                    {detailData.rdesc}
-                  </div>
-                </div>
-              )}
-              
-              <div className="pt-2 border-t">
-                <Label className="text-xs text-muted-foreground">Full Data</Label>
-                <pre className="mt-1 p-2 bg-muted rounded-md text-xs overflow-auto max-h-64">
-                  {JSON.stringify(detailData, null, 2)}
-                </pre>
+                  );
+                })()}
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No data available</p>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No data available</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>
