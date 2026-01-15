@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, TrendingUp, Tv, FileText, Target, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info, Trophy, Users, Cloud, Receipt, Clock, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDiamondSportsAPI } from '@/hooks/useDiamondSportsAPI';
@@ -1219,11 +1220,36 @@ const SportsBet: React.FC = () => {
         throw new Error('Market ID is required to place bet');
       }
       
-      // Step 2: Place bet using new system (place_market_bet)
+      // Step 2: Fetch market to get actual odds/rates (to avoid mismatch)
+      const { data: marketData, error: marketFetchError } = await (supabase as any)
+        .from('sports_markets')
+        .select('odds_back, odds_lay, rate_yes, rate_no, current_line')
+        .eq('id', marketId)
+        .single();
+      
+      if (marketFetchError) {
+        console.error('Error fetching market:', marketFetchError);
+        throw new Error(`Failed to fetch market: ${marketFetchError.message}`);
+      }
+      
+      if (!marketData) {
+        throw new Error('Market data not found');
+      }
+      
+      // Step 3: Place bet using new system (place_market_bet)
+      // Use market's actual odds/rates instead of selectedBet.rate to avoid mismatch
       const betSide = selectedBet.type; // 'back', 'lay', 'yes', 'no'
       const selection = marketType === 'odds' ? selectedBet.selection : null;
-      const odds = marketType === 'odds' ? selectedBet.rate : null;
-      const rate = marketType === 'session' ? selectedBet.rate : null;
+      
+      // For ODDS markets, use market's actual odds based on bet side
+      // For SESSION markets, use market's actual rates based on bet side
+      // Pass null to let backend use market's odds/rates (validation will still check)
+      const odds = marketType === 'odds' 
+        ? (betSide === 'back' ? marketData.odds_back : marketData.odds_lay)
+        : null;
+      const rate = marketType === 'session'
+        ? (betSide === 'yes' ? marketData.rate_yes : marketData.rate_no)
+        : null;
       
       const { data: betData, error: rpcError } = await (supabase as any).rpc('place_market_bet', {
         p_market_id: marketId,
@@ -1562,49 +1588,6 @@ const SportsBet: React.FC = () => {
     </>
   );
 
-  const MyBetsCard = () => (
-    <Card className="bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Receipt className="h-4 w-4" />
-          My Bets
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {isLoadingMyBets && (
-          <div className="text-sm text-muted-foreground">Loading your bets...</div>
-        )}
-        {myBetsError && (
-          <div className="text-sm text-destructive">{myBetsError}</div>
-        )}
-        {!isLoadingMyBets && !myBetsError && myBets.length === 0 && (
-          <div className="text-sm text-muted-foreground">No bets for this match yet.</div>
-        )}
-        {myBets.map((bet) => (
-          <div key={bet.id} className="p-3 border rounded-md space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold capitalize">{bet.bet_type}</span>
-              <span className="text-muted-foreground">{new Date(bet.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>{bet.selection}</span>
-              <span className="font-medium text-primary">{bet.odds} @ ₹{bet.stake}</span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Status: {bet.status || 'placed'}</span>
-              <span>Potential: ₹{bet.potential_win}</span>
-            </div>
-          </div>
-        ))}
-        <div className="flex justify-end">
-          <Button size="sm" variant="outline" onClick={fetchMyBets}>
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Refresh
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   if (!user) {
     return (
@@ -1864,214 +1847,164 @@ const SportsBet: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {myBets.map((bet: any) => {
-                      const isMarketBet = bet.source === 'market_bets';
-                      const status = bet.status || 'placed';
-                      const statusColors: Record<string, string> = {
-                        won: 'bg-green-500/10 text-green-600 border-green-500/20',
-                        lost: 'bg-red-500/10 text-red-600 border-red-500/20',
-                        placed: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-                        void: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-                        refunded: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
-                      };
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[150px]">Market/Selection</TableHead>
+                          <TableHead className="min-w-[80px]">Type</TableHead>
+                          <TableHead className="min-w-[80px]">Side</TableHead>
+                          <TableHead className="min-w-[100px]">Stake</TableHead>
+                          <TableHead className="min-w-[80px]">Odds/Rate</TableHead>
+                          <TableHead className="min-w-[100px]">Exposure</TableHead>
+                          <TableHead className="min-w-[120px]">Potential Win</TableHead>
+                          <TableHead className="min-w-[100px]">P&L</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="min-w-[150px]">Placed At</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {myBets.map((bet: any) => {
+                          const isMarketBet = bet.source === 'market_bets';
+                          const status = bet.status || 'placed';
+                          const statusColors: Record<string, string> = {
+                            won: 'bg-green-500/10 text-green-600 border-green-500/20',
+                            lost: 'bg-red-500/10 text-red-600 border-red-500/20',
+                            placed: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                            void: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+                            refunded: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+                          };
 
-                      const betSide = bet.bet_side || (bet as any).bet_type || '';
-                      const betSideDisplay = betSide === 'back' ? 'BACK' : 
-                                           betSide === 'lay' ? 'LAY' :
-                                           betSide === 'yes' ? 'YES' : 
-                                           betSide === 'no' ? 'NO' : 'N/A';
-                      
-                      const stakeAmount = parseFloat(
-                        bet.stake || 
-                        (bet as any).amount || 
-                        (bet as any).bet_amount || 
-                        0
-                      );
-                      
-                      const oddsRate = bet.odds || 
-                                      bet.rate || 
-                                      bet.rate_at_bet || 
-                                      (bet as any).odds || 
-                                      'N/A';
-                      
-                      const potentialWin = bet.potential_profit || (bet as any).potential_win || 0;
-                      const exposure = bet.exposure || stakeAmount;
-                      const profitLoss = bet.profit_loss;
+                          const betSide = bet.bet_side || (bet as any).bet_type || '';
+                          const betSideDisplay = betSide === 'back' ? 'BACK' : 
+                                               betSide === 'lay' ? 'LAY' :
+                                               betSide === 'yes' ? 'YES' : 
+                                               betSide === 'no' ? 'NO' : 'N/A';
+                          
+                          const stakeAmount = parseFloat(
+                            bet.stake || 
+                            (bet as any).amount || 
+                            (bet as any).bet_amount || 
+                            0
+                          );
+                          
+                          const oddsRate = bet.odds || 
+                                          bet.rate || 
+                                          bet.rate_at_bet || 
+                                          (bet as any).odds || 
+                                          'N/A';
+                          
+                          const potentialWin = bet.potential_profit || (bet as any).potential_win || 0;
+                          const exposure = bet.exposure || stakeAmount;
+                          const profitLoss = bet.profit_loss;
 
-                      return (
-                        <Card key={bet.id} className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
-                          <CardContent className="pt-6">
-                            <div className="space-y-4">
-                              {/* Header with Status */}
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h4 className="font-semibold text-base sm:text-lg truncate">
-                                      {isMarketBet 
-                                        ? (bet.market_name || bet.selection || 'Market Bet')
-                                        : (bet.selection || (bet as any).market_type || 'Bet')}
-                                    </h4>
-                                    {bet.market_type && (
-                                      <Badge variant="outline" className="text-xs">
-                                        {bet.market_type === 'odds' ? 'ODDS' : 'SESSION'}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Selection/Team Name */}
-                                  {bet.selection && (
-                                    <p className="text-sm font-medium text-foreground mb-1">
-                                      Selection: <span className="text-primary">{bet.selection}</span>
-                                    </p>
-                                  )}
-                                  
-                                  {/* Market Type Info */}
-                                  <p className="text-xs text-muted-foreground">
+                          return (
+                            <TableRow key={bet.id} className="hover:bg-muted/50">
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="font-medium">
                                     {isMarketBet 
-                                      ? `${bet.market_type === 'odds' ? 'ODDS' : 'SESSION'} Market`
-                                      : `${(bet as any).market_type || 'Sports'} Bet`}
-                                    {bet.sports_markets?.sport && ` • ${bet.sports_markets.sport}`}
-                                  </p>
+                                      ? (bet.market_name || bet.selection || 'Market Bet')
+                                      : (bet.selection || (bet as any).market_type || 'Bet')}
+                                  </div>
+                                  {bet.selection && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {bet.selection}
+                                    </div>
+                                  )}
+                                  {bet.market_type && (
+                                    <Badge variant="outline" className="text-xs mt-1">
+                                      {bet.market_type === 'odds' ? 'ODDS' : 'SESSION'}
+                                    </Badge>
+                                  )}
                                 </div>
-                                
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  {isMarketBet 
+                                    ? (bet.market_type === 'odds' ? 'ODDS' : 'SESSION')
+                                    : (bet as any).market_type || 'Sports'}
+                                </div>
+                                {bet.market_type === 'session' && bet.line_at_bet && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Line: {bet.line_at_bet}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-medium">
+                                  {betSideDisplay}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-semibold">
+                                  ₹{stakeAmount.toFixed(2)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-medium">
+                                  {oddsRate}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-semibold text-orange-600">
+                                  ₹{parseFloat(exposure.toString()).toFixed(2)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {potentialWin > 0 ? (
+                                  <div className="font-semibold text-green-600">
+                                    ₹{parseFloat(potentialWin.toString()).toFixed(2)}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {profitLoss !== null && profitLoss !== undefined ? (
+                                  <div className={`font-semibold ${
+                                    profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {profitLoss >= 0 ? '+' : ''}₹{parseFloat(profitLoss.toString()).toFixed(2)}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
                                 <Badge 
-                                  className={`${statusColors[status] || statusColors.placed} border shrink-0`}
+                                  className={`${statusColors[status] || statusColors.placed} border`}
                                 >
                                   {status.toUpperCase()}
                                 </Badge>
-                              </div>
-
-                              {/* Main Bet Details Grid */}
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pt-3 border-t">
-                                {/* Stake */}
-                                <div className="p-3 bg-muted/50 rounded-lg">
-                                  <p className="text-xs text-muted-foreground mb-1">Stake</p>
-                                  <p className="font-bold text-base sm:text-lg">
-                                    ₹{stakeAmount.toFixed(2)}
-                                  </p>
-                                </div>
-
-                                {/* Odds/Rate */}
-                                <div className="p-3 bg-muted/50 rounded-lg">
-                                  <p className="text-xs text-muted-foreground mb-1">
-                                    {isMarketBet 
-                                      ? (bet.market_type === 'odds' ? 'Odds' : 'Rate')
-                                      : 'Odds'}
-                                  </p>
-                                  <p className="font-bold text-base sm:text-lg">
-                                    {oddsRate}
-                                  </p>
-                                </div>
-
-                                {/* Bet Side */}
-                                <div className="p-3 bg-muted/50 rounded-lg">
-                                  <p className="text-xs text-muted-foreground mb-1">Side</p>
-                                  <p className="font-bold text-base sm:text-lg">
-                                    {betSideDisplay}
-                                  </p>
-                                </div>
-
-                                {/* Line (for SESSION markets) */}
-                                {isMarketBet && bet.market_type === 'session' && bet.line_at_bet && (
-                                  <div className="p-3 bg-muted/50 rounded-lg">
-                                    <p className="text-xs text-muted-foreground mb-1">Line</p>
-                                    <p className="font-bold text-base sm:text-lg">{bet.line_at_bet}</p>
-                                  </div>
-                                )}
-
-                                {/* Exposure */}
-                                {isMarketBet && (
-                                  <div className="p-3 bg-muted/50 rounded-lg">
-                                    <p className="text-xs text-muted-foreground mb-1">Exposure</p>
-                                    <p className="font-bold text-base sm:text-lg text-orange-600">
-                                      ₹{parseFloat(exposure.toString()).toFixed(2)}
-                                    </p>
-                                  </div>
-                                )}
-
-                                {/* Potential Win */}
-                                {potentialWin > 0 && (
-                                  <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                                    <p className="text-xs text-muted-foreground mb-1">Potential Win</p>
-                                    <p className="font-bold text-base sm:text-lg text-green-600">
-                                      ₹{parseFloat(potentialWin.toString()).toFixed(2)}
-                                    </p>
-                                  </div>
-                                )}
-
-                                {/* P&L (if settled) */}
-                                {profitLoss !== null && profitLoss !== undefined && (
-                                  <div className={`p-3 rounded-lg border ${
-                                    profitLoss >= 0 
-                                      ? 'bg-green-500/10 border-green-500/20' 
-                                      : 'bg-red-500/10 border-red-500/20'
-                                  }`}>
-                                    <p className="text-xs text-muted-foreground mb-1">Profit/Loss</p>
-                                    <p className={`font-bold text-base sm:text-lg ${
-                                      profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                      {profitLoss >= 0 ? '+' : ''}₹{parseFloat(profitLoss.toString()).toFixed(2)}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Additional Info */}
-                              <div className="pt-3 border-t space-y-2">
-                                {/* Match Info */}
-                                {match && (
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Trophy className="h-3 w-3" />
-                                    <span className="truncate">
-                                      {match.team1} vs {match.team2}
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                {/* Timestamps */}
-                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    <span>Placed: {new Date(bet.created_at).toLocaleString('en-IN', {
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-xs space-y-1">
+                                  <div>
+                                    {new Date(bet.created_at).toLocaleString('en-IN', {
                                       day: '2-digit',
                                       month: 'short',
-                                      year: 'numeric',
                                       hour: '2-digit',
                                       minute: '2-digit'
-                                    })}</span>
+                                    })}
                                   </div>
                                   {bet.settled_at && (
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      <span>Settled: {new Date(bet.settled_at).toLocaleString('en-IN', {
+                                    <div className="text-muted-foreground">
+                                      Settled: {new Date(bet.settled_at).toLocaleString('en-IN', {
                                         day: '2-digit',
                                         month: 'short',
-                                        year: 'numeric',
                                         hour: '2-digit',
                                         minute: '2-digit'
-                                      })}</span>
+                                      })}
                                     </div>
                                   )}
                                 </div>
-
-                                {/* Settlement Reason */}
-                                {bet.settlement_reason && (
-                                  <div className="text-xs text-muted-foreground italic">
-                                    Note: {bet.settlement_reason}
-                                  </div>
-                                )}
-
-                                {/* Bet ID (for reference) */}
-                                <div className="text-xs text-muted-foreground font-mono">
-                                  ID: {bet.id.slice(0, 8)}...
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
@@ -2443,10 +2376,6 @@ const SportsBet: React.FC = () => {
           </TabsContent>
         </Tabs>
 
-        {/* My Bets */}
-        <div className="mt-6">
-          <MyBetsCard />
-        </div>
 
         {/* Mobile Floating Bet Slip Drawer */}
         {isMobile && (
