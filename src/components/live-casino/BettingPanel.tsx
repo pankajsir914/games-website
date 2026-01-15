@@ -248,6 +248,23 @@ export const BettingPanel = ({
   const isSuperover = SUPEROVER_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isLucky7eu2 = LUCKY7EU2_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isRace20 = RACE20_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
+  
+  // Debug logging for Race20
+  if (tableId.includes("race") || searchText.includes("race")) {
+    console.log("🔵 Race20 Detection:", {
+      tableId,
+      tableName,
+      searchText,
+      isRace20,
+      RACE20_TABLE_IDS,
+      matches: RACE20_TABLE_IDS.map(id => ({
+        id,
+        tableIdMatch: tableId.includes(id),
+        searchTextMatch: searchText.includes(id)
+      }))
+    });
+  }
+  
   const isQueen = QUEEN_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isLottcard = LOTTCARD_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
   const isBtable = BTABLE_TABLE_IDS.some(id => tableId.includes(id) || searchText.includes(id));
@@ -262,6 +279,17 @@ export const BettingPanel = ({
   const betTypes = (isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen || isCard3j || isLucky5 || isDolidana)
     ? (odds?.data || odds || {})
     : (odds?.bets || []);
+  
+  // Debug logging when Race20 is detected (after betTypes is declared)
+  if (isRace20) {
+    console.log("🔵 Race20Betting will render with:", {
+      betTypesLength: betTypes?.sub?.length || 0,
+      resultHistoryLength: finalResultHistory.length,
+      hasCurrentResult: !!currentResult,
+      tableId: table.id
+    });
+  }
+  
   const hasLayOdds = !isKbc && Array.isArray(betTypes) && betTypes.some(
     (b: any) => b?.lay || b?.l1 || b?.l || b?.side === "lay"
   );
@@ -885,6 +913,9 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={table.id}
               />
             ) : isQueen ? (
               <QueenBetting
@@ -1434,6 +1465,8 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+                resultHistory={finalResultHistory}
+                tableId={tableId}
               />
             ) : isAaa2 ? (
               <Aaa2Betting
@@ -1684,7 +1717,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && !isAaa2 && !isAb3 && !isLucky5 && !isDolidana && !isMogambo && (
+        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && !isAaa && !isAaa2 && !isAb3 && !isLucky5 && !isDolidana && !isMogambo && (
           <>
             <div className="space-y-2">
               <Input
