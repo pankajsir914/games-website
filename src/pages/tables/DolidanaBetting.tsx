@@ -90,29 +90,50 @@ export const DolidanaBetting = ({
   const last10Results = useMemo(() => {
     let results: any[] = [];
     
+    // Priority 1: Check if resultHistory is already an array
     if (Array.isArray(resultHistory) && resultHistory.length > 0) {
       results = resultHistory;
-    } else if (resultHistory && typeof resultHistory === 'object') {
+    } 
+    // Priority 2: Check resultHistory.data.res (API structure: {data: {res: [...]}})
+    else if (resultHistory && typeof resultHistory === 'object') {
       results = (resultHistory as any)?.data?.res || 
+                (resultHistory as any)?.data?.data?.res ||
                 (resultHistory as any)?.res || 
                 (resultHistory as any)?.results ||
-                (resultHistory as any)?.data?.data?.res ||
                 [];
     }
     
+    // Priority 3: Check currentResult.results
     if (results.length === 0 && currentResult?.results && Array.isArray(currentResult.results) && currentResult.results.length > 0) {
       results = currentResult.results;
     }
     
+    // Priority 4: Check currentResult.data.res (API structure)
     if (results.length === 0 && currentResult?.data?.res && Array.isArray(currentResult.data.res)) {
       results = currentResult.data.res;
     }
     
+    // Priority 5: Check currentResult.data.data.res (nested API structure)
+    if (results.length === 0 && currentResult?.data?.data?.res && Array.isArray(currentResult.data.data.res)) {
+      results = currentResult.data.data.res;
+    }
+    
+    // Priority 6: Check if currentResult itself is an array
     if (results.length === 0 && Array.isArray(currentResult) && currentResult.length > 0) {
       results = currentResult;
     }
     
     const finalResults = Array.isArray(results) ? results.slice(0, 10) : [];
+    
+    // Debug log
+    if (finalResults.length > 0) {
+      console.log("📊 [Dolidana] Last 10 Results extracted:", {
+        count: finalResults.length,
+        sample: finalResults.slice(0, 3),
+        source: resultHistory ? "resultHistory" : currentResult ? "currentResult" : "none"
+      });
+    }
+    
     return finalResults;
   }, [resultHistory, currentResult]);
 
@@ -191,40 +212,69 @@ export const DolidanaBetting = ({
 
   // Fetch detail result
   const fetchDetailResult = async (mid: string | number) => {
-    if (!tableId || !mid) {
-      console.error("Missing tableId or mid:", { tableId, mid });
+    const finalTableId = tableId || odds?.tableId || odds?.rawData?.gtype || odds?.data?.gtype || "dolidana";
+    
+    // Keep current detailData (from selectedResult) - don't clear it
+    // This ensures we always have data to show even if API fails
+    
+    if (!finalTableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId: finalTableId, mid });
+      // Keep the existing detailData (from selectedResult)
+      setDetailLoading(false);
       return;
     }
     
     setDetailLoading(true);
-    setDetailData(null);
+    // Don't clear detailData here - keep the fallback data from selectedResult
     
     try {
       const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
         body: { 
           action: "get-detail-result", 
-          tableId,
+          tableId: finalTableId,
           mid: String(mid)
         }
       });
 
       if (error) {
         console.error("❌ Error fetching detail result:", error);
-        setDetailData({ error: error.message || "Failed to fetch detail result" });
+        // Keep existing detailData (from selectedResult) - don't overwrite with error
+        // Only set error if we don't have fallback data
+        setDetailData((prev: any) => {
+          if (prev?.fallback || prev?.data?.t1) {
+            return prev; // Keep existing data
+          }
+          return { error: error.message || "Failed to fetch detail result", data: { t1: selectedResult }, fallback: true };
+        });
       } else if (data) {
         if (data.success === false) {
           console.error("❌ API returned error:", data.error);
-          setDetailData({ error: data.error || "No data available" });
+          // Keep existing detailData (from selectedResult)
+          setDetailData((prev: any) => {
+            if (prev?.fallback || prev?.data?.t1) {
+              return prev; // Keep existing data
+            }
+            return { error: data.error || "No data available", data: { t1: selectedResult }, fallback: true };
+          });
         } else {
+          // Handle API response structure: {success: true, data: {...}}
           const resultData = data?.data || data;
+          // Merge with existing selectedResult data if available
           setDetailData(resultData);
         }
       } else {
-        setDetailData({ error: "No data received from API" });
+        // No API response - keep existing detailData (from selectedResult)
+        setDetailData((prev: any) => prev || { data: { t1: selectedResult }, fallback: true });
       }
     } catch (error) {
       console.error("❌ Exception fetching detail result:", error);
-      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+      // Keep existing detailData (from selectedResult)
+      setDetailData((prev: any) => {
+        if (prev?.fallback || prev?.data?.t1) {
+          return prev; // Keep existing data
+        }
+        return { error: error instanceof Error ? error.message : "Unknown error", data: { t1: selectedResult }, fallback: true };
+      });
     } finally {
       setDetailLoading(false);
     }
@@ -233,11 +283,19 @@ export const DolidanaBetting = ({
   // Handle result click
   const handleResultClick = (result: any) => {
     const mid = result.mid || result.round || result.round_id;
+    // Always set selectedResult first so it's available during API call
+    setSelectedResult(result);
+    setDetailDialogOpen(true);
+    // Set initial data from result so modal shows immediately
+    setDetailData({ data: { t1: result }, fallback: true });
+    setDetailLoading(true);
+    
+    // Then try to fetch detailed data
     if (mid) {
-      setSelectedResult(result);
-      setDetailDialogOpen(true);
-      setDetailData(null);
       fetchDetailResult(mid);
+    } else {
+      // No mid available, just use the result data we have
+      setDetailLoading(false);
     }
   };
 
@@ -318,16 +376,6 @@ export const DolidanaBetting = ({
       </div>
     );
   };
-
-  // Safety check: Ensure actualBetTypes is an array
-  if (!Array.isArray(actualBetTypes)) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-destructive font-medium mb-2">Error</p>
-        <p className="text-sm text-muted-foreground">Unable to load betting options. Please refresh the page.</p>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -590,9 +638,6 @@ export const DolidanaBetting = ({
       {/* ================= DETAIL RESULT MODAL ================= */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-0 bg-white [&>button[class*='right-4']]:hidden">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Doli dana Result</DialogTitle>
-          </DialogHeader>
           <div className="bg-blue-600 text-white px-4 sm:px-6 py-4 flex flex-row justify-between items-center sticky top-0 z-10">
             <h2 className="text-base sm:text-lg font-semibold text-white m-0">Doli dana Result</h2>
             <button
@@ -609,20 +654,31 @@ export const DolidanaBetting = ({
                 <Loader2 className="h-6 w-6 animate-spin" />
                 <span className="ml-2">Loading details...</span>
               </div>
-            ) : detailData ? (
+            ) : detailData || selectedResult ? (
               <div className="space-y-4">
-                {detailData.error ? (
+                {detailData?.error && !selectedResult ? (
                   <div className="text-center py-8">
                     <p className="text-destructive font-medium mb-2">Error</p>
-                    <p className="text-sm text-muted-foreground">{detailData.error || "Something went wrong"}</p>
+                    <p className="text-sm text-muted-foreground">{detailData.error}</p>
                   </div>
                 ) : (() => {
-                  try {
                   // Parse dice values from result data
-                  const t1Data = detailData?.data?.t1 || detailData?.t1 || detailData || {};
-                  const winValue = selectedResult?.win || t1Data?.win || "";
-                  const cardString = t1Data?.card || "";
-                  const rdesc = t1Data?.rdesc || "";
+                  // Try multiple possible data structures - prioritize selectedResult if available
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || (detailData?.fallback ? selectedResult : detailData) || selectedResult || {};
+                  const winValue = selectedResult?.win || t1Data?.win || detailData?.win || "";
+                  const cardString = t1Data?.card || selectedResult?.card || detailData?.card || "";
+                  const rdesc = t1Data?.rdesc || selectedResult?.rdesc || detailData?.rdesc || "";
+                  
+                  console.log("📊 [Dolidana] Detail Result Data:", {
+                    detailData,
+                    selectedResult,
+                    t1Data,
+                    winValue,
+                    cardString,
+                    rdesc,
+                    hasError: detailData?.error,
+                    hasSelectedResult: !!selectedResult
+                  });
                   
                   // Try to extract dice values from various possible formats
                   let dice1 = null;
@@ -764,17 +820,6 @@ export const DolidanaBetting = ({
                       </div>
                     </div>
                   );
-                  } catch (parseError) {
-                    console.error("❌ Error parsing detail data:", parseError);
-                    return (
-                      <div className="text-center py-8">
-                        <p className="text-destructive font-medium mb-2">Error</p>
-                        <p className="text-sm text-muted-foreground">
-                          {parseError instanceof Error ? parseError.message : "Failed to parse result data"}
-                        </p>
-                      </div>
-                    );
-                  }
                 })()}
               </div>
             ) : (
