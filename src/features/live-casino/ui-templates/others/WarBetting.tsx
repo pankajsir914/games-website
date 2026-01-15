@@ -1,6 +1,6 @@
 // src/features/live-casino/ui-templates/others/WarBetting.tsx
 
-import { Lock, Info, X } from "lucide-react";
+import { Lock, Info, X, Loader2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ================= TYPES ================= */
 
@@ -18,7 +19,14 @@ interface WarBettingProps {
   onPlaceBet: (payload: any) => Promise<void>;
   loading?: boolean;
   odds?: any;
-  resultHistory?: any[];
+  resultHistory?: Array<{
+    mid?: string | number;
+    win?: string | number;
+    winnerId?: string;
+    round?: string | number;
+    round_id?: string | number;
+  }>;
+  tableId?: string;
 }
 
 /* ================= HELPERS ================= */
@@ -56,6 +64,7 @@ export const WarBetting = ({
   loading = false,
   odds,
   resultHistory = [],
+  tableId,
 }: WarBettingProps) => {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [betModalOpen, setBetModalOpen] = useState(false);
@@ -63,7 +72,15 @@ export const WarBetting = ({
   const [selectedSide, setSelectedSide] = useState<"back" | "lay">("back");
   const [amount, setAmount] = useState("100");
 
+  // Detail result modal state
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
+
   const quickAmounts = [100, 500, 1000, 5000];
+  
+  const last10 = resultHistory.slice(0, 10);
 
   // Extract bets from API structure (odds.data.sub)
   const actualBetTypes = useMemo(() => {
@@ -179,15 +196,57 @@ export const WarBetting = ({
     { key: "Diamond", label: "♦" },
   ];
 
-  // Process results for display
-  const last10Results = useMemo(() => {
-    if (!Array.isArray(resultHistory)) return [];
-    return resultHistory.slice(0, 10).map((r: any) => ({
-      mid: r.mid,
-      win: r.win || "",
-      display: r.win ? r.win.split(",").join(", ") : "",
-    }));
-  }, [resultHistory]);
+  // Fetch detail result
+  const fetchDetailResult = async (mid: string | number) => {
+    if (!tableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId, mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Handle result click
+  const handleResultClick = (result: any) => {
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setDetailDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    }
+  };
 
   return (
     <>
@@ -247,22 +306,25 @@ export const WarBetting = ({
         </div>
       </div>
 
-      {/* ================= RESULTS ================= */}
-      {last10Results.length > 0 && (
-        <div className="mb-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
-          <div className="text-sm font-bold mb-3 text-gray-700 dark:text-gray-300">
-            Recent Results
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {last10Results.map((result: any, idx: number) => (
-              <div
-                key={idx}
-                className="text-xs flex flex-col items-center justify-center p-2 rounded border-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-400"
-              >
-                <span className="font-semibold">R{idx + 1}</span>
-                <span className="text-xs mt-1">{result.display || "-"}</span>
-              </div>
-            ))}
+      {/* ================= LAST 10 RESULTS ================= */}
+      {last10.length > 0 && (
+        <div className="pt-2 border-t border-border/50 mb-4">
+          <p className="text-xs mb-2 text-muted-foreground">Last 10 Results</p>
+          <div className="flex gap-1 flex-wrap">
+            {last10.map((r, i) => {
+              // Always display "R" for all results
+              return (
+                <Button
+                  key={r.mid || r.round || r.round_id || i}
+                  size="sm"
+                  variant="outline"
+                  className="w-9 h-9 p-0 font-bold bg-red-500 text-white border-red-600"
+                  onClick={() => handleResultClick(r)}
+                >
+                  R
+                </Button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -348,6 +410,249 @@ export const WarBetting = ({
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= DETAIL RESULT DIALOG ================= */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 [&>button]:hidden bg-white rounded-lg border-0 shadow-xl">
+          {/* Blue Header */}
+          <div className="bg-blue-600 text-white px-4 py-3 flex items-center justify-between relative rounded-t-lg">
+            <DialogTitle className="text-white text-lg font-semibold">
+              Casino War Result
+            </DialogTitle>
+            <button
+              onClick={() => setDetailDialogOpen(false)}
+              className="text-white hover:bg-blue-700 rounded-full p-1.5 transition-colors absolute right-4 top-1/2 -translate-y-1/2 z-10"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {/* Content Area with Custom Scrollbar */}
+          <div className="p-4 bg-white overflow-y-auto max-h-[calc(90vh-64px)] custom-scrollbar">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="ml-2">Loading result details...</span>
+              </div>
+            ) : detailData?.error ? (
+              <div className="text-center py-8 text-destructive">
+                <p>Error: {detailData.error}</p>
+              </div>
+            ) : detailData ? (
+              <div className="space-y-4">
+                {(() => {
+                  // Extract t1 data from the response (nested structure)
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || detailData;
+                  
+                  if (!t1Data || (!t1Data.card && !t1Data.winnat && !t1Data.win)) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No detailed result data available</p>
+                        <pre className="mt-4 text-xs text-left bg-gray-100 p-2 rounded overflow-auto max-h-64">
+                          {JSON.stringify(detailData, null, 2)}
+                        </pre>
+                      </div>
+                    );
+                  }
+
+                  // Parse card function
+                  const parseCard = (cardString: string) => {
+                    if (!cardString) return null;
+                    
+                    // Card format: "KSS", "8SS", "QHH", "10DD", "ACC" etc.
+                    let rank = '';
+                    let suit = '';
+                    
+                    if (cardString.length >= 3) {
+                      if (cardString.length >= 4 && cardString.startsWith('10')) {
+                        rank = '10';
+                        suit = cardString.charAt(cardString.length - 1);
+                      } else {
+                        rank = cardString.substring(0, cardString.length - 2);
+                        suit = cardString.charAt(cardString.length - 1);
+                      }
+                    }
+                    
+                    const suitMap: { [key: string]: string } = {
+                      'S': '♠',
+                      'H': '♥',
+                      'C': '♣',
+                      'D': '♦',
+                    };
+                    
+                    const rankMap: { [key: string]: string } = {
+                      '1': 'A',
+                      'A': 'A',
+                      'K': 'K',
+                      'Q': 'Q',
+                      'J': 'J',
+                    };
+                    
+                    const displayRank = rankMap[rank] || rank;
+                    const displaySuit = suitMap[suit] || suit;
+                    
+                    return {
+                      raw: cardString,
+                      rank: displayRank,
+                      suit: displaySuit,
+                      display: `${displayRank}${displaySuit}`,
+                      isRed: suit === 'H' || suit === 'D',
+                    };
+                  };
+
+                  // Parse cards - format: "QCC,2HH,9CC,JHH,KHH,2DD,JSS" 
+                  // First card is Dealer, next 6 are Players (1-6)
+                  const cardString = t1Data.card || '';
+                  const allCards = cardString.split(',').map(c => parseCard(c.trim())).filter(Boolean);
+                  
+                  // First card is Dealer
+                  const dealerCard = allCards.length > 0 ? allCards[0] : null;
+                  
+                  // Next 6 cards are Players (1-6)
+                  const playerCards = allCards.slice(1, 7); // Take cards 2-7 for players 1-6
+
+                  // Parse winning rounds
+                  const winner = t1Data.winnat || t1Data.win || "";
+                  const winningRounds = winner ? winner.split(',').map((r: string) => r.trim()).filter(Boolean) : [];
+
+                  const rdesc = t1Data.rdesc || "";
+                  // Parse rdesc: sections separated by #, rounds separated by | or ~
+                  const rdescSections = rdesc ? rdesc.split('#').filter(Boolean) : [];
+                  
+                  // Parse each section to extract round information
+                  const parseRdescSection = (section: string) => {
+                    // Split by | or ~
+                    const rounds = section.split(/[|~]/).map(r => r.trim()).filter(Boolean);
+                    return rounds.map(round => {
+                      // Format: "1 : Black" or "1  5" (winning rounds)
+                      const parts = round.split(':').map(p => p.trim());
+                      if (parts.length >= 2) {
+                        return { round: parts[0], value: parts[1] };
+                      }
+                      return { round: round, value: '' };
+                    });
+                  };
+                  
+                  const parsedSections = rdescSections.map(parseRdescSection);
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Round ID and Match Time */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b border-gray-200 pb-3 pt-2">
+                        <div>
+                          <span className="font-semibold text-gray-700">Round Id: </span>
+                          <span className="text-gray-900 font-mono">
+                            {t1Data.rid || t1Data.mid || detailData.mid || selectedResult?.mid || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-gray-700">Match Time: </span>
+                          <span className="text-gray-900">
+                            {t1Data.mtime || t1Data.match_time || detailData.mtime || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Dealer Card Display */}
+                      {dealerCard && (
+                        <div className="flex justify-center items-center py-4">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="text-base sm:text-lg font-bold text-gray-800">Dealer</div>
+                            <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded-lg bg-white flex flex-col items-center justify-center shadow-lg">
+                              <span className={`text-xl sm:text-2xl font-bold ${dealerCard.isRed ? "text-red-600" : "text-black"}`}>
+                                {dealerCard.rank}
+                              </span>
+                              <span className={`text-3xl sm:text-4xl ${dealerCard.isRed ? "text-red-600" : "text-black"}`}>
+                                {dealerCard.suit}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Player Positions (1-6) Display */}
+                      {playerCards.length > 0 && (
+                        <div className="py-4">
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+                            {playerCards.map((card, playerIdx) => {
+                              const playerNum = playerIdx + 1;
+                              const isWinner = winningRounds.includes(String(playerNum));
+                              
+                              return (
+                                <div key={playerIdx} className="flex flex-col items-center gap-2">
+                                  <div className="text-sm font-semibold text-gray-700">{playerNum}</div>
+                                  <div className="relative">
+                                    <div className="w-20 h-28 sm:w-24 sm:h-32 border-2 border-yellow-400 rounded-lg bg-white flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
+                                      <span className={`text-xl sm:text-2xl font-bold ${card.isRed ? "text-red-600" : "text-black"}`}>
+                                        {card.rank}
+                                      </span>
+                                      <span className={`text-3xl sm:text-4xl ${card.isRed ? "text-red-600" : "text-black"}`}>
+                                        {card.suit}
+                                      </span>
+                                    </div>
+                                    {isWinner && (
+                                      <div className="absolute -right-2 -top-2 rounded-full p-1.5 shadow-lg bg-green-500">
+                                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Detailed Results Box */}
+                      <div className="bg-white border border-gray-300 rounded-lg p-4 sm:p-5 shadow-sm mt-4">
+                        <div className="space-y-3">
+                          {/* Winner */}
+                          <div>
+                            <span className="font-bold text-gray-900 text-sm sm:text-base">Winner: </span>
+                            <span className="text-gray-900 text-sm sm:text-base">
+                              {winningRounds.length > 0 ? winningRounds.join(' ') : "N/A"}
+                            </span>
+                          </div>
+                          
+                          {/* Display round details from rdesc */}
+                          {parsedSections.length > 0 && (
+                            <div className="space-y-2">
+                              {parsedSections.map((section, sectionIdx) => {
+                                if (section.length === 0) return null;
+                                
+                                // Determine category name from section
+                                const categoryNames = ['Color', 'Odd/Even', 'Suit'];
+                                const categoryName = categoryNames[sectionIdx] || `Category ${sectionIdx + 1}`;
+                                
+                                // Format section items as "1 : Black | 2 : Red | 3 : Black" etc.
+                                const formattedItems = section.map(item => `${item.round} : ${item.value || '-'}`).join(' | ');
+                                
+                                return (
+                                  <div key={sectionIdx}>
+                                    <span className="font-bold text-gray-900 text-sm sm:text-base">{categoryName}:</span>
+                                    <div className="text-gray-700 text-xs sm:text-sm mt-1">
+                                      {formattedItems}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No data available</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
