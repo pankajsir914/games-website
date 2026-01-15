@@ -184,16 +184,45 @@ export const BettingPanel = ({
       resultHistoryLength: resultHistory?.length,
       hasCurrentResult: !!currentResult,
       currentResultResults: currentResult?.results?.length,
+      currentResultDataRes: currentResult?.data?.res?.length,
     });
     
+    // Priority 1: Check if resultHistory is already an array
     if (Array.isArray(resultHistory) && resultHistory.length > 0) {
       console.log("🟡 BettingPanel - Using resultHistory array, length:", resultHistory.length);
       return resultHistory;
     }
+    
+    // Priority 2: Check resultHistory.data.res (API structure: {data: {res: [...]}})
+    if (resultHistory && typeof resultHistory === 'object') {
+      const resFromHistory = (resultHistory as any)?.data?.res || 
+                            (resultHistory as any)?.data?.data?.res ||
+                            (resultHistory as any)?.res || 
+                            (resultHistory as any)?.results || [];
+      if (Array.isArray(resFromHistory) && resFromHistory.length > 0) {
+        console.log("🟡 BettingPanel - Using resultHistory.data.res, length:", resFromHistory.length);
+        return resFromHistory;
+      }
+    }
+    
+    // Priority 3: Check currentResult.results
     if (currentResult?.results && Array.isArray(currentResult.results) && currentResult.results.length > 0) {
       console.log("🟡 BettingPanel - Using currentResult.results, length:", currentResult.results.length);
       return currentResult.results;
     }
+    
+    // Priority 4: Check currentResult.data.res (API structure)
+    if (currentResult?.data?.res && Array.isArray(currentResult.data.res) && currentResult.data.res.length > 0) {
+      console.log("🟡 BettingPanel - Using currentResult.data.res, length:", currentResult.data.res.length);
+      return currentResult.data.res;
+    }
+    
+    // Priority 5: Check currentResult.data.data.res (nested API structure)
+    if (currentResult?.data?.data?.res && Array.isArray(currentResult.data.data.res) && currentResult.data.data.res.length > 0) {
+      console.log("🟡 BettingPanel - Using currentResult.data.data.res, length:", currentResult.data.data.res.length);
+      return currentResult.data.data.res;
+    }
+    
     console.log("🟡 BettingPanel - No results found, returning empty array");
     return [];
   }, [resultHistory, currentResult]);
@@ -1288,6 +1317,9 @@ export const BettingPanel = ({
                 table={table}
                 formatOdds={formatOdds}
                 odds={odds}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={tableId}
               />
             ) : isDt6 ? (
               <Dt6Betting
