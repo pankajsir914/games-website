@@ -708,6 +708,9 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={table.id}
               />
             ) : isTrio ? (
               <TrioBetting
