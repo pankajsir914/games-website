@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,19 +9,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Trophy, Target, Calendar, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAutoSettlement } from '@/hooks/useAutoSettlement';
 import { cn } from '@/lib/utils';
 
 const BettingHistory: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { settleAllMarkets } = useAutoSettlement();
   const [activeTab, setActiveTab] = useState('sports');
+  const settlementAttemptedRef = useRef<Set<string>>(new Set()); // Track settled matches
   
   // Date range state
   const [startDate, setStartDate] = useState<string>('');
@@ -66,7 +70,11 @@ const BettingHistory: React.FC = () => {
             odds_back,
             odds_lay,
             rate_yes,
-            rate_no
+            rate_no,
+            sportsid,
+            gmid,
+            status,
+            meta
           )
         `)
         .eq('user_id', user.id);
@@ -108,21 +116,32 @@ const BettingHistory: React.FC = () => {
       }
       
       // Combine and format bets
-      const formattedMarketBets = (marketBets || []).map((bet: any) => ({
-        ...bet,
-        source: 'market_bets',
-        market_name: bet.sports_markets?.market_name,
-        selection: bet.sports_markets?.selection || bet.selection,
-        market_type: bet.sports_markets?.market_type || bet.market_type,
-        sport: bet.sports_markets?.sport,
-        odds: bet.odds || bet.rate_at_bet,
-        rate: bet.rate_at_bet || bet.odds,
-        stake: bet.stake,
-        potential_win: bet.potential_profit,
-        profit_loss: bet.profit_loss,
-        bet_side: bet.bet_side,
-        status: bet.status?.toUpperCase() || 'PLACED'
-      }));
+      const formattedMarketBets = (marketBets || []).map((bet: any) => {
+        // Preserve the original sports_markets object with all fields
+        const marketData = bet.sports_markets || {};
+        return {
+          ...bet,
+          source: 'market_bets',
+          market_name: marketData.market_name,
+          selection: marketData.selection || bet.selection,
+          market_type: marketData.market_type || bet.market_type,
+          sport: marketData.sport,
+          odds: bet.odds || bet.rate_at_bet,
+          rate: bet.rate_at_bet || bet.odds,
+          stake: bet.stake,
+          potential_win: bet.potential_profit,
+          profit_loss: bet.profit_loss,
+          bet_side: bet.bet_side,
+          status: bet.status?.toUpperCase() || 'PLACED',
+          // Preserve sports_markets with all fields for settlement
+          sports_markets: {
+            ...marketData,
+            sportsid: marketData.sportsid,
+            gmid: marketData.gmid,
+            status: marketData.status
+          }
+        };
+      });
       
       const formattedOldBets = (oldBets || []).map((bet: any) => ({
         ...bet,
@@ -137,7 +156,266 @@ const BettingHistory: React.FC = () => {
       );
     },
     enabled: !!user?.id,
+    refetchInterval: 30000, // Refetch every 30 seconds to check for new bets
   });
+
+  // Auto-settle markets for placed bets when BettingHistory page loads
+  useEffect(() => {
+    if (!sportsBets || sportsBets.length === 0 || !user) return;
+
+    console.log('[BettingHistory Auto-Settle] Checking for placed bets to settle...');
+    console.log('[BettingHistory Auto-Settle] Total bets:', sportsBets.length);
+    console.log('[BettingHistory Auto-Settle] Sample bet structure:', sportsBets[0]);
+
+    // Debug: Log all bets with their status
+    const allMarketBets = sportsBets.filter((bet: any) => bet.source === 'market_bets');
+    console.log('[BettingHistory Auto-Settle] Market bets:', allMarketBets.length);
+    allMarketBets.forEach((bet: any, index: number) => {
+      if (index < 5) { // Log first 5 bets
+        console.log(`[BettingHistory Auto-Settle] Bet ${index}:`, {
+          id: bet.id,
+          status: bet.status,
+          statusType: typeof bet.status,
+          hasSportsMarkets: !!bet.sports_markets,
+          sportsid: bet.sports_markets?.sportsid,
+          gmid: bet.sports_markets?.gmid,
+          event_id: bet.sports_markets?.event_id,
+          sport: bet.sports_markets?.sport,
+          meta: bet.sports_markets?.meta,
+          marketId: bet.market_id,
+          // Show full market structure for debugging
+          marketStructure: bet.sports_markets
+        });
+      }
+    });
+
+    // Helper function to get sportsid from sport name
+    const getSportsidFromSport = (sport: string): string | null => {
+      const sportLower = (sport || '').toLowerCase();
+      const mapping: Record<string, string> = {
+        'cricket': '4',
+        'football': '1',
+        'soccer': '1',
+        'tennis': '2',
+        'basketball': '3',
+        'hockey': '5',
+        'ice-hockey': '19',
+        'kabaddi': '66',
+        'esoccer': '68',
+        'horse-racing': '10',
+        'greyhound-racing': '65',
+        'wrestling': '69',
+        'volleyball': '18',
+        'badminton': '22',
+        'snooker': '59',
+        'darts': '57',
+        'boxing': '6',
+        'mma': '3',
+        'american-football': '58',
+        'e-games': '11',
+        'futsal': '9',
+        'motor-sports': '52',
+        'politics': '40',
+        'golf': '5',
+        'rugby-league': '55',
+        'beach-volleyball': '7',
+        'handball': '39',
+        'motogp': '16',
+        'chess': '17',
+        'formula1': '23',
+        'cycling': '29',
+        'motorbikes': '32'
+      };
+      return mapping[sportLower] || null;
+    };
+
+    // Filter placed bets from new market bets
+    // Check status in multiple ways (case-insensitive)
+    const placedMarketBets = sportsBets.filter((bet: any) => {
+      const isMarketBet = bet.source === 'market_bets';
+      const statusLower = String(bet.status || '').toLowerCase();
+      const isPlaced = statusLower === 'placed';
+      
+      if (!isMarketBet || !isPlaced) return false;
+      
+      // Try multiple sources for sportsid and gmid
+      let sportsid = bet.sports_markets?.sportsid || 
+                    bet.sports_markets?.meta?.sportsid ||
+                    bet.sports_markets?.meta?.sid;
+      
+      let gmid = bet.sports_markets?.gmid || 
+                bet.sports_markets?.meta?.gmid ||
+                bet.sports_markets?.meta?.matchId ||
+                bet.sports_markets?.event_id; // Fallback to event_id
+      
+      // If sportsid is missing, try to derive from sport name
+      if (!sportsid && bet.sports_markets?.sport) {
+        sportsid = getSportsidFromSport(bet.sports_markets.sport);
+      }
+      
+      const hasRequiredData = !!(sportsid && gmid);
+      
+      if (!hasRequiredData) {
+        console.warn('[BettingHistory Auto-Settle] Placed bet missing sportsid/gmid:', {
+          betId: bet.id,
+          sportsid,
+          gmid,
+          sport: bet.sports_markets?.sport,
+          event_id: bet.sports_markets?.event_id,
+          meta: bet.sports_markets?.meta,
+          sports_markets: bet.sports_markets
+        });
+      }
+      
+      return hasRequiredData;
+    });
+
+    console.log('[BettingHistory Auto-Settle] Filtered placed bets:', placedMarketBets.length);
+    
+    if (placedMarketBets.length === 0) {
+      console.log('[BettingHistory Auto-Settle] No placed bets found with required data');
+      // Log why bets were filtered out
+      const placedButMissingData = sportsBets.filter((bet: any) => {
+        const statusLower = String(bet.status || '').toLowerCase();
+        return bet.source === 'market_bets' && statusLower === 'placed';
+      });
+      if (placedButMissingData.length > 0) {
+        console.log('[BettingHistory Auto-Settle] Found', placedButMissingData.length, 'placed bets but missing sportsid/gmid');
+        console.log('[BettingHistory Auto-Settle] Sample bet with missing data:', placedButMissingData[0]);
+      }
+      return;
+    }
+
+    console.log('[BettingHistory Auto-Settle] Found', placedMarketBets.length, 'placed bet(s)');
+
+    // Group bets by match (sportsid + gmid)
+    const betsByMatch = new Map<string, any[]>();
+    
+    console.log('[BettingHistory Auto-Settle] Grouping', placedMarketBets.length, 'placed bets...');
+    
+    placedMarketBets.forEach((bet: any, index: number) => {
+      // Use the same fallback logic as filtering
+      let sportsid = bet.sports_markets?.sportsid || 
+                    bet.sports_markets?.meta?.sportsid ||
+                    bet.sports_markets?.meta?.sid;
+      
+      let gmid = bet.sports_markets?.gmid || 
+                bet.sports_markets?.meta?.gmid ||
+                bet.sports_markets?.meta?.matchId ||
+                bet.sports_markets?.event_id; // Fallback to event_id
+      
+      // If sportsid is missing, try to derive from sport name
+      if (!sportsid && bet.sports_markets?.sport) {
+        sportsid = getSportsidFromSport(bet.sports_markets.sport);
+      }
+      
+      if (index < 3) {
+        console.log(`[BettingHistory Auto-Settle] Grouping bet ${index}:`, {
+          betId: bet.id,
+          sportsid,
+          gmid,
+          sport: bet.sports_markets?.sport,
+          event_id: bet.sports_markets?.event_id,
+          meta: bet.sports_markets?.meta
+        });
+      }
+      
+      if (sportsid && gmid) {
+        const matchKey = `${sportsid}_${gmid}`;
+        if (!betsByMatch.has(matchKey)) {
+          betsByMatch.set(matchKey, []);
+        }
+        betsByMatch.get(matchKey)!.push(bet);
+        if (index < 3) {
+          console.log(`[BettingHistory Auto-Settle] Added bet ${index} to match group:`, matchKey);
+        }
+      } else {
+        console.warn('[BettingHistory Auto-Settle] Bet passed filter but missing sportsid/gmid in grouping:', {
+          betId: bet.id,
+          sportsid,
+          gmid,
+          sport: bet.sports_markets?.sport,
+          event_id: bet.sports_markets?.event_id,
+          meta: bet.sports_markets?.meta,
+          market: bet.sports_markets
+        });
+      }
+    });
+
+    console.log('[BettingHistory Auto-Settle] Found', betsByMatch.size, 'unique match(es) with placed bets');
+
+    // Settle each match
+    betsByMatch.forEach((bets, matchKey) => {
+      // Skip if already attempted
+      if (settlementAttemptedRef.current.has(matchKey)) {
+        console.log('[BettingHistory Auto-Settle] Skipping match (already attempted):', matchKey);
+        return;
+      }
+
+      const firstBet = bets[0];
+      
+      // Try multiple sources for sportsid and gmid
+      let sportsid = firstBet.sports_markets?.sportsid || 
+                    firstBet.sports_markets?.meta?.sportsid ||
+                    firstBet.sports_markets?.meta?.sid;
+      
+      let gmid = firstBet.sports_markets?.gmid || 
+                firstBet.sports_markets?.meta?.gmid ||
+                firstBet.sports_markets?.meta?.matchId ||
+                firstBet.sports_markets?.event_id; // Fallback to event_id
+      
+      // If sportsid is missing, try to derive from sport name
+      if (!sportsid && firstBet.sports_markets?.sport) {
+        const sportLower = (firstBet.sports_markets.sport || '').toLowerCase();
+        const mapping: Record<string, string> = {
+          'cricket': '4', 'football': '1', 'soccer': '1', 'tennis': '2',
+          'basketball': '3', 'hockey': '5', 'ice-hockey': '19', 'kabaddi': '66'
+        };
+        sportsid = mapping[sportLower] || null;
+      }
+
+      if (!sportsid || !gmid) {
+        console.warn('[BettingHistory Auto-Settle] Missing sportsid or gmid for bet:', {
+          betId: firstBet.id,
+          sportsid,
+          gmid,
+          sport: firstBet.sports_markets?.sport,
+          event_id: firstBet.sports_markets?.event_id,
+          market: firstBet.sports_markets
+        });
+        return;
+      }
+
+      // Mark as attempted
+      settlementAttemptedRef.current.add(matchKey);
+
+      console.log('[BettingHistory Auto-Settle] Triggering settlement for match:', {
+        matchKey,
+        sportsid,
+        gmid,
+        betCount: bets.length
+      });
+
+      // Trigger settlement
+      settleAllMarkets(sportsid, gmid.toString())
+        .then((result) => {
+          if (result?.success) {
+            console.log('[BettingHistory Auto-Settle] ✅ Settlement completed for match:', matchKey, result);
+            // Refetch bets after a delay to show updated status
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['user-sports-bets', user?.id] });
+            }, 2000);
+          } else {
+            console.warn('[BettingHistory Auto-Settle] ⚠️ Settlement failed for match:', matchKey, result);
+            settlementAttemptedRef.current.delete(matchKey);
+          }
+        })
+        .catch((error) => {
+          console.error('[BettingHistory Auto-Settle] ❌ Settlement error for match:', matchKey, error);
+          settlementAttemptedRef.current.delete(matchKey);
+        });
+    });
+  }, [sportsBets, user, settleAllMarkets]);
 
   // Fetch casino bets
   const { data: casinoBets, isLoading: casinoBetsLoading } = useQuery({
