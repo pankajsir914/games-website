@@ -753,6 +753,9 @@ export const BettingPanel = ({
                   });
                 }}
                 loading={loading}
+                resultHistory={finalResultHistory}
+                currentResult={currentResult}
+                tableId={table.id}
               />
             ) : isPatti2 ? (
               <Patti2Betting
