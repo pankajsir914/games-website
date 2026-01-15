@@ -1106,11 +1106,8 @@ const SportsBet: React.FC = () => {
   }, [user?.id, matchId, fetchMyBets]);
 
   // Fetch bets when component mounts or matchId changes
-  useEffect(() => {
-    if (user && matchId) {
-      fetchMyBets();
-    }
-  }, [user, matchId, fetchMyBets]);
+  // Note: Initial fetch is handled by the WebSocket subscription effect above
+  // This separate effect is removed to prevent duplicate calls
 
   const handleSelectBet = (selection: any, type: 'back' | 'lay' | 'yes' | 'no', rate: number, marketType: string, mname?: string) => {
     setSelectedBet({
