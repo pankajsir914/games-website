@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2, Grid2x2, List } from 'lucide-react';
+import { RefreshCw, Trophy, Clock, AlertCircle, TrendingUp, Zap, Globe, Gamepad2, Grid2x2, List, Receipt } from 'lucide-react';
 import { useSimpleSportsData } from '@/hooks/useSimpleSportsData';
 import { cn } from '@/lib/utils';
 import { EnhancedSportsMatchCard, EnhancedSportsMatchCardSkeleton } from '@/components/sports/EnhancedSportsMatchCard';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export const SimpleSportsDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const {
     sports,
     selectedSport,
@@ -123,6 +125,15 @@ export const SimpleSportsDashboard: React.FC = () => {
               <List className="h-3 w-3 sm:h-4 sm:w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
+          <Button
+            onClick={() => navigate('/betting-history')}
+            variant="default"
+            size="sm"
+            className="h-7 px-2 sm:h-8 sm:px-3 bg-primary hover:bg-primary/90 flex items-center gap-1 text-xs sm:text-sm"
+          >
+            <Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            <span className="hidden xs:inline sm:inline">Bet History</span>
+          </Button>
           <Button
             onClick={refresh}
             disabled={loading}
