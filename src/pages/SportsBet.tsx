@@ -23,6 +23,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
+import { useAutoSettlement } from '@/hooks/useAutoSettlement';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
@@ -36,6 +37,7 @@ const SportsBet: React.FC = () => {
   const { wallet } = useWallet();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { settleAllMarkets } = useAutoSettlement();
   const [isBetSlipOpen, setIsBetSlipOpen] = useState(false);
   const [isBetSlipDialogOpen, setIsBetSlipDialogOpen] = useState(false);
   
@@ -76,6 +78,7 @@ const SportsBet: React.FC = () => {
   const [myBetsError, setMyBetsError] = useState<string | null>(null);
   const oddsWebSocketRef = useRef<WebSocket | null>(null);
   const oddsFetchedRef = useRef<string | null>(null); // Track which matchId has been fetched
+  const settlementAttemptedRef = useRef<string | null>(null); // Track which matchId has been attempted for settlement
   
   useEffect(() => {
     if (!user) {
@@ -938,10 +941,12 @@ const SportsBet: React.FC = () => {
 
       // Fetch from sports_market_bets table (new betting system)
       // First get all markets for this event_id, then get bets for those markets
+      // Include ALL markets (open, closed, settled) so bets remain visible even after match is over
       const { data: markets, error: marketsError } = await (supabase as any)
         .from('sports_markets')
-        .select('id, event_id')
+        .select('id, event_id, status')
         .in('event_id', possibleEventIds);
+        // No status filter - include all markets (open, closed, settled) so bets remain visible
 
       if (marketsError) {
         console.error('[fetchMyBets] Error fetching markets:', marketsError);
@@ -952,6 +957,9 @@ const SportsBet: React.FC = () => {
 
       let marketBets: any[] = [];
       if (marketIds.length > 0) {
+        // Fetch ALL bets for these markets (including settled bets)
+        // No status filter - show all bets regardless of market or bet status
+        // This ensures bets remain visible even after match is over
         const { data: bets, error: marketBetsError } = await (supabase as any)
           .from('sports_market_bets')
           .select(`
@@ -962,7 +970,8 @@ const SportsBet: React.FC = () => {
               market_type,
               selection,
               event_id,
-              sport
+              sport,
+              status
             )
           `)
           .eq('user_id', user.id)
@@ -1452,6 +1461,136 @@ const SportsBet: React.FC = () => {
     }
   }, [user?.id, matchId]); // Use user.id instead of fetchMyBets to prevent recreation loop
 
+  // Auto-settle markets when match is completed
+  useEffect(() => {
+    if (!match || !matchId || !user) return;
+
+    // Skip if already attempted for this match
+    if (settlementAttemptedRef.current === matchId) return;
+
+    // Check if match is completed/finished
+    const matchStatus = match.status?.toLowerCase() || '';
+    const detailsStatus = matchDetails?.status?.toLowerCase() || '';
+    const isCompleted = matchStatus.includes('completed') || 
+                       matchStatus.includes('finished') || 
+                       matchStatus.includes('won') ||
+                       detailsStatus.includes('completed') ||
+                       detailsStatus.includes('finished');
+
+    // Check if match is not live anymore (iplay = false and status not live)
+    const isNotLive = !match.isLive && matchStatus !== 'live' && !matchStatus.includes('upcoming');
+
+    if (isCompleted || isNotLive) {
+      // Extract sportsid and gmid for settlement
+      const sportsid = match?.raw?.sid || match?.raw?.sportsid || match?.sid || 
+                      (sport === 'cricket' ? '4' : 
+                       sport === 'football' ? '1' : 
+                       sport === 'tennis' ? '2' :
+                       sport === 'basketball' ? '3' :
+                       sport === 'hockey' ? '5' : null);
+      const gmid = match?.gmid || match?.id || match?.eventId || matchId;
+
+      if (sportsid && gmid) {
+        // Mark as attempted to prevent duplicate calls
+        settlementAttemptedRef.current = matchId;
+
+        console.log('[Auto-Settle] Match completed, triggering auto-settlement...', {
+          sportsid,
+          gmid,
+          matchStatus,
+          detailsStatus,
+          isCompleted,
+          isNotLive
+        });
+
+        // Check if there are any markets with placed bets before attempting settlement
+        // Check for both open AND closed markets (match might be over but markets not settled yet)
+        // First check markets, then check if they have placed bets
+        (supabase as any)
+          .from('sports_markets')
+          .select('id, market_name, status')
+          .eq('sportsid', sportsid)
+          .eq('gmid', gmid.toString())
+          .in('status', ['open', 'closed', 'suspended'])
+          .limit(10)
+          .then(async ({ data: markets, error: marketsError }: any) => {
+            if (marketsError) {
+              console.error('[Auto-Settle] Error checking markets:', marketsError);
+              settlementAttemptedRef.current = null; // Reset on error
+              return;
+            }
+
+            if (!markets || markets.length === 0) {
+              console.log('[Auto-Settle] No markets found, skipping settlement');
+              settlementAttemptedRef.current = matchId; // Mark as attempted even if no markets
+              return;
+            }
+
+            // Check if any of these markets have placed bets
+            const marketIds = markets.map((m: any) => m.id);
+            const { data: betsWithPlacedStatus, error: betsError } = await (supabase as any)
+              .from('sports_market_bets')
+              .select('market_id, status')
+              .in('market_id', marketIds)
+              .eq('status', 'placed')
+              .limit(1);
+
+            if (betsError) {
+              console.error('[Auto-Settle] Error checking bets:', betsError);
+              settlementAttemptedRef.current = null;
+              return;
+            }
+
+            if (!betsWithPlacedStatus || betsWithPlacedStatus.length === 0) {
+              console.log('[Auto-Settle] No placed bets found in markets, skipping settlement');
+              settlementAttemptedRef.current = matchId;
+              return;
+            }
+
+            console.log('[Auto-Settle] Found markets with placed bets, triggering settlement...');
+            console.log('[Auto-Settle] Calling settleAllMarkets with:', { sportsid, gmid: gmid.toString() });
+
+            // Trigger auto-settlement for all open markets
+            settleAllMarkets(sportsid, gmid.toString()).then((result) => {
+              console.log('[Auto-Settle] settleAllMarkets returned:', result);
+              if (result?.success) {
+                console.log('[Auto-Settle] ✅ Settlement completed successfully:', result);
+                console.log('[Auto-Settle] Settled markets:', result.settled_markets);
+                console.log('[Auto-Settle] Failed markets:', result.failed_markets);
+                // Refresh bets after settlement
+                setTimeout(() => {
+                  console.log('[Auto-Settle] Refreshing bets...');
+                  fetchMyBets();
+                }, 2000);
+              } else {
+                console.warn('[Auto-Settle] ⚠️ Settlement returned but success=false:', result);
+                settlementAttemptedRef.current = null; // Reset on failure
+              }
+            }).catch((error) => {
+              console.error('[Auto-Settle] ❌ Settlement error:', error);
+              console.error('[Auto-Settle] Error stack:', error.stack);
+              settlementAttemptedRef.current = null; // Reset on error
+            });
+          });
+      }
+    }
+  }, [match?.status, match?.isLive, matchDetails?.status, matchId, user, settleAllMarkets, fetchMyBets, sport]);
+
+  // Debug: Log when useEffect dependencies change
+  useEffect(() => {
+    console.log('[Auto-Settle Debug] useEffect dependencies changed:', {
+      matchStatus: match?.status,
+      matchIsLive: match?.isLive,
+      detailsStatus: matchDetails?.status,
+      matchId,
+      hasUser: !!user,
+      hasSettleAllMarkets: !!settleAllMarkets,
+      hasFetchMyBets: !!fetchMyBets,
+      sport,
+      settlementAttempted: settlementAttemptedRef.current
+    });
+  }, [match?.status, match?.isLive, matchDetails?.status, matchId, user, settleAllMarkets, fetchMyBets, sport]);
+
   if (!match) {
     return (
       <div className="min-h-screen bg-background">
@@ -1817,15 +1956,54 @@ const SportsBet: React.FC = () => {
                     <Receipt className="h-5 w-5" />
                     My Bets
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchMyBets}
-                    disabled={isLoadingMyBets}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingMyBets ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {/* Manual Settlement Button - Only show if match is over and there are placed bets */}
+                    {match && (!match.isLive) && myBets.some((bet: any) => 
+                      (bet.status?.toUpperCase() === 'PLACED' || bet.status === 'placed')
+                    ) && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={async () => {
+                          const sportsid = match?.raw?.sid || match?.raw?.sportsid || match?.sid || 
+                                         (sport === 'cricket' ? '4' : 
+                                          sport === 'football' ? '1' : 
+                                          sport === 'tennis' ? '2' :
+                                          sport === 'basketball' ? '3' :
+                                          sport === 'hockey' ? '5' : null);
+                          const gmid = match?.gmid || match?.id || match?.eventId || matchId;
+                          
+                          if (sportsid && gmid) {
+                            toast({
+                              title: "Settling Markets",
+                              description: "Please wait while we settle your bets...",
+                            });
+                            
+                            const result = await settleAllMarkets(sportsid, gmid.toString());
+                            if (result?.success) {
+                              setTimeout(() => {
+                                fetchMyBets();
+                              }, 2000);
+                            }
+                          }
+                        }}
+                        disabled={isLoadingMyBets}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Settle Bets
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchMyBets}
+                      disabled={isLoadingMyBets}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingMyBets ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
