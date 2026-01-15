@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, Lock, Users, Loader2, Trophy, X } from "lucide-react";
+import { TrendingUp, Lock, Users, Loader2, Trophy, X, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -98,6 +98,9 @@ export const TeenBettingBoard = ({
   const [amount, setAmount] = useState<string>(String(min));
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBetData, setSelectedBetData] = useState<any>(null);
+  
+  // Rules modal state
+  const [rulesOpen, setRulesOpen] = useState(false);
   
   // Detail result modal state
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -257,26 +260,9 @@ export const TeenBettingBoard = ({
               <Users className="w-4 h-4" />
               Teen Bets
             </CardTitle>
-            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-              {QUICK_CHIPS.map((chip) => (
-                <Button
-                  key={chip}
-                  size="sm"
-                  variant="outline"
-                  disabled={locked}
-                  onClick={() =>
-                    setAmount((prev) => {
-                      const current = Number(prev) || 0;
-                      const next = current + chip;
-                      return String(next);
-                    })
-                  }
-                  className="text-[10px] sm:text-xs px-2 sm:px-3"
-                >
-                  ₹{chip}
-                </Button>
-              ))}
-            </div>
+            <Button size="icon" variant="ghost" onClick={() => setRulesOpen(true)} className="h-6 w-6">
+              <Info size={16} />
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -453,28 +439,6 @@ export const TeenBettingBoard = ({
                 </div>
               );
             })}
-          </div>
-
-          {/* Amount Input and Place Bet */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border/50">
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                type="number"
-                min={min}
-                max={max}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                disabled={locked}
-                className="flex-1 sm:max-w-[160px]"
-                placeholder="Enter amount"
-              />
-              <div className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                Min ₹{min} · Max ₹{max}
-              </div>
-            </div>
-            <div className="text-xs sm:text-sm text-center sm:text-left">
-              Total: <span className="font-semibold">₹{parseFloat(amount) || 0}</span>
-            </div>
           </div>
 
           {/* Last 10 Results */}
@@ -864,6 +828,87 @@ export const TeenBettingBoard = ({
                 <p>No data available</p>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rules Modal */}
+      <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
+        <DialogContent className="max-w-md text-sm max-h-[80vh] overflow-y-auto custom-scrollbar">
+          <DialogHeader>
+            <DialogTitle>1 CARD ONE-DAY Rules</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 text-xs leading-relaxed">
+            <p>
+              1 CARD ONE-DAY is a very easy and fast paced game.
+            </p>
+            <p>
+              This game is played with 8 decks of regular 52 cards between the player and dealer.
+            </p>
+            <p>
+              Both, the player and dealer will be dealt one card each.
+            </p>
+            <p>
+              The objective of the game is to guess whether the player or dealer will draw a card of the higher value and will therefore win.
+            </p>
+            <p>
+              You can place your bets on the player as well as dealer.
+            </p>
+            <p>
+              You have a betting option of Back and Lay for the main bet.
+            </p>
+            
+            <p className="font-semibold mt-3">Ranking of cards : from lowest to highest</p>
+            <p className="font-semibold">
+              2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , J , Q , K , A
+            </p>
+            
+            <p className="mt-3">
+              If the player and dealer both have the same hand with the same ranking cards but of different suits then the winner will be decided according to the order of the suits.
+            </p>
+            
+            <p className="font-semibold mt-3">Order of suits : from highest to lowest</p>
+            <p className="font-semibold">
+              Spades , Hearts , Clubs , Diamonds
+            </p>
+            
+            <p className="mt-3">
+              <span className="font-semibold">eg:</span> Clubs ACE Diamonds ACE<br />
+              Here ACE of Clubs wins.
+            </p>
+            
+            <p className="font-semibold mt-3">TIE :</p>
+            <p>
+              If both, the player and dealer hands have the same ranking cards which are of the same suit then it will be a TIE. In that case bets placed (Back and Lay) on both the player and dealer will be returned. (pushed)
+            </p>
+            <p>
+              <span className="font-semibold">eg:</span> Ace of Spades Ace of Spades
+            </p>
+            
+            <p className="font-semibold mt-3">7 DOWN 7 UP :</p>
+            <p>
+              Here you can bet whether it will be a 7Down card or a 7UP card irrespective of suits.
+            </p>
+            <p>
+              <span className="font-semibold">7DOWN cards:</span> A, 2, 3, 4, 5, 6
+            </p>
+            <p>
+              <span className="font-semibold">7UP cards :</span> 8, 9, 10, J, Q, K
+            </p>
+            
+            <p className="font-semibold mt-3">CARD 7 :</p>
+            <p>
+              If the card drawn is 7, bets placed on both, 7Down and 7Up will lose half of the bet amount.
+            </p>
+            
+            <p className="mt-3">
+              For 7Down- 7Up you can bet on either or both the player and dealer.
+            </p>
+            
+            <p className="mt-3">
+              <span className="font-semibold">Note :</span> In case of a TIE between the player and dealer, bets placed on 7Down and 7Up will be considered valid.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
