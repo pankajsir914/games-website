@@ -101,13 +101,28 @@ export function DashboardContent() {
         <div className="flex items-center space-x-2 sm:space-x-4">
           <SidebarTrigger />
           <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/')}
+              className="text-muted-foreground hover:text-foreground"
+            >
               Home
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/sports')}
+              className="text-muted-foreground hover:text-foreground"
+            >
               Sports
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/live-casino')}
+              className="text-muted-foreground hover:text-foreground"
+            >
               Casino
             </Button>
             <Button 
