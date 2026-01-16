@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ===============================
    CONSTANTS
@@ -64,6 +65,8 @@ const Ab20BettingComponent = ({
   onResultClick,
   min = 10,
   max = 100000,
+  odds,
+  tableId,
 }: any) => {
 
   /* =========================
@@ -76,6 +79,8 @@ const Ab20BettingComponent = ({
   const [rulesOpen, setRulesOpen] = useState(false);
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState<any>(null);
 
   const [highlight, setHighlight] = useState<{
     andar: Set<string>;
@@ -118,48 +123,173 @@ const Ab20BettingComponent = ({
   };
 
   /* =========================
-     RESULT → UI MAPPING
+     EXTRACT TABLE DATA FROM ODDS
+  ========================= */
+
+  const currentTableData = useMemo(() => {
+    if (tableData) return tableData;
+    if (odds?.data) return odds.data;
+    return null;
+  }, [tableData, odds]);
+
+  /* =========================
+     RESULT → UI MAPPING (Progressive Card Opening)
   ========================= */
 
   useEffect(() => {
-    if (!tableData?.card) return;
-
-    const cards = tableData.card.split(",");
-    const ares = tableData.ares?.split(",").map(Number) || [];
-    const bres = tableData.bres?.split(",").map(Number) || [];
+    const data = currentTableData;
+    if (!data) return;
 
     const andarSet = new Set<string>();
     const baharSet = new Set<string>();
 
-    cards.forEach((c: string, i: number) => {
-      const rank = c.slice(0, c.length - 2);
-      if (ares[i] > 0) andarSet.add(rank);
-      if (bres[i] > 0) baharSet.add(rank);
+    // Method 1: Use aall and ball arrays (cards that have been dealt/opened)
+    // This shows cards progressively as they are dealt
+    const aall = data.aall?.split(",").map((c: string) => c.trim()).filter(Boolean) || [];
+    const ball = data.ball?.split(",").map((c: string) => c.trim()).filter(Boolean) || [];
+
+    // Extract ranks from dealt cards - these are the opened cards
+    aall.forEach((cardStr: string) => {
+      if (!cardStr) return;
+      let rank = "";
+      if (cardStr.length >= 3) {
+        if (cardStr.startsWith("10")) {
+          rank = "10";
+        } else {
+          // Remove last 2 chars (suit) - handle both "5SS" and "5S" formats
+          rank = cardStr.slice(0, cardStr.length - 2);
+          if (!rank) rank = cardStr.slice(0, cardStr.length - 1);
+        }
+      }
+      // Map "1" to "A" if needed
+      if (rank === "1") rank = "A";
+      if (rank && CARD_ORDER.includes(rank)) {
+        andarSet.add(rank);
+      }
     });
 
+    ball.forEach((cardStr: string) => {
+      if (!cardStr) return;
+      let rank = "";
+      if (cardStr.length >= 3) {
+        if (cardStr.startsWith("10")) {
+          rank = "10";
+        } else {
+          // Remove last 2 chars (suit) - handle both "5SS" and "5S" formats
+          rank = cardStr.slice(0, cardStr.length - 2);
+          if (!rank) rank = cardStr.slice(0, cardStr.length - 1);
+        }
+      }
+      // Map "1" to "A" if needed
+      if (rank === "1") rank = "A";
+      if (rank && CARD_ORDER.includes(rank)) {
+        baharSet.add(rank);
+      }
+    });
+
+    // Method 2: Fallback to ares/bres if aall/ball not available
+    // This shows winner cards (non-zero values in ares/bres)
+    if (andarSet.size === 0 && baharSet.size === 0 && data.card) {
+      const cards = data.card.split(",");
+      const ares = data.ares?.split(",").map(Number) || [];
+      const bres = data.bres?.split(",").map(Number) || [];
+
+      cards.forEach((c: string, i: number) => {
+        const rank = c.slice(0, c.length - 2);
+        // Map "1" to "A"
+        const displayRank = rank === "1" ? "A" : rank;
+        if (ares[i] > 0 && CARD_ORDER.includes(displayRank)) andarSet.add(displayRank);
+        if (bres[i] > 0 && CARD_ORDER.includes(displayRank)) baharSet.add(displayRank);
+      });
+    }
+
     setHighlight({ andar: andarSet, bahar: baharSet });
-  }, [tableData]);
+  }, [currentTableData]);
+
+  /* =========================
+     FETCH DETAIL RESULT
+  ========================= */
+
+  const fetchDetailResult = async (mid: string | number) => {
+    if (!tableId || !mid) {
+      console.error("Missing tableId or mid:", { tableId, mid });
+      return;
+    }
+    
+    setDetailLoading(true);
+    setDetailData(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("diamond-casino-proxy", {
+        body: { 
+          action: "get-detail-result", 
+          tableId,
+          mid: String(mid)
+        }
+      });
+
+      if (error) {
+        console.error("❌ Error fetching detail result:", error);
+        setDetailData({ error: error.message || "Failed to fetch detail result" });
+      } else if (data) {
+        if (data.success === false) {
+          console.error("❌ API returned error:", data.error);
+          setDetailData({ error: data.error || "No data available" });
+        } else {
+          const resultData = data?.data || data;
+          setDetailData(resultData);
+        }
+      } else {
+        setDetailData({ error: "No data received from API" });
+      }
+    } catch (error) {
+      console.error("❌ Exception fetching detail result:", error);
+      setDetailData({ error: error instanceof Error ? error.message : "Unknown error" });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   /* =========================
      RESULT HANDLING
   ========================= */
 
   const handleResultClick = (result: any) => {
-    setSelectedResult(result);
-    setResultDialogOpen(true);
+    const mid = result.mid || result.round || result.round_id;
+    if (mid) {
+      setSelectedResult(result);
+      setResultDialogOpen(true);
+      setDetailData(null);
+      fetchDetailResult(mid);
+    }
     onResultClick?.(result);
   };
 
   const last10 = useMemo(() => (Array.isArray(resultHistory) ? resultHistory.slice(0, 10) : []), [resultHistory]);
 
   /* =========================
+     EXTRACT BETS FROM ODDS
+  ========================= */
+
+  const actualBetTypes = useMemo(() => {
+    if (odds?.data?.sub && Array.isArray(odds.data.sub) && odds.data.sub.length > 0) {
+      return odds.data.sub;
+    }
+    if (Array.isArray(betTypes) && betTypes.length > 0) {
+      return betTypes;
+    }
+    return betTypes || [];
+  }, [betTypes, odds]);
+
+  /* =========================
      BET FINDER
   ========================= */
 
   const getBet = (side: "andar" | "bahar", card: string): Bet | null =>
-    betTypes.find((b: any) => {
+    actualBetTypes.find((b: any) => {
       const nat = (b?.nat || b?.type || "").toLowerCase();
-      return nat === `${side} ${card.toLowerCase()}`;
+      const searchStr = `${side} ${card.toLowerCase()}`;
+      return nat === searchStr || nat.includes(searchStr);
     }) || null;
 
   /* =========================
@@ -170,10 +300,13 @@ const Ab20BettingComponent = ({
     const bet = getBet(side, card);
     const suspended = bet?.gstatus === "SUSPENDED";
     const opened = highlight[side].has(card);
-    const odds = bet?.back ?? bet?.l ?? bet?.odds ?? 0;
+    const odds = bet?.b ?? bet?.back ?? bet?.l ?? bet?.odds ?? 0;
 
     const handleClick = () => {
-      if (suspended) return;
+      // Don't allow clicking if suspended or not opened yet
+      if (suspended && !opened) return;
+      // Allow clicking if not suspended, or if suspended but card is opened
+      if (suspended && opened) return;
 
       const payload = {
         ...bet,
@@ -191,6 +324,9 @@ const Ab20BettingComponent = ({
 
     const oddsValue = odds ? customFormatOdds(odds) : "--";
 
+    // If suspended and card not opened, show face-down/locked state
+    const isLocked = suspended && !opened;
+
     return (
       <div
         onClick={handleClick}
@@ -198,31 +334,51 @@ const Ab20BettingComponent = ({
           relative w-[56px] h-[82px]
           rounded-lg flex flex-col items-center justify-between
           font-bold text-sm
-          transition-colors duration-150
-          ${side === "andar"
-            ? "bg-[#2e1f1f] text-white hover:bg-[#3a2626]"
-            : "bg-[#ffe08a] text-black hover:bg-[#ffeaad]"}
-          ${opened ? "ring-2 ring-green-400 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : ""}
-          ${suspended
-            ? "opacity-40 cursor-not-allowed"
-            : "cursor-pointer"}
+          transition-all duration-150
+          border-2 border-yellow-400
+          ${
+            isLocked
+              ? "bg-blue-100 bg-opacity-80 cursor-not-allowed" // Face-down/locked appearance
+              : opened
+              ? "bg-white text-black ring-2 ring-green-400 shadow-[0_0_8px_rgba(34,197,94,0.5)] cursor-pointer"
+              : side === "andar"
+              ? "bg-[#2e1f1f] text-white hover:bg-[#3a2626] cursor-pointer"
+              : "bg-[#ffe08a] text-black hover:bg-[#ffeaad] cursor-pointer"
+          }
         `}
       >
-        <div className="pt-1">{card}</div>
+        {isLocked ? (
+          // Face-down/locked card state - show pattern instead of card content
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-blue-100 bg-opacity-80">
+            <div className="grid grid-cols-4 gap-0.5 p-2 opacity-30">
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div key={i} className="w-1 h-1 bg-gray-400 rounded-full" />
+              ))}
+            </div>
+            <Lock className="w-5 h-5 text-gray-600 absolute" />
+          </div>
+        ) : (
+          // Normal card state - show card content
+          <>
+            <div className={`pt-1 ${opened ? "text-black" : ""}`}>{card}</div>
 
-        <div className="grid grid-cols-2 text-[13px]">
-          {SUITS.map((s) => (
-            <span key={s} className={suitColor(s)}>{s}</span>
-          ))}
-        </div>
+            <div className={`grid grid-cols-2 text-[13px] ${opened ? "" : ""}`}>
+              {SUITS.map((s) => (
+                <span key={s} className={opened ? suitColor(s) : suitColor(s)}>{s}</span>
+              ))}
+            </div>
 
-        <div className="pb-1 text-xs">
-          {oddsValue}
-        </div>
+            {!opened && (
+              <div className={`pb-1 text-xs ${opened ? "text-black" : ""}`}>
+                {oddsValue}
+              </div>
+            )}
+          </>
+        )}
 
-        {suspended && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
-            <Lock className="w-4 h-4 text-white" />
+        {suspended && opened && (
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center rounded-lg pointer-events-none">
+            <Lock className="w-4 h-4 text-white opacity-50" />
           </div>
         )}
       </div>
@@ -295,14 +451,15 @@ const Ab20BettingComponent = ({
     if (!selectedBet || !amount || parseFloat(amount) <= 0 || loading) return;
 
     const amt = parseFloat(amount);
-    const oddsValue = Number(selectedBet?.odds || selectedBet?.back || selectedBet?.l || 0);
+    const oddsValue = Number(selectedBet?.b || selectedBet?.back || selectedBet?.l || selectedBet?.odds || 0);
     const finalOdds = oddsValue > 1000 ? oddsValue / 100000 : oddsValue;
 
     await onPlaceBet?.({
-      amount: Math.min(Math.max(amt, min), max),
-      betType: selectedBet?.type || selectedBet?.nat,
-      odds: finalOdds,
       sid: selectedBet?.sid,
+      nat: selectedBet?.nat,
+      odds: finalOdds,
+      amount: Math.min(Math.max(amt, min), max),
+      side: "back",
     });
 
     setModalOpen(false);
@@ -340,13 +497,16 @@ const Ab20BettingComponent = ({
           <div className="flex gap-1 sm:gap-1.5 px-1 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0">
             {last10.map((r, i) => {
               const winValue = r.win?.toString() || r.winnerId?.toString() || r.result || "";
+              // win: "0" means no win, need to check other fields or treat as "B" by default if empty
+              // But if win exists and is "0", it might mean something else - check other indicators
               const isAndar = 
                 winValue === "1" || 
                 winValue === "Andar" || 
                 winValue === "A" ||
                 winValue.toLowerCase() === "andar" ||
                 (r.winnerId && r.winnerId.toString() === "1");
-              const winner = isAndar ? "A" : "B";
+              // If win is "0" and no other indicator, default to "B" (Bahar) or show "?"
+              const winner = isAndar ? "A" : (winValue === "0" || !winValue) ? "B" : "B";
               
               return (
                 <button
@@ -394,7 +554,7 @@ const Ab20BettingComponent = ({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600 dark:text-gray-300">Odds:</span>
                   <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                    {customFormatOdds(selectedBet.odds || selectedBet.back || selectedBet.l || 0)}
+                    {customFormatOdds(selectedBet.b || selectedBet.back || selectedBet.l || selectedBet.odds || 0)}
                   </span>
                 </div>
               </div>
@@ -482,103 +642,99 @@ const Ab20BettingComponent = ({
             </button>
           </div>
           <div className="px-6 py-6 bg-white dark:bg-gray-900">
-            {selectedResult ? (
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="ml-2">Loading result details...</span>
+              </div>
+            ) : detailData?.error ? (
+              <div className="text-center py-8 text-destructive">
+                <p>Error: {detailData.error}</p>
+              </div>
+            ) : detailData || selectedResult ? (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b pb-3">
-                  <div>
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">Round Id: </span>
-                    <span className="text-gray-900 dark:text-gray-100 font-mono">
-                      {selectedResult.mid || selectedResult.round_id || selectedResult.round || "N/A"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">Match Time: </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {selectedResult.mtime || selectedResult.match_time || "N/A"}
-                    </span>
-                  </div>
-                </div>
-
-                {selectedResult.card ? (
-                  <>
-                    {(() => {
-                      const allCards = parseCards(selectedResult.card);
-                      const topRow = allCards.slice(0, 8);
-                      const bottomRow = allCards.slice(8, 17);
-
-                      return (
-                        <div className="space-y-4">
-                          {/* Top Row */}
-                          <div className="flex justify-center gap-2 flex-wrap">
-                            {topRow.map((card, idx) => (
-                              <div
-                                key={idx}
-                                className="w-12 h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md"
-                              >
-                                <span className={`text-sm font-bold ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
-                                  {card.rank}
-                                </span>
-                                <span className={`text-lg ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
-                                  {card.suit}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Bottom Row */}
-                          <div className="flex justify-center gap-2 flex-wrap">
-                            {bottomRow.map((card, idx) => (
-                              <div
-                                key={idx + 8}
-                                className="w-12 h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md"
-                              >
-                                <span className={`text-sm font-bold ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
-                                  {card.rank}
-                                </span>
-                                <span className={`text-lg ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
-                                  {card.suit}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+                {(() => {
+                  const t1Data = detailData?.data?.t1 || detailData?.t1 || detailData || selectedResult;
+                  const cardString = t1Data.card || selectedResult?.card || "";
+                  
+                  return (
+                    <>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm border-b pb-3">
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Round Id: </span>
+                          <span className="text-gray-900 dark:text-gray-100 font-mono">
+                            {t1Data.rid || t1Data.mid || selectedResult?.mid || selectedResult?.round_id || selectedResult?.round || "N/A"}
+                          </span>
                         </div>
-                      );
-                    })()}
+                        <div>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">Match Time: </span>
+                          <span className="text-gray-900 dark:text-gray-100">
+                            {t1Data.mtime || t1Data.match_time || selectedResult?.mtime || selectedResult?.match_time || "N/A"}
+                          </span>
+                        </div>
+                      </div>
 
-                    {/* Winner Field */}
-                    <div className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                        Winner {(() => {
-                          const ares = selectedResult.ares?.split(",").map(Number) || [];
-                          const bres = selectedResult.bres?.split(",").map(Number) || [];
-                          const winners: number[] = [];
-                          // Collect winning positions/values
-                          ares.forEach((val: number, idx: number) => {
-                            if (val > 0) {
-                              // Use the actual value if it's meaningful, otherwise use position
-                              winners.push(val > 100 ? val : idx + 1);
-                            }
-                          });
-                          bres.forEach((val: number, idx: number) => {
-                            if (val > 0) {
-                              // Use the actual value if it's meaningful, otherwise use position
-                              winners.push(val > 100 ? val : idx + 14);
-                            }
-                          });
-                          // If no winners from ares/bres, try to get from win field
-                          if (winners.length === 0 && selectedResult.win) {
-                            return selectedResult.win;
-                          }
-                          return winners.length > 0 ? winners.join(",") : "N/A";
-                        })()}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No card data available
-                  </div>
-                )}
+                      {cardString ? (
+                        <>
+                          {(() => {
+                            const allCards = parseCards(cardString);
+                            const topRow = allCards.slice(0, 8);
+                            const bottomRow = allCards.slice(8, 17);
+
+                            return (
+                              <div className="space-y-4">
+                                {/* Top Row */}
+                                <div className="flex justify-center gap-2 flex-wrap">
+                                  {topRow.map((card, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="w-12 h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md"
+                                    >
+                                      <span className={`text-sm font-bold ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                                        {card.rank}
+                                      </span>
+                                      <span className={`text-lg ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                                        {card.suit}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Bottom Row */}
+                                <div className="flex justify-center gap-2 flex-wrap">
+                                  {bottomRow.map((card, idx) => (
+                                    <div
+                                      key={idx + 8}
+                                      className="w-12 h-16 border-2 border-yellow-400 rounded bg-white dark:bg-gray-800 flex flex-col items-center justify-center shadow-md"
+                                    >
+                                      <span className={`text-sm font-bold ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                                        {card.rank}
+                                      </span>
+                                      <span className={`text-lg ${card.isRed ? "text-red-600" : "text-black dark:text-white"}`}>
+                                        {card.suit}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Winner Field */}
+                          <div className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+                            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                              Winner: {t1Data.winnat || t1Data.win || "N/A"}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No card data available
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
