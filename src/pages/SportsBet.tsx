@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoSettlement } from '@/hooks/useAutoSettlement';
+import { cn } from '@/lib/utils';
 
 const SportsBet: React.FC = () => {
   const { sport, matchId } = useParams();
@@ -1722,22 +1723,36 @@ const SportsBet: React.FC = () => {
   const BetSlipContent = () => (
     <>
       {selectedBet ? (
-        <div className="space-y-4">
-          <div className="p-3 bg-muted rounded-lg">
-            <p className="font-semibold text-sm sm:text-base">{selectedBet.matchName}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground">{selectedBet.selection}</p>
-            <div className="flex justify-between mt-2">
-              <Badge variant={selectedBet.type === 'back' ? 'default' : 'destructive'}>
+        <div className={cn("space-y-3 sm:space-y-4")}>
+          <div className={cn("bg-muted rounded-lg", isMobile ? "p-2.5" : "p-3")}>
+            <p className={cn("font-semibold break-words", isMobile ? "text-xs" : "text-sm sm:text-base")}>
+              {selectedBet.matchName}
+            </p>
+            <p className={cn("text-muted-foreground break-words", isMobile ? "text-[10px] mt-0.5" : "text-xs sm:text-sm mt-1")}>
+              {selectedBet.selection}
+            </p>
+            <div className={cn("flex justify-between items-center", isMobile ? "mt-1.5" : "mt-2")}>
+              <Badge 
+                variant={selectedBet.type === 'back' ? 'default' : 'destructive'}
+                className={cn(isMobile ? "text-[10px] px-1.5 py-0" : "text-xs")}
+              >
                 {isSessionMarket() 
                   ? (selectedBet.type === 'back' ? 'YES' : 'NO')
                   : selectedBet.type.toUpperCase()}
               </Badge>
-              <span className="font-bold">{selectedBet.rate}</span>
+              <span className={cn("font-bold", isMobile ? "text-sm" : "text-base")}>
+                {selectedBet.rate}
+              </span>
             </div>
           </div>
           
           <div>
-            <Label htmlFor="bet-amount" className="text-sm">Stake Amount (₹)</Label>
+            <Label 
+              htmlFor="bet-amount" 
+              className={cn(isMobile ? "text-xs" : "text-sm")}
+            >
+              Stake Amount (₹)
+            </Label>
             <Input
               id="bet-amount"
               type="text"
@@ -1758,18 +1773,25 @@ const SportsBet: React.FC = () => {
                   requestAnimationFrame(() => amountInputRef.current?.focus());
                 }
               }}
-              className="mt-1 h-12 text-base"
+              className={cn(
+                isMobile ? "mt-1 h-11 text-base" : "mt-1 h-12 text-base"
+              )}
             />
             
             {/* Quick Amount Buttons */}
-            <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className={cn(
+              "grid gap-2 mt-2",
+              isMobile ? "grid-cols-2" : "grid-cols-2"
+            )}>
               {[100, 500, 1000, 5000].map((amount) => (
                 <Button
                   key={amount}
                   variant="outline"
                   size="sm"
                   onClick={() => setBetAmount(amount.toString())}
-                  className="h-10"
+                  className={cn(
+                    isMobile ? "h-9 text-xs" : "h-10 text-sm"
+                  )}
                 >
                   ₹{amount}
                 </Button>
@@ -1777,24 +1799,36 @@ const SportsBet: React.FC = () => {
             </div>
           </div>
           
-          <div className="space-y-2 p-3 bg-muted rounded-lg">
-            <div className="flex justify-between text-sm">
-              <span>Potential Win:</span>
-              <span className="font-semibold text-primary">
+          <div className={cn(
+            "space-y-2 bg-muted rounded-lg",
+            isMobile ? "p-2.5" : "p-3"
+          )}>
+            <div className={cn("flex justify-between items-center", isMobile ? "text-xs" : "text-sm")}>
+              <span className="text-muted-foreground">Potential Win:</span>
+              <span className={cn(
+                "font-semibold text-primary",
+                isMobile ? "text-xs" : "text-sm"
+              )}>
                 ₹{calculatePotentialWin().toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Liability:</span>
-              <span className="font-semibold text-destructive">
+            <div className={cn("flex justify-between items-center", isMobile ? "text-xs" : "text-sm")}>
+              <span className="text-muted-foreground">Liability:</span>
+              <span className={cn(
+                "font-semibold text-destructive",
+                isMobile ? "text-xs" : "text-sm"
+              )}>
                 ₹{calculateLiability().toFixed(2)}
               </span>
             </div>
           </div>
           
-          <div className="space-y-2">
+          <div className={cn("space-y-2", isMobile ? "pt-1" : "")}>
             <Button
-              className="w-full h-12"
+              className={cn(
+                "w-full",
+                isMobile ? "h-11 text-sm" : "h-12 text-base"
+              )}
               onClick={handlePlaceBet}
               disabled={!betAmount || parseFloat(betAmount) <= 0 || isPlacingBet}
             >
@@ -1802,7 +1836,10 @@ const SportsBet: React.FC = () => {
             </Button>
             <Button
               variant="outline"
-              className="w-full"
+              className={cn(
+                "w-full",
+                isMobile ? "h-10 text-xs" : "h-11 text-sm"
+              )}
               onClick={() => {
                 setSelectedBet(null);
                 setBetAmount('');
@@ -1815,16 +1852,32 @@ const SportsBet: React.FC = () => {
           </div>
         </div>
       ) : (
-        <p className="text-center text-muted-foreground py-8">
+        <p className={cn(
+          "text-center text-muted-foreground",
+          isMobile ? "py-6 text-xs" : "py-8 text-sm"
+        )}>
           Select a bet to get started
         </p>
       )}
       
       {/* Wallet Balance */}
-      <div className="mt-4 pt-4 border-t">
+      <div className={cn(
+        "border-t",
+        isMobile ? "mt-3 pt-3" : "mt-4 pt-4"
+      )}>
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Wallet Balance:</span>
-          <span className="font-semibold">₹{wallet ? (wallet.current_balance || 0).toFixed(2) : '0.00'}</span>
+          <span className={cn(
+            "text-muted-foreground",
+            isMobile ? "text-xs" : "text-sm"
+          )}>
+            Wallet Balance:
+          </span>
+          <span className={cn(
+            "font-semibold",
+            isMobile ? "text-sm" : "text-base"
+          )}>
+            ₹{wallet ? (wallet.current_balance || 0).toFixed(2) : '0.00'}
+          </span>
         </div>
       </div>
     </>
@@ -2681,10 +2734,15 @@ const SportsBet: React.FC = () => {
               </Button>
             </DrawerTrigger>
             <DrawerContent className="max-h-[85vh]">
-              <DrawerHeader>
-                <DrawerTitle>Bet Slip</DrawerTitle>
+              <DrawerHeader className={cn(isMobile ? "px-3 py-2.5" : "px-4 py-3")}>
+                <DrawerTitle className={cn(isMobile ? "text-base" : "text-lg")}>
+                  Bet Slip
+                </DrawerTitle>
               </DrawerHeader>
-              <div className="overflow-y-auto p-4">
+              <div className={cn(
+                "overflow-y-auto",
+                isMobile ? "px-3 pb-4" : "px-4 pb-6"
+              )}>
                 <BetSlipContent />
               </div>
             </DrawerContent>
