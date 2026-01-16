@@ -389,29 +389,66 @@ const BettingHistory: React.FC = () => {
       // Mark as attempted
       settlementAttemptedRef.current.add(matchKey);
 
-      console.log('[BettingHistory Auto-Settle] Triggering settlement for match:', {
+      console.log('[BettingHistory Auto-Settle] Verifying results before settlement:', {
         matchKey,
         sportsid,
         gmid,
         betCount: bets.length
       });
 
-      // Trigger settlement
-      settleAllMarkets(sportsid, gmid.toString())
-        .then((result) => {
-          if (result?.success) {
-            console.log('[BettingHistory Auto-Settle] ✅ Settlement completed for match:', matchKey, result);
-            // Refetch bets after a delay to show updated status
-            setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['user-sports-bets', user?.id] });
-            }, 2000);
-          } else {
-            console.warn('[BettingHistory Auto-Settle] ⚠️ Settlement failed for match:', matchKey, result);
+      // CRITICAL: Verify results are available from the API
+      // The auto-settle-markets function will handle market type validation
+      // (ODDS markets need match completed, SESSION markets can settle during live)
+      const verifyUrl = `http://72.61.169.60:8001/api/sports/posted-market-result?sportsid=${sportsid}&gmid=${gmid}`;
+      console.log('[BettingHistory Auto-Settle] Verifying results from:', verifyUrl);
+      
+      fetch(verifyUrl)
+        .then(async (response) => {
+          if (!response.ok) {
+            console.warn('[BettingHistory Auto-Settle] Result API check failed, skipping settlement');
             settlementAttemptedRef.current.delete(matchKey);
+            return;
           }
+          
+          const resultData = await response.json();
+          console.log('[BettingHistory Auto-Settle] Result API response:', JSON.stringify(resultData).substring(0, 200));
+          
+          // Check if results are actually available
+          const hasResults = resultData?.success === true && 
+                           (resultData?.markets?.length > 0 || 
+                            resultData?.data?.length > 0 ||
+                            Array.isArray(resultData) && resultData.length > 0);
+          
+          if (!hasResults) {
+            console.warn('[BettingHistory Auto-Settle] No results available from API yet, skipping settlement');
+            settlementAttemptedRef.current.delete(matchKey);
+            return;
+          }
+          
+          console.log('[BettingHistory Auto-Settle] ✅ Results verified, triggering settlement...');
+          console.log('[BettingHistory Auto-Settle] Note: ODDS markets will only settle if match completed, SESSION markets can settle anytime');
+
+          // Trigger settlement - function will handle market type validation
+          settleAllMarkets(sportsid, gmid.toString())
+            .then((result) => {
+              if (result?.success) {
+                console.log('[BettingHistory Auto-Settle] ✅ Settlement completed for match:', matchKey, result);
+                // Refetch bets after a delay to show updated status
+                setTimeout(() => {
+                  queryClient.invalidateQueries({ queryKey: ['user-sports-bets', user?.id] });
+                }, 2000);
+              } else {
+                console.warn('[BettingHistory Auto-Settle] ⚠️ Settlement failed for match:', matchKey, result);
+                settlementAttemptedRef.current.delete(matchKey);
+              }
+            })
+            .catch((error) => {
+              console.error('[BettingHistory Auto-Settle] ❌ Settlement error for match:', matchKey, error);
+              settlementAttemptedRef.current.delete(matchKey);
+            });
         })
-        .catch((error) => {
-          console.error('[BettingHistory Auto-Settle] ❌ Settlement error for match:', matchKey, error);
+        .catch((verifyError) => {
+          console.error('[BettingHistory Auto-Settle] ❌ Error verifying match completion:', verifyError);
           settlementAttemptedRef.current.delete(matchKey);
         });
     });
@@ -691,33 +728,33 @@ const BettingHistory: React.FC = () => {
                                   {isMarketBet 
                                     ? (bet.market_type === 'odds' ? 'ODDS' : bet.market_type === 'session' ? 'SESSION' : bet.market_type?.toUpperCase() || 'MARKET')
                                     : (bet.market_type?.toUpperCase() || 'MARKET')}
-                                </div>
+                            </div>
                                 {bet.market_type === 'session' && bet.line_at_bet && (
                                   <div className="text-xs text-muted-foreground">
                                     Line: {bet.line_at_bet}
-                                  </div>
+                          </div>
                                 )}
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="font-medium">
                                   {betSideDisplay}
-                                </Badge>
+                          </Badge>
                               </TableCell>
                               <TableCell>
                                 <div className="font-semibold">
                                   ₹{stakeAmount.toFixed(2)}
-                                </div>
+                        </div>
                               </TableCell>
                               <TableCell>
                                 <div className="font-medium">
                                   {oddsRate}
-                                </div>
+                          </div>
                               </TableCell>
                               <TableCell>
                                 {isMarketBet ? (
                                   <div className="font-semibold text-orange-600">
                                     ₹{parseFloat(exposure.toString()).toFixed(2)}
-                                  </div>
+                          </div>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
                                 )}
@@ -726,7 +763,7 @@ const BettingHistory: React.FC = () => {
                                 {potentialWin > 0 ? (
                                   <div className="font-semibold text-green-600">
                                     ₹{parseFloat(potentialWin.toString()).toFixed(2)}
-                                  </div>
+                          </div>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
                                 )}
@@ -737,7 +774,7 @@ const BettingHistory: React.FC = () => {
                                     profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
                                   }`}>
                                     {profitLoss >= 0 ? '+' : ''}₹{parseFloat(profitLoss.toString()).toFixed(2)}
-                                  </div>
+                        </div>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
                                 )}
@@ -752,10 +789,10 @@ const BettingHistory: React.FC = () => {
                               <TableCell>
                                 <div className="text-xs space-y-1">
                                   <div>
-                                    {new Date(bet.created_at).toLocaleString('en-IN', {
+                          {new Date(bet.created_at).toLocaleString('en-IN', {
                                       day: '2-digit',
                                       month: 'short',
-                                      year: 'numeric',
+                            year: 'numeric',
                                       hour: '2-digit',
                                       minute: '2-digit'
                                     })}
@@ -764,13 +801,13 @@ const BettingHistory: React.FC = () => {
                                     <div className="text-muted-foreground">
                                       Settled: {new Date(bet.settled_at).toLocaleString('en-IN', {
                                         day: '2-digit',
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </div>
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
                                   )}
-                                </div>
+                      </div>
                               </TableCell>
                             </TableRow>
                           );
