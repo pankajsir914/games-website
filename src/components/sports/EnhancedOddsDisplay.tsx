@@ -155,8 +155,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                       <TableHeader>
                         <TableRow className="bg-muted">
                           <TableHead className={cn(
-                            "font-semibold text-foreground sticky left-0 bg-muted z-10",
-                            isMobile ? "min-w-[85px] text-[9px] sm:text-xs px-1" : "min-w-[150px] text-sm px-3"
+                            "font-semibold text-foreground sticky left-0 bg-muted z-20 border-r",
+                            isMobile ? "min-w-[90px] text-[9px] sm:text-xs px-1.5" : "min-w-[150px] text-sm px-3"
                           )}>
                             Selection
                           </TableHead>
@@ -202,13 +202,13 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                         {validSections.map((team: any, idx: number) => (
                           <TableRow key={idx} className="hover:bg-muted/50">
                             <TableCell className={cn(
-                              "font-medium text-foreground sticky left-0 bg-background z-10",
-                              isMobile ? "p-1 text-[10px] sm:text-xs" : "p-3 text-sm"
+                              "font-medium text-foreground sticky left-0 bg-background z-20 border-r shadow-[2px_0_4px_rgba(0,0,0,0.1)]",
+                              isMobile ? "p-1.5 text-[11px] sm:text-xs min-w-[90px] max-w-[90px]" : "p-3 text-sm min-w-[150px]"
                             )}>
                               {team.gstatus === 'SUSPENDED' ? (
                                 <span className="text-destructive font-semibold">SUSP</span>
                               ) : (
-                                <span className="line-clamp-2">{team.nat || team.name || `Team ${idx + 1}`}</span>
+                                <span className="whitespace-normal break-words block">{team.nat || team.name || `Team ${idx + 1}`}</span>
                               )}
                             </TableCell>
                             <TableCell className={cn("bg-slate-50", isMobile ? "p-0.5" : "p-2")}></TableCell>
@@ -258,8 +258,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                       <TableHeader>
                         <TableRow className="bg-muted">
                           <TableHead className={cn(
-                            "font-semibold text-foreground sticky left-0 bg-muted z-10",
-                            isMobile ? "min-w-[85px] text-[9px] sm:text-xs px-1" : "min-w-[150px] text-sm px-3"
+                            "font-semibold text-foreground sticky left-0 bg-muted z-20 border-r",
+                            isMobile ? "min-w-[90px] text-[9px] sm:text-xs px-1.5" : "min-w-[150px] text-sm px-3"
                           )}>
                             Selection
                           </TableHead>
@@ -275,13 +275,13 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                         {validBookmakers.map((bookmaker: any, idx: number) => (
                           <TableRow key={idx} className="hover:bg-muted/50">
                             <TableCell className={cn(
-                              "font-medium text-foreground sticky left-0 bg-background z-10",
-                              isMobile ? "p-1 text-[10px] sm:text-xs" : "p-3 text-sm"
+                              "font-medium text-foreground sticky left-0 bg-background z-20 border-r shadow-[2px_0_4px_rgba(0,0,0,0.1)]",
+                              isMobile ? "p-1.5 text-[11px] sm:text-xs min-w-[90px] max-w-[90px]" : "p-3 text-sm min-w-[150px]"
                             )}>
                               {bookmaker.gstatus === 'SUSPENDED' ? (
                                 <span className="text-destructive font-semibold">SUSP</span>
                               ) : (
-                                <span className="line-clamp-2">{bookmaker.nat || bookmaker.name || `Selection ${idx + 1}`}</span>
+                                <span className="whitespace-normal break-words block">{bookmaker.nat || bookmaker.name || `Selection ${idx + 1}`}</span>
                               )}
                             </TableCell>
                             {renderOddsCell(bookmaker.nat || bookmaker.name, 'back', bookmaker.b1, bookmaker.bs1, `bookmaker-${groupIdx}`, bookmaker.gstatus === 'SUSPENDED', bookmakerGroup.mname)}
@@ -342,8 +342,8 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                             <TableHeader>
                               <TableRow className="bg-muted">
                                 <TableHead className={cn(
-                                  "font-semibold text-foreground sticky left-0 bg-muted z-10",
-                                  isMobile ? "min-w-[85px] text-[9px] sm:text-xs px-1" : "min-w-[180px] text-sm px-3"
+                                  "font-semibold text-foreground sticky left-0 bg-muted z-20 border-r",
+                                  isMobile ? "min-w-[90px] text-[9px] sm:text-xs px-1.5" : "min-w-[180px] text-sm px-3"
                                 )}>
                                   Selection
                                 </TableHead>
@@ -363,13 +363,13 @@ const EnhancedOddsDisplay: React.FC<EnhancedOddsDisplayProps> = ({
                               {validFancyItems.map((fancy: any, idx: number) => (
                                 <TableRow key={idx} className="hover:bg-muted/50">
                                   <TableCell className={cn(
-                                    "font-medium text-foreground sticky left-0 bg-background z-10",
-                                    isMobile ? "p-1 text-[10px] sm:text-xs" : "p-3 text-sm"
+                                    "font-medium text-foreground sticky left-0 bg-background z-20 border-r shadow-[2px_0_4px_rgba(0,0,0,0.1)]",
+                                    isMobile ? "p-1.5 text-[11px] sm:text-xs min-w-[90px] max-w-[90px]" : "p-3 text-sm min-w-[180px]"
                                   )}>
                                     {fancy.gstatus === 'SUSPENDED' ? (
                                       <span className="text-destructive font-semibold">SUSP</span>
                                     ) : (
-                                      <span className="line-clamp-2">{fancy.nat || fancy.name || `Fancy ${idx + 1}`}</span>
+                                      <span className="whitespace-normal break-words block">{fancy.nat || fancy.name || `Fancy ${idx + 1}`}</span>
                                     )}
                                   </TableCell>
                                   <TableCell className={cn(
