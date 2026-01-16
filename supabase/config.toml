@@ -74,3 +74,10 @@ verify_jwt = false
 
 [functions.diamond-casino-proxy]
 verify_jwt = false
+
+[functions.auto-settle-scheduler]
+verify_jwt = false
+
+[[cron.sports-auto-settle]]
+function_name = "auto-settle-scheduler"
+cron = "*/5 * * * *"  # Every 5 minutes
