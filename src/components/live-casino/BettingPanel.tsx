@@ -562,7 +562,7 @@ export const BettingPanel = ({
         )}
 
         {/* ================= BETTING UI ================= */}
-        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen || isCard3j || isLucky5 || isLucky7 || isDolidana) && (
+        {!isRestricted && (hasRealOdds || isDtl20 || isOurroullete || isRoulette12 || isRoulette13 || isRoulette11 || isKbc || isDum10 || isCmeter1 || isCmeter || isCmatch20 || isCricketv3 || isLottcard || isBtable || isWorli || isWorli2 || isWar || isRace2 || isTeen120 || isNotenum || isTrio || isRace17 || isPatti2 || isTrap || isSuperover || isLucky7eu2 || isRace20 || isQueen || isCard3j || isLucky5 || isLucky7 || isDolidana || isAb3 || isAbj || isAb4 || isAb20) && (
           <>
             {isKbc ? (
               <KbcBetting
@@ -1348,13 +1348,27 @@ export const BettingPanel = ({
                 selectedBet={selectedBet}
                 onSelect={(b) => setSelectedBet(b.type)}
                 formatOdds={formatOdds}
-                resultHistory={resultHistory}
+                resultHistory={finalResultHistory}
                 onResultClick={(r) => console.log("ABJ result", r)}
                 amount={amount}
                 onAmountChange={setAmount}
-                onPlaceBet={onPlaceBet}
+                onPlaceBet={async (payload) => {
+                  // AbjBetting sends {sid, odds, nat, amount, side}, convert to expected format
+                  const bet = betTypes.find((b: any) => b.sid === payload.sid);
+                  await onPlaceBet({
+                    tableId: table.id,
+                    tableName: table.name,
+                    amount: payload.amount || parseFloat(amount),
+                    betType: payload.nat || bet?.nat || bet?.type || "",
+                    odds: payload.odds || bet?.b || bet?.back || bet?.odds || 1,
+                    roundId: odds?.data?.mid || odds?.mid || bet?.mid,
+                    sid: payload.sid,
+                    side: payload.side || "back",
+                  });
+                }}
                 loading={loading}
                 odds={odds}
+                tableId={tableId}
               />
             ) : isAb4 ? (   
               <Ab4Betting
@@ -1744,7 +1758,7 @@ export const BettingPanel = ({
 
         {/* ================= AMOUNT ================= */}
         {/* Only show amount/place bet controls for games that don't have their own betting UI */}
-        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && !isAaa && !isAaa2 && !isAb3 && !isLucky5 && !isLucky7 && !isDolidana && !isMogambo && (
+        {!isTeen && !isTeen1 && !isTeen3 && !isTeen6 && !isTeen20 && !isTeen20C && !isTeen42 && !isTeen8 && !isTeen9 && !isTeenUnique && !isTeenmuf && !isTeen62 && !isJoker1 && !isJoker20 && !isKbc && !isDum10 && !isCmeter1 && !isCmeter && !isCmatch20 && !isCricketv3 && !isLottcard && !isBtable && !isWorli && !isWorli2 && !isWar && !isRace2 && !isTeen120 && !isNotenum && !isTrio && !isRace17 && !isPatti2 && !isTrap && !isSuperover && !isLucky7eu2 && !isRace20 && !isQueen && !isDt6 && !isDtl20 && !isDt202 && !isDt20 && !isTeenmuf && !isTeensin && !isCard3j && !isAaa && !isAaa2 && !isAb3 && !isAbj && !isAb4 && !isAb20 && !isLucky5 && !isLucky7 && !isDolidana && !isMogambo && (
           <>
             <div className="space-y-2">
               <Input
