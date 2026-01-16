@@ -344,6 +344,7 @@ const SportsBet: React.FC = () => {
           console.log('[Banner Debug] TV Data full object:', tvData);
           
           // Extract banner from betfair response - check all possible locations
+          // diamond_score_one contains scorecard iframe which has banner
           const bannerFromBetfair = tvData?.banner || 
                                    tvData?.banner_url || 
                                    tvData?.bannerUrl ||
@@ -356,17 +357,21 @@ const SportsBet: React.FC = () => {
                                    tvData?.event_banner ||
                                    tvData?.match_image ||
                                    tvData?.event_image ||
+                                   tvData?.diamond_score_one || // Scorecard iframe with banner
                                    responseAny.data?.banner ||
                                    responseAny.data?.banner_url ||
                                    responseAny.data?.bannerUrl ||
                                    responseAny.data?.image ||
+                                   responseAny.data?.diamond_score_one ||
                                    responseAny.banner ||
                                    responseAny.banner_url ||
                                    responseAny.image ||
+                                   responseAny.diamond_score_one ||
                                    null;
           
           console.log('[Banner Debug] Extracted banner from Betfair API:', bannerFromBetfair);
           console.log('[Banner Debug] Banner type:', typeof bannerFromBetfair);
+          console.log('[Banner Debug] diamond_score_one:', tvData?.diamond_score_one);
           
           if (bannerFromBetfair && typeof bannerFromBetfair === 'string' && bannerFromBetfair.trim() !== '') {
             setMatchBanner(bannerFromBetfair);
@@ -377,15 +382,26 @@ const SportsBet: React.FC = () => {
           }
           
           // Extract ALL available URLs
+          // diamond_tv_one contains TV URL with token for live streaming
           const extractedData = {
-            tv: tvData?.tv_url_three || tvData?.tv_url || tvData?.iframeUrl || tvData?.url || tvData?.liveUrl,
-            scorecard: tvData?.scorecard_url || tvData?.scorecardUrl || tvData?.scorecard,
+            tv: tvData?.diamond_tv_one || // Priority: diamond_tv_one has token
+                tvData?.tv_url_three || 
+                tvData?.tv_url || 
+                tvData?.iframeUrl || 
+                tvData?.url || 
+                tvData?.liveUrl,
+            scorecard: tvData?.diamond_score_one || // diamond_score_one for scorecard
+                      tvData?.scorecard_url || 
+                      tvData?.scorecardUrl || 
+                      tvData?.scorecard,
             commentary: tvData?.commentary_url || tvData?.commentaryUrl || tvData?.commentary,
             statistics: tvData?.statistics_url || tvData?.statsUrl || tvData?.statistics || tvData?.stats,
             highlights: tvData?.highlights_url || tvData?.highlightsUrl || tvData?.highlights,
             alternateStreams: [
+              tvData?.diamond_tv_one, // Add diamond_tv_one with token
               tvData?.tv_url,
               tvData?.tv_url_two,
+              tvData?.tv_url_three,
               tvData?.liveUrl,
               tvData?.hlsUrl,
               tvData?.streamUrl,
@@ -393,6 +409,12 @@ const SportsBet: React.FC = () => {
               tvData?.stream_url
             ].filter(Boolean) // Remove null/undefined
           };
+          
+          console.log('[Live TV] ✅ Extracted TV URLs:', {
+            tv: extractedData.tv,
+            diamond_tv_one: tvData?.diamond_tv_one,
+            hasToken: extractedData.tv?.includes('token=')
+          });
           
             setBetfairData(extractedData);
             setLiveTvUrl(extractedData.tv); // Keep for backward compatibility
@@ -2016,33 +2038,42 @@ const SportsBet: React.FC = () => {
         <div className="mb-4 sm:mb-6">
           
           <Card>
-            {/* Banner Image */}
-            {matchBanner ? (
-              <div className="w-full h-32 sm:h-48 md:h-64 overflow-hidden rounded-t-lg bg-muted">
-                <img 
-                  src={matchBanner} 
-                  alt={`${match.team1} vs ${match.team2}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.error('[Banner Debug] Image load error:', matchBanner);
-                    // Hide banner if image fails to load and set fallback
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    setMatchBanner(null);
-                  }}
-                  onLoad={() => {
-                    console.log('[Banner Debug] Banner image loaded successfully:', matchBanner);
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="w-full h-32 sm:h-48 md:h-64 overflow-hidden rounded-t-lg bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDEwIDAgTCAwIDAgMCAxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjAuNSIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20"></div>
-                <div className="relative z-10 text-center px-4">
-                  <Trophy className="h-12 w-12 mx-auto text-primary/40 mb-2" />
-                  <p className="text-sm font-semibold text-foreground/60">{match.team1} vs {match.team2}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{sport || 'Match'}</p>
+            {/* Banner Image or Scorecard Iframe - Only show if banner exists */}
+            {matchBanner && (
+              // Check if banner is an iframe URL (scorecard with banner)
+              matchBanner.includes('/score') || matchBanner.includes('diamond_score') || matchBanner.includes('iframe') ? (
+                <div className="w-full h-32 sm:h-48 md:h-64 overflow-hidden rounded-t-lg bg-muted relative">
+                  <iframe
+                    src={matchBanner}
+                    className="w-full h-full border-0"
+                    title="Match Banner"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    style={{ 
+                      pointerEvents: 'none', // Prevent interaction, just display
+                      transform: 'scale(1)',
+                      transformOrigin: 'top left'
+                    }}
+                    scrolling="no"
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="w-full h-32 sm:h-48 md:h-64 overflow-hidden rounded-t-lg bg-muted">
+                  <img 
+                    src={matchBanner} 
+                    alt={`${match.team1} vs ${match.team2}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('[Banner Debug] Image load error:', matchBanner);
+                      // Hide banner if image fails to load
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      setMatchBanner(null);
+                    }}
+                    onLoad={() => {
+                      console.log('[Banner Debug] Banner image loaded successfully:', matchBanner);
+                    }}
+                  />
+                </div>
+              )
             )}
             
             <CardHeader className="p-3 sm:p-6">
