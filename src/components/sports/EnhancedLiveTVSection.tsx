@@ -121,9 +121,32 @@ const EnhancedLiveTVSection: React.FC<EnhancedLiveTVSectionProps> = ({
           ) : (
             <div className="bg-muted rounded-lg p-12 text-center">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground font-medium">
                 Live stream not available
               </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {isLive 
+                  ? 'Stream will start soon. Please check back later.' 
+                  : 'Live stream will be available when the match starts.'}
+              </p>
+              {betfairData.alternateStreams && betfairData.alternateStreams.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground mb-2">Alternative streams found but unavailable</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Try to open first alternate stream in new window
+                      if (betfairData.alternateStreams[0]) {
+                        window.open(betfairData.alternateStreams[0], '_blank', 'width=1280,height=720');
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-2" />
+                    Try Alternative Stream
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
