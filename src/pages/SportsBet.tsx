@@ -1468,39 +1468,61 @@ const SportsBet: React.FC = () => {
     // Skip if already attempted for this match
     if (settlementAttemptedRef.current === matchId) return;
 
-    // Check if match is completed/finished
-    const matchStatus = match.status?.toLowerCase() || '';
-    const detailsStatus = matchDetails?.status?.toLowerCase() || '';
-    const isCompleted = matchStatus.includes('completed') || 
-                       matchStatus.includes('finished') || 
-                       matchStatus.includes('won') ||
-                       detailsStatus.includes('completed') ||
-                       detailsStatus.includes('finished');
+    // Check if match is completed/finished - STRICT CHECK ONLY
+    const matchStatus = (match.status || '').toLowerCase().trim();
+    const detailsStatus = (matchDetails?.status || '').toLowerCase().trim();
+    
+    // Only consider explicitly completed statuses
+    const isCompleted = 
+      matchStatus === 'completed' || 
+      matchStatus === 'finished' || 
+      matchStatus === 'result' ||
+      matchStatus === 'ended' ||
+      matchStatus === 'settled' ||
+      detailsStatus === 'completed' ||
+      detailsStatus === 'finished' ||
+      detailsStatus === 'result' ||
+      detailsStatus === 'ended';
 
-    // Check if match is not live anymore (iplay = false and status not live)
-    const isNotLive = !match.isLive && matchStatus !== 'live' && !matchStatus.includes('upcoming');
+    // DO NOT settle if match is live, upcoming, scheduled, delayed, or in progress
+    const isLiveOrInProgress = 
+      match.isLive === true ||
+      matchStatus === 'live' ||
+      matchStatus === 'in progress' ||
+      matchStatus === 'ongoing' ||
+      matchStatus === 'playing' ||
+      matchStatus === 'upcoming' ||
+      matchStatus === 'scheduled' ||
+      matchStatus === 'not started' ||
+      matchStatus === 'delayed' ||
+      matchStatus === 'rain' ||
+      matchStatus === 'break' ||
+      matchStatus.includes('innings') ||
+      detailsStatus === 'live' ||
+      detailsStatus === 'in progress' ||
+      detailsStatus === 'ongoing';
 
-    if (isCompleted || isNotLive) {
-      // Extract sportsid and gmid for settlement
-      const sportsid = match?.raw?.sid || match?.raw?.sportsid || match?.sid || 
-                      (sport === 'cricket' ? '4' : 
-                       sport === 'football' ? '1' : 
-                       sport === 'tennis' ? '2' :
-                       sport === 'basketball' ? '3' :
-                       sport === 'hockey' ? '5' : null);
-      const gmid = match?.gmid || match?.id || match?.eventId || matchId;
+    // Extract sportsid and gmid for settlement
+    const sportsid = match?.raw?.sid || match?.raw?.sportsid || match?.sid || 
+                    (sport === 'cricket' ? '4' : 
+                     sport === 'football' ? '1' : 
+                     sport === 'tennis' ? '2' :
+                     sport === 'basketball' ? '3' :
+                     sport === 'hockey' ? '5' : null);
+    const gmid = match?.gmid || match?.id || match?.eventId || matchId;
 
-      if (sportsid && gmid) {
+    if (sportsid && gmid) {
         // Mark as attempted to prevent duplicate calls
         settlementAttemptedRef.current = matchId;
 
-        console.log('[Auto-Settle] Match completed, triggering auto-settlement...', {
+        console.log('[Auto-Settle] Triggering auto-settlement...', {
           sportsid,
           gmid,
           matchStatus,
           detailsStatus,
           isCompleted,
-          isNotLive
+          isLiveOrInProgress,
+          isLive: match.isLive
         });
 
         // Check if there are any markets with placed bets before attempting settlement
@@ -1508,7 +1530,7 @@ const SportsBet: React.FC = () => {
         // First check markets, then check if they have placed bets
         (supabase as any)
           .from('sports_markets')
-          .select('id, market_name, status')
+          .select('id, market_name, status, market_type')
           .eq('sportsid', sportsid)
           .eq('gmid', gmid.toString())
           .in('status', ['open', 'closed', 'suspended'])
@@ -1547,32 +1569,116 @@ const SportsBet: React.FC = () => {
               return;
             }
 
-            console.log('[Auto-Settle] Found markets with placed bets, triggering settlement...');
-            console.log('[Auto-Settle] Calling settleAllMarkets with:', { sportsid, gmid: gmid.toString() });
-
-            // Trigger auto-settlement for all open markets
-            settleAllMarkets(sportsid, gmid.toString()).then((result) => {
-              console.log('[Auto-Settle] settleAllMarkets returned:', result);
-              if (result?.success) {
-                console.log('[Auto-Settle] ✅ Settlement completed successfully:', result);
-                console.log('[Auto-Settle] Settled markets:', result.settled_markets);
-                console.log('[Auto-Settle] Failed markets:', result.failed_markets);
-                // Refresh bets after settlement
-                setTimeout(() => {
-                  console.log('[Auto-Settle] Refreshing bets...');
-                  fetchMyBets();
-                }, 2000);
-              } else {
-                console.warn('[Auto-Settle] ⚠️ Settlement returned but success=false:', result);
-                settlementAttemptedRef.current = null; // Reset on failure
-              }
-            }).catch((error) => {
-              console.error('[Auto-Settle] ❌ Settlement error:', error);
-              console.error('[Auto-Settle] Error stack:', error.stack);
-              settlementAttemptedRef.current = null; // Reset on error
+            // Separate markets by type
+            const oddsMarkets = markets.filter((m: any) => m.market_type === 'odds');
+            const sessionMarkets = markets.filter((m: any) => m.market_type === 'session');
+            
+            console.log('[Auto-Settle] Market breakdown:', {
+              total: markets.length,
+              odds: oddsMarkets.length,
+              session: sessionMarkets.length,
+              isCompleted,
+              isLiveOrInProgress,
+              isLive: match.isLive
             });
+
+            // For ODDS markets (like MATCH_ODDS) - only settle after match is completed
+            // For SESSION markets (like over/under) - can settle during live match if result is available
+            const shouldSettleOdds = isCompleted && !isLiveOrInProgress;
+            const shouldSettleSession = true; // Session markets can settle anytime if result_value is available
+
+            // If no markets can be settled, skip
+            if (oddsMarkets.length > 0 && !shouldSettleOdds && sessionMarkets.length === 0) {
+              console.log('[Auto-Settle] Only ODDS markets found but match not completed, skipping settlement');
+              settlementAttemptedRef.current = matchId;
+              return;
+            }
+            
+            if (sessionMarkets.length > 0 && !shouldSettleSession && oddsMarkets.length === 0) {
+              console.log('[Auto-Settle] Only SESSION markets but cannot settle (should not happen)');
+              settlementAttemptedRef.current = matchId;
+              return;
+            }
+            
+            if (oddsMarkets.length === 0 && sessionMarkets.length === 0) {
+              console.log('[Auto-Settle] No markets found (unknown type)');
+              settlementAttemptedRef.current = matchId;
+              return;
+            }
+
+            console.log('[Auto-Settle] Found markets with placed bets, verifying results from API...');
+            
+            // CRITICAL: Verify results are available from the API
+            const verifyUrl = `http://72.61.169.60:8001/api/sports/posted-market-result?sportsid=${sportsid}&gmid=${gmid}`;
+            console.log('[Auto-Settle] Verifying results from:', verifyUrl);
+            
+            fetch(verifyUrl)
+              .then(async (response) => {
+                if (!response.ok) {
+                  console.warn('[Auto-Settle] Result API check failed, skipping settlement');
+                  settlementAttemptedRef.current = null;
+                  return;
+                }
+                
+                const resultData = await response.json();
+                console.log('[Auto-Settle] Result API response:', JSON.stringify(resultData).substring(0, 200));
+                
+                // Check if results are actually available
+                const hasResults = resultData?.success === true && 
+                                 (resultData?.markets?.length > 0 || 
+                                  resultData?.data?.length > 0 ||
+                                  Array.isArray(resultData) && resultData.length > 0);
+                
+                if (!hasResults) {
+                  console.warn('[Auto-Settle] No results available from API yet, skipping settlement');
+                  settlementAttemptedRef.current = null;
+                  return;
+                }
+                
+                // Verify which markets can be settled
+                // For ODDS markets, match must be completed
+                // For SESSION markets, results just need to be available
+                if (oddsMarkets.length > 0 && !shouldSettleOdds) {
+                  console.log('[Auto-Settle] ⚠️ ODDS markets found but match not completed - will skip ODDS markets in settlement');
+                }
+                
+                console.log('[Auto-Settle] ✅ Results verified, triggering settlement...', {
+                  oddsMarkets: oddsMarkets.length,
+                  sessionMarkets: sessionMarkets.length,
+                  shouldSettleOdds,
+                  shouldSettleSession,
+                  willSettleOdds: shouldSettleOdds && oddsMarkets.length > 0,
+                  willSettleSession: shouldSettleSession && sessionMarkets.length > 0
+                });
+                console.log('[Auto-Settle] Calling settleAllMarkets with:', { sportsid, gmid: gmid.toString() });
+
+                // Trigger auto-settlement for all eligible markets
+                settleAllMarkets(sportsid, gmid.toString()).then((result) => {
+                  console.log('[Auto-Settle] settleAllMarkets returned:', result);
+                  if (result?.success) {
+                    console.log('[Auto-Settle] ✅ Settlement completed successfully:', result);
+                    console.log('[Auto-Settle] Settled markets:', result.settled_markets);
+                    console.log('[Auto-Settle] Failed markets:', result.failed_markets);
+                    // Refresh bets after settlement
+                    setTimeout(() => {
+                      console.log('[Auto-Settle] Refreshing bets...');
+                      fetchMyBets();
+                    }, 2000);
+                  } else {
+                    console.warn('[Auto-Settle] ⚠️ Settlement returned but success=false:', result);
+                    settlementAttemptedRef.current = null; // Reset on failure
+                  }
+                }).catch((error) => {
+                  console.error('[Auto-Settle] ❌ Settlement error:', error);
+                  console.error('[Auto-Settle] Error stack:', error.stack);
+                  settlementAttemptedRef.current = null; // Reset on error
+                });
+              })
+              .catch((verifyError) => {
+                console.error('[Auto-Settle] ❌ Error verifying match completion:', verifyError);
+                settlementAttemptedRef.current = null; // Reset on error
+              });
           });
-      }
     }
   }, [match?.status, match?.isLive, matchDetails?.status, matchId, user, settleAllMarkets, fetchMyBets, sport]);
 
