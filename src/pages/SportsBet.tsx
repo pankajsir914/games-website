@@ -33,7 +33,7 @@ const SportsBet: React.FC = () => {
   const { state } = location;
   const { user } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const { getPriveteData, callAPI, getBetfairScoreTv, getDetailsData, getDiamondOriginalTv } = useDiamondSportsAPI();
+  const { getPriveteData, callAPI, getBetfairScoreTv, getDetailsData, getDiamondOriginalTv, getDiamondIframeTV, getHlsTv, getLiveTv } = useDiamondSportsAPI();
   const { connectOddsWebSocket } = useDiamondSportsData();
   const { wallet } = useWallet();
   const { toast } = useToast();
@@ -280,9 +280,10 @@ const SportsBet: React.FC = () => {
         console.log('[Banner Debug] MatchId:', matchId, 'SportSid:', sportSid);
         
         // Retry logic for Betfair API (in case of rate limit)
+        // Reduced retries and increased delays to avoid hitting rate limits
         let response = null;
-        let retries = 3;
-        let retryDelay = 3000; // 3 seconds
+        let retries = 2; // Reduced from 3 to 2
+        let retryDelay = 5000; // Increased from 3s to 5s
         
         while (retries > 0) {
           try {
@@ -290,13 +291,20 @@ const SportsBet: React.FC = () => {
             
             // Check if we got rate limit error
             const responseAny = response as any;
-            if (responseAny?.data?.error === 'Rate limit exceeded' || responseAny?.data?.error?.includes('Rate limit')) {
-              console.log(`[Banner Debug] Rate limit error, retrying... (${retries} attempts left)`);
+            if (responseAny?.data?.error === 'Rate limit exceeded' || 
+                responseAny?.data?.error?.includes('Rate limit') ||
+                responseAny?.data?.error?.includes('rate limit')) {
+              console.log(`[Banner Debug] ⚠️ Rate limit error, waiting before retry... (${retries - 1} attempts left)`);
               retries--;
               if (retries > 0) {
+                // Wait longer before retry to avoid rate limits
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
-                retryDelay += 2000; // Increase delay with each retry
+                retryDelay += 3000; // Increase delay with each retry (5s, 8s)
                 continue;
+              } else {
+                // Last retry failed, break and try fallback endpoints
+                console.log('[Banner Debug] ⚠️ Rate limit exceeded after retries, will try fallback endpoints');
+                break;
               }
             } else {
               // Success or other error, break the loop
@@ -307,6 +315,7 @@ const SportsBet: React.FC = () => {
             retries--;
             if (retries > 0) {
               await new Promise(resolve => setTimeout(resolve, retryDelay));
+              retryDelay += 3000;
             }
           }
         }
@@ -321,13 +330,15 @@ const SportsBet: React.FC = () => {
           const responseAny = response as any;
           
           // Check for rate limit error
-          if (responseAny.data?.error === 'Rate limit exceeded' || responseAny.data?.error?.includes('Rate limit')) {
-            console.log('[Banner Debug] ⚠️ Rate limit exceeded, cannot fetch banner at this time');
-            setIsLoadingTv(false);
-            return;
-          }
-          
-          const tvData = response.data.data || response.data;
+          if (responseAny.data?.error === 'Rate limit exceeded' || 
+              responseAny.data?.error?.includes('Rate limit') ||
+              responseAny.data?.error?.includes('rate limit')) {
+            console.log('[Banner Debug] ⚠️ Rate limit exceeded for Betfair API, trying fallback endpoints...');
+            // Don't return early - continue to try fallback endpoints
+            // Just skip the Betfair data extraction
+          } else {
+            // Process successful Betfair response
+            const tvData = response.data.data || response.data;
           
           console.log('[Banner Debug] TV Data keys:', tvData ? Object.keys(tvData) : 'No tvData');
           console.log('[Banner Debug] TV Data full object:', tvData);
@@ -383,38 +394,120 @@ const SportsBet: React.FC = () => {
             ].filter(Boolean) // Remove null/undefined
           };
           
-          setBetfairData(extractedData);
-          setLiveTvUrl(extractedData.tv); // Keep for backward compatibility
+            setBetfairData(extractedData);
+            setLiveTvUrl(extractedData.tv); // Keep for backward compatibility
+          }
         } else {
           console.log('[Banner Debug] ❌ Betfair API response not successful:', response);
         }
         
-        // Also try Diamond Original TV as fallback (but don't override banner if already set)
-        try {
-          const diamondTvResponse = await getDiamondOriginalTv(matchId, sportSid);
+        // Try multiple fallback endpoints if Betfair didn't return TV URL
+        if (!betfairData.tv) {
+          console.log('[Live TV] Trying fallback endpoints...');
           
-          if (diamondTvResponse?.success && diamondTvResponse.data) {
-            const streamUrl = diamondTvResponse.data.streamUrl || 
-                            diamondTvResponse.data.data?.streamUrl ||
-                            diamondTvResponse.data.url ||
-                            null;
-            
-            if (streamUrl && !betfairData.tv) {
-              const extractedData = {
-                tv: streamUrl,
-                scorecard: betfairData.scorecard,
-                commentary: betfairData.commentary,
-                statistics: betfairData.statistics,
-                highlights: betfairData.highlights,
-                alternateStreams: [streamUrl]
-              };
+          // Try Diamond Original TV
+          try {
+            const diamondTvResponse = await getDiamondOriginalTv(matchId, sportSid);
+            if (diamondTvResponse?.success && diamondTvResponse.data) {
+              const streamUrl = diamondTvResponse.data.streamUrl || 
+                              diamondTvResponse.data.data?.streamUrl ||
+                              diamondTvResponse.data.url ||
+                              null;
               
-              setBetfairData(extractedData);
-              setLiveTvUrl(streamUrl);
+              if (streamUrl) {
+                console.log('[Live TV] ✅ Found stream from Diamond Original TV');
+                const updatedData = {
+                  ...betfairData,
+                  tv: streamUrl,
+                  alternateStreams: [...(betfairData.alternateStreams || []), streamUrl].filter(Boolean)
+                };
+                setBetfairData(updatedData);
+                setLiveTvUrl(streamUrl);
+                return; // Exit early if we found a stream
+              }
             }
+          } catch (diamondTvError) {
+            console.error('❌ [Live TV] Error fetching Diamond Original TV:', diamondTvError);
           }
-        } catch (diamondTvError) {
-          console.error('❌ [Frontend] Error fetching Diamond Original TV:', diamondTvError);
+          
+          // Try Diamond Iframe TV
+          try {
+            const iframeTvResponse = await getDiamondIframeTV(matchId);
+            if (iframeTvResponse?.success && iframeTvResponse.data) {
+              const streamUrl = iframeTvResponse.data.iframeUrl || 
+                              iframeTvResponse.data.url ||
+                              iframeTvResponse.data.streamUrl ||
+                              iframeTvResponse.data.data?.iframeUrl ||
+                              iframeTvResponse.data.data?.url ||
+                              null;
+              
+              if (streamUrl) {
+                console.log('[Live TV] ✅ Found stream from Diamond Iframe TV');
+                const updatedData = {
+                  ...betfairData,
+                  tv: streamUrl,
+                  alternateStreams: [...(betfairData.alternateStreams || []), streamUrl].filter(Boolean)
+                };
+                setBetfairData(updatedData);
+                setLiveTvUrl(streamUrl);
+                return; // Exit early if we found a stream
+              }
+            }
+          } catch (iframeTvError) {
+            console.error('❌ [Live TV] Error fetching Diamond Iframe TV:', iframeTvError);
+          }
+          
+          // Try HLS TV
+          try {
+            const hlsTvResponse = await getHlsTv(matchId);
+            if (hlsTvResponse?.success && hlsTvResponse.data) {
+              const streamUrl = hlsTvResponse.data.url ||
+                              hlsTvResponse.data.streamUrl ||
+                              hlsTvResponse.data.hlsUrl ||
+                              hlsTvResponse.data.m3u8 ||
+                              hlsTvResponse.data.data?.url ||
+                              null;
+              
+              if (streamUrl) {
+                console.log('[Live TV] ✅ Found stream from HLS TV');
+                const updatedData = {
+                  ...betfairData,
+                  tv: streamUrl,
+                  alternateStreams: [...(betfairData.alternateStreams || []), streamUrl].filter(Boolean)
+                };
+                setBetfairData(updatedData);
+                setLiveTvUrl(streamUrl);
+                return; // Exit early if we found a stream
+              }
+            }
+          } catch (hlsTvError) {
+            console.error('❌ [Live TV] Error fetching HLS TV:', hlsTvError);
+          }
+          
+          // Try generic Live TV endpoint
+          try {
+            const liveTvResponse = await getLiveTv(matchId);
+            if (liveTvResponse?.success && liveTvResponse.data) {
+              const streamUrl = liveTvResponse.data.url ||
+                              liveTvResponse.data.streamUrl ||
+                              liveTvResponse.data.tvUrl ||
+                              liveTvResponse.data.data?.url ||
+                              null;
+              
+              if (streamUrl) {
+                console.log('[Live TV] ✅ Found stream from Live TV endpoint');
+                const updatedData = {
+                  ...betfairData,
+                  tv: streamUrl,
+                  alternateStreams: [...(betfairData.alternateStreams || []), streamUrl].filter(Boolean)
+                };
+                setBetfairData(updatedData);
+                setLiveTvUrl(streamUrl);
+              }
+            }
+          } catch (liveTvError) {
+            console.error('❌ [Live TV] Error fetching Live TV:', liveTvError);
+          }
         }
       } catch (error) {
         console.error('Error fetching Betfair data:', error);
@@ -424,7 +517,7 @@ const SportsBet: React.FC = () => {
     };
 
     fetchLiveTv();
-  }, [matchId, sport, getBetfairScoreTv, getDiamondOriginalTv, user]); // Removed betfairData from dependencies to prevent loop
+  }, [matchId, sport, getBetfairScoreTv, getDiamondOriginalTv, getDiamondIframeTV, getHlsTv, getLiveTv, user]); // Removed betfairData from dependencies to prevent loop
 
 
   // Fetch match info if not passed via navigation state
@@ -1149,10 +1242,16 @@ const SportsBet: React.FC = () => {
     }
 
     const amount = parseFloat(betAmount);
-    if (wallet && amount > wallet.current_balance) {
+    
+    // Calculate liability/exposure before checking balance
+    const liability = calculateLiability();
+    const requiredBalance = liability; // For lay/NO bets, exposure is higher than stake
+    
+    // Check balance against required exposure, not just stake
+    if (wallet && requiredBalance > wallet.current_balance) {
       toast({
         title: "Insufficient balance",
-        description: "You don't have enough balance to place this bet",
+        description: `Required: ₹${requiredBalance.toFixed(2)}, Available: ₹${wallet.current_balance.toFixed(2)}`,
         variant: "destructive"
       });
       return;
@@ -1162,7 +1261,6 @@ const SportsBet: React.FC = () => {
     try {
       // Calculate potential win and liability (same as shown in bet slip)
       const potentialWin = calculatePotentialWin();
-      const liability = calculateLiability();
       
       const eventId = matchId || match?.id || match?.eventId || match?.eventId;
       const marketName = selectedBet.mname || 'Market';
@@ -1413,14 +1511,14 @@ const SportsBet: React.FC = () => {
     
     if (marketType === 'session') {
       // SESSION market (fancy): back = YES, lay = NO
-      // Rate format: rate is total return amount
-      if (selectedBet.type === 'back') {
+      // Backend calculation: YES exposure = stake, NO exposure = stake * rate / 100
+      if (selectedBet.type === 'back' || selectedBet.type === 'yes') {
         // YES: Exposure = stake (if you lose, you lose your stake)
         return numericAmount;
-      } else if (selectedBet.type === 'lay') {
-        // NO: Exposure = rate - stake (if YES wins, you pay the difference)
-        // Example: Rate 340, Stake 100 → If YES wins, you pay 340 - 100 = 240
-        return Math.max(rate - numericAmount, 0);
+      } else if (selectedBet.type === 'lay' || selectedBet.type === 'no') {
+        // NO: Exposure = stake * rate / 100 (backend formula)
+        // Example: Rate 340, Stake 100 → Exposure = 100 * 340 / 100 = 340
+        return (numericAmount * rate) / 100;
       }
     } else if (marketType === 'bookmaker') {
       // BOOKMAKER market: exposure = (odds / 100) × stake (for LAY)
@@ -1434,7 +1532,7 @@ const SportsBet: React.FC = () => {
       }
     } else {
       // ODDS market (match): BACK/LAY with decimal odds
-      // Decimal odds format: exposure = stake × (odds - 1) (for LAY)
+      // Backend calculation: BACK exposure = stake, LAY exposure = stake * (odds - 1)
       if (selectedBet.type === 'back') {
         // BACK: Exposure = stake
         return numericAmount;
